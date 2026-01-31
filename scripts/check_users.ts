@@ -1,0 +1,16 @@
+
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  const users = await prisma.user.findMany()
+  console.log('Users in database:')
+  users.forEach((u: any) => {
+    console.log(`- Username: '${u.username}', Role: '${u.role}', Name: '${u.name}'`)
+  })
+}
+
+main()
+  .catch(e => console.error(e))
+  .finally(async () => await prisma.$disconnect())

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PSB Perkasa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            background: #0f172a;
+            color: white;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <img src="../public/logo.png" alt="Logo" style="max-width: 100px; margin-bottom: 20px;">
+        <h1>PSB Perkasa Mobile</h1>
+        <p>Aplikasi tidak dapat menghubungi server.</p>
+        <p style="opacity: 0.7; font-size: 0.9em;">Pastikan internet aktif atau konfigurasi server URL benar.</p>
+        <button onclick="window.location.reload()">Muat Ulang</button>
+    </div>
+</body>
+</html>

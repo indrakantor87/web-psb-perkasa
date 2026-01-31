@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  username  String   @unique
+  password  String
+  role      String   // ADMIN, CS, NOC, MARKETING, TEKNISI
+  createdAt DateTime @default(now())
+  
+  ticketsClosed Ticket[] @relation("ClosedBy")
+}
+
+model Ticket {
+  id            Int      @id @default(autoincrement())
+  customerName  String
+  birthDate     DateTime?
+  locationMap   String
+  requestDate   DateTime @default(now())
+  installedDate DateTime?
+  package       String
+  marketingName String
+  description   String?
+  phoneNumber   String
+  fotoRumah     String?
+  pengawalan    String?
+  kmz           String?
+  priority      String?
+  status        String   @default("OPEN")
+  
+  closedById    Int?
+  closedBy      User?    @relation("ClosedBy", fields: [closedById], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Priority {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String   // CSS color value or tailwind class hint
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

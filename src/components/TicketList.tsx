@@ -1,0 +1,663 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
+import { clsx } from 'clsx'
+
+interface Ticket {
+  id: number
+  customerName: string
+  birthDate?: string | null
+  locationMap: string
+  requestDate: string
+  installedDate: string | null
+  package: string
+  marketingName: string
+  description: string | null
+  phoneNumber: string
+  fotoRumah?: string | null
+  pengawalan?: string | null
+  kmz?: string | null
+  priority?: string | null
+  status: string
+  closedBy?: { name: string } | null
+}
+
+interface Priority {
+  id: number
+  name: string
+  color: string
+}
+
+interface TicketListProps {
+  tickets: Ticket[]
+  userRole: string
+  initialPeriod: { month: number; year: number }
+  initialStatus?: string
+  initialMarketing?: string
+}
+
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing }: TicketListProps) {
+  const router = useRouter()
+  const [loadingId, setLoadingId] = useState<number | null>(null)
+  const [month, setMonth] = useState(initialPeriod.month)
+  const [year, setYear] = useState(initialPeriod.year)
+  const [status, setStatus] = useState((initialStatus || 'ALL').toUpperCase())
+  const [marketing, setMarketing] = useState(initialMarketing || '')
+  const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
+  const [priorities, setPriorities] = useState<Priority[]>([])
+  const [activeActionId, setActiveActionId] = useState<number | null>(null)
+  const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
+  
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
+
+  // Reset page when filters change (tickets prop changes)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [tickets])
+
+  useEffect(() => {
+    const fetchPriorities = async () => {
+      try {
+        const res = await fetch('/api/priorities')
+        if (res.ok) {
+          const data = await res.json()
+          setPriorities(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch priorities', error)
+      }
+    }
+    fetchPriorities()
+  }, [])
+
+  const getPriorityColor = (priorityName: string | null | undefined) => {
+    if (!priorityName) return 'bg-gray-200 text-gray-800'
+    const found = priorities.find(p => p.name === priorityName)
+    return found ? found.color : 'bg-gray-200 text-gray-800'
+  }
+
+  const handleFilter = () => {
+    const base = `/list?month=${month}&year=${year}`
+    const statusPart = status === 'ALL' ? '' : `&status=${status}`
+    const marketingPart = marketing.trim() ? `&marketing=${encodeURIComponent(marketing.trim())}` : ''
+    const url = `${base}${statusPart}${marketingPart}`
+    router.push(url)
+  }
+
+  const handleCloseTicket = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Safety check: Stop execution if user cancels confirmation
+    if (!confirm('Apakah Anda yakin ingin menutup tiket ini?')) {
+      return
+    }
+
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CLOSE' }),
+      })
+
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Gagal menutup tiket')
+      }
+    } catch (error) {
+      alert('Terjadi kesalahan saat menutup tiket')
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  const handleUpdatePengawalan = async (id: number, value: string) => {
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pengawalan: value }),
+      })
+
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Failed to update pengawalan')
+      }
+    } catch (error) {
+      alert('Error updating pengawalan')
+    }
+  }
+
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ]
+  const years = [2024, 2025, 2026, 2027]
+
+  const canClose = ['ADMIN', 'CS', 'NOC'].includes(userRole)
+  const canEditKmz = ['ADMIN', 'CS', 'NOC'].includes(userRole)
+  const canEditPriority = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole)
+  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
+
+  const handleEditTicket = (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    alert('Fitur edit belum tersedia')
+    setActiveActionId(null)
+  }
+
+  const handleDeleteTicket = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const isConfirmed = confirm('Apakah Anda yakin ingin menghapus data ini?')
+
+    if (isConfirmed) {
+      setLoadingId(id)
+      try {
+        const res = await fetch(`/api/tickets/${id}`, {
+          method: 'DELETE',
+        })
+
+        if (res.ok) {
+          router.refresh()
+        } else {
+          alert('Gagal menghapus data')
+        }
+      } catch (error) {
+        alert('Terjadi kesalahan saat menghapus data')
+      } finally {
+        setLoadingId(null)
+      }
+    }
+  }
+
+  const handleStartEditKmz = (id: number, currentValue?: string | null) => {
+    setKmzEdit({ id, value: currentValue || '' })
+  }
+
+  const handleSaveKmz = async (id: number, value: string) => {
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kmz: value }),
+      })
+      if (res.ok) {
+        setKmzEdit(null)
+        router.refresh()
+      } else {
+        alert('Gagal menyimpan KMZ')
+      }
+    } catch (e) {
+      alert('Error menyimpan KMZ')
+    }
+  }
+
+  const handleUpdatePriority = async (id: number, value: string) => {
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priority: value || null }),
+      })
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Gagal mengubah prioritas')
+      }
+    } catch (error) {
+      alert('Error mengubah prioritas')
+    }
+  }
+
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentTickets = tickets.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(tickets.length / itemsPerPage)
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
+          <span className="text-xs font-bold text-white">
+            Ticket Open : {tickets.filter(t => t.status === 'OPEN').length}
+          </span>
+        </div>
+        <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
+          <span className="text-xs font-bold text-white">
+            Ticket Close : {tickets.filter(t => t.status === 'CLOSE').length}
+          </span>
+        </div>
+        <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
+          <span className="text-xs font-bold text-white">
+            Ticket Pending : {tickets.filter(t => t.status === 'PENDING').length}
+          </span>
+        </div>
+      </div>
+
+      <div className="inline-flex flex-col space-y-1 rounded-lg bg-white dark:bg-gray-800 p-1.5 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 ml-2 whitespace-nowrap">Filter:</h2>
+        <div className="flex w-full flex-col space-y-1 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-4">
+          <div className="flex flex-col">
+            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Bulan</span>
+            <select
+              value={month}
+              onChange={(e) => setMonth(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-32"
+            >
+              {months.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
+            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Tahun</span>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-24"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col">
+            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value.toUpperCase())}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-28"
+            >
+              <option value="ALL">Semua</option>
+              <option value="OPEN">OPEN</option>
+              <option value="CLOSE">CLOSE</option>
+              <option value="PENDING">PENDING</option>
+            </select>
+          </div>
+          {userRole !== 'MARKETING' && (
+            <div className="flex flex-col">
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Nama Marketing</span>
+              <input
+                type="text"
+                value={marketing}
+                onChange={(e) => setMarketing(e.target.value)}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-40"
+                placeholder="Cari nama…"
+              />
+            </div>
+          )}
+          <div className="flex items-end h-full pt-3">
+            <button
+              onClick={handleFilter}
+              className="w-full rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 md:w-auto"
+            >
+              Terapkan
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="overflow-x-auto overflow-y-hidden rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+        <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Lahir</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Maps Lokasi</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Request</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Terpasang</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
+            {currentTickets.map((ticket, index) => (
+              <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{indexOfFirstItem + index + 1}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setSummaryTicket(ticket)
+                    }}
+                    className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none"
+                  >
+                    {ticket.customerName}
+                  </button>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
+                </td>
+                <td className="max-w-xs truncate px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
+                    Link Map
+                  </a>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <a
+                    href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                  >
+                    {ticket.phoneNumber}
+                  </a>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  {ticket.fotoRumah ? (
+                    <a href={ticket.fotoRumah} target="_blank" rel="noreferrer" className="hover:underline">
+                      Lihat Foto
+                    </a>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  {canClose ? (
+                    <select
+                      value={ticket.pengawalan || 'tidak'}
+                      onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="tidak">Tidak</option>
+                      <option value="onsite">Onsite</option>
+                      <option value="onchat">Onchat</option>
+                    </select>
+                  ) : (
+                    <span className="capitalize">{ticket.pengawalan || '-'}</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs">
+                  {kmzEdit?.id === ticket.id ? (
+                    <div className="flex items-center space-x-1">
+                      <input
+                        value={kmzEdit.value}
+                        onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
+                        className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-1 py-0.5 text-xs"
+                        placeholder="Tautan/teks KMZ"
+                      />
+                      <button
+                        onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
+                        className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
+                      >
+                        Simpan
+                      </button>
+                      <button
+                        onClick={() => setKmzEdit(null)}
+                        className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : ticket.kmz ? (
+                    <div className="flex items-center space-x-1">
+                      <span className="max-w-[100px] truncate text-gray-700 dark:text-gray-300" title={ticket.kmz}>{ticket.kmz}</span>
+                      {canEditKmz && (
+                        <button
+                          onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
+                          className="rounded bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  ) : canEditKmz ? (
+                    <button
+                      onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
+                      className="rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30"
+                    >
+                      + KMZ
+                    </button>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs">
+                  {canEditPriority ? (
+                    <select
+                      value={ticket.priority || ''}
+                      onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6"
+                    >
+                      <option value="">- Pilih -</option>
+                      {priorities.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : ticket.priority ? (
+                    <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold', getPriorityColor(ticket.priority))}>
+                      {ticket.priority}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500">-</span>
+                  )}
+                </td>
+                <td className="max-w-xs truncate px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
+                  {ticket.description || '-'}
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs">
+                  <span className={clsx(
+                    'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                    ticket.status === 'OPEN' 
+                      ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                      : ticket.status === 'CLOSE' 
+                        ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
+                        : ticket.status === 'PENDING'
+                          ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
+                          : 'bg-gray-200 text-gray-800'
+                  )}>
+                    {ticket.status}
+                  </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex flex-col gap-1 items-center relative action-dropdown-container">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setActiveActionId(activeActionId === ticket.id ? null : ticket.id)
+                      }}
+                      className="rounded p-1 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-white transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                      </svg>
+                    </button>
+                    
+                    {activeActionId === ticket.id && (
+                      <div className="absolute right-0 top-8 z-50 w-32 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div className="py-1">
+                          {ticket.status === 'OPEN' && canClose && (
+                            <button
+                              onClick={(e) => {
+                                handleCloseTicket(e, ticket.id)
+                                setActiveActionId(null)
+                              }}
+                              disabled={loadingId === ticket.id}
+                              className="block w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              {loadingId === ticket.id ? 'Closing...' : 'Close'}
+                            </button>
+                          )}
+                          
+                          <button
+                             onClick={(e) => handleEditTicket(e, ticket.id)}
+                             className="block w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-100"
+                          >
+                            Edit
+                          </button>
+
+                          {canDelete && (
+                            <button
+                              onClick={(e) => {
+                                handleDeleteTicket(e, ticket.id)
+                                setActiveActionId(null)
+                              }}
+                              disabled={loadingId === ticket.id}
+                              className="block w-full px-4 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {ticket.status === 'CLOSE' && (
+                      <div className="flex flex-col items-center text-[10px] text-green-600 dark:text-green-400">
+                        <span>by {ticket.closedBy?.name}</span>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {tickets.length === 0 && (
+              <tr>
+                <td colSpan={15} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                  Tidak ada data untuk periode ini
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
+        <div className="text-xs text-gray-700 dark:text-gray-300">
+          Menampilkan <span className="font-medium">{tickets.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
+          <span className="font-medium">{Math.min(indexOfLastItem, tickets.length)}</span> dari{' '}
+          <span className="font-medium">{tickets.length}</span> hasil
+        </div>
+        
+        <div className="flex items-center space-x-2">
+           <span className="text-xs text-gray-700 dark:text-gray-300">Tampilkan:</span>
+           <select
+             value={itemsPerPage}
+             onChange={(e) => {
+               setItemsPerPage(Number(e.target.value))
+               setCurrentPage(1)
+             }}
+             className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-1 py-0.5 text-xs text-black dark:text-white"
+           >
+             <option value={25}>25</option>
+             <option value={50}>50</option>
+             <option value={100}>100</option>
+           </select>
+           
+           <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-l-md px-1 py-1 text-gray-400 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
+              >
+                <span className="sr-only">Previous</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                </svg>
+              </button>
+              
+               <span className="relative inline-flex items-center px-2 py-1 text-xs font-semibold text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 bg-white dark:bg-gray-800 focus:outline-offset-0">
+                 {currentPage} / {totalPages}
+               </span>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center rounded-r-md px-1 py-1 text-gray-400 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
+              >
+                <span className="sr-only">Next</span>
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                </svg>
+              </button>
+           </nav>
+        </div>
+      </div>
+
+      {summaryTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all duration-300">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 transform transition-all">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ringkasan Ticket</h3>
+              <button
+                onClick={() => setSummaryTicket(null)}
+                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 text-sm font-sans text-gray-600 dark:text-gray-300">
+                  <div className="space-y-2 leading-relaxed">
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Nama</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.customerName}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Tanggal Lahir</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.birthDate ? format(new Date(summaryTicket.birthDate), 'dd/MM/yyyy') : '-'}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Maps Lokasi</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white break-all">{summaryTicket.locationMap}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Nomor HP</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.phoneNumber}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Paket</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.package}</span>
+                    </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Marketing</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.marketingName}</span>
+                    </div>
+                  </div>
+                </div>
+            <div className="bg-gray-50/50 dark:bg-gray-900/50 px-6 py-4 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                className="inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all sm:w-auto"
+                onClick={() => setSummaryTicket(null)}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
