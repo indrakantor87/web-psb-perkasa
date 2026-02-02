@@ -59,33 +59,6 @@ export async function GET(request: Request) {
       }
     })
 
-    // Workaround for outdated Prisma Client: Fetch missing fields via raw query
-    const ticketIds = tickets.map((t: any) => t.id)
-    
-    if (ticketIds.length > 0) {
-      try {
-        const rawData: any[] = await prisma.$queryRawUnsafe(
-          `SELECT id, fotoRumah, pengawalan, kmz, priority FROM Ticket WHERE id IN (${ticketIds.join(',')})`
-        )
-        
-        const ticketsWithExtras = tickets.map((t: any) => {
-          // Use loose comparison or string conversion for IDs to be safe
-          const extra = rawData.find((r: any) => String(r.id) === String(t.id))
-          return {
-            ...t,
-            fotoRumah: extra?.fotoRumah || t.fotoRumah,
-            pengawalan: extra?.pengawalan || t.pengawalan,
-            kmz: extra?.kmz || t.kmz,
-            priority: extra?.priority || t.priority
-          }
-        })
-        return NextResponse.json(ticketsWithExtras)
-      } catch (e) {
-        console.error('Failed to fetch extra fields:', e)
-        return NextResponse.json(tickets)
-      }
-    }
-
     return NextResponse.json(tickets)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 })
