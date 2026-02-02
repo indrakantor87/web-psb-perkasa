@@ -90,7 +90,7 @@ export default function UsersPage() {
     }
   }
 
-  const handleOpenResetModal = (userId: string) => {
+  const handleOpenResetModal = (userId: number) => {
     setResetPasswordId(userId)
     setResetPasswordValue('')
     setShowResetPassword(false)

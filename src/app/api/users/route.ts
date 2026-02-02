@@ -50,7 +50,9 @@ export async function POST(request: Request) {
     return NextResponse.json(userWithoutPassword)
   } catch (error) {
     console.error('Create user error:', error)
-    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to create user: ' + (error instanceof Error ? error.message : String(error)) 
+    }, { status: 500 })
   }
 }
 
