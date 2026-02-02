@@ -13,6 +13,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "WEB PSB PERKASA",
   description: "Sistem Manajemen PSB Perkasa Networks",
+  icons: {
+    icon: "/logo-icon.png?v=4",
+    apple: "/logo-icon.png?v=4",
+  },
 };
 
 export default function RootLayout({
