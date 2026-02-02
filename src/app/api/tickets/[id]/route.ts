@@ -16,6 +16,7 @@ export async function PUT(
 
   try {
     const body = await request.json()
+    console.log(`[API] Updating ticket ${ticketId} by ${session.user.username} (${session.user.role})`, body)
     const { status, pengawalan, kmz, priority, ...restData } = body
 
     // Prepare update data with role-based filtering

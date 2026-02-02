@@ -470,7 +470,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                   {canClose ? (
                     <select
-                      value={ticket.pengawalan || 'tidak'}
+                      value={(ticket.pengawalan || 'tidak').toLowerCase()}
                       onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
                       className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
                     >
@@ -843,19 +843,19 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 )}
 
                 {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
-                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pengawalan</label>
-                    <select
-                      value={editTicket.pengawalan || 'tidak'}
-                      onChange={(e) => setEditTicket({ ...editTicket, pengawalan: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="tidak">Tidak</option>
-                      <option value="onsite">Onsite</option>
-                      <option value="onchat">Onchat</option>
-                    </select>
-                  </div>
-                )}
+                    <div>
+                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pengawalan</label>
+                     <select
+                       value={(editTicket.pengawalan || 'tidak').toLowerCase()}
+                       onChange={(e) => setEditTicket({ ...editTicket, pengawalan: e.target.value })}
+                       className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                     >
+                       <option value="tidak">Tidak</option>
+                       <option value="onsite">Onsite</option>
+                       <option value="onchat">Onchat</option>
+                     </select>
+                   </div>
+                 )}
 
                 {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
                    <div className="md:col-span-2">
