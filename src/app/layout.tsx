@@ -14,7 +14,8 @@ export const metadata: Metadata = {
   title: "WEB PSB PERKASA",
   description: "Sistem Manajemen PSB Perkasa Networks",
   icons: {
-    icon: "/logo-icon.png",
+    icon: "/logo-icon.png?v=3",
+    apple: "/logo-icon.png?v=3",
   },
 };
 
