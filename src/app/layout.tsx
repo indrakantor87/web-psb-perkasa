@@ -15,10 +15,10 @@ export const metadata: Metadata = {
   description: "Sistem Manajemen PSB Perkasa Networks",
   icons: {
     icon: [
-      { url: '/favicon.ico?v=10', sizes: 'any' },
-      { url: '/logo-icon.png?v=10', type: 'image/png' },
+      { url: '/favicon.ico?v=11', sizes: 'any' },
+      { url: '/logo.png?v=11', type: 'image/png' },
     ],
-    apple: { url: '/logo-icon.png?v=10', type: 'image/png' },
+    apple: { url: '/logo.png?v=11', type: 'image/png' },
   },
 };
 
