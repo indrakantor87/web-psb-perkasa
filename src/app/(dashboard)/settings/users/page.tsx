@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
 
 interface User {
-  id: string
+  id: number
   name: string
   username: string
   role: string
@@ -23,7 +23,7 @@ export default function UsersPage() {
   const [showCreatePassword, setShowCreatePassword] = useState(false)
 
   // Reset Password states
-  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null)
+  const [resetPasswordId, setResetPasswordId] = useState<number | null>(null)
   const [resetPasswordValue, setResetPasswordValue] = useState('')
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
