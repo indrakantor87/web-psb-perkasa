@@ -203,7 +203,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
           package: editTicket.package,
           marketingName: editTicket.marketingName,
           description: editTicket.description,
-          status: editTicket.status
+          status: editTicket.status,
+          pengawalan: editTicket.pengawalan,
+          kmz: editTicket.kmz,
+          priority: editTicket.priority
         }),
       })
 
@@ -822,7 +825,51 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                {['ADMIN', 'CS'].includes(userRole) && (
+                
+                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole) && (
+                   <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Prioritas</label>
+                    <select
+                      value={editTicket.priority || ''}
+                      onChange={(e) => setEditTicket({ ...editTicket, priority: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">- Pilih -</option>
+                      {priorities.map((p) => (
+                        <option key={p.id} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                   <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pengawalan</label>
+                    <select
+                      value={editTicket.pengawalan || 'tidak'}
+                      onChange={(e) => setEditTicket({ ...editTicket, pengawalan: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="tidak">Tidak</option>
+                      <option value="onsite">Onsite</option>
+                      <option value="onchat">Onchat</option>
+                    </select>
+                  </div>
+                )}
+
+                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                   <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">KMZ</label>
+                    <input
+                      type="text"
+                      value={editTicket.kmz || ''}
+                      onChange={(e) => setEditTicket({ ...editTicket, kmz: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+
+                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
                    <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                     <select

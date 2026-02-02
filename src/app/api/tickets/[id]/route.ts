@@ -35,7 +35,7 @@ export async function PUT(
     }
     // Only allow authorized roles to update priority
     if (priority !== undefined) {
-      if (['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+      if (['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(session.user.role)) {
          updateData.priority = priority
        } else {
          return NextResponse.json({ error: 'Unauthorized to update priority' }, { status: 403 })
