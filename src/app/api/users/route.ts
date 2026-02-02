@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const normalizedUsername = username.toLowerCase()
+    const normalizedUsername = username.toLowerCase().replace(/\s+/g, '')
 
     // Check if username already exists
     const existingUser = await prisma.user.findUnique({
