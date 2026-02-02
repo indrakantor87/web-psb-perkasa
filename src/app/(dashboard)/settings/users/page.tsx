@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, KeyRound, Trash2 } from 'lucide-react'
 
 interface User {
   id: number
@@ -27,6 +27,10 @@ export default function UsersPage() {
   const [resetPasswordValue, setResetPasswordValue] = useState('')
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  
+  // Delete User states
+  const [deleteUserId, setDeleteUserId] = useState<number | null>(null)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -137,6 +141,47 @@ export default function UsersPage() {
 
       setSuccess('Password berhasil direset!')
       handleCloseResetModal()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOpenDeleteModal = (userId: number) => {
+    setDeleteUserId(userId)
+    setIsDeleteModalOpen(true)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false)
+    setDeleteUserId(null)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserId) return
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const res = await fetch(`/api/users?id=${deleteUserId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete user')
+      }
+
+      setSuccess('User berhasil dihapus!')
+      handleCloseDeleteModal()
+      fetchUsers()
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -269,14 +314,24 @@ export default function UsersPage() {
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">********</td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.role}</td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    <button
-                      onClick={() => handleOpenResetModal(user.id)}
-                      className="inline-flex items-center text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                      title="Reset Password"
-                    >
-                      <KeyRound className="h-4 w-4 mr-1" />
-                      Reset
-                    </button>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => handleOpenResetModal(user.id)}
+                        className="inline-flex items-center text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        title="Reset Password"
+                      >
+                        <KeyRound className="h-4 w-4 mr-1" />
+                        Reset
+                      </button>
+                      <button
+                        onClick={() => handleOpenDeleteModal(user.id)}
+                        className="inline-flex items-center text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        title="Hapus User"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
