@@ -27,39 +27,39 @@ export async function GET(request: Request) {
       }
     }
 
-    // 1. Group by Package
-    const packages = await prisma.ticket.groupBy({
-      by: ['package'],
+    // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
+    const tickets = await prisma.ticket.findMany({
       where,
-      _count: {
-        id: true,
-      },
-    })
-
-    // 2. Group by Marketing
-    const marketingStats = await prisma.ticket.groupBy({
-      by: ['marketingName'],
-      where,
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
+      select: {
+        package: true,
+        marketingName: true
       }
     })
 
+    // 1. Group by Package
+    const packageCounts: Record<string, number> = {}
+    tickets.forEach((t: any) => {
+      const pkg = t.package || 'Unknown'
+      packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
+    })
+
+    // 2. Group by Marketing
+    const marketingCounts: Record<string, number> = {}
+    tickets.forEach((t: any) => {
+      const name = t.marketingName || 'Unknown'
+      marketingCounts[name] = (marketingCounts[name] || 0) + 1
+    })
+
     // Format for frontend
-    const packageData = packages.map((p: any) => ({
-      name: p.package,
-      count: p._count.id
+    const packageData = Object.entries(packageCounts).map(([name, count]) => ({
+      name,
+      count
     }))
 
-    const marketingData = marketingStats.map((m: any) => ({
-      name: m.marketingName,
-      count: m._count.id
-    }))
+    const marketingData = Object.entries(marketingCounts).map(([name, count]) => ({
+      name,
+      count
+    })).sort((a, b) => b.count - a.count)
 
     return NextResponse.json({
       packageData,

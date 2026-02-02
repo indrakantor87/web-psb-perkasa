@@ -35,29 +35,46 @@ export default async function DashboardPage({
     where.marketingName = session.user.name
   }
 
-  // 1. Group by Package
-  const packages = await prisma.ticket.groupBy({
-    by: ['package'],
+  // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
+  const tickets = await prisma.ticket.findMany({
     where,
-    _count: {
-      id: true,
-    },
+    select: {
+      package: true,
+      marketingName: true,
+      status: true
+    }
+  })
+
+  // 1. Group by Package
+  const packageCounts: Record<string, number> = {}
+  tickets.forEach((t: any) => {
+    const pkg = t.package || 'Unknown'
+    packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
   })
 
   // 2. Group by Marketing and Status
-  const marketingStats = await prisma.ticket.groupBy({
-    by: ['marketingName', 'status'],
-    where,
-    _count: {
-      id: true,
-    },
+  const marketingMap = new Map<string, { name: string; open: number; close: number; count: number }>()
+
+  tickets.forEach((t: any) => {
+    const name = t.marketingName || 'Unknown'
+    const current = marketingMap.get(name) || { name, open: 0, close: 0, count: 0 }
+    
+    current.count += 1
+    
+    if (t.status === 'OPEN') {
+      current.open += 1
+    } else if (t.status === 'CLOSE') {
+      current.close += 1
+    }
+    
+    marketingMap.set(name, current)
   })
 
   const packageOrder = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
 
-  const packageData = packages.map((p: any) => ({
-    name: p.package,
-    count: p._count.id
+  const packageData = Object.entries(packageCounts).map(([name, count]) => ({
+    name,
+    count
   })).sort((a: { name: string }, b: { name: string }) => {
     const indexA = packageOrder.indexOf(a.name)
     const indexB = packageOrder.indexOf(b.name)
@@ -75,26 +92,6 @@ export default async function DashboardPage({
     
     // If neither, sort alphabetically
     return a.name.localeCompare(b.name)
-  })
-
-  // Process marketing stats to aggregate by name
-  const marketingMap = new Map<string, { name: string; open: number; close: number; count: number }>()
-
-  marketingStats.forEach((stat: any) => {
-    const name = stat.marketingName || 'Unknown'
-    const current = marketingMap.get(name) || { name, open: 0, close: 0, count: 0 }
-    
-    const count = stat._count.id
-    current.count += count
-    
-    if (stat.status === 'OPEN') {
-      current.open += count
-    } else if (stat.status === 'CLOSE') {
-      current.close += count
-    }
-    // Note: PENDING is included in total count but not shown in separate columns as per request (only Open/Close requested)
-    
-    marketingMap.set(name, current)
   })
 
   const marketingData = Array.from(marketingMap.values())
