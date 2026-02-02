@@ -61,71 +61,23 @@ export default async function ListPage({
     }
   })
 
-  // Workaround for outdated Prisma Client: Fetch missing fields via raw query
-  const ticketIds = tickets.map((t: any) => t.id)
-  let ticketsWithExtras = tickets
-
-  if (ticketIds.length > 0) {
-    try {
-      const rawData: any[] = await prisma.$queryRawUnsafe(
-        `SELECT id, fotoRumah, pengawalan, kmz, priority, birthDate FROM Ticket WHERE id IN (${ticketIds.join(',')})`
-      )
-      
-      ticketsWithExtras = tickets.map((t: any) => {
-        const extra = rawData.find((r: any) => String(r.id) === String(t.id))
-        return {
-          ...t,
-          fotoRumah: extra?.fotoRumah || t.fotoRumah,
-          pengawalan: extra?.pengawalan || t.pengawalan,
-          kmz: extra?.kmz ?? (t as any).kmz,
-          priority: extra?.priority || t.priority,
-          birthDate: extra?.birthDate || t.birthDate
-        }
-      })
-    } catch (e) {
-      console.error('Failed to fetch extra fields in ListPage:', e)
-      // Fallback if column 'kmz' or 'priority' or 'birthDate' does not exist yet
-      try {
-        const rawDataFallback: any[] = await prisma.$queryRawUnsafe(
-          `SELECT id, fotoRumah, pengawalan FROM Ticket WHERE id IN (${ticketIds.join(',')})`
-        )
-        ticketsWithExtras = tickets.map((t: any) => {
-          const extra = rawDataFallback.find((r: any) => String(r.id) === String(t.id))
-          return {
-            ...t,
-            fotoRumah: extra?.fotoRumah || t.fotoRumah,
-            pengawalan: extra?.pengawalan || t.pengawalan,
-            kmz: (t as any).kmz ?? null,
-            priority: t.priority ?? null,
-            birthDate: t.birthDate ?? null
-          }
-        })
-      } catch (e2) {
-        console.error('Fallback fetch also failed in ListPage:', e2)
-      }
-    }
-  }
-
-  // Transform dates to strings for serialization
-  const serializedTickets = ticketsWithExtras.map((t: any) => ({
-    ...t,
-    requestDate: t.requestDate.toISOString(),
-    installedDate: t.installedDate ? t.installedDate.toISOString() : null,
-    birthDate: t.birthDate ? new Date(t.birthDate).toISOString() : null,
-    createdAt: t.createdAt.toISOString(),
-    updatedAt: t.updatedAt.toISOString(),
-  }))
-
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Daftar Tiket PSB</h1>
-      <TicketList 
-        tickets={serializedTickets} 
-        userRole={session.user.role}
-        initialPeriod={{ month: currentMonth, year: currentYear }}
-        initialStatus={currentStatus}
-        initialMarketing={currentMarketing}
-      />
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daftar Tiket PSB</h1>
+      </div>
+
+      <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <TicketList 
+            tickets={tickets as any} 
+            userRole={session.user.role}
+            initialPeriod={{ month: currentMonth, year: currentYear }}
+            initialStatus={currentStatus}
+            initialMarketing={currentMarketing}
+          />
+        </div>
+      </div>
     </div>
   )
 }

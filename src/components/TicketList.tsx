@@ -49,6 +49,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [priorities, setPriorities] = useState<Priority[]>([])
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
+  const [editTicket, setEditTicket] = useState<Ticket | null>(null)
+  // Local state for tickets to support optimistic updates
+  const [ticketsState, setTicketsState] = useState(tickets)
+
+  // Sync local state when props change
+  useEffect(() => {
+    setTicketsState(tickets)
+  }, [tickets])
   
   
   // Pagination State
@@ -118,6 +126,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   }
 
   const handleUpdatePengawalan = async (id: number, value: string) => {
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, pengawalan: value } : t
+    ))
+
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PUT',
@@ -128,10 +141,13 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (res.ok) {
         router.refresh()
       } else {
+        // Revert on failure
         alert('Failed to update pengawalan')
+        router.refresh()
       }
     } catch (error) {
       alert('Error updating pengawalan')
+      router.refresh()
     }
   }
 
@@ -140,6 +156,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ]
   const years = [2024, 2025, 2026, 2027]
+  const packages = [
+    'HOME LITE',
+    'HOME BASIC',
+    'HOME STREAM',
+    'HOME ENTERTAIN',
+    'HOME SMALL',
+    'HOME ADVAN',
+  ]
 
   const canClose = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canEditKmz = ['ADMIN', 'CS', 'NOC'].includes(userRole)
@@ -149,8 +173,53 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const handleEditTicket = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
     e.stopPropagation()
-    alert('Fitur edit belum tersedia')
+    // Find the ticket to edit
+    const ticketToEdit = ticketsState.find(t => t.id === id)
+    if (ticketToEdit) {
+      setEditTicket(ticketToEdit)
+    }
     setActiveActionId(null)
+  }
+
+  const handleUpdateTicket = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editTicket) return
+
+    setLoadingId(editTicket.id)
+    try {
+      // Optimistic update
+      setTicketsState(prev => prev.map(t => 
+        t.id === editTicket.id ? { ...t, ...editTicket } : t
+      ))
+
+      const res = await fetch(`/api/tickets/${editTicket.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: editTicket.customerName,
+          birthDate: editTicket.birthDate,
+          locationMap: editTicket.locationMap,
+          phoneNumber: editTicket.phoneNumber,
+          package: editTicket.package,
+          marketingName: editTicket.marketingName,
+          description: editTicket.description,
+          status: editTicket.status
+        }),
+      })
+
+      if (res.ok) {
+        setEditTicket(null)
+        router.refresh()
+      } else {
+        alert('Gagal mengupdate tiket')
+        router.refresh() // Revert
+      }
+    } catch (error) {
+      alert('Terjadi kesalahan saat update')
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   const handleDeleteTicket = async (e: React.MouseEvent, id: number) => {
@@ -184,6 +253,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   }
 
   const handleSaveKmz = async (id: number, value: string) => {
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, kmz: value } : t
+    ))
+    setKmzEdit(null)
+
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PUT',
@@ -191,17 +266,23 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         body: JSON.stringify({ kmz: value }),
       })
       if (res.ok) {
-        setKmzEdit(null)
         router.refresh()
       } else {
         alert('Gagal menyimpan KMZ')
+        router.refresh()
       }
     } catch (e) {
       alert('Error menyimpan KMZ')
+      router.refresh()
     }
   }
 
   const handleUpdatePriority = async (id: number, value: string) => {
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, priority: value } : t
+    ))
+
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PUT',
@@ -212,34 +293,36 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         router.refresh()
       } else {
         alert('Gagal mengubah prioritas')
+        router.refresh()
       }
     } catch (error) {
       alert('Error mengubah prioritas')
+      router.refresh()
     }
   }
 
   // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentTickets = tickets.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(tickets.length / itemsPerPage)
+  const currentTickets = ticketsState.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(ticketsState.length / itemsPerPage)
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Open : {tickets.filter(t => t.status === 'OPEN').length}
+            Ticket Open : {ticketsState.filter(t => t.status === 'OPEN').length}
           </span>
         </div>
         <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Close : {tickets.filter(t => t.status === 'CLOSE').length}
+            Ticket Close : {ticketsState.filter(t => t.status === 'CLOSE').length}
           </span>
         </div>
         <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Pending : {tickets.filter(t => t.status === 'PENDING').length}
+            Ticket Pending : {ticketsState.filter(t => t.status === 'PENDING').length}
           </span>
         </div>
       </div>
@@ -540,7 +623,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </td>
               </tr>
             ))}
-            {tickets.length === 0 && (
+            {ticketsState.length === 0 && (
               <tr>
                 <td colSpan={15} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
                   Tidak ada data untuk periode ini
@@ -553,9 +636,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
       <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
         <div className="text-xs text-gray-700 dark:text-gray-300">
-          Menampilkan <span className="font-medium">{tickets.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
-          <span className="font-medium">{Math.min(indexOfLastItem, tickets.length)}</span> dari{' '}
-          <span className="font-medium">{tickets.length}</span> hasil
+          Menampilkan <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
+          <span className="font-medium">{Math.min(indexOfLastItem, ticketsState.length)}</span> dari{' '}
+          <span className="font-medium">{ticketsState.length}</span> hasil
         </div>
         
         <div className="flex items-center space-x-2">
@@ -655,6 +738,123 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 Tutup
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Tiket</h3>
+              <button
+                onClick={() => setEditTicket(null)}
+                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateTicket} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Pelanggan</label>
+                  <input
+                    type="text"
+                    value={editTicket.customerName}
+                    onChange={(e) => setEditTicket({ ...editTicket, customerName: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nomor HP</label>
+                  <input
+                    type="text"
+                    value={editTicket.phoneNumber}
+                    onChange={(e) => setEditTicket({ ...editTicket, phoneNumber: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Paket</label>
+                  <select
+                    value={editTicket.package}
+                    onChange={(e) => setEditTicket({ ...editTicket, package: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {packages.map(pkg => (
+                      <option key={pkg} value={pkg}>{pkg}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Marketing</label>
+                  <input
+                    type="text"
+                    value={editTicket.marketingName}
+                    onChange={(e) => setEditTicket({ ...editTicket, marketingName: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Link Maps</label>
+                  <input
+                    type="text"
+                    value={editTicket.locationMap}
+                    onChange={(e) => setEditTicket({ ...editTicket, locationMap: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan</label>
+                  <textarea
+                    value={editTicket.description || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, description: e.target.value })}
+                    rows={3}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                {['ADMIN', 'CS'].includes(userRole) && (
+                   <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select
+                      value={editTicket.status}
+                      onChange={(e) => setEditTicket({ ...editTicket, status: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="OPEN">OPEN</option>
+                      <option value="CLOSE">CLOSE</option>
+                      <option value="PENDING">PENDING</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setEditTicket(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingId === editTicket.id}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loadingId === editTicket.id ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
