@@ -13,14 +13,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "WEB PSB PERKASA",
   description: "Sistem Manajemen PSB Perkasa Networks",
-  icons: {
-    icon: [
-      { url: "/logo-icon.png?v=5", href: "/logo-icon.png?v=5" },
-      { url: "/favicon.ico?v=5", href: "/favicon.ico?v=5" },
-    ],
-    shortcut: "/favicon.ico?v=5",
-    apple: "/logo-icon.png?v=5",
-  },
 };
 
 export default function RootLayout({
