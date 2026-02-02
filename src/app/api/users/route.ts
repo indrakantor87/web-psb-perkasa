@@ -123,3 +123,34 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Restrict to ADMIN, CS, NOC
+  const allowedRoles = ['ADMIN', 'CS', 'NOC']
+  if (!allowedRoles.includes(session.user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing user ID' }, { status: 400 })
+    }
+
+    await prisma.user.delete({
+      where: { id: Number(id) },
+    })
+
+    return NextResponse.json({ message: 'User deleted successfully' })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+  }
+}

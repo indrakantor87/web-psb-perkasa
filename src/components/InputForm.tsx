@@ -203,7 +203,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Foto Rumah (Max 2MB, .jpg/.png)
+            Foto Rumah (Max 2MB, .jpg/.jpeg/.png)
           </label>
           <input
             type="file"

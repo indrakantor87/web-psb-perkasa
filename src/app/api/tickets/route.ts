@@ -92,9 +92,6 @@ export async function GET(request: Request) {
   }
 }
 
-import { writeFile } from 'fs/promises'
-import path from 'path'
-
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -134,15 +131,8 @@ export async function POST(request: Request) {
 
       const bytes = await file.arrayBuffer()
       const buffer = Buffer.from(bytes)
-
-      // Ensure filename is safe
-      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '-')
-      const filename = `${Date.now()}-${safeName}`
-      const uploadDir = path.join(process.cwd(), 'public/uploads')
-      const filepath = path.join(uploadDir, filename)
-      
-      await writeFile(filepath, buffer)
-      fotoRumahPath = `/uploads/${filename}`
+      const base64 = buffer.toString('base64')
+      fotoRumahPath = `data:${file.type};base64,${base64}`
     }
 
     // Enforce marketingName for Marketing role
