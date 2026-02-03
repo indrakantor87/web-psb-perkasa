@@ -624,7 +624,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     {ticket.pembayaran || '-'}
                   </td>
                   <td className="hidden sm:table-cell max-w-xs px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
-                    <div className="line-clamp-2 whitespace-normal">
+                    <div className="line-clamp-3 whitespace-normal">
                       {ticket.description || '-'}
                     </div>
                   </td>
