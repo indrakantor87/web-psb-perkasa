@@ -62,7 +62,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
           />
         </div>
       </div>
-      <nav className={clsx("flex-1 space-y-1 overflow-y-auto", collapsed ? "px-1 py-2" : "p-3")}>
+      <nav className={clsx("flex-1 space-y-1 overflow-y-auto", collapsed ? "px-0 py-1" : "p-3")}>
         {links.map((link) => {
           const Icon = link.icon
           const isActive = pathname === link.href
@@ -75,7 +75,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
               className={clsx(
                 'flex items-center rounded-lg',
                 !isMarketing && 'transition-colors',
-                collapsed ? 'justify-center p-2' : 'space-x-3 px-3 py-2.5',
+                collapsed ? 'justify-center p-1.5' : 'space-x-3 px-3 py-2.5',
                 isActive
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -95,7 +95,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
             className={clsx(
               'flex w-full items-center rounded-lg',
               !isMarketing && 'transition-colors',
-              collapsed ? 'justify-center p-2' : 'justify-between px-3 py-2.5',
+              collapsed ? 'justify-center p-1.5' : 'justify-between px-3 py-2.5',
               pathname.startsWith('/settings')
                 ? 'text-white'
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
