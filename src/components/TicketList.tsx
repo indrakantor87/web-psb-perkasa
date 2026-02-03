@@ -126,6 +126,37 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
+  const handleOnProgressTicket = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, status: 'ON_PROGRESS' } : t
+    ))
+
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ON_PROGRESS' }),
+      })
+
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Gagal mengubah status ke On Progress')
+        router.refresh() // Revert
+      }
+    } catch (error) {
+      alert('Terjadi kesalahan saat mengubah status')
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   const handleUpdatePengawalan = async (id: number, value: string) => {
     // Optimistic update
     setTicketsState(prev => prev.map(t => 
@@ -627,10 +658,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
                     ticket.status === 'OPEN' 
                       ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                      : ticket.status === 'CLOSE' 
-                        ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                        : ticket.status === 'ON_PROGRESS'
-                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                      : ticket.status === 'OPEN' 
+                      ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                      : ticket.status === 'ON_PROGRESS'
+                        ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                        : ticket.status === 'CLOSE' 
+                          ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
                           : ticket.status === 'PENDING'
                             ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
                             : 'bg-gray-200 text-gray-800'
@@ -665,7 +698,20 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     {activeActionId === ticket.id && (
                       <div className="absolute right-0 top-8 z-50 w-32 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <div className="py-1">
-                          {ticket.status === 'OPEN' && canClose && (
+                          {(ticket.status === 'OPEN' || ticket.status === 'PENDING') && canClose && (
+                            <button
+                              onClick={(e) => {
+                                handleOnProgressTicket(e, ticket.id)
+                                setActiveActionId(null)
+                              }}
+                              disabled={loadingId === ticket.id}
+                              className="block w-full px-4 py-2 text-left text-xs text-blue-600 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              {loadingId === ticket.id ? 'Updating...' : 'Set On Progress'}
+                            </button>
+                          )}
+
+                          {['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status) && canClose && (
                             <button
                               onClick={(e) => {
                                 handleCloseTicket(e, ticket.id)
