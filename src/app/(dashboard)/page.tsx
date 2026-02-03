@@ -104,6 +104,7 @@ export default async function DashboardPage({
         packageData={packageData} 
         marketingData={marketingData}
         initialPeriod={{ month: currentMonth, year: currentYear }}
+        userRole={session.user.role}
       />
     </div>
   )

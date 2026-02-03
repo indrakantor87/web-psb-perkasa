@@ -3,20 +3,23 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { clsx } from 'clsx'
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
   marketingData: { name: string; count: number; open: number; close: number }[]
   initialPeriod: { month: number; year: number }
+  userRole?: string
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
-export function DashboardView({ packageData, marketingData, initialPeriod }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, initialPeriod, userRole }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const [mounted, setMounted] = useState(false)
+  const isMarketing = userRole === 'MARKETING'
 
   useEffect(() => {
     setMounted(true)
@@ -37,7 +40,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
     return (
       <div className="space-y-6">
         <div className="flex w-fit items-center space-x-4 rounded-lg bg-white p-4 shadow-sm">
-           <div className="h-10 w-64 animate-pulse bg-gray-200 rounded"></div>
+           <div className={clsx("h-10 w-64 bg-gray-200 rounded", !isMarketing && "animate-pulse")}></div>
         </div>
       </div>
     )
@@ -107,7 +110,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
                   contentStyle={{ fontSize: '12px', borderRadius: '4px', border: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
                   cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
                 />
-                <Bar dataKey="count" name="Jumlah" barSize={35} radius={[4, 4, 0, 0]}>
+                <Bar dataKey="count" name="Jumlah" barSize={35} radius={[4, 4, 0, 0]} isAnimationActive={!isMarketing}>
                   {packageData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
@@ -151,7 +154,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                 {marketingData.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <tr key={index} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
                     <td className="px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
                       {item.name}
                     </td>
