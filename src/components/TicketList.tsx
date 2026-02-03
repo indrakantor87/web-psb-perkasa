@@ -151,6 +151,31 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
+  const handleUpdatePembayaran = async (id: number, value: string) => {
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, pembayaran: value } : t
+    ))
+
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pembayaran: value }),
+      })
+
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Failed to update pembayaran')
+        router.refresh()
+      }
+    } catch (error) {
+      alert('Error updating pembayaran')
+      router.refresh()
+    }
+  }
+
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -406,13 +431,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Terpasang</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
             </tr>
           </thead>
@@ -448,16 +474,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                  <a
-                    href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline"
-                  >
-                    {ticket.phoneNumber}
-                  </a>
-                </td>
+
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                   {ticket.fotoRumah ? (
                     <a href={ticket.fotoRumah} target="_blank" rel="noreferrer" className="hover:underline">
@@ -551,6 +568,17 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   {ticket.description || '-'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs">
+                  <select
+                    value={ticket.pembayaran || ''}
+                    onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
+                    className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="">- Pilih -</option>
+                    <option value="Cash">Cash</option>
+                    <option value="TF">TF</option>
+                  </select>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs">
                   <span className={clsx(
                     'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
                     ticket.status === 'OPEN' 
@@ -563,6 +591,16 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   )}>
                     {ticket.status}
                   </span>
+                </td>
+                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <a
+                    href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:underline"
+                  >
+                    {ticket.phoneNumber}
+                  </a>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex flex-col gap-1 items-center relative action-dropdown-container">
