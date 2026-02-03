@@ -34,17 +34,25 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
 
   return (
     <header className={clsx("flex h-16 items-center justify-between bg-white dark:bg-gray-800 px-4 md:px-6 shadow-sm relative z-20", !isMarketing && "transition-colors")}>
-      <div className="flex items-center">
+      <div className="flex items-center space-x-4">
         {onMenuClick && (
           <button
             type="button"
-            className="mr-4 -ml-1 text-gray-500 dark:text-gray-400 focus:outline-none"
+            className="-ml-1 text-gray-500 dark:text-gray-400 focus:outline-none"
             onClick={onMenuClick}
           >
             <span className="sr-only">Open sidebar</span>
             <Menu className="h-6 w-6" />
           </button>
         )}
+        <div className="flex items-center justify-center bg-white dark:bg-gray-700 rounded-lg p-1.5 shadow-sm border border-gray-200 dark:border-gray-600">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src="/logo.png" 
+            alt="PERKASA NETWORKS" 
+            className="h-8 w-auto object-contain"
+          />
+        </div>
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
           Welcome, {user?.name}
         </h2>
