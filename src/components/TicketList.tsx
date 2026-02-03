@@ -68,8 +68,26 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
+  const [defaultTemplate, setDefaultTemplate] = useState<string>('')
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
+
+  useEffect(() => {
+    const fetchDefaultTemplate = async () => {
+      try {
+        const res = await fetch('/api/templates')
+        if (res.ok) {
+          const data = await res.json()
+          const def = data.find((t: any) => t.isDefault)
+          if (def) setDefaultTemplate(def.content)
+        }
+      } catch (error) {
+        console.error('Failed to fetch default template', error)
+      }
+    }
+    fetchDefaultTemplate()
+  }, [])
+
   const colSpan = userRole !== 'MARKETING' ? 17 : 16
 
   // Sync local state when props change
@@ -101,6 +119,15 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     if (!priorityName) return 'bg-gray-200 text-gray-800'
     const found = priorities.find(p => p.name === priorityName)
     return found ? found.color : 'bg-gray-200 text-gray-800'
+  }
+
+  const formatMessage = (template: string, ticket: Ticket) => {
+    return template
+      .replace(/{{name}}/g, ticket.customerName || '')
+      .replace(/{{package}}/g, ticket.package || '')
+      .replace(/{{marketing}}/g, ticket.marketingName || '')
+      .replace(/{{phone}}/g, ticket.phoneNumber || '')
+      .replace(/{{location}}/g, ticket.locationMap || '')
   }
 
   const handleFilter = () => {
@@ -668,7 +695,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a
-                      href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
+                      href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}${defaultTemplate ? `?text=${encodeURIComponent(formatMessage(defaultTemplate, ticket))}` : ''}`}
                       target="_blank"
                       rel="noreferrer"
                       className="hover:underline"

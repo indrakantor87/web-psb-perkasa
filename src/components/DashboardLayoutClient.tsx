@@ -21,7 +21,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar (Push - Left) */}
         <div className="hidden md:flex md:flex-shrink-0">
-          <Sidebar collapsed={!sidebarOpen} user={user} />
+          <Sidebar collapsed={!sidebarOpen} user={user} onExpand={() => setSidebarOpen(true)} />
         </div>
 
         {/* Mobile Sidebar (Overlay - Left Side) */}

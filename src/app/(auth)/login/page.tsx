@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe }),
       })
 
       if (res.ok) {
@@ -43,7 +44,7 @@ export default function LoginPage() {
           PERKASA NETWORKS
         </h1>
         <h2 className="mb-6 text-center text-lg text-gray-600 dark:text-gray-400">
-          Login to your account
+          #juaranyawifi
         </h2>
         
         {error && (
@@ -77,6 +78,20 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              Ingat saya
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}

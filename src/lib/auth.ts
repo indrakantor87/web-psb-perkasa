@@ -5,11 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 const SECRET_KEY = process.env.JWT_SECRET_KEY || 'rahasia-perkasa-networks-2026'
 const key = new TextEncoder().encode(SECRET_KEY)
 
-export async function encrypt(payload: any) {
+export async function encrypt(payload: any, expiresIn: string = '24h') {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h')
+    .setExpirationTime(expiresIn)
     .sign(key)
 }
 
@@ -20,10 +20,14 @@ export async function decrypt(input: string): Promise<any> {
   return payload
 }
 
-export async function login(userData: any) {
+export async function login(userData: any, rememberMe: boolean = false) {
+  // Determine expiration based on rememberMe
+  // Default: 24 hours, Remember Me: 30 days
+  const expiresIn = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+  const expires = new Date(Date.now() + expiresIn)
+  
   // Create the session
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
-  const session = await encrypt({ user: userData, expires })
+  const session = await encrypt({ user: userData, expires, rememberMe }, rememberMe ? '30d' : '24h')
 
   // Save the session in a cookie
   const cookieStore = await cookies()
@@ -53,11 +57,14 @@ export async function updateSession(request: NextRequest) {
 
   // Refresh the session so it doesn't expire
   const parsed = await decrypt(session)
-  parsed.expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  
+  const expiresIn = parsed.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+  parsed.expires = new Date(Date.now() + expiresIn)
+  
   const res = NextResponse.next()
   res.cookies.set({
     name: 'session',
-    value: await encrypt(parsed),
+    value: await encrypt(parsed, parsed.rememberMe ? '30d' : '24h'),
     httpOnly: true,
     expires: parsed.expires,
   })

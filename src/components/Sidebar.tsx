@@ -9,7 +9,7 @@ import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 
-export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string } }) {
+export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string }; onExpand?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -42,6 +42,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
   const settingsLinks = hasSettingsAccess ? [
     { href: '/settings/priorities', label: 'Edit Prioritas' },
     { href: '/settings/users', label: 'Manajemen User' },
+    { href: '/settings/templates', label: 'Template WA' },
   ] : []
 
   const handleLinkClick = () => {
@@ -81,7 +82,14 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
         {/* Settings Menu */}
         <div className="space-y-1">
           <button
-            onClick={() => !collapsed && setIsSettingsOpen(!isSettingsOpen)}
+            onClick={() => {
+              if (collapsed && onExpand) {
+                onExpand()
+                setIsSettingsOpen(true)
+              } else {
+                setIsSettingsOpen(!isSettingsOpen)
+              }
+            }}
             className={clsx(
               'flex w-full items-center rounded-lg',
               !isMarketing && 'transition-colors',

@@ -52,3 +52,12 @@ model Priority {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model WhatsappTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

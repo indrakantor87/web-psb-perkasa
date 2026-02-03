@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { username, password } = result.data
+    const { username, password, rememberMe } = result.data
 
     // Normalize username to lowercase for case-insensitive login
     const normalizedUsername = username.toLowerCase()
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     // Exclude password from session
     const { password: _, ...userWithoutPassword } = user
-    await login(userWithoutPassword)
+    await login(userWithoutPassword, rememberMe)
 
     return NextResponse.json(userWithoutPassword)
   } catch (error) {
