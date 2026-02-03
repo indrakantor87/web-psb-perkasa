@@ -630,7 +630,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="hidden sm:table-cell px-3 py-3 text-xs">
                     {ticket.priority ? (
-                      <span className={clsx('inline-flex items-center justify-center text-center whitespace-normal max-w-[120px] rounded-full px-2 py-0.5 text-[10px] leading-tight', getPriorityColor(ticket.priority))}>
+                      <span className={clsx('inline-flex items-center justify-center text-center whitespace-normal max-w-[120px] rounded-full px-2 py-0.5 text-[9px] leading-tight', getPriorityColor(ticket.priority))}>
                         {ticket.priority}
                       </span>
                     ) : (
