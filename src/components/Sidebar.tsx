@@ -52,7 +52,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
 
   return (
     <div className={clsx("flex h-full flex-col bg-gray-900 text-white transition-all duration-300", mobile ? "w-full" : (collapsed ? "w-12" : "w-56"))}>
-      <div className={clsx("flex items-center justify-center border-b border-gray-800 bg-gradient-to-b from-blue-950/30 to-gray-900", collapsed ? "h-12 p-2" : "h-28 p-2")}>
+      <div className={clsx("flex items-center justify-center border-b border-gray-800 bg-gradient-to-b from-blue-950/30 to-gray-900", collapsed ? "h-11 p-1.5" : "h-28 p-2")}>
         <div className="relative h-auto w-auto max-w-full flex items-center justify-center bg-gradient-to-br from-white to-blue-50 rounded-xl p-1 shadow-md border border-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
