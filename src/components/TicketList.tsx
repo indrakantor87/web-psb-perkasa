@@ -551,8 +551,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
@@ -624,6 +624,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.kmz || '-'}
                   </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                    {ticket.pembayaran || '-'}
+                  </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
                     {ticket.priority ? (
                       <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-[10px]', getPriorityColor(ticket.priority))}>
@@ -632,9 +635,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
-                  </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
-                    {ticket.pembayaran || '-'}
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
                     <span className={clsx(
