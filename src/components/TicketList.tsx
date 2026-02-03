@@ -69,7 +69,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
-  const colSpan = userRole !== 'MARKETING' ? 12 : 11
+  const colSpan = userRole !== 'MARKETING' ? 17 : 16
 
   // Sync local state when props change
   useEffect(() => {
@@ -550,6 +550,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
             </tr>
           </thead>
@@ -561,7 +566,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
-                        className="text-gray-500 hover:text-blue-600 focus:outline-none"
+                        className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300 focus:outline-none"
                       >
                         {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
@@ -629,6 +634,29 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       {ticket.status}
                     </span>
                   </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
+                    {ticket.pengawalan || '-'}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                    {ticket.kmz || '-'}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
+                    {ticket.priority ? (
+                      <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-[10px]', getPriorityColor(ticket.priority))}>
+                        {ticket.priority}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                    {ticket.pembayaran || '-'}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                    {ticket.status === 'CLOSE' && ticket.closedBy?.name
+                      ? `by ${ticket.closedBy.name}`
+                      : '-'}
+                  </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a
                       href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
@@ -645,7 +673,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
-                            className="text-gray-500 hover:text-blue-600 focus:outline-none"
+                            className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300 focus:outline-none"
                           >
                             {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
@@ -708,6 +736,25 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           {ticket.status}
                         </span>
                       </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan || '-'}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">KMZ:</span>{' '}
+                        {ticket.kmz ? (
+                          <a href={ticket.kmz} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                            Link
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Prioritas:</span> {ticket.priority || '-'}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Pembayaran:</span> {ticket.pembayaran || '-'}
+                      </div>
                       <div>
                         <a
                           href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
@@ -725,145 +772,130 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <tr className="bg-gray-50 dark:bg-gray-800/50">
                     <td colSpan={colSpan} className="px-4 py-4 text-left">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-                        {/* Pengawalan */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pengawalan</label>
-                          {canClose ? (
-                            <select
-                              value={(ticket.pengawalan || 'tidak').toLowerCase()}
-                              onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
-                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                            >
-                              <option value="tidak">Tidak</option>
-                              <option value="onsite">Onsite</option>
-                              <option value="onchat">Onchat</option>
-                            </select>
-                          ) : (
-                            <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan || '-'}</div>
-                          )}
+                        <div className="space-y-3">
+                          <div className="space-y-1">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pengawalan</label>
+                            {canClose ? (
+                              <select
+                                value={(ticket.pengawalan || 'tidak').toLowerCase()}
+                                onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
+                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
+                              >
+                                <option value="tidak">Tidak</option>
+                                <option value="onsite">Onsite</option>
+                                <option value="onchat">Onchat</option>
+                              </select>
+                            ) : (
+                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan || '-'}</div>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pembayaran</label>
+                            {userRole === 'MARKETING' ? (
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.pembayaran || '-'}</div>
+                            ) : (
+                              <select
+                                value={ticket.pembayaran || ''}
+                                onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
+                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
+                              >
+                                <option value="">- Pilih -</option>
+                                <option value="Cash">Cash</option>
+                                <option value="TF">TF</option>
+                              </select>
+                            )}
+                          </div>
                         </div>
 
-                        {/* KMZ */}
                         {userRole !== 'MARKETING' && (
-                          <div className="space-y-1">
-                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">KMZ</label>
-                            {kmzEdit?.id === ticket.id ? (
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  value={kmzEdit.value}
-                                  onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
-                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-2 py-1 text-xs"
-                                  placeholder="Tautan/teks KMZ"
-                                />
-                                <button
-                                  onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
-                                  className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700"
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Prioritas</label>
+                              {canEditPriority ? (
+                                <select
+                                  value={ticket.priority || ''}
+                                  onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
+                                  className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
                                 >
-                                  Simpan
-                                </button>
-                                <button
-                                  onClick={() => setKmzEdit(null)}
-                                  className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                                >
-                                  Batal
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-900 dark:text-white truncate max-w-[200px]" title={ticket.kmz || ''}>
-                                  {ticket.kmz || '-'}
-                                </span>
+                                  <option value="">- Pilih -</option>
+                                  {priorities.length > 0 ? priorities.map((p) => (
+                                    <option key={p.id} value={p.name}>{p.name}</option>
+                                  )) : (
+                                    <>
+                                      <option value="LOW">LOW</option>
+                                      <option value="MEDIUM">MEDIUM</option>
+                                      <option value="HIGH">HIGH</option>
+                                    </>
+                                  )}
+                                </select>
+                              ) : (
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {ticket.priority ? (
+                                    <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-xs', getPriorityColor(ticket.priority))}>
+                                      {ticket.priority}
+                                    </span>
+                                  ) : '-'}
+                                </div>
+                              )}
+                            </div>
+                            <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                                <div className="space-y-1">
+                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-300">KMZ</label>
+                                </div>
                                 {canEditKmz && (
-                                  <button
-                                    onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
-                                    className="ml-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
-                                  >
-                                    Edit
-                                  </button>
+                                  <div className="flex items-center justify-end gap-2">
+                                    <input
+                                      value={kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')}
+                                      onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
+                                      className="w-full md:w-auto flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-2 py-1 text-xs"
+                                      placeholder="Isi/ubah KMZ di sini"
+                                    />
+                                    <button
+                                      onClick={() => handleSaveKmz(ticket.id, (kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')))}
+                                      className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700"
+                                    >
+                                      Simpan
+                                    </button>
+                                    {kmzEdit?.id === ticket.id && (
+                                      <button
+                                        onClick={() => setKmzEdit(null)}
+                                        className="rounded bg-gray-100 dark:bg-gray-600 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500"
+                                      >
+                                        Batal
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         )}
 
-                        {/* Prioritas */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Prioritas</label>
-                          {canEditPriority ? (
-                            <select
-                              value={ticket.priority || ''}
-                              onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
-                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                            >
-                              <option value="">- Pilih -</option>
-                              {priorities.length > 0 ? priorities.map((p) => (
-                                <option key={p.id} value={p.name}>{p.name}</option>
-                              )) : (
-                                <>
-                                  <option value="LOW">LOW</option>
-                                  <option value="MEDIUM">MEDIUM</option>
-                                  <option value="HIGH">HIGH</option>
-                                </>
-                              )}
-                            </select>
-                          ) : (
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {ticket.priority ? (
-                                <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-xs', getPriorityColor(ticket.priority))}>
-                                  {ticket.priority}
-                                </span>
-                              ) : '-'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Pembayaran */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pembayaran</label>
-                          {userRole === 'MARKETING' ? (
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.pembayaran || '-'}</div>
-                          ) : (
-                            <select
-                              value={ticket.pembayaran || ''}
-                              onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
-                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                            >
-                              <option value="">- Pilih -</option>
-                              <option value="Cash">Cash</option>
-                              <option value="TF">TF</option>
-                            </select>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
                         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
                           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Action</label>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-3">
                             {userRole !== 'MARKETING' ? (
                               <>
-                                {(ticket.status === 'OPEN' || ticket.status === 'PENDING') && canClose && (
-                                  <button
-                                    onClick={(e) => handleOnProgressTicket(e, ticket.id)}
-                                    disabled={loadingId === ticket.id}
-                                    className="rounded bg-blue-50 text-blue-600 px-3 py-1.5 text-xs font-medium hover:bg-blue-100 disabled:opacity-50 border border-blue-200"
-                                  >
-                                    Set On Progress
-                                  </button>
-                                )}
+                                <button
+                                  onClick={(e) => handleOnProgressTicket(e, ticket.id)}
+                                  disabled={loadingId === ticket.id || !(['OPEN', 'PENDING'].includes(ticket.status) && canClose)}
+                                  className="rounded-md bg-blue-50 text-blue-600 px-3 py-2 text-xs font-semibold hover:bg-blue-100 disabled:opacity-50 border border-blue-200"
+                                >
+                                  Set On Progress
+                                </button>
                                 
-                                {['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status) && canClose && (
-                                  <button
-                                    onClick={(e) => handleCloseTicket(e, ticket.id)}
-                                    disabled={loadingId === ticket.id}
-                                    className="rounded bg-green-50 text-green-600 px-3 py-1.5 text-xs font-medium hover:bg-green-100 disabled:opacity-50 border border-green-200"
-                                  >
-                                    Close
-                                  </button>
-                                )}
+                                <button
+                                  onClick={(e) => handleCloseTicket(e, ticket.id)}
+                                  disabled={loadingId === ticket.id || !(canClose && ['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status))}
+                                  className="rounded-md bg-green-50 text-green-600 px-3 py-2 text-xs font-semibold hover:bg-green-100 disabled:opacity-50 border border-green-200"
+                                >
+                                  Close
+                                </button>
 
                                 <button
                                   onClick={(e) => handleEditTicket(e, ticket.id)}
-                                  className="rounded bg-gray-50 text-gray-600 px-3 py-1.5 text-xs font-medium hover:bg-gray-100 border border-gray-200"
+                                  className="rounded-md bg-gray-50 text-gray-700 px-3 py-2 text-xs font-semibold hover:bg-gray-100 border border-gray-200"
                                 >
                                   Edit
                                 </button>
@@ -872,7 +904,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                   <button
                                     onClick={(e) => handleDeleteTicket(e, ticket.id)}
                                     disabled={loadingId === ticket.id}
-                                    className="rounded bg-red-50 text-red-600 px-3 py-1.5 text-xs font-medium hover:bg-red-100 disabled:opacity-50 border border-red-200"
+                                    className="rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 disabled:opacity-50 border border-red-200"
                                   >
                                     Hapus
                                   </button>
