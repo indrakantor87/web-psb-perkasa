@@ -34,7 +34,7 @@ export default async function ListPage({
       lt: endDate,
     },
   }
-  if (currentStatus === 'OPEN' || currentStatus === 'CLOSE' || currentStatus === 'PENDING') {
+  if (currentStatus !== 'ALL') {
     (where as any).status = currentStatus
   }
 
