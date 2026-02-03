@@ -2,11 +2,22 @@ import { prisma } from '@/lib/prisma'
 import { login } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import { loginSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { username, password } = body
+    
+    // Validate input
+    const result = loginSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json(
+        { message: 'Invalid input', errors: result.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { username, password } = result.data
 
     // Normalize username to lowercase for case-insensitive login
     const normalizedUsername = username.toLowerCase()

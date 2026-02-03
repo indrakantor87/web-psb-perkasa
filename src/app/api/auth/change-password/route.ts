@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { getSession } from '@/lib/auth'
+import { changePasswordSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
@@ -10,21 +11,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { currentPassword, newPassword } = await request.json()
+    const body = await request.json()
 
-    if (!currentPassword || !newPassword) {
+    // Validate input
+    const result = changePasswordSchema.safeParse(body)
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Password saat ini dan password baru harus diisi' },
+        { error: 'Validasi gagal', details: result.error.flatten() },
         { status: 400 }
       )
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { error: 'Password baru minimal 6 karakter' },
-        { status: 400 }
-      )
-    }
+    const { currentPassword, newPassword } = result.data
 
     // Get user from database to get the current password hash
     const user = await prisma.user.findUnique({

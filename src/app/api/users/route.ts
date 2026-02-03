@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -17,11 +18,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { name, username, password, role } = body
 
-    if (!name || !username || !password || !role) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Validate input
+    const result = userCreateSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validasi gagal', details: result.error.flatten() },
+        { status: 400 }
+      )
     }
+
+    const { name, username, password, role } = result.data
 
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '')
 
@@ -102,11 +109,17 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json()
-    const { id, password } = body
 
-    if (!id || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Validate input
+    const result = userUpdateSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validasi gagal', details: result.error.flatten() },
+        { status: 400 }
+      )
     }
+
+    const { id, password } = result.data
 
     const hashedPassword = await bcrypt.hash(password, 10)
 

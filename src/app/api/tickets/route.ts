@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { ticketCreateSchema } from '@/lib/validations'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,51 +116,57 @@ export async function POST(request: Request) {
   
   try {
     const formData = await request.formData()
-    const customerName = formData.get('customerName') as string
-    const locationMap = formData.get('locationMap') as string
-    const pkg = formData.get('package') as string
-    const marketingName = formData.get('marketingName') as string
-    const description = formData.get('description') as string
-    const phoneNumber = formData.get('phoneNumber') as string
-    const birthDateStr = formData.get('birthDate') as string
-    const pengawalan = formData.get('pengawalan') as string
     const file = formData.get('fotoRumah') as File | null
 
     let fotoRumahPath = null
 
     if (file && file.size > 0) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/jpg']
       if (!validTypes.includes(file.type)) {
         return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
       }
 
-      // Validate size (3MB)
       if (file.size > 3 * 1024 * 1024) {
         return NextResponse.json({ error: 'File too large' }, { status: 400 })
       }
 
-      const bytes = await file.arrayBuffer()
-      const buffer = Buffer.from(bytes)
-      const base64 = buffer.toString('base64')
-      fotoRumahPath = `data:${file.type};base64,${base64}`
+      const buffer = Buffer.from(await file.arrayBuffer())
+      fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
     }
 
-    // Enforce marketingName for Marketing role
-    const finalMarketingName = session.user.role === 'MARKETING' ? session.user.name : marketingName
-
-    // Validate mandatory fields
-    if (!customerName || !phoneNumber || !pkg || !finalMarketingName || !locationMap || !fotoRumahPath) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: customerName, phoneNumber, package, marketingName, locationMap, fotoRumah' 
-      }, { status: 400 })
+    const rawData = {
+      customerName: formData.get('customerName'),
+      birthDate: formData.get('birthDate'),
+      locationMap: formData.get('locationMap'),
+      package: formData.get('package'),
+      marketingName: session.user.role === 'MARKETING' ? session.user.name : formData.get('marketingName'),
+      description: formData.get('description'),
+      phoneNumber: formData.get('phoneNumber'),
+      pengawalan: formData.get('pengawalan'),
+      fotoRumah: fotoRumahPath,
     }
+
+    const result = ticketCreateSchema.safeParse(rawData)
+    if (!result.success) {
+      return NextResponse.json({ error: 'Validation failed', details: result.error.flatten() }, { status: 400 })
+    }
+
+    const {
+      customerName,
+      birthDate: birthDateStr,
+      locationMap,
+      package: pkg,
+      marketingName: finalMarketingName,
+      description,
+      phoneNumber,
+      pengawalan
+    } = result.data
 
     // Only allow authorized roles to set pengawalan initially
     const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
-    // Create ticket without fotoRumah first to avoid Prisma Client validation errors if schema is out of sync
+    // Create ticket using standard Prisma create
     const ticket = await prisma.ticket.create({
       data: {
         customerName,
@@ -169,39 +176,12 @@ export async function POST(request: Request) {
         marketingName: finalMarketingName,
         description,
         phoneNumber,
-        // pengawalan: finalPengawalan, // Commented out to prevent error with outdated Prisma Client
-        // fotoRumah: fotoRumahPath, // Commented out to prevent error with outdated Prisma Client
+        pengawalan: finalPengawalan,
+        fotoRumah: fotoRumahPath,
         status: 'OPEN',
         requestDate: new Date(),
-      } as any,
+      },
     })
-
-    // Manually update fotoRumah and pengawalan using raw query
-    if (fotoRumahPath || finalPengawalan) {
-      try {
-        const updates = []
-        if (fotoRumahPath) updates.push(`fotoRumah = '${fotoRumahPath}'`)
-        if (finalPengawalan) updates.push(`pengawalan = '${finalPengawalan}'`)
-        
-        if (updates.length > 0) {
-          // Note: Using template literals directly in raw query is risky for SQL injection, 
-          // but Prisma $executeRaw supports parameter substitution.
-          // However, combining multiple dynamic updates is tricky with tagged templates.
-          // Let's do separate updates for safety.
-          
-          if (fotoRumahPath) {
-             await prisma.$executeRaw`UPDATE Ticket SET fotoRumah = ${fotoRumahPath} WHERE id = ${ticket.id}`
-             ;(ticket as any).fotoRumah = fotoRumahPath
-          }
-          if (finalPengawalan) {
-             await prisma.$executeRaw`UPDATE Ticket SET pengawalan = ${finalPengawalan} WHERE id = ${ticket.id}`
-             ;(ticket as any).pengawalan = finalPengawalan
-          }
-        }
-      } catch (e) {
-        console.error('Failed to update extra fields via raw query:', e)
-      }
-    }
 
     return NextResponse.json(ticket)
   } catch (error: any) {
