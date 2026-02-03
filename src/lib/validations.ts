@@ -13,7 +13,7 @@ export const ticketCreateSchema = z.object({
   marketingName: z.string().min(1).optional(), // Can be optional if user is Marketing
   description: z.string().optional(),
   phoneNumber: z.string().min(10),
-  fotoRumah: z.string().min(1), // Base64 string
+  fotoRumah: z.string().optional().nullable(), // Base64 string
   pengawalan: z.string().optional().nullable(),
   kmz: z.string().optional().nullable(),
   priority: z.string().optional().nullable(),
