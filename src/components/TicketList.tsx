@@ -548,10 +548,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               )}
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
@@ -614,10 +614,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     )}
                   </td>
                   
-                  <td className="hidden sm:table-cell max-w-xs truncate px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
-                    {ticket.description || '-'}
-                  </td>
-                  
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
                     {ticket.pengawalan || '-'}
                   </td>
@@ -626,6 +622,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.pembayaran || '-'}
+                  </td>
+                  <td className="hidden sm:table-cell max-w-xs px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
+                    <div className="line-clamp-2 whitespace-normal">
+                      {ticket.description || '-'}
+                    </div>
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
                     {ticket.priority ? (
