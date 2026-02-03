@@ -67,6 +67,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
+  const [editFile, setEditFile] = useState<File | null>(null)
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
   const colSpan = userRole !== 'MARKETING' ? 17 : 16
@@ -246,6 +247,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const ticketToEdit = ticketsState.find(t => t.id === id)
     if (ticketToEdit) {
       setEditTicket(ticketToEdit)
+      setEditFile(null)
     }
     setActiveActionId(null)
   }
@@ -261,26 +263,31 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         t.id === editTicket.id ? { ...t, ...editTicket } : t
       ))
 
+      const formData = new FormData()
+      formData.append('customerName', editTicket.customerName)
+      if (editTicket.birthDate) formData.append('birthDate', editTicket.birthDate)
+      formData.append('locationMap', editTicket.locationMap)
+      formData.append('phoneNumber', editTicket.phoneNumber)
+      formData.append('package', editTicket.package)
+      formData.append('marketingName', editTicket.marketingName)
+      if (editTicket.description) formData.append('description', editTicket.description)
+      formData.append('status', editTicket.status)
+      if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
+      if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
+      if (editTicket.priority) formData.append('priority', editTicket.priority)
+      
+      // New fields
+      if (editTicket.installedDate) formData.append('installedDate', editTicket.installedDate)
+      if (editFile) formData.append('fotoRumah', editFile)
+
       const res = await fetch(`/api/tickets/${editTicket.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: editTicket.customerName,
-          birthDate: editTicket.birthDate,
-          locationMap: editTicket.locationMap,
-          phoneNumber: editTicket.phoneNumber,
-          package: editTicket.package,
-          marketingName: editTicket.marketingName,
-          description: editTicket.description,
-          status: editTicket.status,
-          pengawalan: editTicket.pengawalan,
-          kmz: editTicket.kmz,
-          priority: editTicket.priority
-        }),
+        body: formData,
       })
 
       if (res.ok) {
         setEditTicket(null)
+        setEditFile(null)
         router.refresh()
       } else {
         alert('Gagal mengupdate tiket')
@@ -1112,6 +1119,38 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     rows={3}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Terpasang</label>
+                  <input
+                    type="date"
+                    value={editTicket.installedDate ? new Date(editTicket.installedDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, installedDate: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Update Foto Rumah</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0]
+                        if (file.size > 3 * 1024 * 1024) {
+                          alert('Ukuran file maksimal 3MB')
+                          e.target.value = ''
+                          setEditFile(null)
+                          return
+                        }
+                        setEditFile(file)
+                      }
+                    }}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Maks 3MB (.jpg, .png)</p>
                 </div>
                 
                 {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole) && (
