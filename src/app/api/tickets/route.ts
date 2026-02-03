@@ -130,22 +130,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'File too large' }, { status: 400 })
       }
 
-      // Check if Google Drive is configured
-      if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY && process.env.GOOGLE_DRIVE_FOLDER_ID) {
-        try {
-          const filename = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-          fotoRumahPath = await uploadToDrive(file, filename)
-        } catch (error) {
-          console.error('Failed to upload to Google Drive, falling back to Base64:', error)
-          // Fallback to Base64 if Drive fails
-          const buffer = Buffer.from(await file.arrayBuffer())
-          fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
-        }
-      } else {
-        // Fallback to Base64 if not configured
-        const buffer = Buffer.from(await file.arrayBuffer())
-        fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
-      }
+      // Fallback to Base64 (Google Drive integration removed)
+      const buffer = Buffer.from(await file.arrayBuffer())
+      fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
     }
 
     const rawData = {
@@ -179,6 +166,11 @@ export async function POST(request: Request) {
     // Only allow authorized roles to set pengawalan initially
     const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
+
+    // Ensure marketingName is present (it should be handled by validation or logic above, but for type safety)
+    if (!finalMarketingName) {
+        return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
+    }
 
     // Create ticket using standard Prisma create
     const ticket = await prisma.ticket.create({

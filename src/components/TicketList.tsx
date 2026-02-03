@@ -21,6 +21,7 @@ interface Ticket {
   pengawalan?: string | null
   kmz?: string | null
   priority?: string | null
+  pembayaran?: string | null
   status: string
   closedBy?: { name: string } | null
 }
