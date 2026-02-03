@@ -549,11 +549,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               )}
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
             </tr>
@@ -618,22 +618,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     {ticket.description || '-'}
                   </td>
                   
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
-                    <span className={clsx(
-                      'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                      ticket.status === 'OPEN' 
-                        ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                        : ticket.status === 'ON_PROGRESS'
-                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
-                          : ticket.status === 'CLOSE' 
-                            ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                            : ticket.status === 'PENDING'
-                              ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
-                              : 'bg-gray-200 text-gray-800'
-                    )}>
-                      {ticket.status}
-                    </span>
-                  </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
                     {ticket.pengawalan || '-'}
                   </td>
@@ -651,6 +635,22 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.pembayaran || '-'}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
+                    <span className={clsx(
+                      'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                      ticket.status === 'OPEN' 
+                        ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                        : ticket.status === 'ON_PROGRESS'
+                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                          : ticket.status === 'CLOSE' 
+                            ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
+                            : ticket.status === 'PENDING'
+                              ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
+                              : 'bg-gray-200 text-gray-800'
+                    )}>
+                      {ticket.status}
+                    </span>
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.status === 'CLOSE' && ticket.closedBy?.name
