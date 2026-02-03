@@ -97,8 +97,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
       }
 
-      // Validate size (2MB)
-      if (file.size > 2 * 1024 * 1024) {
+      // Validate size (3MB)
+      if (file.size > 3 * 1024 * 1024) {
         return NextResponse.json({ error: 'File too large' }, { status: 400 })
       }
 

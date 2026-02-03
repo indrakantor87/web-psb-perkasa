@@ -56,9 +56,9 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
         return
       }
 
-      // Validate file size (2MB = 2 * 1024 * 1024 bytes)
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Ukuran file maksimal 2MB')
+      // Validate file size (3MB = 3 * 1024 * 1024 bytes)
+      if (file.size > 3 * 1024 * 1024) {
+        setError('Ukuran file maksimal 3MB')
         e.target.value = '' // Reset input
         setFotoRumah(null)
         return
@@ -203,7 +203,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Foto Rumah (Max 2MB, .jpg/.jpeg/.png)
+            Foto Rumah (Max 3MB, .jpg/.jpeg/.png)
           </label>
           <input
             type="file"
