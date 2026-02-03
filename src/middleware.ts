@@ -2,7 +2,35 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth'
 
+const rateLimit = new Map<string, { count: number; lastReset: number }>()
+
 export async function middleware(request: NextRequest) {
+  // Simple Rate Limiting (In-Memory)
+  // Note: This is per-instance. For distributed environments (Vercel), 
+  // this is not a strict global limit but helps mitigate spam.
+  const ip = request.ip || '127.0.0.1'
+  const limit = 100 // requests
+  const windowMs = 60 * 1000 // 1 minute
+
+  if (!rateLimit.has(ip)) {
+    rateLimit.set(ip, { count: 0, lastReset: Date.now() })
+  }
+
+  const ipData = rateLimit.get(ip)
+  
+  if (ipData) {
+    if (Date.now() - ipData.lastReset > windowMs) {
+      ipData.count = 0
+      ipData.lastReset = Date.now()
+    }
+
+    ipData.count++
+
+    if (ipData.count > limit) {
+      return new NextResponse('Too Many Requests', { status: 429 })
+    }
+  }
+
   const session = request.cookies.get('session')?.value
 
   let currentUser = null
