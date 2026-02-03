@@ -58,12 +58,9 @@ export async function GET(request: Request) {
       prisma.ticket.findMany({
         where,
         orderBy: [
-          {
-            installedDate: { sort: 'desc', nulls: 'last' }
-          },
-          {
-            requestDate: 'desc'
-          }
+          { statusOrder: 'asc' },
+          { installedDate: { sort: 'desc', nulls: 'last' } },
+          { requestDate: 'desc' }
         ],
         select: {
           id: true,

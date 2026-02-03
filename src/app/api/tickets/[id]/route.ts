@@ -117,6 +117,7 @@ export async function PUT(
         where: { id: ticketId },
         data: {
           status: 'CLOSE',
+          statusOrder: 1, // Close is not OPEN
           installedDate: new Date(),
           closedById: session.user.id,
           ...updateData
@@ -125,10 +126,15 @@ export async function PUT(
       } as any)
     } else {
       // Normal update (e.g. editing details)
+      const statusUpdate = status !== undefined ? { 
+        status, 
+        statusOrder: status === 'OPEN' ? 0 : 1 
+      } : {}
+
       ticket = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
-          status, // If passed, or undefined
+          ...statusUpdate,
           ...updateData
         } as any,
         select: { id: true, status: true } // Optimization: Only return minimal fields

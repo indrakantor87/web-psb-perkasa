@@ -36,6 +36,7 @@ model Ticket {
   priority      String?
   pembayaran    String?
   status        String   @default("OPEN")
+  statusOrder   Int      @default(0)
   
   closedById    Int?
   closedBy      User?    @relation("ClosedBy", fields: [closedById], references: [id])
