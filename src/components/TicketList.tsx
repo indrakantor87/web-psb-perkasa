@@ -433,28 +433,30 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-        <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">
-            Ticket Open : {counts?.OPEN ?? 0}
-          </span>
+      {userRole !== 'MARKETING' && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+          <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">
+              Ticket Open : {counts?.OPEN ?? 0}
+            </span>
+          </div>
+          <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">
+              Ticket On Progress : {counts?.ON_PROGRESS ?? 0}
+            </span>
+          </div>
+          <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">
+              Ticket Close : {counts?.CLOSE ?? 0}
+            </span>
+          </div>
+          <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">
+              Ticket Pending : {counts?.PENDING ?? 0}
+            </span>
+          </div>
         </div>
-        <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">
-            Ticket On Progress : {counts?.ON_PROGRESS ?? 0}
-          </span>
-        </div>
-        <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">
-            Ticket Close : {counts?.CLOSE ?? 0}
-          </span>
-        </div>
-        <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">
-            Ticket Pending : {counts?.PENDING ?? 0}
-          </span>
-        </div>
-      </div>
+      )}
 
       <div className="inline-flex flex-col space-y-1 rounded-lg bg-white dark:bg-gray-800 p-1.5 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
         <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 ml-2 whitespace-nowrap">Filter:</h2>
@@ -538,10 +540,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Request</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Terpasang</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
+              {userRole !== 'MARKETING' && (
+                <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
+              )}
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
+              {userRole !== 'MARKETING' && (
+                <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
+              )}
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
@@ -581,7 +587,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                {userRole !== 'MARKETING' && (
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                )}
 
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                   {ticket.hasPhoto || ticket.fotoRumah ? (
@@ -607,51 +615,53 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     <span className="capitalize">{ticket.pengawalan || '-'}</span>
                   )}
                 </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs">
-                  {kmzEdit?.id === ticket.id ? (
-                    <div className="flex items-center space-x-1">
-                      <input
-                        value={kmzEdit.value}
-                        onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
-                        className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-1 py-0.5 text-xs"
-                        placeholder="Tautan/teks KMZ"
-                      />
-                      <button
-                        onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
-                        className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
-                      >
-                        Simpan
-                      </button>
-                      <button
-                        onClick={() => setKmzEdit(null)}
-                        className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                      >
-                        Batal
-                      </button>
-                    </div>
-                  ) : ticket.kmz ? (
-                    <div className="flex items-center space-x-1">
-                      <span className="max-w-[100px] truncate text-gray-700 dark:text-gray-300" title={ticket.kmz}>{ticket.kmz}</span>
-                      {canEditKmz && (
+                {userRole !== 'MARKETING' && (
+                  <td className="whitespace-nowrap px-3 py-3 text-xs">
+                    {kmzEdit?.id === ticket.id ? (
+                      <div className="flex items-center space-x-1">
+                        <input
+                          value={kmzEdit.value}
+                          onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
+                          className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-1 py-0.5 text-xs"
+                          placeholder="Tautan/teks KMZ"
+                        />
                         <button
-                          onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
-                          className="rounded bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
+                          onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
+                          className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
                         >
-                          Edit
+                          Simpan
                         </button>
-                      )}
-                    </div>
-                  ) : canEditKmz ? (
-                    <button
-                      onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
-                      className="rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30"
-                    >
-                      + KMZ
-                    </button>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </td>
+                        <button
+                          onClick={() => setKmzEdit(null)}
+                          className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    ) : ticket.kmz ? (
+                      <div className="flex items-center space-x-1">
+                        <span className="max-w-[100px] truncate text-gray-700 dark:text-gray-300" title={ticket.kmz}>{ticket.kmz}</span>
+                        {canEditKmz && (
+                          <button
+                            onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
+                            className="rounded bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </div>
+                    ) : canEditKmz ? (
+                      <button
+                        onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
+                        className="rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30"
+                      >
+                        + KMZ
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                )}
                 <td className="whitespace-nowrap px-3 py-3 text-xs">
                   {canEditPriority ? (
                     <select
@@ -676,15 +686,21 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   {ticket.description || '-'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs">
-                  <select
-                    value={ticket.pembayaran || ''}
-                    onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
-                    className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="">- Pilih -</option>
-                    <option value="Cash">Cash</option>
-                    <option value="TF">TF</option>
-                  </select>
+                  {userRole === 'MARKETING' ? (
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {ticket.pembayaran || '-'}
+                    </span>
+                  ) : (
+                    <select
+                      value={ticket.pembayaran || ''}
+                      onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
+                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="">- Pilih -</option>
+                      <option value="Cash">Cash</option>
+                      <option value="TF">TF</option>
+                    </select>
+                  )}
                 </td>
                 <td className="whitespace-nowrap px-3 py-3 text-xs">
                   <span className={clsx(
@@ -716,19 +732,21 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex flex-col gap-1 items-center relative action-dropdown-container">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setActiveActionId(activeActionId === ticket.id ? null : ticket.id)
-                      }}
-                      className="rounded p-1 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-white transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                      </svg>
-                    </button>
+                    {userRole !== 'MARKETING' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveActionId(activeActionId === ticket.id ? null : ticket.id)
+                        }}
+                        className="rounded p-1 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-white transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                        </svg>
+                      </button>
+                    )}
                     
-                    {activeActionId === ticket.id && (
+                    {userRole !== 'MARKETING' && activeActionId === ticket.id && (
                       <div className="absolute right-0 top-8 z-50 w-32 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <div className="py-1">
                           {(ticket.status === 'OPEN' || ticket.status === 'PENDING') && canClose && (
@@ -791,7 +809,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             ))}
             {ticketsState.length === 0 && (
               <tr>
-                <td colSpan={15} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                <td colSpan={20} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
                   Tidak ada data untuk periode ini
                 </td>
               </tr>

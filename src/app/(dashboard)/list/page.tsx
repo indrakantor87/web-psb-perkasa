@@ -87,15 +87,17 @@ export default async function ListPage({
     prisma.ticket.count({ where })
   ])
 
-  // Calculate counts for status badges (always based on baseWhere to show full overview)
-  const [open, progress, close, pending] = await Promise.all([
-    prisma.ticket.count({ where: { ...baseWhere, status: 'OPEN' } }),
-    prisma.ticket.count({ where: { ...baseWhere, status: 'ON_PROGRESS' } }),
-    prisma.ticket.count({ where: { ...baseWhere, status: 'CLOSE' } }),
-    prisma.ticket.count({ where: { ...baseWhere, status: 'PENDING' } }),
-  ])
-  
-  const counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
+  // Calculate counts for status badges (skip for MARKETING role as they don't see it)
+  let counts = undefined
+  if (session.user.role !== 'MARKETING') {
+    const [open, progress, close, pending] = await Promise.all([
+      prisma.ticket.count({ where: { ...baseWhere, status: 'OPEN' } }),
+      prisma.ticket.count({ where: { ...baseWhere, status: 'ON_PROGRESS' } }),
+      prisma.ticket.count({ where: { ...baseWhere, status: 'CLOSE' } }),
+      prisma.ticket.count({ where: { ...baseWhere, status: 'PENDING' } }),
+    ])
+    counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
+  }
 
   // Fetch IDs of tickets that have photos (only for the current page)
   const ticketIds = tickets.map(t => t.id)
