@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { clsx } from 'clsx'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 
@@ -11,6 +12,7 @@ interface DashboardLayoutClientProps {
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const isMarketing = user?.role === 'MARKETING'
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -23,11 +25,11 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
           <div 
-            className="fixed inset-0 bg-gray-600 bg-opacity-50 transition-opacity" 
+            className={clsx("fixed inset-0 bg-gray-600 bg-opacity-50", !isMarketing && "transition-opacity")}
             onClick={() => setSidebarOpen(false)}
           ></div>
           
-          <div className="relative flex w-64 flex-1 flex-col bg-gray-900 pt-5 pb-4 transition ease-in-out duration-300 transform translate-x-0">
+          <div className={clsx("relative flex w-64 flex-1 flex-col bg-gray-900 pt-5 pb-4 transform translate-x-0", !isMarketing && "transition ease-in-out duration-300")}>
             <div className="absolute top-0 right-0 -mr-12 pt-2">
               <button
                 className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"

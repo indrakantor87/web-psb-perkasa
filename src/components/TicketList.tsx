@@ -53,6 +53,7 @@ interface TicketListProps {
 
 export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, pagination, counts }: TicketListProps) {
   const router = useRouter()
+  const isMarketing = userRole === 'MARKETING'
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [month, setMonth] = useState(initialPeriod.month)
@@ -558,7 +559,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
           </thead>
           <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
             {currentTickets.map((ticket, index) => (
-              <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{indexOfFirstItem + index + 1}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
                   <button 

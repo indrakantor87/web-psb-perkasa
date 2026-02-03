@@ -16,6 +16,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
   const [zoomLevel, setZoomLevel] = useState(100)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const isMarketing = user?.role === 'MARKETING'
 
   useEffect(() => {
     setMounted(true)
@@ -50,7 +51,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
   }
 
   return (
-    <div className={clsx("flex h-full flex-col bg-gray-900 text-white transition-all duration-300", mobile ? "w-full" : (collapsed ? "w-16" : "w-56"))}>
+    <div className={clsx("flex h-full flex-col bg-gray-900 text-white", !isMarketing && "transition-all duration-300", mobile ? "w-full" : (collapsed ? "w-16" : "w-56"))}>
       <div className={clsx("flex items-center justify-center border-b border-gray-800 bg-gradient-to-b from-blue-950/30 to-gray-900", collapsed ? "h-16 p-2" : "h-28 p-2")}>
         <div className="relative h-auto w-auto max-w-full flex items-center justify-center bg-gradient-to-br from-white to-blue-50 rounded-xl p-1 shadow-md border border-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,7 +73,8 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
               onClick={handleLinkClick}
               prefetch={false}
               className={clsx(
-                'flex items-center rounded-lg transition-colors',
+                'flex items-center rounded-lg',
+                !isMarketing && 'transition-colors',
                 collapsed ? 'justify-center p-2' : 'space-x-3 px-3 py-2.5',
                 isActive
                   ? 'bg-blue-600 text-white'
@@ -91,7 +93,8 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
           <button
             onClick={() => !collapsed && setIsSettingsOpen(!isSettingsOpen)}
             className={clsx(
-              'flex w-full items-center rounded-lg transition-colors',
+              'flex w-full items-center rounded-lg',
+              !isMarketing && 'transition-colors',
               collapsed ? 'justify-center p-2' : 'justify-between px-3 py-2.5',
               pathname.startsWith('/settings')
                 ? 'text-white'
@@ -120,7 +123,8 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
                     onClick={handleLinkClick}
                     prefetch={false}
                     className={clsx(
-                      'block rounded-lg py-2 px-3 text-sm transition-colors',
+                      'block rounded-lg py-2 px-3 text-sm',
+                      !isMarketing && 'transition-colors',
                       isActive
                         ? 'text-blue-400'
                         : 'text-gray-400 hover:text-white'

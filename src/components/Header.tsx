@@ -3,9 +3,11 @@
 import { Menu, User, LogOut, ChevronDown } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { clsx } from 'clsx'
 
 export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => void }) {
   const [isOpen, setIsOpen] = useState(false)
+  const isMarketing = user?.role === 'MARKETING'
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close click outside
@@ -31,7 +33,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
   }
 
   return (
-    <header className="flex h-16 items-center justify-between bg-white dark:bg-gray-800 px-4 md:px-6 shadow-sm relative z-20 transition-colors">
+    <header className={clsx("flex h-16 items-center justify-between bg-white dark:bg-gray-800 px-4 md:px-6 shadow-sm relative z-20", !isMarketing && "transition-colors")}>
       <div className="flex items-center">
         {onMenuClick && (
           <button
@@ -51,7 +53,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
       <div className="relative" ref={dropdownRef}>
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center space-x-1 focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors"
+          className={clsx("flex items-center space-x-1 focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg", !isMarketing && "transition-colors")}
         >
           <ChevronDown className="h-4 w-4 text-blue-600 dark:text-blue-400 self-start mt-1" />
           <div className="text-right hidden sm:block">
@@ -71,7 +73,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
              </div>
              <Link 
                href="/profile" 
-               className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center transition-colors"
+               className={clsx("block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center", !isMarketing && "transition-colors")}
                onClick={() => setIsOpen(false)}
              >
                <User className="mr-2 h-4 w-4" />
@@ -79,7 +81,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
              </Link>
              <button
                 onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center transition-colors"
+                className={clsx("block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center", !isMarketing && "transition-colors")}
              >
                <LogOut className="mr-2 h-4 w-4" />
                Logout
