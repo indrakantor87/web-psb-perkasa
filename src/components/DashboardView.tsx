@@ -43,6 +43,10 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
     )
   }
 
+  const totalOpen = marketingData.reduce((acc, curr) => acc + curr.open, 0)
+  const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
+  const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
+
   return (
     <div className="space-y-6">
       <div className="inline-flex flex-col space-y-2 rounded-lg bg-white dark:bg-gray-800 p-3 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
@@ -140,7 +144,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
                   <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400">
                     Close
                   </th>
-                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-yellow-500 dark:text-yellow-400">
                     Total
                   </th>
                 </tr>
@@ -157,7 +161,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
                     <td className="px-4 py-2 text-xs text-green-600 dark:text-green-400 text-center font-medium">
                       {item.close}
                     </td>
-                    <td className="px-4 py-2 text-xs text-orange-600 dark:text-orange-400 text-center font-semibold">
+                    <td className="px-4 py-2 text-xs text-yellow-500 dark:text-yellow-400 text-center font-bold">
                       {item.count}
                     </td>
                   </tr>
@@ -170,6 +174,22 @@ export function DashboardView({ packageData, marketingData, initialPeriod }: Das
                   </tr>
                 )}
               </tbody>
+              <tfoot className="border-t-2 border-gray-200 dark:border-gray-600">
+                <tr className="bg-gray-50/50 dark:bg-gray-700/50">
+                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 uppercase tracking-wider text-center">
+                    TOTAL
+                  </td>
+                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
+                    {totalOpen}
+                  </td>
+                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
+                    {totalClose}
+                  </td>
+                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
+                    {totalCount}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>
