@@ -44,22 +44,59 @@ export async function GET(request: Request) {
   }
 
   try {
-    const tickets = await prisma.ticket.findMany({
-      where,
-      orderBy: {
-        requestDate: 'desc',
-      },
-      include: {
-        closedBy: {
-          select: {
-            name: true,
-            role: true
+    // Optimasi: Fetch data tiket tanpa kolom fotoRumah yang berat
+    // Dan fetch ID tiket yang punya foto secara terpisah
+    const [tickets, ticketsWithPhotos] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        orderBy: {
+          requestDate: 'desc',
+        },
+        select: {
+          id: true,
+          customerName: true,
+          birthDate: true,
+          locationMap: true,
+          requestDate: true,
+          installedDate: true,
+          package: true,
+          marketingName: true,
+          description: true,
+          phoneNumber: true,
+          pengawalan: true,
+          kmz: true,
+          priority: true,
+          status: true,
+          pembayaran: true,
+          closedBy: {
+            select: {
+              name: true,
+              role: true
+            }
           }
         }
-      }
-    })
+      }),
+      prisma.ticket.findMany({
+        where: {
+          ...where,
+          fotoRumah: {
+            not: null
+          }
+        },
+        select: {
+          id: true
+        }
+      })
+    ])
 
-    return NextResponse.json(tickets)
+    const photoIds = new Set(ticketsWithPhotos.map(t => t.id))
+
+    const formattedTickets = tickets.map(t => ({
+      ...t,
+      hasPhoto: photoIds.has(t.id)
+    }))
+
+    return NextResponse.json(formattedTickets)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 })
   }

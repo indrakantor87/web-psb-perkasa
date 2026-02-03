@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import * as XLSX from 'xlsx'
 
 interface Ticket {
   id: number
@@ -18,6 +17,7 @@ interface Ticket {
   description: string | null
   phoneNumber: string
   fotoRumah?: string | null
+  hasPhoto?: boolean
   pengawalan?: string | null
   kmz?: string | null
   priority?: string | null
@@ -335,7 +335,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx')
     const dataToExport = ticketsState.map(ticket => ({
       'Nama Pelanggan': ticket.customerName,
       'Tanggal Lahir': ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-',
@@ -513,8 +514,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
 
                 <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                  {ticket.fotoRumah ? (
-                    <a href={ticket.fotoRumah} target="_blank" rel="noreferrer" className="hover:underline">
+                  {ticket.hasPhoto || ticket.fotoRumah ? (
+                    <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
                       Lihat Foto
                     </a>
                   ) : (

@@ -61,6 +61,7 @@ export async function PUT(
           closedById: session.user.id,
           ...updateData
         },
+        select: { id: true, status: true } // Optimization: Only return minimal fields
       } as any)
     } else {
       // Normal update (e.g. editing details)
@@ -70,6 +71,7 @@ export async function PUT(
           status, // If passed, or undefined
           ...updateData
         } as any,
+        select: { id: true, status: true } // Optimization: Only return minimal fields
       })
     }
 
@@ -100,6 +102,7 @@ export async function DELETE(
   try {
     await prisma.ticket.delete({
       where: { id: parseInt(id) },
+      select: { id: true }
     })
     return NextResponse.json({ message: 'Ticket deleted' })
   } catch (error) {

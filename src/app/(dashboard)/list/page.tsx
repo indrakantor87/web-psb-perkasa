@@ -46,20 +46,59 @@ export default async function ListPage({
     }
   }
 
-  const tickets = await prisma.ticket.findMany({
-    where,
-    orderBy: {
-      requestDate: 'desc',
-    },
-    include: {
-      closedBy: {
-        select: {
-          name: true,
-          role: true
+  // Optimasi: Fetch data tiket tanpa kolom fotoRumah yang berat
+  const [tickets, ticketsWithPhotos] = await Promise.all([
+    prisma.ticket.findMany({
+      where,
+      orderBy: {
+        requestDate: 'desc',
+      },
+      select: {
+        id: true,
+        customerName: true,
+        birthDate: true,
+        locationMap: true,
+        requestDate: true,
+        installedDate: true,
+        package: true,
+        marketingName: true,
+        description: true,
+        phoneNumber: true,
+        pengawalan: true,
+        kmz: true,
+        priority: true,
+        status: true,
+        pembayaran: true,
+        closedBy: {
+          select: {
+            name: true,
+            role: true
+          }
         }
       }
-    }
-  })
+    }),
+    prisma.ticket.findMany({
+      where: {
+        ...where,
+        fotoRumah: {
+          not: null
+        }
+      },
+      select: {
+        id: true
+      }
+    })
+  ])
+
+  const photoIds = new Set(ticketsWithPhotos.map(t => t.id))
+
+  const formattedTickets = tickets.map(t => ({
+    ...t,
+    requestDate: t.requestDate.toISOString(),
+    installedDate: t.installedDate ? t.installedDate.toISOString() : null,
+    birthDate: t.birthDate ? t.birthDate.toISOString() : null,
+    hasPhoto: photoIds.has(t.id)
+  }))
 
   return (
     <div className="space-y-6">
@@ -70,7 +109,7 @@ export default async function ListPage({
       <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
         <div className="p-4 sm:p-6 lg:p-8">
           <TicketList 
-            tickets={tickets as any} 
+            tickets={formattedTickets as any} 
             userRole={session.user.role}
             initialPeriod={{ month: currentMonth, year: currentYear }}
             initialStatus={currentStatus}
