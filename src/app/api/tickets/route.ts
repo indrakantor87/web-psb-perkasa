@@ -57,9 +57,14 @@ export async function GET(request: Request) {
     const [tickets, ticketsWithPhotos] = await Promise.all([
       prisma.ticket.findMany({
         where,
-        orderBy: {
-          requestDate: 'desc',
-        },
+        orderBy: [
+          {
+            installedDate: { sort: 'desc', nulls: 'last' }
+          },
+          {
+            requestDate: 'desc'
+          }
+        ],
         select: {
           id: true,
           customerName: true,

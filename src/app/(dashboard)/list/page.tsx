@@ -55,9 +55,10 @@ export default async function ListPage({
   const [tickets, totalCount] = await Promise.all([
     prisma.ticket.findMany({
       where,
-      orderBy: {
-        requestDate: 'desc',
-      },
+      orderBy: [
+        { installedDate: { sort: 'desc', nulls: 'last' } },
+        { requestDate: 'desc' }
+      ],
       skip: (currentPageNumber - 1) * pageSize,
       take: pageSize,
       select: {
