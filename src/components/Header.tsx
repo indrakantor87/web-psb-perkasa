@@ -45,7 +45,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
             <Menu className="h-6 w-6" />
           </button>
         )}
-        <div className="flex items-center justify-center bg-white dark:bg-gray-700 rounded-lg p-1.5 shadow-sm border border-gray-200 dark:border-gray-600">
+        <div className="flex items-center justify-center bg-white rounded-lg p-1.5 shadow-sm border border-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="/logo.png" 
