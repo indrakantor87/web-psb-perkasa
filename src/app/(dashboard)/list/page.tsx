@@ -28,22 +28,24 @@ export default async function ListPage({
   const startDate = new Date(currentYear, currentMonth - 1, 1)
   const endDate = new Date(currentYear, currentMonth, 1)
 
-  const where: any = {
+  const baseWhere: any = {
     requestDate: {
       gte: startDate,
       lt: endDate,
     },
   }
-  if (currentStatus !== 'ALL') {
-    (where as any).status = currentStatus
-  }
 
   if (session.user.role === 'MARKETING') {
-    where.marketingName = session.user.name
+    baseWhere.marketingName = session.user.name
   } else if (currentMarketing && currentMarketing.trim()) {
-    where.marketingName = {
+    baseWhere.marketingName = {
       contains: currentMarketing.trim(),
     }
+  }
+
+  const where = { ...baseWhere }
+  if (currentStatus !== 'ALL') {
+    where.status = currentStatus
   }
 
   const pageParam = resolvedSearchParams.page
@@ -85,22 +87,15 @@ export default async function ListPage({
     prisma.ticket.count({ where })
   ])
 
-  // Calculate counts for status badges
-  let counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
+  // Calculate counts for status badges (always based on baseWhere to show full overview)
+  const [open, progress, close, pending] = await Promise.all([
+    prisma.ticket.count({ where: { ...baseWhere, status: 'OPEN' } }),
+    prisma.ticket.count({ where: { ...baseWhere, status: 'ON_PROGRESS' } }),
+    prisma.ticket.count({ where: { ...baseWhere, status: 'CLOSE' } }),
+    prisma.ticket.count({ where: { ...baseWhere, status: 'PENDING' } }),
+  ])
   
-  if (currentStatus !== 'ALL') {
-    if (currentStatus in counts) {
-      counts[currentStatus as keyof typeof counts] = totalCount
-    }
-  } else {
-    const [open, progress, close, pending] = await Promise.all([
-      prisma.ticket.count({ where: { ...where, status: 'OPEN' } }),
-      prisma.ticket.count({ where: { ...where, status: 'ON_PROGRESS' } }),
-      prisma.ticket.count({ where: { ...where, status: 'CLOSE' } }),
-      prisma.ticket.count({ where: { ...where, status: 'PENDING' } }),
-    ])
-    counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
-  }
+  const counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
 
   // Fetch IDs of tickets that have photos (only for the current page)
   const ticketIds = tickets.map(t => t.id)
