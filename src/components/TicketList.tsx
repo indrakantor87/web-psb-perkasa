@@ -369,10 +369,15 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
         <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
             Ticket Open : {ticketsState.filter(t => t.status === 'OPEN').length}
+          </span>
+        </div>
+        <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
+          <span className="text-xs font-bold text-white">
+            Ticket On Progress : {ticketsState.filter(t => t.status === 'ON_PROGRESS').length}
           </span>
         </div>
         <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
@@ -423,6 +428,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             >
               <option value="ALL">Semua</option>
               <option value="OPEN">OPEN</option>
+              <option value="ON_PROGRESS">ON PROGRESS</option>
               <option value="CLOSE">CLOSE</option>
               <option value="PENDING">PENDING</option>
             </select>
@@ -623,9 +629,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
                       : ticket.status === 'CLOSE' 
                         ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                        : ticket.status === 'PENDING'
-                          ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
-                          : 'bg-gray-200 text-gray-800'
+                        : ticket.status === 'ON_PROGRESS'
+                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                          : ticket.status === 'PENDING'
+                            ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
+                            : 'bg-gray-200 text-gray-800'
                   )}>
                     {ticket.status}
                   </span>
@@ -954,6 +962,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="OPEN">OPEN</option>
+                      <option value="ON_PROGRESS">ON PROGRESS</option>
                       <option value="CLOSE">CLOSE</option>
                       <option value="PENDING">PENDING</option>
                     </select>
