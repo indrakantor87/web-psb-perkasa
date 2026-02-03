@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -34,6 +34,7 @@ model Ticket {
   pengawalan    String?
   kmz           String?
   priority      String?
+  pembayaran    String?
   status        String   @default("OPEN")
   
   closedById    Int?
