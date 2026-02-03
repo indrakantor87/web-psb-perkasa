@@ -535,7 +535,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
       <div className="overflow-x-auto overflow-y-hidden rounded-lg bg-white dark:bg-gray-800 shadow-sm">
         <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700 hidden sm:table-header-group">
+          <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
@@ -562,7 +562,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             {currentTickets.map((ticket, index) => (
               <Fragment key={ticket.id}>
                 <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
@@ -573,7 +573,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span>{indexOfFirstItem + index + 1}</span>
                     </div>
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                  <td className="whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
                     <button 
                       type="button"
                       onClick={(e) => {
@@ -585,26 +585,26 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       {ticket.customerName}
                     </button>
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
                   </td>
-                  <td className="hidden sm:table-cell max-w-xs px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <td className="max-w-xs px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
                       Link Map
                     </a>
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
                   {userRole !== 'MARKETING' && (
-                    <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
                   )}
 
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     {ticket.hasPhoto || ticket.fotoRumah ? (
                       <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
                         Lihat Foto
@@ -614,21 +614,21 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     )}
                   </td>
                   
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
                     {ticket.pengawalan || '-'}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.kmz || '-'}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.pembayaran || '-'}
                   </td>
-                  <td className="hidden sm:table-cell max-w-xs px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
+                  <td className="max-w-xs px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
                     <div className="line-clamp-3 whitespace-normal">
                       {ticket.description || '-'}
                     </div>
                   </td>
-                  <td className="hidden sm:table-cell px-3 py-3 text-xs">
+                  <td className="px-3 py-3 text-xs">
                     {ticket.priority ? (
                       <span className={clsx('inline-flex items-center justify-center text-center whitespace-normal max-w-[120px] rounded-full px-2 py-0.5 text-[9px] leading-tight', getPriorityColor(ticket.priority))}>
                         {ticket.priority}
@@ -637,7 +637,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
-                  <td className="hidden sm:table-cell px-3 py-3 text-xs">
+                  <td className="px-3 py-3 text-xs">
                     <span className={clsx(
                       'inline-flex items-center justify-center text-center rounded-full px-2 py-0.5 font-semibold leading-tight',
                       ticket.status === 'ON_PROGRESS' ? 'text-[9px] whitespace-normal max-w-[70px]' : 'text-[10px] whitespace-nowrap',
@@ -654,12 +654,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       {ticket.status.replace(/_/g, ' ')}
                     </span>
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.status === 'CLOSE' && ticket.closedBy?.name
                       ? `by ${ticket.closedBy.name}`
                       : '-'}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a
                       href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
                       target="_blank"
@@ -669,7 +669,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       {ticket.phoneNumber}
                     </a>
                   </td>
-                  <td className="sm:hidden px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                  <td className="hidden px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
