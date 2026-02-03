@@ -52,7 +52,7 @@ export function Sidebar({ mobile, onClose, collapsed, user }: { mobile?: boolean
 
   return (
     <div className={clsx("flex h-full flex-col bg-gray-900 text-white transition-all duration-300", mobile ? "w-full" : (collapsed ? "w-12" : "w-56"))}>
-      <nav className={clsx("flex-1 space-y-1 overflow-y-auto pt-4", collapsed ? "px-0 py-1" : "p-3")}>
+      <nav className={clsx("flex-1 space-y-1 overflow-y-auto pt-20", collapsed ? "px-0 pb-1" : "px-3 pb-3")}>
         {links.map((link) => {
           const Icon = link.icon
           const isActive = pathname === link.href
