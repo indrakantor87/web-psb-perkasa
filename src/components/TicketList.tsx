@@ -308,14 +308,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const handleUpdatePriority = async (id: number, value: string) => {
     // Optimistic update
     setTicketsState(prev => prev.map(t => 
-      t.id === id ? { ...t, priority: value } : t
+      t.id === id ? { ...t, priority: value, status: 'PENDING' } : t
     ))
 
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priority: value || null }),
+        body: JSON.stringify({ priority: value || null, status: 'PENDING' }),
       })
       if (res.ok) {
         router.refresh()
