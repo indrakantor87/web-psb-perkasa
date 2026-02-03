@@ -38,11 +38,23 @@ interface TicketListProps {
   initialPeriod: { month: number; year: number }
   initialStatus?: string
   initialMarketing?: string
+  pagination?: {
+    currentPage: number
+    totalPages: number
+    totalCount: number
+  }
+  counts?: {
+    OPEN: number
+    ON_PROGRESS: number
+    CLOSE: number
+    PENDING: number
+  }
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing }: TicketListProps) {
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, pagination, counts }: TicketListProps) {
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<number | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const [status, setStatus] = useState((initialStatus || 'ALL').toUpperCase())
@@ -60,15 +72,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     setTicketsState(tickets)
   }, [tickets])
   
-  
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(25)
-
-  // Reset page when filters change (tickets prop changes)
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [tickets])
+  // Pagination from props (Server Side)
+  const currentPage = pagination?.currentPage || 1
+  const totalPages = pagination?.totalPages || 1
+  const totalCount = pagination?.totalCount || tickets.length
 
   useEffect(() => {
     const fetchPriorities = async () => {
@@ -368,58 +375,83 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   }
 
   const handleExportExcel = async () => {
-    const XLSX = await import('xlsx')
-    const dataToExport = ticketsState.map(ticket => ({
-      'Nama Pelanggan': ticket.customerName,
-      'Tanggal Lahir': ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-',
-      'Maps Lokasi': ticket.locationMap,
-      'Tgl Request': format(new Date(ticket.requestDate), 'dd/MM/yyyy'),
-      'Tgl Terpasang': ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-',
-      'Paket': ticket.package,
-      'Marketing': ticket.marketingName,
-      'Pengawalan': ticket.pengawalan || '-',
-      'KMZ': ticket.kmz || '-',
-      'Prioritas': ticket.priority || '-',
-      'Keterangan': ticket.description || '-',
-      'Pembayaran': ticket.pembayaran || '-',
-      'Status': ticket.status,
-      'No HP': ticket.phoneNumber,
-      'Closed By': ticket.closedBy?.name || '-'
-    }))
+    setIsExporting(true)
+    try {
+      const XLSX = await import('xlsx')
 
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tickets')
-    XLSX.writeFile(workbook, `Tickets_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+      // Fetch all data based on current filters
+      const params = new URLSearchParams()
+      params.set('month', month.toString())
+      params.set('year', year.toString())
+      if (status !== 'ALL') params.set('status', status)
+      if (marketing) params.set('marketing', marketing)
+
+      const res = await fetch(`/api/tickets?${params.toString()}`)
+      if (!res.ok) throw new Error('Failed to fetch data for export')
+      const allTickets: Ticket[] = await res.json()
+
+      const dataToExport = allTickets.map(ticket => ({
+        'Nama Pelanggan': ticket.customerName,
+        'Tanggal Lahir': ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-',
+        'Maps Lokasi': ticket.locationMap,
+        'Tgl Request': format(new Date(ticket.requestDate), 'dd/MM/yyyy'),
+        'Tgl Terpasang': ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-',
+        'Paket': ticket.package,
+        'Marketing': ticket.marketingName,
+        'Pengawalan': ticket.pengawalan || '-',
+        'KMZ': ticket.kmz || '-',
+        'Prioritas': ticket.priority || '-',
+        'Keterangan': ticket.description || '-',
+        'Pembayaran': ticket.pembayaran || '-',
+        'Status': ticket.status,
+        'No HP': ticket.phoneNumber,
+        'Closed By': ticket.closedBy?.name || '-'
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Tickets')
+      XLSX.writeFile(workbook, `Tickets_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Gagal mengexport data. Silakan coba lagi.')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   // Pagination Logic
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentTickets = ticketsState.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(ticketsState.length / itemsPerPage)
+  const currentTickets = ticketsState
+  const indexOfFirstItem = (currentPage - 1) * 20
+  const indexOfLastItem = indexOfFirstItem + currentTickets.length
+
+  const handlePageChange = (newPage: number) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('page', newPage.toString())
+    router.push(url.pathname + url.search)
+  }
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
         <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Open : {ticketsState.filter(t => t.status === 'OPEN').length}
+            Ticket Open : {counts?.OPEN ?? 0}
           </span>
         </div>
         <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket On Progress : {ticketsState.filter(t => t.status === 'ON_PROGRESS').length}
+            Ticket On Progress : {counts?.ON_PROGRESS ?? 0}
           </span>
         </div>
         <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Close : {ticketsState.filter(t => t.status === 'CLOSE').length}
+            Ticket Close : {counts?.CLOSE ?? 0}
           </span>
         </div>
         <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
           <span className="text-xs font-bold text-white">
-            Ticket Pending : {ticketsState.filter(t => t.status === 'PENDING').length}
+            Ticket Pending : {counts?.PENDING ?? 0}
           </span>
         </div>
       </div>
@@ -771,28 +803,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
         <div className="text-xs text-gray-700 dark:text-gray-300">
           Menampilkan <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
-          <span className="font-medium">{Math.min(indexOfLastItem, ticketsState.length)}</span> dari{' '}
-          <span className="font-medium">{ticketsState.length}</span> hasil
+          <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> dari{' '}
+          <span className="font-medium">{totalCount}</span> hasil
         </div>
         
         <div className="flex items-center space-x-2">
-           <span className="text-xs text-gray-700 dark:text-gray-300">Tampilkan:</span>
-           <select
-             value={itemsPerPage}
-             onChange={(e) => {
-               setItemsPerPage(Number(e.target.value))
-               setCurrentPage(1)
-             }}
-             className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-1 py-0.5 text-xs text-black dark:text-white"
-           >
-             <option value={25}>25</option>
-             <option value={50}>50</option>
-             <option value={100}>100</option>
-           </select>
-           
            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
               <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
                 className="relative inline-flex items-center rounded-l-md px-1 py-1 text-gray-400 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
               >
@@ -807,7 +825,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                </span>
 
               <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                 disabled={currentPage === totalPages}
                 className="relative inline-flex items-center rounded-r-md px-1 py-1 text-gray-400 dark:text-gray-300 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 focus:z-20 focus:outline-offset-0 disabled:opacity-50 transition-colors"
               >

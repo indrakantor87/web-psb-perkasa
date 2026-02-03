@@ -46,13 +46,18 @@ export default async function ListPage({
     }
   }
 
-  // Optimasi: Fetch data tiket tanpa kolom fotoRumah yang berat
-  const [tickets, ticketsWithPhotos] = await Promise.all([
+  const pageParam = resolvedSearchParams.page
+  const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
+  const pageSize = 20
+
+  const [tickets, totalCount] = await Promise.all([
     prisma.ticket.findMany({
       where,
       orderBy: {
         requestDate: 'desc',
       },
+      skip: (currentPageNumber - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         customerName: true,
@@ -77,18 +82,39 @@ export default async function ListPage({
         }
       }
     }),
-    prisma.ticket.findMany({
-      where: {
-        ...where,
-        fotoRumah: {
-          not: null
-        }
-      },
-      select: {
-        id: true
-      }
-    })
+    prisma.ticket.count({ where })
   ])
+
+  // Calculate counts for status badges
+  let counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
+  
+  if (currentStatus !== 'ALL') {
+    if (currentStatus in counts) {
+      counts[currentStatus as keyof typeof counts] = totalCount
+    }
+  } else {
+    const [open, progress, close, pending] = await Promise.all([
+      prisma.ticket.count({ where: { ...where, status: 'OPEN' } }),
+      prisma.ticket.count({ where: { ...where, status: 'ON_PROGRESS' } }),
+      prisma.ticket.count({ where: { ...where, status: 'CLOSE' } }),
+      prisma.ticket.count({ where: { ...where, status: 'PENDING' } }),
+    ])
+    counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
+  }
+
+  // Fetch IDs of tickets that have photos (only for the current page)
+  const ticketIds = tickets.map(t => t.id)
+  const ticketsWithPhotos = await prisma.ticket.findMany({
+    where: {
+      id: { in: ticketIds },
+      fotoRumah: {
+        not: null
+      }
+    },
+    select: {
+      id: true
+    }
+  })
 
   const photoIds = new Set(ticketsWithPhotos.map(t => t.id))
 
@@ -109,11 +135,17 @@ export default async function ListPage({
       <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
         <div className="p-4 sm:p-6 lg:p-8">
           <TicketList 
-            tickets={formattedTickets as any} 
+            tickets={formattedTickets} 
             userRole={session.user.role}
             initialPeriod={{ month: currentMonth, year: currentYear }}
             initialStatus={currentStatus}
             initialMarketing={currentMarketing}
+            pagination={{
+              currentPage: currentPageNumber,
+              totalPages: Math.ceil(totalCount / pageSize),
+              totalCount: totalCount
+            }}
+            counts={counts}
           />
         </div>
       </div>

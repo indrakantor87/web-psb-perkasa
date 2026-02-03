@@ -21,6 +21,13 @@ export async function GET(request: Request) {
   // Filter for Marketing role
   if (session.user.role === 'MARKETING') {
     where.marketingName = session.user.name
+  } else {
+    const marketingParam = searchParams.get('marketing')
+    if (marketingParam && marketingParam.trim()) {
+      where.marketingName = {
+        contains: marketingParam.trim(),
+      }
+    }
   }
 
   if (month && year) {
