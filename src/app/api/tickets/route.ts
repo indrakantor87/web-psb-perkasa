@@ -58,9 +58,9 @@ export async function GET(request: Request) {
       prisma.ticket.findMany({
         where,
         orderBy: [
-          // { statusOrder: 'asc' }, // Temporarily disabled until Prisma Client generates
-          { installedDate: { sort: 'desc', nulls: 'last' } },
-          { requestDate: 'desc' }
+          // { statusOrder: 'asc' }, // Disabled until server restart
+          { requestDate: 'desc' },
+          { installedDate: { sort: 'desc', nulls: 'last' } }
         ],
         select: {
           id: true,

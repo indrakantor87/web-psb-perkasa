@@ -56,9 +56,9 @@ export default async function ListPage({
     prisma.ticket.findMany({
       where,
       orderBy: [
-        // { statusOrder: 'asc' }, // Temporarily disabled until Prisma Client generates
-        { installedDate: { sort: 'desc', nulls: 'last' } },
-        { requestDate: 'desc' }
+        // { statusOrder: 'asc' }, // Disabled until server restart
+        { requestDate: 'desc' },
+        { installedDate: { sort: 'desc', nulls: 'last' } }
       ],
       skip: (currentPageNumber - 1) * pageSize,
       take: pageSize,
