@@ -55,6 +55,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  // Role-based access control
+  if (currentUser && currentUser.role === 'MARKETING') {
+    const restrictedPaths = ['/settings/priorities', '/settings/users']
+    if (restrictedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
   const response = NextResponse.next()
 
   // Add Security Headers

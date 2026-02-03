@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Ticket {
   id: number
@@ -65,8 +66,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
+  const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
+  const colSpan = userRole !== 'MARKETING' ? 12 : 11
 
   // Sync local state when props change
   useEffect(() => {
@@ -532,7 +535,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
       <div className="overflow-x-auto overflow-y-hidden rounded-lg bg-white dark:bg-gray-800 shadow-sm">
         <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700 hidden sm:table-header-group">
             <tr>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
@@ -545,268 +548,351 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               )}
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
-              {userRole !== 'MARKETING' && (
-                <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
-              )}
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
             {currentTickets.map((ticket, index) => (
-              <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{indexOfFirstItem + index + 1}</td>
-                <td className="whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      setSummaryTicket(ticket)
-                    }}
-                    className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none"
-                  >
-                    {ticket.customerName}
-                  </button>
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
-                </td>
-                <td className="max-w-xs truncate px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                  <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
-                    Link Map
-                  </a>
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
-                {userRole !== 'MARKETING' && (
-                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
-                )}
-
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                  {ticket.hasPhoto || ticket.fotoRumah ? (
-                    <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
-                      Lihat Foto
-                    </a>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
-                  {canClose ? (
-                    <select
-                      value={(ticket.pengawalan || 'tidak').toLowerCase()}
-                      onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
-                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
-                    >
-                      <option value="tidak">Tidak</option>
-                      <option value="onsite">Onsite</option>
-                      <option value="onchat">Onchat</option>
-                    </select>
-                  ) : (
-                    <span className="capitalize">{ticket.pengawalan || '-'}</span>
-                  )}
-                </td>
-                {userRole !== 'MARKETING' && (
-                  <td className="whitespace-nowrap px-3 py-3 text-xs">
-                    {kmzEdit?.id === ticket.id ? (
-                      <div className="flex items-center space-x-1">
-                        <input
-                          value={kmzEdit.value}
-                          onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
-                          className="w-32 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-1 py-0.5 text-xs"
-                          placeholder="Tautan/teks KMZ"
-                        />
-                        <button
-                          onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
-                          className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700"
-                        >
-                          Simpan
-                        </button>
-                        <button
-                          onClick={() => setKmzEdit(null)}
-                          className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                        >
-                          Batal
-                        </button>
-                      </div>
-                    ) : ticket.kmz ? (
-                      <div className="flex items-center space-x-1">
-                        <span className="max-w-[100px] truncate text-gray-700 dark:text-gray-300" title={ticket.kmz}>{ticket.kmz}</span>
-                        {canEditKmz && (
-                          <button
-                            onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
-                            className="rounded bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600"
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                    ) : canEditKmz ? (
+              <Fragment key={ticket.id}>
+                <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
-                        className="rounded bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-900/30"
+                        onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
+                        className="text-gray-500 hover:text-blue-600 focus:outline-none"
                       >
-                        + KMZ
+                        {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
+                      <span>{indexOfFirstItem + index + 1}</span>
+                    </div>
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setSummaryTicket(ticket)
+                      }}
+                      className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none"
+                    >
+                      {ticket.customerName}
+                    </button>
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
+                  </td>
+                  <td className="hidden sm:table-cell max-w-xs px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                    <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
+                      Link Map
+                    </a>
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
+                  {userRole !== 'MARKETING' && (
+                    <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                  )}
+
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                    {ticket.hasPhoto || ticket.fotoRumah ? (
+                      <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
+                        Lihat Foto
+                      </a>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
-                )}
-                <td className="whitespace-nowrap px-3 py-3 text-xs">
-                  {canEditPriority ? (
-                    <select
-                      value={ticket.priority || ''}
-                      onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
-                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6"
-                    >
-                      <option value="">- Pilih -</option>
-                      {priorities.map((p) => (
-                        <option key={p.id} value={p.name}>{p.name}</option>
-                      ))}
-                    </select>
-                  ) : ticket.priority ? (
-                    <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold', getPriorityColor(ticket.priority))}>
-                      {ticket.priority}
+                  
+                  <td className="hidden sm:table-cell max-w-xs truncate px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
+                    {ticket.description || '-'}
+                  </td>
+                  
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
+                    <span className={clsx(
+                      'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                      ticket.status === 'OPEN' 
+                        ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                        : ticket.status === 'ON_PROGRESS'
+                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                          : ticket.status === 'CLOSE' 
+                            ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
+                            : ticket.status === 'PENDING'
+                              ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
+                              : 'bg-gray-200 text-gray-800'
+                    )}>
+                      {ticket.status}
                     </span>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500">-</span>
-                  )}
-                </td>
-                <td className="max-w-xs truncate px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
-                  {ticket.description || '-'}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs">
-                  {userRole === 'MARKETING' ? (
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {ticket.pembayaran || '-'}
-                    </span>
-                  ) : (
-                    <select
-                      value={ticket.pembayaran || ''}
-                      onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
-                      className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-0.5 pl-1 pr-6 focus:border-blue-500 focus:ring-blue-500"
+                  </td>
+                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
+                    <a
+                      href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:underline"
                     >
-                      <option value="">- Pilih -</option>
-                      <option value="Cash">Cash</option>
-                      <option value="TF">TF</option>
-                    </select>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs">
-                  <span className={clsx(
-                    'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                    ticket.status === 'OPEN' 
-                      ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                      : ticket.status === 'OPEN' 
-                      ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                      : ticket.status === 'ON_PROGRESS'
-                        ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
-                        : ticket.status === 'CLOSE' 
-                          ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                          : ticket.status === 'PENDING'
-                            ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
-                            : 'bg-gray-200 text-gray-800'
-                  )}>
-                    {ticket.status}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                  <a
-                    href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hover:underline"
-                  >
-                    {ticket.phoneNumber}
-                  </a>
-                </td>
-                <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-                  <div className="flex flex-col gap-1 items-center relative action-dropdown-container">
-                    {userRole !== 'MARKETING' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActiveActionId(activeActionId === ticket.id ? null : ticket.id)
-                        }}
-                        className="rounded p-1 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-white transition-colors"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                        </svg>
-                      </button>
-                    )}
-                    
-                    {userRole !== 'MARKETING' && activeActionId === ticket.id && (
-                      <div className="absolute right-0 top-8 z-50 w-32 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <div className="py-1">
-                          {(ticket.status === 'OPEN' || ticket.status === 'PENDING') && canClose && (
-                            <button
-                              onClick={(e) => {
-                                handleOnProgressTicket(e, ticket.id)
-                                setActiveActionId(null)
-                              }}
-                              disabled={loadingId === ticket.id}
-                              className="block w-full px-4 py-2 text-left text-xs text-blue-600 hover:bg-gray-100 disabled:opacity-50"
-                            >
-                              {loadingId === ticket.id ? 'Updating...' : 'Set On Progress'}
-                            </button>
-                          )}
-
-                          {['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status) && canClose && (
-                            <button
-                              onClick={(e) => {
-                                handleCloseTicket(e, ticket.id)
-                                setActiveActionId(null)
-                              }}
-                              disabled={loadingId === ticket.id}
-                              className="block w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                            >
-                              {loadingId === ticket.id ? 'Closing...' : 'Close'}
-                            </button>
-                          )}
-                          
+                      {ticket.phoneNumber}
+                    </a>
+                  </td>
+                  <td className="sm:hidden px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
                           <button
-                             onClick={(e) => handleEditTicket(e, ticket.id)}
-                             className="block w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-gray-100"
+                            onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
+                            className="text-gray-500 hover:text-blue-600 focus:outline-none"
                           >
-                            Edit
+                            {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-
-                          {canDelete && (
-                            <button
-                              onClick={(e) => {
-                                handleDeleteTicket(e, ticket.id)
-                                setActiveActionId(null)
-                              }}
-                              disabled={loadingId === ticket.id}
-                              className="block w-full px-4 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                          <span className="text-gray-500 dark:text-gray-400">{indexOfFirstItem + index + 1}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                        >
+                          {ticket.customerName}
+                        </button>
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Tanggal Lahir:</span> {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
+                      </div>
+                      <div>
+                        <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Link Map</a>
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Tgl Request:</span> {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Tgl Terpasang:</span> {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Paket:</span> {ticket.package}
+                      </div>
+                      {userRole !== 'MARKETING' && (
+                        <div className="text-gray-500 dark:text-gray-400">
+                          <span className="font-medium">Marketing:</span> {ticket.marketingName}
+                        </div>
+                      )}
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Foto:</span>{' '}
+                        {ticket.hasPhoto || ticket.fotoRumah ? (
+                          <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+                            Lihat Foto
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Keterangan:</span> <span className="text-gray-700 dark:text-gray-300">{ticket.description || '-'}</span>
+                      </div>
+                      <div>
+                        <span className={clsx(
+                          'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                          ticket.status === 'OPEN' 
+                            ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                            : ticket.status === 'ON_PROGRESS'
+                              ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                              : ticket.status === 'CLOSE' 
+                                ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
+                                : ticket.status === 'PENDING'
+                                  ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
+                                  : 'bg-gray-200 text-gray-800'
+                        )}>
+                          {ticket.status}
+                        </span>
+                      </div>
+                      <div>
+                        <a
+                          href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {ticket.phoneNumber}
+                        </a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {expandedTicketId === ticket.id && (
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
+                    <td colSpan={colSpan} className="px-4 py-4 text-left">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                        {/* Pengawalan */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pengawalan</label>
+                          {canClose ? (
+                            <select
+                              value={(ticket.pengawalan || 'tidak').toLowerCase()}
+                              onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
+                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
                             >
-                              Hapus
-                            </button>
+                              <option value="tidak">Tidak</option>
+                              <option value="onsite">Onsite</option>
+                              <option value="onchat">Onchat</option>
+                            </select>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan || '-'}</div>
                           )}
                         </div>
-                      </div>
-                    )}
 
-                    {ticket.status === 'CLOSE' && (
-                      <div className="flex flex-col items-center text-[10px] text-green-600 dark:text-green-400">
-                        <span>by {ticket.closedBy?.name}</span>
+                        {/* KMZ */}
+                        {userRole !== 'MARKETING' && (
+                          <div className="space-y-1">
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">KMZ</label>
+                            {kmzEdit?.id === ticket.id ? (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  value={kmzEdit.value}
+                                  onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-2 py-1 text-xs"
+                                  placeholder="Tautan/teks KMZ"
+                                />
+                                <button
+                                  onClick={() => handleSaveKmz(ticket.id, kmzEdit.value)}
+                                  className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700"
+                                >
+                                  Simpan
+                                </button>
+                                <button
+                                  onClick={() => setKmzEdit(null)}
+                                  className="rounded bg-gray-100 dark:bg-gray-700 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-900 dark:text-white truncate max-w-[200px]" title={ticket.kmz || ''}>
+                                  {ticket.kmz || '-'}
+                                </span>
+                                {canEditKmz && (
+                                  <button
+                                    onClick={() => handleStartEditKmz(ticket.id, ticket.kmz)}
+                                    className="ml-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Prioritas */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Prioritas</label>
+                          {canEditPriority ? (
+                            <select
+                              value={ticket.priority || ''}
+                              onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
+                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
+                            >
+                              <option value="">- Pilih -</option>
+                              {priorities.length > 0 ? priorities.map((p) => (
+                                <option key={p.id} value={p.name}>{p.name}</option>
+                              )) : (
+                                <>
+                                  <option value="LOW">LOW</option>
+                                  <option value="MEDIUM">MEDIUM</option>
+                                  <option value="HIGH">HIGH</option>
+                                </>
+                              )}
+                            </select>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {ticket.priority ? (
+                                <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-xs', getPriorityColor(ticket.priority))}>
+                                  {ticket.priority}
+                                </span>
+                              ) : '-'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Pembayaran */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pembayaran</label>
+                          {userRole === 'MARKETING' ? (
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.pembayaran || '-'}</div>
+                          ) : (
+                            <select
+                              value={ticket.pembayaran || ''}
+                              onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
+                              className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
+                            >
+                              <option value="">- Pilih -</option>
+                              <option value="Cash">Cash</option>
+                              <option value="TF">TF</option>
+                            </select>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Action</label>
+                          <div className="flex flex-wrap gap-2">
+                            {userRole !== 'MARKETING' ? (
+                              <>
+                                {(ticket.status === 'OPEN' || ticket.status === 'PENDING') && canClose && (
+                                  <button
+                                    onClick={(e) => handleOnProgressTicket(e, ticket.id)}
+                                    disabled={loadingId === ticket.id}
+                                    className="rounded bg-blue-50 text-blue-600 px-3 py-1.5 text-xs font-medium hover:bg-blue-100 disabled:opacity-50 border border-blue-200"
+                                  >
+                                    Set On Progress
+                                  </button>
+                                )}
+                                
+                                {['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status) && canClose && (
+                                  <button
+                                    onClick={(e) => handleCloseTicket(e, ticket.id)}
+                                    disabled={loadingId === ticket.id}
+                                    className="rounded bg-green-50 text-green-600 px-3 py-1.5 text-xs font-medium hover:bg-green-100 disabled:opacity-50 border border-green-200"
+                                  >
+                                    Close
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={(e) => handleEditTicket(e, ticket.id)}
+                                  className="rounded bg-gray-50 text-gray-600 px-3 py-1.5 text-xs font-medium hover:bg-gray-100 border border-gray-200"
+                                >
+                                  Edit
+                                </button>
+
+                                {canDelete && (
+                                  <button
+                                    onClick={(e) => handleDeleteTicket(e, ticket.id)}
+                                    disabled={loadingId === ticket.id}
+                                    className="rounded bg-red-50 text-red-600 px-3 py-1.5 text-xs font-medium hover:bg-red-100 disabled:opacity-50 border border-red-200"
+                                  >
+                                    Hapus
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              // Marketing View for Actions
+                              ticket.status === 'CLOSE' && (
+                                <div className="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded border border-green-100 dark:border-green-800">
+                                  by {ticket.closedBy?.name}
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </td>
-              </tr>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {ticketsState.length === 0 && (
               <tr>
