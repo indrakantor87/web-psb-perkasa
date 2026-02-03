@@ -7,7 +7,7 @@ export const loginSchema = z.object({
 
 export const ticketCreateSchema = z.object({
   customerName: z.string().min(1),
-  birthDate: z.string().datetime().or(z.string()), // Accept ISO string
+  birthDate: z.string().min(1, 'Tanggal Lahir harus diisi'), // Accept any non-empty string (e.g. YYYY-MM-DD)
   locationMap: z.string().url().or(z.string().min(1)), // Loose validation for map link
   package: z.string().min(1),
   marketingName: z.string().min(1).optional(), // Can be optional if user is Marketing

@@ -179,11 +179,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }
 
+    // Validate birthDate is a valid date
+    const birthDateObj = new Date(birthDateStr)
+    if (isNaN(birthDateObj.getTime())) {
+      return NextResponse.json({ error: 'Invalid birthDate format' }, { status: 400 })
+    }
+
     // Create ticket using standard Prisma create
     const ticket = await prisma.ticket.create({
       data: {
         customerName,
-        birthDate: new Date(birthDateStr),
+        birthDate: birthDateObj,
         locationMap,
         package: pkg,
         marketingName: finalMarketingName,

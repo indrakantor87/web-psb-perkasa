@@ -73,8 +73,8 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     e.preventDefault()
     
     // Validation: Check mandatory fields
-    if (!formData.customerName || !formData.phoneNumber || !formData.package || !formData.marketingName || !formData.locationMap) {
-      setError('Mohon lengkapi semua data wajib: Nama Pelanggan, No HP, Paket, Marketing, Link Maps')
+    if (!formData.customerName || !formData.phoneNumber || !formData.package || !formData.marketingName || !formData.locationMap || !formData.birthDate) {
+      setError('Mohon lengkapi semua data wajib: Nama Pelanggan, Tanggal Lahir, No HP, Paket, Marketing, Link Maps')
       return
     }
 
@@ -97,7 +97,6 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
       const res = await fetch('/api/tickets', {
         method: 'POST',
-        // headers: { 'Content-Type': 'multipart/form-data' }, // Content-Type is automatically set with boundary for FormData
         body: data,
       })
 
@@ -106,7 +105,14 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
         router.refresh()
       } else {
         const data = await res.json()
-        setError(data.error || 'Failed to submit')
+        if (data.details && data.details.fieldErrors) {
+          const messages = Object.entries(data.details.fieldErrors)
+            .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+            .join('; ')
+          setError(`${data.error}: ${messages}`)
+        } else {
+          setError(data.error || 'Failed to submit')
+        }
       }
     } catch (err) {
       setError('Something went wrong')
