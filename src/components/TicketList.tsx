@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
+import * as XLSX from 'xlsx'
 
 interface Ticket {
   id: number
@@ -334,6 +335,31 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
+  const handleExportExcel = () => {
+    const dataToExport = ticketsState.map(ticket => ({
+      'Nama Pelanggan': ticket.customerName,
+      'Tanggal Lahir': ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-',
+      'Maps Lokasi': ticket.locationMap,
+      'Tgl Request': format(new Date(ticket.requestDate), 'dd/MM/yyyy'),
+      'Tgl Terpasang': ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-',
+      'Paket': ticket.package,
+      'Marketing': ticket.marketingName,
+      'Pengawalan': ticket.pengawalan || '-',
+      'KMZ': ticket.kmz || '-',
+      'Prioritas': ticket.priority || '-',
+      'Keterangan': ticket.description || '-',
+      'Pembayaran': ticket.pembayaran || '-',
+      'Status': ticket.status,
+      'No HP': ticket.phoneNumber,
+      'Closed By': ticket.closedBy?.name || '-'
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tickets')
+    XLSX.writeFile(workbook, `Tickets_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+  }
+
   // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -412,12 +438,18 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               />
             </div>
           )}
-          <div className="flex items-end h-full pt-3">
+          <div className="flex items-end h-full pt-3 space-x-2">
             <button
               onClick={handleFilter}
               className="w-full rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 md:w-auto"
             >
               Terapkan
+            </button>
+            <button
+              onClick={handleExportExcel}
+              className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto"
+            >
+              Export Excel
             </button>
           </div>
         </div>
