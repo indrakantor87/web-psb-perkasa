@@ -637,9 +637,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
-                  <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs">
+                  <td className="hidden sm:table-cell px-3 py-3 text-xs">
                     <span className={clsx(
-                      'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                      'inline-flex items-center justify-center text-center rounded-full px-2 py-0.5 font-semibold leading-tight',
+                      ticket.status === 'ON_PROGRESS' ? 'text-[9px] whitespace-normal max-w-[70px]' : 'text-[10px] whitespace-nowrap',
                       ticket.status === 'OPEN' 
                         ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
                         : ticket.status === 'ON_PROGRESS'
@@ -650,7 +651,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                               ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
                               : 'bg-gray-200 text-gray-800'
                     )}>
-                      {ticket.status}
+                      {ticket.status.replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="hidden sm:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
