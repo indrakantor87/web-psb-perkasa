@@ -143,6 +143,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     router.push(url)
   }
 
+  // Auto-filter when state changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleFilter()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [month, year, status, marketing, search])
+
   const handleCloseTicket = async (e: React.MouseEvent, id: number) => {
     e.preventDefault()
     e.stopPropagation()
@@ -575,26 +583,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               placeholder="Nama, No Tiket, Teknisi..."
             />
           </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Tampilkan</span>
-            <select
-              value={pageSize}
-              onChange={(e) => handleLimitChange(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-20"
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={75}>75</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
           <div className="flex items-end h-full pt-3 space-x-2">
-            <button
-              onClick={handleFilter}
-              className="w-full rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 md:w-auto"
-            >
-              Terapkan
-            </button>
             <button
               onClick={handleExportExcel}
               className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto"
@@ -1015,19 +1004,19 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
         <div className="flex items-center space-x-4">
           <div className="text-xs text-gray-700 dark:text-gray-300">
-            Showing <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> to{' '}
-            <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> of{' '}
-            <span className="font-medium">{totalCount}</span> results
+            Menampilkan <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
+            <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> dari{' '}
+            <span className="font-medium">{totalCount}</span> hasil
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
            <div className="flex items-center gap-2 mr-2">
-            <span className="text-sm text-gray-700 dark:text-gray-300">Show</span>
+            <span className="text-xs text-gray-700 dark:text-gray-300">Tampilkan</span>
             <select
               value={pageSize}
               onChange={(e) => handleLimitChange(Number(e.target.value))}
-              className="block rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-white dark:ring-gray-600 h-9"
+              className="block rounded-md border-0 py-1 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs sm:leading-6 dark:bg-gray-700 dark:text-white dark:ring-gray-600 h-8"
             >
               <option value={25}>25</option>
               <option value={50}>50</option>
