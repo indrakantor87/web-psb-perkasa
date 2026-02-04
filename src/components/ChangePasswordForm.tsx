@@ -25,7 +25,7 @@ export default function ChangePasswordForm() {
     setLoading(true)
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setError('Konfirmasi password tidak sesuai')
+      setError('Password confirmation does not match')
       setLoading(false)
       return
     }
@@ -45,10 +45,10 @@ export default function ChangePasswordForm() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Gagal mengubah password')
+        throw new Error(data.error || 'Failed to change password')
       }
 
-      setSuccess('Password berhasil diubah')
+      setSuccess('Password changed successfully')
       setFormData({
         currentPassword: '',
         newPassword: '',
@@ -172,7 +172,7 @@ export default function ChangePasswordForm() {
               disabled={loading}
               className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {loading ? 'Menyimpan...' : 'Simpan Password'}
+              {loading ? 'Saving...' : 'Save Password'}
             </button>
           </div>
         </form>

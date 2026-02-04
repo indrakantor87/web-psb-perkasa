@@ -11,9 +11,9 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
   if (user?.role === 'TEKNISI') {
     return (
       <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
-        <h3 className="text-lg font-medium text-red-800">Akses Ditolak</h3>
+        <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
         <p className="mt-2 text-sm text-red-600">
-          Anda tidak memiliki izin untuk membuat data PSB baru.
+          You do not have permission to create new PSB data.
         </p>
       </div>
     )
@@ -74,7 +74,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     
     // Validation: Check mandatory fields
     if (!formData.customerName || !formData.phoneNumber || !formData.package || !formData.marketingName || !formData.locationMap || !formData.birthDate) {
-      setError('Mohon lengkapi semua data wajib: Nama Pelanggan, Tanggal Lahir, No HP, Paket, Marketing, Link Maps')
+      setError('Mohon isi semua kolom wajib: Nama Pelanggan, Tanggal Lahir, No WA Aktif, Paket, Marketing, Link Maps')
       return
     }
 
@@ -115,7 +115,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
         }
       }
     } catch (err) {
-      setError('Something went wrong')
+      setError('An error occurred')
     } finally {
       setLoading(false)
     }
@@ -160,7 +160,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Nomor HP
+            No WA Aktif
           </label>
           <input
             type="text"
@@ -209,7 +209,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Foto Rumah (Max 3MB, .jpg/.jpeg/.png)
+            Foto Rumah (Maks 3MB, .jpg/.jpeg/.png)
           </label>
           <input
             type="file"
@@ -242,7 +242,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Keterangan (Optional)
+            Deskripsi (Opsional)
           </label>
           <textarea
             name="description"
@@ -260,7 +260,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
           disabled={loading}
           className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 md:w-auto"
         >
-          {loading ? 'Saving...' : 'Submit'}
+          {loading ? 'Menyimpan...' : 'Kirim'}
         </button>
       </div>
     </form>

@@ -24,7 +24,7 @@ export function PriorityManager() {
       const data = await res.json()
       setPriorities(data)
     } catch (err) {
-      setError('Gagal memuat data prioritas')
+      setError('Failed to load priority data')
     } finally {
       setLoading(false)
     }
@@ -51,14 +51,14 @@ export function PriorityManager() {
       await fetchPriorities()
       setNewPriority({ name: '', color: '' })
     } catch (err) {
-      setError('Gagal menambah prioritas')
+      setError('Failed to add priority')
     } finally {
       setAdding(false)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus prioritas ini?')) return
+    if (!confirm('Are you sure you want to delete this priority?')) return
 
     try {
       const res = await fetch(`/api/priorities/${id}`, {
@@ -69,23 +69,23 @@ export function PriorityManager() {
 
       setPriorities(priorities.filter(p => p.id !== id))
     } catch (err) {
-      setError('Gagal menghapus prioritas')
+      setError('Failed to delete priority')
     }
   }
 
   const predefinedColors = [
-    { name: 'Merah', value: 'bg-red-600 text-white' },
-    { name: 'Kuning', value: 'bg-yellow-600 text-white' },
-    { name: 'Biru', value: 'bg-blue-600 text-white' },
-    { name: 'Hitam', value: 'bg-gray-800 text-white' },
-    { name: 'Cokelat', value: 'bg-amber-600 text-white' },
-    { name: 'Hijau', value: 'bg-green-600 text-white' },
-    { name: 'Ungu', value: 'bg-purple-600 text-white' },
+    { name: 'Red', value: 'bg-red-600 text-white' },
+    { name: 'Yellow', value: 'bg-yellow-600 text-white' },
+    { name: 'Blue', value: 'bg-blue-600 text-white' },
+    { name: 'Black', value: 'bg-gray-800 text-white' },
+    { name: 'Brown', value: 'bg-amber-600 text-white' },
+    { name: 'Green', value: 'bg-green-600 text-white' },
+    { name: 'Purple', value: 'bg-purple-600 text-white' },
   ]
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-6 dark:text-white">Manajemen Prioritas</h2>
+      <h2 className="text-xl font-semibold mb-6 dark:text-white">Priority Management</h2>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md flex items-center">
@@ -96,7 +96,7 @@ export function PriorityManager() {
 
       {/* Add New Form */}
       <form onSubmit={handleAdd} className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Tambah Prioritas Baru</h3>
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Add New Priority</h3>
         <div className="flex gap-4 items-end">
           <div className="flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Prioritas</label>
@@ -127,7 +127,7 @@ export function PriorityManager() {
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4 mr-1" />
-            Tambah
+            Add
           </button>
         </div>
       </form>
@@ -137,7 +137,7 @@ export function PriorityManager() {
         <table className="divide-y divide-gray-300 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Nama</th>
+              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Name</th>
               <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Preview Badge</th>
               <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                 <span className="sr-only">Actions</span>
@@ -151,7 +151,7 @@ export function PriorityManager() {
               </tr>
             ) : priorities.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">Belum ada data prioritas</td>
+                <td colSpan={3} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">No priority data yet</td>
               </tr>
             ) : (
               priorities.map((priority) => (

@@ -18,12 +18,15 @@ export default async function ListPage({
   const yearParam = resolvedSearchParams.year
   const statusParam = resolvedSearchParams.status
   const marketingParam = resolvedSearchParams.marketing
+  const searchParam = resolvedSearchParams.search
+  const limitParam = resolvedSearchParams.limit
 
   const now = new Date()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
   const currentStatus = typeof statusParam === 'string' ? statusParam.toUpperCase() : 'ALL'
   const currentMarketing = typeof marketingParam === 'string' ? marketingParam : ''
+  const currentSearch = typeof searchParam === 'string' ? searchParam : ''
 
   const startDate = new Date(currentYear, currentMonth - 1, 1)
   const endDate = new Date(currentYear, currentMonth, 1)
@@ -43,6 +46,21 @@ export default async function ListPage({
     }
   }
 
+  if (currentSearch && currentSearch.trim()) {
+    const searchTrimmed = currentSearch.trim()
+    const searchInt = parseInt(searchTrimmed)
+    const isNum = !isNaN(searchInt)
+
+    baseWhere.OR = [
+      { customerName: { contains: searchTrimmed, mode: 'insensitive' } },
+      { pengawalan: { contains: searchTrimmed, mode: 'insensitive' } },
+    ]
+
+    if (isNum) {
+      baseWhere.OR.push({ id: searchInt })
+    }
+  }
+
   const where = { ...baseWhere }
   if (currentStatus !== 'ALL') {
     where.status = currentStatus
@@ -50,7 +68,7 @@ export default async function ListPage({
 
   const pageParam = resolvedSearchParams.page
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
-  const pageSize = 20
+  const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
   const [tickets, totalCount] = await Promise.all([
     prisma.ticket.findMany({
@@ -128,7 +146,7 @@ export default async function ListPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Daftar Tiket PSB</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PSB Ticket List</h1>
       </div>
 
       <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
@@ -139,10 +157,12 @@ export default async function ListPage({
             initialPeriod={{ month: currentMonth, year: currentYear }}
             initialStatus={currentStatus}
             initialMarketing={currentMarketing}
+            initialSearch={currentSearch}
             pagination={{
               currentPage: currentPageNumber,
               totalPages: Math.ceil(totalCount / pageSize),
-              totalCount: totalCount
+              totalCount: totalCount,
+              pageSize
             }}
             counts={counts}
           />

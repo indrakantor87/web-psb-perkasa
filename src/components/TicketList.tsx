@@ -39,10 +39,12 @@ interface TicketListProps {
   initialPeriod: { month: number; year: number }
   initialStatus?: string
   initialMarketing?: string
+  initialSearch?: string
   pagination?: {
     currentPage: number
     totalPages: number
     totalCount: number
+    pageSize?: number
   }
   counts?: {
     OPEN: number
@@ -52,7 +54,7 @@ interface TicketListProps {
   }
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, pagination, counts }: TicketListProps) {
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -61,6 +63,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [year, setYear] = useState(initialPeriod.year)
   const [status, setStatus] = useState((initialStatus || 'ALL').toUpperCase())
   const [marketing, setMarketing] = useState(initialMarketing || '')
+  const [search, setSearch] = useState(initialSearch || '')
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
   const [priorities, setPriorities] = useState<Priority[]>([])
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
@@ -134,7 +137,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const base = `/list?month=${month}&year=${year}`
     const statusPart = status === 'ALL' ? '' : `&status=${status}`
     const marketingPart = marketing.trim() ? `&marketing=${encodeURIComponent(marketing.trim())}` : ''
-    const url = `${base}${statusPart}${marketingPart}`
+    const searchPart = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
+    const limitPart = pagination?.pageSize && pagination.pageSize !== 25 ? `&limit=${pagination.pageSize}` : ''
+    const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
     router.push(url)
   }
 
@@ -142,7 +147,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     e.preventDefault()
     e.stopPropagation()
     // Safety check: Stop execution if user cancels confirmation
-    if (!confirm('Apakah Anda yakin ingin menutup tiket ini?')) {
+    if (!confirm('Are you sure you want to close this ticket?')) {
       return
     }
 
@@ -157,10 +162,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (res.ok) {
         router.refresh()
       } else {
-        alert('Gagal menutup tiket')
+        alert('Failed to close ticket')
       }
     } catch (error) {
-      alert('Terjadi kesalahan saat menutup tiket')
+      alert('An error occurred while closing ticket')
     } finally {
       setLoadingId(null)
     }
@@ -186,11 +191,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (res.ok) {
         router.refresh()
       } else {
-        alert('Gagal mengubah status ke On Progress')
+        alert('Failed to change status to On Progress')
         router.refresh() // Revert
       }
     } catch (error) {
-      alert('Terjadi kesalahan saat mengubah status')
+      alert('An error occurred while changing status')
       router.refresh()
     } finally {
       setLoadingId(null)
@@ -249,8 +254,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   }
 
   const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ]
   const years = [2024, 2025, 2026, 2027]
   const packages = [
@@ -317,11 +322,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         setEditFile(null)
         router.refresh()
       } else {
-        alert('Gagal mengupdate tiket')
+        alert('Failed to update ticket')
         router.refresh() // Revert
       }
     } catch (error) {
-      alert('Terjadi kesalahan saat update')
+      alert('An error occurred during update')
       router.refresh()
     } finally {
       setLoadingId(null)
@@ -403,11 +408,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (res.ok) {
         router.refresh()
       } else {
-        alert('Gagal mengubah prioritas')
+        alert('Failed to change priority')
         router.refresh()
       }
     } catch (error) {
-      alert('Error mengubah prioritas')
+      alert('Error changing priority')
       router.refresh()
     }
   }
@@ -423,6 +428,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       params.set('year', year.toString())
       if (status !== 'ALL') params.set('status', status)
       if (marketing) params.set('marketing', marketing)
+      if (search) params.set('search', search)
 
       const res = await fetch(`/api/tickets?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch data for export')
@@ -443,7 +449,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         'Pembayaran': ticket.pembayaran || '-',
         'Status': ticket.status,
         'No HP': ticket.phoneNumber,
-        'Closed By': ticket.closedBy?.name || '-'
+        'Ditutup Oleh': ticket.closedBy?.name || '-'
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(dataToExport)
@@ -452,7 +458,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       XLSX.writeFile(workbook, `Tickets_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
     } catch (error) {
       console.error('Export error:', error)
-      alert('Gagal mengexport data. Silakan coba lagi.')
+      alert('Failed to export data. Please try again.')
     } finally {
       setIsExporting(false)
     }
@@ -460,7 +466,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
   // Pagination Logic
   const currentTickets = ticketsState
-  const indexOfFirstItem = (currentPage - 1) * 20
+  const pageSize = pagination?.pageSize || 25
+  const indexOfFirstItem = (currentPage - 1) * pageSize
   const indexOfLastItem = indexOfFirstItem + currentTickets.length
 
   const handlePageChange = (newPage: number) => {
@@ -469,35 +476,44 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     router.push(url.pathname + url.search)
   }
 
+  const handleLimitChange = (newLimit: number) => {
+    const base = `/list?month=${month}&year=${year}&page=1`
+    const statusPart = status === 'ALL' ? '' : `&status=${status}`
+    const marketingPart = marketing.trim() ? `&marketing=${encodeURIComponent(marketing.trim())}` : ''
+    const searchPart = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
+    const limitPart = newLimit !== 25 ? `&limit=${newLimit}` : ''
+    const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
+    router.push(url)
+  }
+
   return (
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
           <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
-              Ticket Open : {counts?.OPEN ?? 0}
+              Tiket Open : {counts?.OPEN ?? 0}
             </span>
           </div>
           <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
-              Ticket On Progress : {counts?.ON_PROGRESS ?? 0}
+              Tiket On Progress : {counts?.ON_PROGRESS ?? 0}
             </span>
           </div>
           <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
-              Ticket Close : {counts?.CLOSE ?? 0}
+              Tiket Closed : {counts?.CLOSE ?? 0}
             </span>
           </div>
           <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
-              Ticket Pending : {counts?.PENDING ?? 0}
+              Tiket Pending : {counts?.PENDING ?? 0}
             </span>
           </div>
         </div>
       )}
 
       <div className="inline-flex flex-col space-y-1 rounded-lg bg-white dark:bg-gray-800 p-1.5 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 ml-2 whitespace-nowrap">Filter:</h2>
         <div className="flex w-full flex-col space-y-1 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-4">
           <div className="flex flex-col">
             <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Bulan</span>
@@ -545,10 +561,33 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 value={marketing}
                 onChange={(e) => setMarketing(e.target.value)}
                 className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-40"
-                placeholder="Cari nama…"
+                placeholder="Cari nama..."
               />
             </div>
           )}
+          <div className="flex flex-col">
+            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Cari Tiket</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-48"
+              placeholder="Nama, No Tiket, Teknisi..."
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Tampilkan</span>
+            <select
+              value={pageSize}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-20"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={75}>75</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
           <div className="flex items-end h-full pt-3 space-x-2">
             <button
               onClick={handleFilter}
@@ -560,7 +599,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               onClick={handleExportExcel}
               className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto"
             >
-              Export Excel
+              Ekspor ke Excel
             </button>
           </div>
         </div>
@@ -574,9 +613,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Lahir</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Maps Lokasi</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Request</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tgl Terpasang</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Lokasi Maps</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Request</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Pasang</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
               {userRole !== 'MARKETING' && (
                 <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
@@ -588,8 +627,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Action</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No HP</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Aksi</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No WA Aktif</th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
@@ -624,7 +663,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="max-w-xs px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
-                      Link Map
+                      Map Link
                     </a>
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
@@ -641,7 +680,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     {ticket.hasPhoto || ticket.fotoRumah ? (
                       <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
-                        Lihat Foto
+                        View Photo
                       </a>
                     ) : (
                       <span className="text-gray-400">-</span>
@@ -690,7 +729,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.status === 'CLOSE' && ticket.closedBy?.name
-                      ? `by ${ticket.closedBy.name}`
+                      ? `oleh ${ticket.closedBy.name}`
                       : '-'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
@@ -727,13 +766,13 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         <span className="font-medium">Tanggal Lahir:</span> {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
                       </div>
                       <div>
-                        <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Link Map</a>
+                        <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Link Maps</a>
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Tgl Request:</span> {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
+                        <span className="font-medium">Tanggal Request:</span> {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Tgl Terpasang:</span> {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                        <span className="font-medium">Tanggal Pasang:</span> {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">Paket:</span> {ticket.package}
@@ -744,7 +783,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         </div>
                       )}
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Foto:</span>{' '}
+                        <span className="font-medium">Foto Rumah:</span>{' '}
                         {ticket.hasPhoto || ticket.fotoRumah ? (
                           <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
                             Lihat Foto
@@ -885,20 +924,20 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                       value={kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')}
                                       onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
                                       className="w-full md:w-auto flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-2 py-1 text-xs"
-                                      placeholder="Isi/ubah KMZ di sini"
+                                      placeholder="Enter/edit KMZ here"
                                     />
                                     <button
                                       onClick={() => handleSaveKmz(ticket.id, (kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')))}
                                       className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700"
                                     >
-                                      Simpan
+                                      Save
                                     </button>
                                     {kmzEdit?.id === ticket.id && (
                                       <button
                                         onClick={() => setKmzEdit(null)}
                                         className="rounded bg-gray-100 dark:bg-gray-600 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500"
                                       >
-                                        Batal
+                                        Cancel
                                       </button>
                                     )}
                                   </div>
@@ -918,7 +957,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                   disabled={loadingId === ticket.id || !(['OPEN', 'PENDING'].includes(ticket.status) && canClose)}
                                   className="rounded-md bg-blue-50 text-blue-600 px-3 py-2 text-xs font-semibold hover:bg-blue-100 disabled:opacity-50 border border-blue-200"
                                 >
-                                  Set On Progress
+                                  Process
                                 </button>
                                 
                                 <button
@@ -942,7 +981,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                     disabled={loadingId === ticket.id}
                                     className="rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 disabled:opacity-50 border border-red-200"
                                   >
-                                    Hapus
+                                    Delete
                                   </button>
                                 )}
                               </>
@@ -964,23 +1003,38 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             ))}
             {ticketsState.length === 0 && (
               <tr>
-                <td colSpan={20} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                  Tidak ada data untuk periode ini
-                </td>
-              </tr>
+            <td colSpan={20} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+              No data for this period
+            </td>
+          </tr>
             )}
           </tbody>
         </table>
       </div>
 
       <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
-        <div className="text-xs text-gray-700 dark:text-gray-300">
-          Menampilkan <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> sampai{' '}
-          <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> dari{' '}
-          <span className="font-medium">{totalCount}</span> hasil
+        <div className="flex items-center space-x-4">
+          <div className="text-xs text-gray-700 dark:text-gray-300">
+            Showing <span className="font-medium">{ticketsState.length > 0 ? indexOfFirstItem + 1 : 0}</span> to{' '}
+            <span className="font-medium">{Math.min(indexOfLastItem, totalCount)}</span> of{' '}
+            <span className="font-medium">{totalCount}</span> results
+          </div>
         </div>
         
         <div className="flex items-center space-x-2">
+           <div className="flex items-center gap-2 mr-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+              className="block rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-gray-700 dark:text-white dark:ring-gray-600 h-9"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={75}>75</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
               <button
                 onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
@@ -1015,7 +1069,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all duration-300">
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 transform transition-all">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ringkasan Ticket</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ticket Summary</h3>
               <button
                 onClick={() => setSummaryTicket(null)}
                 className="rounded-full p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -1029,23 +1083,23 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             <div className="px-6 py-5 text-sm font-sans text-gray-600 dark:text-gray-300">
                   <div className="space-y-2 leading-relaxed">
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Nama</span>{'\t'}
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Name</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.customerName}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Tanggal Lahir</span>{'\t'}
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Birth Date</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.birthDate ? format(new Date(summaryTicket.birthDate), 'dd/MM/yyyy') : '-'}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Maps Lokasi</span>{'\t'}
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Location Map</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white break-all">{summaryTicket.locationMap}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Nomor HP</span>{'\t'}
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Phone Number</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.phoneNumber}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Paket</span>{'\t'}
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Package</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.package}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
@@ -1060,7 +1114,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 className="inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all sm:w-auto"
                 onClick={() => setSummaryTicket(null)}
               >
-                Tutup
+                Close
               </button>
             </div>
           </div>
@@ -1072,7 +1126,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Tiket</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Ticket</h3>
               <button
                 onClick={() => setEditTicket(null)}
                 className="rounded-full p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -1087,7 +1141,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             <form onSubmit={handleUpdateTicket} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Pelanggan</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Name</label>
                   <input
                     type="text"
                     value={editTicket.customerName}
@@ -1097,7 +1151,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Nomor HP</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
                   <input
                     type="text"
                     value={editTicket.phoneNumber}
@@ -1107,7 +1161,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Paket</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Package</label>
                   <select
                     value={editTicket.package}
                     onChange={(e) => setEditTicket({ ...editTicket, package: e.target.value })}
@@ -1129,7 +1183,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Link Maps</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location Map</label>
                   <input
                     type="text"
                     value={editTicket.locationMap}
@@ -1139,7 +1193,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                   <textarea
                     value={editTicket.description || ''}
                     onChange={(e) => setEditTicket({ ...editTicket, description: e.target.value })}
@@ -1149,7 +1203,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Terpasang</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Installed Date</label>
                   <input
                     type="date"
                     value={editTicket.installedDate ? new Date(editTicket.installedDate).toISOString().split('T')[0] : ''}
@@ -1159,7 +1213,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Update Foto Rumah</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Update House Photo</label>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/jpg"
@@ -1167,7 +1221,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       if (e.target.files && e.target.files[0]) {
                         const file = e.target.files[0]
                         if (file.size > 3 * 1024 * 1024) {
-                          alert('Ukuran file maksimal 3MB')
+                          alert('Max file size 3MB')
                           e.target.value = ''
                           setEditFile(null)
                           return
@@ -1177,18 +1231,18 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     }}
                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Maks 3MB (.jpg, .png)</p>
+                  <p className="text-xs text-gray-500 mt-1">Max 3MB (.jpg, .png)</p>
                 </div>
                 
                 {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole) && (
                    <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Prioritas</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
                     <select
                       value={editTicket.priority || ''}
                       onChange={(e) => setEditTicket({ ...editTicket, priority: e.target.value })}
                       className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="">- Pilih -</option>
+                      <option value="">- Select -</option>
                       {priorities.map((p) => (
                         <option key={p.id} value={p.name}>{p.name}</option>
                       ))}
@@ -1204,7 +1258,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                        onChange={(e) => setEditTicket({ ...editTicket, pengawalan: e.target.value })}
                        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                      >
-                       <option value="tidak">Tidak</option>
+                       <option value="tidak">No</option>
                        <option value="onsite">Onsite</option>
                        <option value="onchat">Onchat</option>
                      </select>
@@ -1246,14 +1300,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   onClick={() => setEditTicket(null)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loadingId === editTicket.id}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {loadingId === editTicket.id ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  {loadingId === editTicket.id ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

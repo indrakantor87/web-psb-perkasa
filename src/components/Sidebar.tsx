@@ -40,9 +40,9 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
 
   const settingsLinks = hasSettingsAccess ? [
-    { href: '/settings/priorities', label: 'Edit Prioritas' },
-    { href: '/settings/users', label: 'Manajemen User' },
-    { href: '/settings/templates', label: 'Template WA' },
+    { href: '/settings/priorities', label: 'Edit Priorities' },
+    { href: '/settings/users', label: 'User Management' },
+    { href: '/settings/templates', label: 'WA Templates' },
   ] : []
 
   const handleLinkClick = () => {
@@ -134,7 +134,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
               })}
               
               <div className="block rounded-lg py-2 px-3 text-sm text-gray-400">
-                <div className="mb-1 text-xs">Ukuran Teks</div>
+                <div className="mb-1 text-xs">Text Size</div>
                 <select
                   value={zoomLevel}
                   onChange={(e) => setZoomLevel(Number(e.target.value))}
@@ -152,16 +152,16 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
 
               {mounted && (
                 <div className="block rounded-lg py-2 px-3 text-sm text-gray-400">
-                  <div className="mb-1 text-xs">Tema</div>
+                  <div className="mb-1 text-xs">Theme</div>
                   <select
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
                     className="w-full rounded bg-gray-800 border border-gray-700 text-white text-xs py-1 focus:outline-none focus:border-blue-500"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <option value="light">Terang</option>
-                    <option value="dark">Gelap</option>
-                    <option value="system">Sistem</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="system">System</option>
                   </select>
                 </div>
               )}

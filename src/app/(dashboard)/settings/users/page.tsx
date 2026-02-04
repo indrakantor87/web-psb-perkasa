@@ -285,24 +285,24 @@ export default function UsersPage() {
               disabled={loading}
               className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
             >
-              {loading ? 'Menyimpan...' : 'Buat User'}
+              {loading ? 'Saving...' : 'Create User'}
             </button>
           </div>
         </form>
       </div>
 
       <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
-        <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Daftar User</h2>
+        <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">User List</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Lengkap</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Full Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Username</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Password</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -326,10 +326,10 @@ export default function UsersPage() {
                       <button
                         onClick={() => handleOpenDeleteModal(user.id)}
                         className="inline-flex items-center text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                        title="Hapus User"
+                        title="Delete User"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
-                        Hapus
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -338,7 +338,7 @@ export default function UsersPage() {
               {users.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                    Belum ada user yang ditemukan.
+                    No users found.
                   </td>
                 </tr>
               )}
@@ -354,7 +354,7 @@ export default function UsersPage() {
             <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Reset Password</h3>
             <form onSubmit={handleResetPassword}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password Baru</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
                 <div className="relative mt-1">
                   <input
                     type={showResetPassword ? 'text' : 'password'}
@@ -362,7 +362,7 @@ export default function UsersPage() {
                     value={resetPasswordValue}
                     onChange={(e) => setResetPasswordValue(e.target.value)}
                     className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
-                    placeholder="Masukkan password baru"
+                    placeholder="Enter new password"
                   />
                   <button
                     type="button"
@@ -383,14 +383,14 @@ export default function UsersPage() {
                   onClick={handleCloseResetModal}
                   className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
-                  Batal
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                 >
-                  {loading ? 'Menyimpan...' : 'Simpan Password'}
+                  {loading ? 'Saving...' : 'Save Password'}
                 </button>
               </div>
             </form>
@@ -402,9 +402,9 @@ export default function UsersPage() {
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-6 shadow-xl">
-            <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Konfirmasi Hapus User</h3>
+            <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Delete User Confirmation</h3>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.
+              Are you sure you want to delete this user? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -412,7 +412,7 @@ export default function UsersPage() {
                 onClick={handleCloseDeleteModal}
                 className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                Batal
+                Cancel
               </button>
               <button
                 type="button"
@@ -420,7 +420,7 @@ export default function UsersPage() {
                 disabled={loading}
                 className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                {loading ? 'Menghapus...' : 'Hapus User'}
+                {loading ? 'Deleting...' : 'Delete User'}
               </button>
             </div>
           </div>

@@ -30,8 +30,8 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
   }
 
   const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ]
 
   const years = [2024, 2025, 2026, 2027]
@@ -53,10 +53,9 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
   return (
     <div className="space-y-6">
       <div className="inline-flex flex-col space-y-2 rounded-lg bg-white dark:bg-gray-800 p-3 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">Filter:</h2>
         <div className="flex w-full flex-col space-y-2 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-2">
           <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 dark:text-gray-400">Bulan</label>
+            <label className="text-[10px] text-gray-500 dark:text-gray-400">Month</label>
             <select
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
@@ -68,7 +67,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
             </select>
           </div>
           <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 dark:text-gray-400">Tahun</label>
+            <label className="text-[10px] text-gray-500 dark:text-gray-400">Year</label>
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
@@ -84,7 +83,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
                onClick={handleFilter}
                className="w-full rounded-md bg-blue-600 px-4 py-1 text-sm text-white hover:bg-blue-700 md:w-auto"
              >
-               Terapkan
+               Apply
              </button>
           </div>
         </div>
@@ -172,7 +171,7 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
                 {marketingData.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-6 text-center text-xs text-gray-400 italic">
-                      Tidak ada data
+                      No data
                     </td>
                   </tr>
                 )}

@@ -15,8 +15,25 @@ export async function GET(request: Request) {
   const month = searchParams.get('month')
   const year = searchParams.get('year')
   const status = searchParams.get('status')
+  const search = searchParams.get('search')
 
   const where: any = {}
+
+  // Handle Search
+  if (search && search.trim()) {
+    const searchTrimmed = search.trim()
+    const searchInt = parseInt(searchTrimmed)
+    const isNum = !isNaN(searchInt)
+
+    where.OR = [
+      { customerName: { contains: searchTrimmed, mode: 'insensitive' } },
+      { pengawalan: { contains: searchTrimmed, mode: 'insensitive' } },
+    ]
+
+    if (isNum) {
+      where.OR.push({ id: searchInt })
+    }
+  }
 
   // Filter for Marketing role
   if (session.user.role === 'MARKETING') {

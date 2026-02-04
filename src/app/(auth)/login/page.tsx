@@ -31,7 +31,7 @@ export default function LoginPage() {
         setError(data.message || 'Login failed')
       }
     } catch (err) {
-      setError('Something went wrong')
+      setError('An error occurred')
     } finally {
       setLoading(false)
     }
@@ -88,7 +88,7 @@ export default function LoginPage() {
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
             />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Ingat saya
+              Remember me
             </label>
           </div>
 

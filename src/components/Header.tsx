@@ -85,7 +85,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
                onClick={() => setIsOpen(false)}
              >
                <User className="mr-2 h-4 w-4" />
-               Lihat Profil
+               View Profile
              </Link>
              <button
                 onClick={handleLogout}
