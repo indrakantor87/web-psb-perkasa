@@ -43,6 +43,11 @@ model Ticket {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([requestDate])
+  @@index([marketingName])
+  @@index([customerName])
 }
 
 model Priority {
