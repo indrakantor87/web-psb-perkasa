@@ -52,6 +52,9 @@ export async function PUT(
       const marketingName = formData.get('marketingName')
       if (marketingName) updateData.marketingName = marketingName
 
+      const description = formData.get('description')
+      if (description !== null) updateData.description = description.toString()
+
       const locationMap = formData.get('locationMap')
       if (locationMap) updateData.locationMap = locationMap
 

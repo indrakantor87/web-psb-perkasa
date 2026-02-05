@@ -310,7 +310,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       formData.append('phoneNumber', editTicket.phoneNumber)
       formData.append('package', editTicket.package)
       formData.append('marketingName', editTicket.marketingName)
-      if (editTicket.description) formData.append('description', editTicket.description)
+      formData.append('description', editTicket.description || '')
       formData.append('status', editTicket.status)
       if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
       if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
