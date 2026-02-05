@@ -70,7 +70,7 @@ export default async function ListPage({
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
   const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
-  const [tickets, totalCount] = await Promise.all([
+  const [tickets, totalCount, groupedCountsRaw] = await Promise.all([
     prisma.ticket.findMany({
       where,
       orderBy: [
@@ -96,6 +96,7 @@ export default async function ListPage({
         priority: true,
         status: true,
         pembayaran: true,
+        fotoRumah: true,
         closedBy: {
           select: {
             name: true,
@@ -104,43 +105,43 @@ export default async function ListPage({
         }
       }
     }),
-    prisma.ticket.count({ where })
+    prisma.ticket.count({ where }),
+    // Optimization: Fetch all status counts in one query using groupBy
+    session.user.role !== 'MARKETING' 
+      ? prisma.ticket.groupBy({
+          by: ['status'],
+          _count: {
+            status: true
+          },
+          where: baseWhere
+        })
+      : Promise.resolve([])
   ])
 
-  // Calculate counts for status badges (skip for MARKETING role as they don't see it)
+  // Calculate counts for status badges
   let counts = undefined
   if (session.user.role !== 'MARKETING') {
-    const [open, progress, close, pending] = await Promise.all([
-      prisma.ticket.count({ where: { ...baseWhere, status: 'OPEN' } }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'ON_PROGRESS' } }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'CLOSE' } }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'PENDING' } }),
-    ])
-    counts = { OPEN: open, ON_PROGRESS: progress, CLOSE: close, PENDING: pending }
+    // Initialize defaults
+    counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
+    
+    // Map groupBy results to counts object
+    const groupedCounts = groupedCountsRaw as Array<{ status: string, _count: { status: number } }>
+    
+    groupedCounts.forEach(item => {
+      const status = item.status
+      if (status in counts!) {
+        counts![status as keyof typeof counts] = item._count.status
+      }
+    })
   }
 
-  // Fetch IDs of tickets that have photos (only for the current page)
-  const ticketIds = tickets.map(t => t.id)
-  const ticketsWithPhotos = await prisma.ticket.findMany({
-    where: {
-      id: { in: ticketIds },
-      fotoRumah: {
-        not: null
-      }
-    },
-    select: {
-      id: true
-    }
-  })
-
-  const photoIds = new Set(ticketsWithPhotos.map(t => t.id))
-
+  // No need for separate photo query anymore
   const formattedTickets = tickets.map(t => ({
     ...t,
     requestDate: t.requestDate.toISOString(),
     installedDate: t.installedDate ? t.installedDate.toISOString() : null,
     birthDate: t.birthDate ? t.birthDate.toISOString() : null,
-    hasPhoto: photoIds.has(t.id)
+    hasPhoto: !!t.fotoRumah // Check if fotoRumah exists directly
   }))
 
   return (
