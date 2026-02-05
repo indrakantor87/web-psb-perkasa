@@ -48,6 +48,7 @@ model Ticket {
   @@index([requestDate])
   @@index([marketingName])
   @@index([customerName])
+  @@index([installedDate])
 }
 
 model Priority {

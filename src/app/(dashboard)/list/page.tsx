@@ -2,6 +2,7 @@ import { TicketList } from '@/components/TicketList'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getPriorities, getDefaultTemplate } from '@/lib/data'
 
 export const dynamic = 'force-dynamic'
 
@@ -126,12 +127,10 @@ export default async function ListPage({
       skip: (currentPageNumber - 1) * pageSize,
       take: pageSize,
     }),
-    // Fetch priorities for dropdown
-    prisma.priority.findMany(),
-    // Fetch default template
-    prisma.whatsappTemplate.findFirst({
-      where: { isDefault: true }
-    })
+    // Fetch priorities (cached)
+    getPriorities(),
+    // Fetch default template (cached)
+    getDefaultTemplate()
   ])
 
   // Calculate counts for status badges
