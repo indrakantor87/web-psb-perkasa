@@ -52,9 +52,11 @@ interface TicketListProps {
     CLOSE: number
     PENDING: number
   }
+  priorities?: Priority[]
+  defaultTemplateContent?: string
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts }: TicketListProps) {
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts, priorities = [], defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -65,31 +67,17 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [marketing, setMarketing] = useState(initialMarketing || '')
   const [search, setSearch] = useState(initialSearch || '')
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
-  const [priorities, setPriorities] = useState<Priority[]>([])
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
-  const [defaultTemplate, setDefaultTemplate] = useState<string>('')
+  
+  // Use prop directly
+  const defaultTemplate = defaultTemplateContent
+
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
-
-  useEffect(() => {
-    const fetchDefaultTemplate = async () => {
-      try {
-        const res = await fetch('/api/templates')
-        if (res.ok) {
-          const data = await res.json()
-          const def = data.find((t: any) => t.isDefault)
-          if (def) setDefaultTemplate(def.content)
-        }
-      } catch (error) {
-        console.error('Failed to fetch default template', error)
-      }
-    }
-    fetchDefaultTemplate()
-  }, [])
 
   const colSpan = userRole !== 'MARKETING' ? 17 : 16
 
@@ -102,21 +90,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const currentPage = pagination?.currentPage || 1
   const totalPages = pagination?.totalPages || 1
   const totalCount = pagination?.totalCount || tickets.length
-
-  useEffect(() => {
-    const fetchPriorities = async () => {
-      try {
-        const res = await fetch('/api/priorities')
-        if (res.ok) {
-          const data = await res.json()
-          setPriorities(data)
-        }
-      } catch (error) {
-        console.error('Failed to fetch priorities', error)
-      }
-    }
-    fetchPriorities()
-  }, [])
 
   const getPriorityColor = (priorityName: string | null | undefined) => {
     if (!priorityName) return 'bg-gray-200 text-gray-800'

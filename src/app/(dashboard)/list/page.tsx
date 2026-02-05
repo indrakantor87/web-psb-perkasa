@@ -70,7 +70,7 @@ export default async function ListPage({
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
   const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
-  const [tickets, totalCount, groupedCountsRaw] = await Promise.all([
+  const [tickets, totalCount, groupedCountsRaw, photoTickets, priorities, defaultTemplate] = await Promise.all([
     prisma.ticket.findMany({
       where,
       orderBy: [
@@ -96,7 +96,7 @@ export default async function ListPage({
         priority: true,
         status: true,
         pembayaran: true,
-        fotoRumah: true,
+        // fotoRumah: true, // REMOVED for performance (base64 too large)
         closedBy: {
           select: {
             name: true,
@@ -115,7 +115,23 @@ export default async function ListPage({
           },
           where: baseWhere
         })
-      : Promise.resolve([])
+      : Promise.resolve([]),
+    // Optimization: Fetch IDs of tickets with photos separately
+    prisma.ticket.findMany({
+      where: {
+        ...where,
+        fotoRumah: { not: null }
+      },
+      select: { id: true },
+      skip: (currentPageNumber - 1) * pageSize,
+      take: pageSize,
+    }),
+    // Fetch priorities for dropdown
+    prisma.priority.findMany(),
+    // Fetch default template
+    prisma.whatsappTemplate.findFirst({
+      where: { isDefault: true }
+    })
   ])
 
   // Calculate counts for status badges
@@ -141,13 +157,17 @@ export default async function ListPage({
     })
   }
 
+  // Set of IDs that have photos
+  const photoIds = new Set(photoTickets.map(t => t.id))
+
   // No need for separate photo query anymore
   const formattedTickets = tickets.map(t => ({
     ...t,
     requestDate: t.requestDate.toISOString(),
     installedDate: t.installedDate ? t.installedDate.toISOString() : null,
     birthDate: t.birthDate ? t.birthDate.toISOString() : null,
-    hasPhoto: !!t.fotoRumah // Check if fotoRumah exists directly
+    hasPhoto: photoIds.has(t.id), // Check against separate ID list
+    fotoRumah: null // Ensure we don't pass base64 string even if it was somehow fetched
   }))
 
   return (
@@ -172,6 +192,8 @@ export default async function ListPage({
               pageSize
             }}
             counts={counts}
+            priorities={priorities}
+            defaultTemplateContent={defaultTemplate?.content || ''}
           />
         </div>
       </div>
