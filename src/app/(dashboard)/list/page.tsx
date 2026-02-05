@@ -119,7 +119,13 @@ export default async function ListPage({
   ])
 
   // Calculate counts for status badges
-  let counts = undefined
+  let counts: {
+    OPEN: number
+    ON_PROGRESS: number
+    CLOSE: number
+    PENDING: number
+  } | undefined = undefined
+
   if (session.user.role !== 'MARKETING') {
     // Initialize defaults
     counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
@@ -129,8 +135,8 @@ export default async function ListPage({
     
     groupedCounts.forEach(item => {
       const status = item.status
-      if (status in counts!) {
-        counts![status as keyof typeof counts] = item._count.status
+      if (counts && status in counts) {
+        counts[status as keyof typeof counts] = item._count.status
       }
     })
   }
