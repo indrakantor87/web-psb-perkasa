@@ -52,6 +52,9 @@ export async function PUT(
       const marketingName = formData.get('marketingName')
       if (marketingName) updateData.marketingName = marketingName
 
+      const teknisi = formData.get('teknisi')
+      if (teknisi) updateData.teknisi = teknisi
+
       const description = formData.get('description')
       if (description !== null) updateData.description = description.toString()
 

@@ -15,6 +15,7 @@ interface Ticket {
   installedDate: string | null
   package: string
   marketingName: string
+  teknisi?: string | null
   description: string | null
   phoneNumber: string
   fotoRumah?: string | null
@@ -638,6 +639,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   {userRole !== 'MARKETING' && (
                     <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
                   )}
+                  <td className="whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.teknisi || '-'}</td>
 
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     {ticket.hasPhoto || ticket.fotoRumah ? (
@@ -744,6 +746,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           <span className="font-medium">Marketing:</span> {ticket.marketingName}
                         </div>
                       )}
+                      <div className="text-gray-500 dark:text-gray-400">
+                        <span className="font-medium">Teknisi:</span> {ticket.teknisi || '-'}
+                      </div>
                       <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">Foto Rumah:</span>{' '}
                         {ticket.hasPhoto || ticket.fotoRumah ? (
@@ -1142,6 +1147,16 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     onChange={(e) => setEditTicket({ ...editTicket, marketingName: e.target.value })}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teknisi</label>
+                  <input
+                    type="text"
+                    value={editTicket.teknisi || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, teknisi: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nama Teknisi"
                   />
                 </div>
                 <div className="md:col-span-2">

@@ -90,6 +90,7 @@ export default async function ListPage({
         installedDate: true,
         package: true,
         marketingName: true,
+        teknisi: true, // Field teknisi
         description: true,
         phoneNumber: true,
         pengawalan: true,

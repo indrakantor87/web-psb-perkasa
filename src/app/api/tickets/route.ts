@@ -184,6 +184,7 @@ export async function POST(request: Request) {
       locationMap,
       package: pkg,
       marketingName: finalMarketingName,
+      teknisi: result.data.teknisi,
       description,
       phoneNumber,
       pengawalan

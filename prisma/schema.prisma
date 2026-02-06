@@ -28,6 +28,7 @@ model Ticket {
   installedDate DateTime?
   package       String
   marketingName String
+  teknisi       String?
   description   String?
   phoneNumber   String
   fotoRumah     String?

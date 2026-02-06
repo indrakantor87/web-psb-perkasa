@@ -12,6 +12,7 @@ export const ticketCreateSchema = z.object({
   locationMap: z.string().url().or(z.string().min(1)), // Loose validation for map link
   package: z.string().min(1),
   marketingName: z.string().min(1).optional(), // Can be optional if user is Marketing
+  teknisi: z.string().optional().nullable(),
   description: z.string().optional(),
   phoneNumber: z.string().min(10),
   fotoRumah: z.string().optional().nullable(), // Base64 string
