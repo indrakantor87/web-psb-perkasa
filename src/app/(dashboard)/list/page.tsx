@@ -71,11 +71,11 @@ export default async function ListPage({
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
   const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
-  const [tickets, totalCount, groupedCountsRaw, photoTickets, priorities, defaultTemplate] = await Promise.all([
+  const [tickets, totalCount, groupedCountsRaw, priorities, defaultTemplate] = await Promise.all([
     prisma.ticket.findMany({
       where,
       orderBy: [
-        // { statusOrder: 'asc' }, // Disabled until server restart
+        { statusOrder: 'asc' }, 
         { requestDate: 'desc' },
         { installedDate: { sort: 'desc', nulls: 'last' } }
       ],
@@ -98,6 +98,7 @@ export default async function ListPage({
         priority: true,
         status: true,
         pembayaran: true,
+        hasPhoto: true, // Field optimasi
         // fotoRumah: true, // REMOVED for performance (base64 too large)
         closedBy: {
           select: {
@@ -118,16 +119,6 @@ export default async function ListPage({
           where: baseWhere
         })
       : Promise.resolve([]),
-    // Optimization: Fetch IDs of tickets with photos separately
-    prisma.ticket.findMany({
-      where: {
-        ...where,
-        fotoRumah: { not: null }
-      },
-      select: { id: true },
-      skip: (currentPageNumber - 1) * pageSize,
-      take: pageSize,
-    }),
     // Fetch priorities (cached)
     getPriorities(),
     // Fetch default template (cached)
@@ -157,16 +148,13 @@ export default async function ListPage({
     })
   }
 
-  // Set of IDs that have photos
-  const photoIds = new Set(photoTickets.map(t => t.id))
-
   // No need for separate photo query anymore
   const formattedTickets = tickets.map(t => ({
     ...t,
     requestDate: t.requestDate.toISOString(),
     installedDate: t.installedDate ? t.installedDate.toISOString() : null,
     birthDate: t.birthDate ? t.birthDate.toISOString() : null,
-    hasPhoto: photoIds.has(t.id), // Check against separate ID list
+    hasPhoto: t.hasPhoto, // Use optimized field directly
     fotoRumah: null // Ensure we don't pass base64 string even if it was somehow fetched
   }))
 

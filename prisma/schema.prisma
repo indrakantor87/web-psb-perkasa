@@ -32,6 +32,7 @@ model Ticket {
   description   String?
   phoneNumber   String
   fotoRumah     String?
+  hasPhoto      Boolean  @default(false)
   pengawalan    String?
   kmz           String?
   priority      String?

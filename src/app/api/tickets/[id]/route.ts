@@ -37,6 +37,7 @@ export async function PUT(
         }
         const buffer = Buffer.from(await file.arrayBuffer())
         updateData.fotoRumah = `data:${file.type};base64,${buffer.toString('base64')}`
+        updateData.hasPhoto = true
       }
 
       // Handle regular fields

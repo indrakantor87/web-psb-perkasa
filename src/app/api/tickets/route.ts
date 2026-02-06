@@ -216,6 +216,7 @@ export async function POST(request: Request) {
         phoneNumber,
         pengawalan: finalPengawalan,
         fotoRumah: fotoRumahPath,
+        hasPhoto: !!fotoRumahPath,
         status: 'OPEN',
         requestDate: new Date(),
       },
