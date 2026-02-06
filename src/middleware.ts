@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   // Simple Rate Limiting (In-Memory)
   // Note: This is per-instance. For distributed environments (Vercel), 
   // this is not a strict global limit but helps mitigate spam.
-  const ip = request.ip || '127.0.0.1'
+  const ip = (request as any).ip || '127.0.0.1'
   const limit = 100 // requests
   const windowMs = 60 * 1000 // 1 minute
 
