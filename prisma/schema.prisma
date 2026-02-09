@@ -43,6 +43,8 @@ model Ticket {
   closedById    Int?
   closedBy      User?    @relation("ClosedBy", fields: [closedById], references: [id])
   
+  isolations    Isolation[]
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -51,6 +53,27 @@ model Ticket {
   @@index([marketingName])
   @@index([customerName])
   @@index([installedDate])
+}
+
+model Isolation {
+  id              Int      @id @default(autoincrement())
+  customerName    String
+  customerAddress String?
+  customerPhone   String?
+  isolationDate   DateTime @default(now())
+  reason          String?
+  status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)
+  restorationDate DateTime?
+  teknisi         String?
+  
+  ticketId        Int?
+  ticket          Ticket?  @relation(fields: [ticketId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([customerName])
 }
 
 model Priority {

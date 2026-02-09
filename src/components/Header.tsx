@@ -53,6 +53,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
+    { href: '/isolir', label: 'Isolir', icon: Ban },
   ]
 
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
