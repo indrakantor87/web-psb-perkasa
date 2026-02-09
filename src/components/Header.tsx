@@ -1,6 +1,6 @@
 'use client'
 
-import { Menu, User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings } from 'lucide-react'
+import { Menu, User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
