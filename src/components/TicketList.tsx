@@ -583,6 +583,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               {userRole !== 'MARKETING' && (
                 <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               )}
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Teknisi</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
@@ -609,14 +610,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span>{indexOfFirstItem + index + 1}</span>
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
+                  <td className="px-3 py-3 text-left text-xs text-gray-900 dark:text-white max-w-[200px]">
                     <button 
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
                         setSummaryTicket(ticket)
                       }}
-                      className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none"
+                      className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none line-clamp-2"
                     >
                       {ticket.customerName}
                     </button>

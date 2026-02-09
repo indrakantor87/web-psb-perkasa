@@ -19,11 +19,6 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
       <Header user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       
       <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Sidebar (Push - Left) */}
-        <div className="hidden md:flex md:flex-shrink-0">
-          <Sidebar collapsed={!sidebarOpen} user={user} onExpand={() => setSidebarOpen(true)} />
-        </div>
-
         {/* Mobile Sidebar (Overlay - Left Side) */}
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 flex md:hidden">
