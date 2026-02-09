@@ -56,8 +56,11 @@ export default async function DashboardPage({
   const marketingMap = new Map<string, { name: string; open: number; close: number; count: number }>()
 
   tickets.forEach((t: any) => {
-    const name = t.marketingName || 'Unknown'
-    const current = marketingMap.get(name) || { name, open: 0, close: 0, count: 0 }
+    const rawName = t.marketingName || 'Unknown'
+    const name = rawName.trim() // Normalize display name (remove trailing spaces)
+    const key = name.toLowerCase() // Normalize key (case-insensitive)
+
+    const current = marketingMap.get(key) || { name, open: 0, close: 0, count: 0 }
     
     current.count += 1
     
@@ -67,7 +70,7 @@ export default async function DashboardPage({
       current.close += 1
     }
     
-    marketingMap.set(name, current)
+    marketingMap.set(key, current)
   })
 
   const packageOrder = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
@@ -97,12 +100,29 @@ export default async function DashboardPage({
   const marketingData = Array.from(marketingMap.values())
     .sort((a, b) => b.count - a.count)
 
+  // 3. Calculate Global Status Counts
+  const statusCounts = {
+    total: tickets.length,
+    open: 0,
+    close: 0,
+    pending: 0,
+    on_progress: 0
+  }
+
+  tickets.forEach((t: any) => {
+    if (t.status === 'OPEN') statusCounts.open++
+    else if (t.status === 'CLOSE') statusCounts.close++
+    else if (t.status === 'PENDING') statusCounts.pending++
+    else if (t.status === 'ON_PROGRESS') statusCounts.on_progress++
+  })
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
       <DashboardView 
         packageData={packageData} 
         marketingData={marketingData}
+        statusCounts={statusCounts}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
       />

@@ -44,10 +44,16 @@ export async function GET(request: Request) {
     })
 
     // 2. Group by Marketing
-    const marketingCounts: Record<string, number> = {}
+    const marketingMap = new Map<string, { name: string, count: number }>()
+    
     tickets.forEach((t: any) => {
-      const name = t.marketingName || 'Unknown'
-      marketingCounts[name] = (marketingCounts[name] || 0) + 1
+      const rawName = t.marketingName || 'Unknown'
+      const name = rawName.trim()
+      const key = name.toLowerCase()
+      
+      const current = marketingMap.get(key) || { name, count: 0 }
+      current.count += 1
+      marketingMap.set(key, current)
     })
 
     // Format for frontend
@@ -56,10 +62,8 @@ export async function GET(request: Request) {
       count
     }))
 
-    const marketingData = Object.entries(marketingCounts).map(([name, count]) => ({
-      name,
-      count
-    })).sort((a, b) => b.count - a.count)
+    const marketingData = Array.from(marketingMap.values())
+      .sort((a, b) => b.count - a.count)
 
     return NextResponse.json({
       packageData,

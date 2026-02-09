@@ -1,20 +1,36 @@
 'use client'
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList } from 'recharts'
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, LabelList,
+  PieChart, Pie
+} from 'recharts'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
+import { 
+  LayoutDashboard, 
+  Ticket, 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle,
+  Calendar,
+  Filter,
+  TrendingUp,
+  User
+} from 'lucide-react'
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
   marketingData: { name: string; count: number; open: number; close: number }[]
+  statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
   initialPeriod: { month: number; year: number }
   userRole?: string
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+const BAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1']
 
-export function DashboardView({ packageData, marketingData, initialPeriod, userRole }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, statusCounts, initialPeriod, userRole }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -30,17 +46,22 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
   }
 
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ]
 
   const years = [2024, 2025, 2026, 2027]
 
   if (!mounted) {
     return (
-      <div className="space-y-6">
-        <div className="flex w-fit items-center space-x-4 rounded-lg bg-white p-4 shadow-sm">
-           <div className={clsx("h-10 w-64 bg-gray-200 rounded", !isMarketing && "animate-pulse")}></div>
+      <div className="space-y-6 animate-pulse">
+        <div className="flex w-fit items-center space-x-4 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
+           <div className="h-10 w-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+        </div>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 rounded-xl bg-white dark:bg-gray-800 shadow-sm"></div>
+          ))}
         </div>
       </div>
     )
@@ -50,151 +71,281 @@ export function DashboardView({ packageData, marketingData, initialPeriod, userR
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
 
+  const statusData = [
+    { name: 'Open', value: statusCounts.open, color: '#ef4444' }, // Red
+    { name: 'Close', value: statusCounts.close, color: '#10b981' }, // Green
+    { name: 'On Progress', value: statusCounts.on_progress, color: '#3b82f6' }, // Blue
+    { name: 'Pending', value: statusCounts.pending, color: '#f59e0b' }, // Yellow
+  ].filter(item => item.value > 0)
+
   return (
-    <div className="space-y-6">
-      <div className="inline-flex flex-col space-y-2 rounded-lg bg-white dark:bg-gray-800 p-3 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
-        <div className="flex w-full flex-col space-y-2 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-2">
-          <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 dark:text-gray-400">Month</label>
+    <div className="space-y-8 pb-10">
+      {/* Header & Filter */}
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div>
+          <h2 className="text-lg font-medium text-gray-500 dark:text-gray-400">Ringkasan</h2>
+          <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
+        </div>
+        
+        <div className="flex flex-col space-y-2 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-sm border border-gray-100 dark:border-gray-700 md:flex-row md:items-center md:space-y-0 md:space-x-2">
+          <div className="flex items-center px-2 space-x-2">
+            <Calendar className="h-4 w-4 text-gray-400" />
             <select
               value={month}
               onChange={(e) => setMonth(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-black dark:text-white md:w-32"
+              className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {months.map((m, i) => (
                 <option key={i} value={i + 1}>{m}</option>
               ))}
             </select>
           </div>
-          <div className="flex flex-col">
-            <label className="text-[10px] text-gray-500 dark:text-gray-400">Year</label>
+          <div className="h-4 w-px bg-gray-200 dark:bg-gray-600 hidden md:block"></div>
+          <div className="flex items-center px-2">
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-black dark:text-white md:w-24"
+              className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
           </div>
-          <div className="flex items-end h-full pt-4">
-             <button
-               onClick={handleFilter}
-               className="w-full rounded-md bg-blue-600 px-4 py-1 text-sm text-white hover:bg-blue-700 md:w-auto"
-             >
-               Apply
-             </button>
-          </div>
+          <button
+            onClick={handleFilter}
+            className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Filter className="h-3 w-3" />
+            Terapkan
+          </button>
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Total Tiket" 
+          value={statusCounts.total} 
+          icon={<Ticket className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
+          trend="Total"
+          color="bg-blue-50 dark:bg-blue-900/20"
+        />
+        <StatCard 
+          title="Selesai" 
+          value={statusCounts.close} 
+          icon={<CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />}
+          trend={`${Math.round((statusCounts.close / (statusCounts.total || 1)) * 100)}% Tingkat`}
+          color="bg-green-50 dark:bg-green-900/20"
+        />
+        <StatCard 
+          title="Sedang Proses" 
+          value={statusCounts.on_progress} 
+          icon={<Clock className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+          trend="Aktif"
+          color="bg-indigo-50 dark:bg-indigo-900/20"
+        />
+        <StatCard 
+          title="Pending / Terbuka" 
+          value={statusCounts.open + statusCounts.pending} 
+          icon={<AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
+          trend="Perlu Tindakan"
+          color="bg-red-50 dark:bg-red-900/20"
+        />
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-bold text-gray-600 dark:text-gray-400">Statistik Paket PSB</h3>
-          <div className="h-72 w-full">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Package Chart */}
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Distribusi Paket</h3>
+              <p className="text-xs text-gray-500">Rincian paket PSB terjual</p>
+            </div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            </div>
+          </div>
+          <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={packageData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.3} />
+              <BarChart data={packageData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                 <XAxis 
                   dataKey="name" 
-                  tick={false} 
-                  axisLine={true}
-                  height={10}
-                  stroke="#9ca3af"
+                  tick={{ fontSize: 10, fill: '#9ca3af' }} 
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
                 />
-                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis 
+                  allowDecimals={false} 
+                  tick={{ fontSize: 11, fill: '#9ca3af' }} 
+                  axisLine={false} 
+                  tickLine={false} 
+                />
                 <Tooltip 
-                  contentStyle={{ fontSize: '12px', borderRadius: '4px', border: 'none', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}
-                  cursor={{ fill: 'rgba(156, 163, 175, 0.1)' }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    fontSize: '12px'
+                  }}
+                  cursor={{ fill: 'rgba(156, 163, 175, 0.05)' }}
                 />
-                <Bar dataKey="count" name="Jumlah" barSize={35} radius={[4, 4, 0, 0]} isAnimationActive={!isMarketing}>
+                <Bar dataKey="count" name="Jumlah" barSize={40} radius={[6, 6, 0, 0]} isAnimationActive={true}>
                   {packageData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
                   ))}
-                  <LabelList dataKey="count" position="top" fontSize={10} fontWeight="500" fill="#9ca3af" />
+                  <LabelList dataKey="count" position="top" offset={10} fontSize={11} fontWeight="600" fill="#6b7280" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
-            {packageData.map((item, index) => (
-              <div key={index} className="flex items-center">
-                <div 
-                  className="mr-1.5 h-2.5 w-2.5 rounded-full" 
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium">{item.name}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div className="rounded-lg bg-white dark:bg-gray-800 p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="mb-3 text-base font-bold text-gray-600 dark:text-gray-400 text-center uppercase tracking-wide">Pencapaian Marketing</h3>
-          <div className="w-full">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50">
-                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                    Marketing
-                  </th>
-                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
-                    Open
-                  </th>
-                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400">
-                    Close
-                  </th>
-                  <th className="px-4 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-yellow-500 dark:text-yellow-400">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                {marketingData.map((item, index) => (
-                  <tr key={index} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
-                    <td className="px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {item.name}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-red-600 dark:text-red-400 text-center font-medium">
-                      {item.open}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-green-600 dark:text-green-400 text-center font-medium">
-                      {item.close}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-yellow-500 dark:text-yellow-400 text-center font-bold">
-                      {item.count}
-                    </td>
-                  </tr>
-                ))}
-                {marketingData.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-xs text-gray-400 italic">
-                      No data
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot className="border-t-2 border-gray-200 dark:border-gray-600">
-                <tr className="bg-gray-50/50 dark:bg-gray-700/50">
-                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 uppercase tracking-wider text-center">
-                    TOTAL
-                  </td>
-                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
-                    {totalOpen}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
-                    {totalClose}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-bold text-yellow-500 dark:text-yellow-400 text-center">
-                    {totalCount}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+        {/* Status Pie Chart */}
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Ringkasan Status</h3>
+            <p className="text-xs text-gray-500">Rasio status tiket saat ini</p>
+          </div>
+          <div className="flex-1 min-h-[250px] relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36} 
+                  iconType="circle"
+                  formatter={(value) => <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Center Text */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
+              <span className="text-2xl font-bold text-gray-800 dark:text-white">{statusCounts.total}</span>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Total</p>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Marketing Table */}
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Kinerja Marketing</h3>
+            <p className="text-xs text-gray-500">Laporan pencapaian individu</p>
+          </div>
+          <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-700">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              {marketingData.map((item, index) => {
+                const target = 20
+                const progress = (item.close / target) * 100
+                
+                return (
+                  <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-3 shadow-sm">
+                          {item.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 align-middle">
+                      <div className="w-full max-w-[120px] mx-auto">
+                        <div className="flex justify-between text-[10px] mb-1 text-gray-500">
+                          <span>Capaian</span>
+                          <span>{Math.round(progress)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className="bg-green-500 h-1.5 rounded-full" 
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                        {item.open}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                        {item.close}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className="text-sm font-bold text-gray-800 dark:text-white">
+                        {item.count}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+              {marketingData.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400 italic">
+                    Tidak ada data marketing untuk periode ini
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ title, value, icon, trend, color }: { title: string, value: number, icon: React.ReactNode, trend: string, color: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+          <h3 className="mt-2 text-3xl font-bold text-gray-800 dark:text-white">{value}</h3>
+        </div>
+        <div className={clsx("rounded-xl p-3", color)}>
+          {icon}
+        </div>
+      </div>
+      <div className="mt-4 flex items-center text-sm">
+        <span className="font-medium text-gray-600 dark:text-gray-300">{trend}</span>
+        <span className="ml-2 text-gray-400 text-xs">pada periode ini</span>
       </div>
     </div>
   )
