@@ -55,6 +55,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Restrict MARKETING from creating isolations
+  if (session.user.role === 'MARKETING') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   try {
     const body = await request.json()
     const { customerName, customerAddress, customerPhone, reason, teknisi, ticketId } = body

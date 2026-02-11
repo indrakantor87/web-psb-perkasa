@@ -11,6 +11,11 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Restrict MARKETING from updating isolations
+  if (session.user.role === 'MARKETING') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const { id } = await params
   const body = await request.json()
 

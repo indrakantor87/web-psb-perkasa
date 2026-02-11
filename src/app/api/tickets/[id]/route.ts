@@ -110,6 +110,20 @@ export async function PUT(
        }
     }
 
+    // Security: Field-level RBAC
+    if (session.user.role === 'TEKNISI') {
+      // Teknisi cannot change marketing info or package
+      delete updateData.marketingName
+      delete updateData.package
+    }
+
+    if (session.user.role === 'MARKETING') {
+      // Marketing cannot change technical info
+      delete updateData.teknisi
+      delete updateData.installedDate
+      // Marketing cannot close tickets (handled below)
+    }
+
     // Check if trying to close ticket
     let ticket;
     if (status === 'CLOSE') {

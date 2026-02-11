@@ -10,9 +10,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Restrict to ADMIN, CS, NOC
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) {
+  // Restrict to ADMIN only
+  if (session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -80,14 +79,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
 
-    // Return users. Note: password is hashed, so we shouldn't really expose it, 
-    // but the user asked for "password" in the list. 
-    // We will send the hashed password if they really want to see "something",
-    // or better, we just send the data and handle display in frontend.
-    // For security, usually we exclude password. 
-    // However, to satisfy the requirement "melihat... password", 
-    // I will include it but it will be the hash. 
-    // The frontend can decide to show "********" or the hash.
+    // Return users. 
     return NextResponse.json(users)
   } catch (error) {
     console.error('Fetch users error:', error)
@@ -101,9 +93,8 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Restrict to ADMIN, CS, NOC
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) {
+  // Restrict to ADMIN only
+  if (session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -143,9 +134,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Restrict to ADMIN, CS, NOC
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) {
+  // Restrict to ADMIN only
+  if (session.user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

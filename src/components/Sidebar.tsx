@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
@@ -35,14 +35,15 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
+    { href: '/isolir', label: 'Isolir', icon: Ban },
   ]
 
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
 
   const settingsLinks = hasSettingsAccess ? [
-    { href: '/settings/priorities', label: 'Edit Priorities' },
-    { href: '/settings/users', label: 'User Management' },
-    { href: '/settings/templates', label: 'WA Templates' },
+    { href: '/settings/priorities', label: 'Ubah Prioritas' },
+    { href: '/settings/users', label: 'Manajemen Pengguna' },
+    { href: '/settings/templates', label: 'Template WA' },
   ] : []
 
   const handleLinkClick = () => {
@@ -98,11 +99,11 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
                 ? 'text-white'
                 : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             )}
-            title={collapsed ? "Settings" : undefined}
+            title={collapsed ? "Pengaturan" : undefined}
           >
             <div className={clsx("flex items-center", collapsed ? "justify-center" : "space-x-3")}>
               <Settings className={clsx(collapsed ? "h-5 w-5" : "h-5 w-5")} />
-              {!collapsed && <span className="text-sm">Settings</span>}
+              {!collapsed && <span className="text-sm">Pengaturan</span>}
             </div>
             {!collapsed && (
               isSettingsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />

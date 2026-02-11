@@ -97,8 +97,8 @@ export function PriorityManager() {
       {/* Add New Form */}
       <form onSubmit={handleAdd} className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Add New Priority</h3>
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+          <div className="flex-1 w-full">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Prioritas</label>
             <input
               type="text"
@@ -108,7 +108,7 @@ export function PriorityManager() {
               placeholder="Contoh: Urgent"
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Warna Badge (Tailwind Class)</label>
             <select
               value={newPriority.color}
@@ -124,7 +124,7 @@ export function PriorityManager() {
           <button
             type="submit"
             disabled={adding || !newPriority.name || !newPriority.color}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add
@@ -133,8 +133,8 @@ export function PriorityManager() {
       </form>
 
       {/* List */}
-      <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg w-fit">
-        <table className="divide-y divide-gray-300 dark:divide-gray-700">
+      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg w-full">
+        <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Name</th>

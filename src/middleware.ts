@@ -56,10 +56,20 @@ export async function middleware(request: NextRequest) {
   }
 
   // Role-based access control
-  if (currentUser && currentUser.role === 'MARKETING') {
-    const restrictedPaths = ['/settings/priorities', '/settings/users']
-    if (restrictedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
-      return NextResponse.redirect(new URL('/', request.url))
+  if (currentUser) {
+    // Block MARKETING from settings (all settings pages)
+    if (currentUser.role === 'MARKETING') {
+      if (request.nextUrl.pathname.startsWith('/settings')) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+    }
+
+    // Block TEKNISI from input and settings
+    if (currentUser.role === 'TEKNISI') {
+      const restrictedPaths = ['/input', '/settings']
+      if (restrictedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
   }
 
