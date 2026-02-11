@@ -173,9 +173,8 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
       })
 
       if (res.ok) {
-        router.push('/list')
-        router.refresh()
-        // Keep loading true while redirecting
+        // Use hard navigation to prevent router hang and ensure fresh data
+        window.location.href = '/list'
       } else {
         setLoading(false)
         const data = await res.json()
