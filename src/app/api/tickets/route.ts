@@ -141,24 +141,31 @@ export async function POST(request: Request) {
   }
   
   try {
+    console.log('--- POST /api/tickets ---')
+    console.log('Role:', session.user.role)
+
     const formData = await request.formData()
     const file = formData.get('fotoRumah') as File | null
+    console.log('File:', file ? `Name: ${file.name}, Size: ${file.size}, Type: ${file.type}` : 'No file')
 
     let fotoRumahPath = null
 
     if (file && file.size > 0) {
       const validTypes = ['image/jpeg', 'image/png', 'image/jpg']
       if (!validTypes.includes(file.type)) {
+        console.error('Invalid file type:', file.type)
         return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
       }
 
       if (file.size > 3 * 1024 * 1024) {
+        console.error('File too large:', file.size)
         return NextResponse.json({ error: 'File too large' }, { status: 400 })
       }
 
       // Fallback to Base64 (Google Drive integration removed)
       const buffer = Buffer.from(await file.arrayBuffer())
       fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
+      console.log('File processed to Base64')
     }
 
     const rawData = {
@@ -166,15 +173,18 @@ export async function POST(request: Request) {
       birthDate: formData.get('birthDate'),
       locationMap: formData.get('locationMap'),
       package: formData.get('package'),
-      marketingName: session.user.role === 'MARKETING' ? session.user.name : formData.get('marketingName'),
-      description: formData.get('description'),
+      marketingName: session.user.role === 'MARKETING' ? session.user.name : (formData.get('marketingName') || undefined),
+      description: formData.get('description') || undefined,
       phoneNumber: formData.get('phoneNumber'),
-      pengawalan: formData.get('pengawalan'),
+      pengawalan: formData.get('pengawalan') || undefined,
       fotoRumah: fotoRumahPath,
     }
 
+    console.log('Raw Data:', JSON.stringify({ ...rawData, fotoRumah: '...base64...' }))
+
     const result = ticketCreateSchema.safeParse(rawData)
     if (!result.success) {
+      console.error('Validation failed:', result.error.flatten())
       return NextResponse.json({ error: 'Validation failed', details: result.error.flatten() }, { status: 400 })
     }
 

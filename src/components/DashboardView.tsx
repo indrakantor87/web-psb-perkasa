@@ -316,6 +316,25 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                   </tr>
                 )
               })}
+              {marketingData.length > 0 && (
+                <tr className="bg-yellow-100 dark:bg-yellow-900/40 font-bold border-t-2 border-yellow-200 dark:border-yellow-800">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-800 dark:text-white">
+                    TOTAL
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {/* Empty for progress column */}
+                  </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
+                    {totalOpen}
+                  </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-green-700 dark:text-green-400">
+                    {totalClose}
+                  </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-gray-900 dark:text-white text-lg">
+                    {totalCount}
+                  </td>
+                </tr>
+              )}
               {marketingData.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400 italic">

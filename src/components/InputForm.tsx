@@ -150,6 +150,11 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
       return
     }
 
+    if (formData.phoneNumber.length < 10) {
+      setError('Nomor WA minimal 10 digit')
+      return
+    }
+
     if (!fotoRumah) {
       setError('Mohon upload Foto Rumah')
       return
