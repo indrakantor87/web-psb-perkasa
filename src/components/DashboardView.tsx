@@ -16,21 +16,23 @@ import {
   Calendar,
   Filter,
   TrendingUp,
-  User
+  User,
+  WifiOff
 } from 'lucide-react'
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
-  marketingData: { name: string; count: number; open: number; close: number }[]
+  marketingData: { name: string; count: number; open: number; pending: number; close: number }[]
   statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
   initialPeriod: { month: number; year: number }
   userRole?: string
+  isolationCount?: number
 }
 
 const BAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1']
 
-export function DashboardView({ packageData, marketingData, statusCounts, initialPeriod, userRole }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, statusCounts, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -40,10 +42,6 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  const handleFilter = () => {
-    router.push(`/?month=${month}&year=${year}`)
-  }
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -68,6 +66,7 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
   }
 
   const totalOpen = marketingData.reduce((acc, curr) => acc + curr.open, 0)
+  const totalPending = marketingData.reduce((acc, curr) => acc + curr.pending, 0)
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
 
@@ -92,7 +91,11 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
             <Calendar className="h-4 w-4 text-gray-400" />
             <select
               value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
+              onChange={(e) => {
+                const newMonth = Number(e.target.value)
+                setMonth(newMonth)
+                router.push(`/?month=${newMonth}&year=${year}`)
+              }}
               className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {months.map((m, i) => (
@@ -104,7 +107,11 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
           <div className="flex items-center px-2">
             <select
               value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
+              onChange={(e) => {
+                const newYear = Number(e.target.value)
+                setYear(newYear)
+                router.push(`/?month=${month}&year=${newYear}`)
+              }}
               className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {years.map((y) => (
@@ -112,18 +119,11 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
               ))}
             </select>
           </div>
-          <button
-            onClick={handleFilter}
-            className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-          >
-            <Filter className="h-3 w-3" />
-            Terapkan
-          </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard 
           title="Total Tiket" 
           value={statusCounts.total} 
@@ -151,6 +151,13 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
           icon={<AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
           trend="Perlu Tindakan"
           color="bg-red-50 dark:bg-red-900/20"
+        />
+        <StatCard 
+          title="Isolir Aktif" 
+          value={isolationCount} 
+          icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
+          trend="Perlu Penanganan"
+          color="bg-orange-50 dark:bg-orange-900/20"
         />
       </div>
 
@@ -264,8 +271,9 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
               <tr className="border-b border-gray-100 dark:border-gray-700">
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wider">Pending</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
               </tr>
             </thead>
@@ -299,13 +307,18 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                        {item.open}
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                        {item.close}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                        {item.close}
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                        {item.pending}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                        {item.open}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
@@ -324,11 +337,14 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                   <td className="px-6 py-4 text-center">
                     {/* Empty for progress column */}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
-                    {totalOpen}
-                  </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap text-green-700 dark:text-green-400">
                     {totalClose}
+                  </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-amber-700 dark:text-amber-400">
+                    {totalPending}
+                  </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
+                    {totalOpen}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap text-gray-900 dark:text-white text-lg">
                     {totalCount}
@@ -337,7 +353,7 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
               )}
               {marketingData.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400 italic">
                     Tidak ada data marketing untuk periode ini
                   </td>
                 </tr>

@@ -554,7 +554,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-48"
-              placeholder="Nama, No Tiket, Teknisi..."
+              placeholder="Nama, No Tiket..."
             />
           </div>
           <div className="flex items-end h-full pt-3 space-x-2">
@@ -583,7 +583,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               {userRole !== 'MARKETING' && (
                 <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               )}
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Teknisi</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
@@ -640,7 +639,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   {userRole !== 'MARKETING' && (
                     <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
                   )}
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.teknisi || '-'}</td>
 
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     {ticket.hasPhoto || ticket.fotoRumah ? (
@@ -747,9 +745,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           <span className="font-medium">Marketing:</span> {ticket.marketingName}
                         </div>
                       )}
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Teknisi:</span> {ticket.teknisi || '-'}
-                      </div>
                       <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">Foto Rumah:</span>{' '}
                         {ticket.hasPhoto || ticket.fotoRumah ? (
@@ -1150,16 +1145,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teknisi</label>
-                  <input
-                    type="text"
-                    value={editTicket.teknisi || ''}
-                    onChange={(e) => setEditTicket({ ...editTicket, teknisi: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nama Teknisi"
-                  />
-                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Location Map</label>
                   <input

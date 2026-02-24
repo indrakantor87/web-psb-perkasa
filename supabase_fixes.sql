@@ -9,6 +9,8 @@ ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Ticket" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Priority" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "WhatsappTemplate" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Isolation" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SystemSetting" ENABLE ROW LEVEL SECURITY;
 
 -- 2. Performance Optimization (Slow Queries)
 -- The application searches using 'contains' (ILIKE) on customerName and pengawalan.

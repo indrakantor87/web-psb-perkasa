@@ -53,19 +53,21 @@ export default async function DashboardPage({
   })
 
   // 2. Group by Marketing and Status
-  const marketingMap = new Map<string, { name: string; open: number; close: number; count: number }>()
+  const marketingMap = new Map<string, { name: string; open: number; pending: number; close: number; count: number }>()
 
   tickets.forEach((t: any) => {
     const rawName = t.marketingName || 'Unknown'
-    const name = rawName.trim() // Normalize display name (remove trailing spaces)
-    const key = name.toLowerCase() // Normalize key (case-insensitive)
+    const name = rawName.trim()
+    const key = name.toLowerCase()
 
-    const current = marketingMap.get(key) || { name, open: 0, close: 0, count: 0 }
+    const current = marketingMap.get(key) || { name, open: 0, pending: 0, close: 0, count: 0 }
     
     current.count += 1
     
     if (t.status === 'OPEN') {
       current.open += 1
+    } else if (t.status === 'PENDING') {
+      current.pending += 1
     } else if (t.status === 'CLOSE') {
       current.close += 1
     }
@@ -116,6 +118,13 @@ export default async function DashboardPage({
     else if (t.status === 'ON_PROGRESS') statusCounts.on_progress++
   })
 
+  // Fetch Isolation Count (Status: OPEN)
+  const isolationCount = await prisma.isolation.count({
+    where: {
+      status: 'OPEN'
+    }
+  })
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
@@ -125,6 +134,7 @@ export default async function DashboardPage({
         statusCounts={statusCounts}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
+        isolationCount={isolationCount}
       />
     </div>
   )

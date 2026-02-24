@@ -23,6 +23,8 @@ export async function GET(request: Request) {
       { customerName: { contains: search, mode: 'insensitive' } },
       { customerAddress: { contains: search, mode: 'insensitive' } },
       { customerPhone: { contains: search, mode: 'insensitive' } },
+      { userEmail: { contains: search, mode: 'insensitive' } },
+      { marketing: { contains: search, mode: 'insensitive' } },
     ]
   }
 

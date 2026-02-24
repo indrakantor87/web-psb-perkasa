@@ -60,6 +60,9 @@ model Isolation {
   customerName    String
   customerAddress String?
   customerPhone   String?
+  userEmail       String?
+  activeDate      DateTime?
+  marketing       String?
   isolationDate   DateTime @default(now())
   reason          String?
   status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)

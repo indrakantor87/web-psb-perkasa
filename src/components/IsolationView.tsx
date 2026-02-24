@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
-import { Search, Plus, X, Ban, CheckCircle, Trash2 } from 'lucide-react'
+import { Search, Plus, X, Ban, CheckCircle, Trash2, Upload } from 'lucide-react'
 import { clsx } from 'clsx'
 
 interface Isolation {
@@ -10,6 +10,9 @@ interface Isolation {
   customerName: string
   customerAddress: string | null
   customerPhone: string | null
+  userEmail?: string | null
+  activeDate?: string | null
+  marketing?: string | null
   isolationDate: string
   reason: string | null
   status: string
@@ -32,6 +35,7 @@ export function IsolationView({ userRole }: IsolationViewProps) {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Role Permissions
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
@@ -127,16 +131,58 @@ export function IsolationView({ userRole }: IsolationViewProps) {
     }
   }
 
+  const handleImportClick = () => {
+    if (!fileInputRef.current) return
+    fileInputRef.current.click()
+  }
+
+  const handleFileChange = async (e: any) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      setLoading(true)
+      const res = await fetch('/api/isolations/import', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(data.message || 'Import berhasil')
+        fetchIsolations()
+      } else {
+        alert(data.error || 'Import gagal')
+      }
+    } catch (error) {
+      console.error('Import isolir gagal', error)
+      alert('Terjadi kesalahan saat import')
+    } finally {
+      setLoading(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
-      {/* Filters & Actions */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
         <div className="flex flex-1 gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Cari Nama / Alamat / No HP..."
+              placeholder="Cari Nama / User / No HP / Marketing..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -153,13 +199,23 @@ export function IsolationView({ userRole }: IsolationViewProps) {
           </select>
         </div>
         {canEdit && (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Isolir
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleImportClick}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-500"
+            >
+              <Upload className="h-4 w-4" />
+              Import Excel
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Isolir
+            </button>
+          </div>
         )}
       </div>
 
@@ -169,9 +225,12 @@ export function IsolationView({ userRole }: IsolationViewProps) {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pelanggan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tanggal Isolir</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Alasan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">No. HP</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Active Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Keterangan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Marketing</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
               </tr>
@@ -179,42 +238,41 @@ export function IsolationView({ userRole }: IsolationViewProps) {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
                 </tr>
               ) : (
                 isolations.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    {/* Desktop Cells */}
-                    <td className="hidden md:table-cell px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{item.customerName}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{item.customerAddress || '-'}</span>
-                        {item.customerPhone && (
-                          <a 
-                            href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-0.5"
-                          >
-                            {item.customerPhone}
-                          </a>
-                        )}
-                      </div>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      {item.customerName}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {format(new Date(item.isolationDate), 'dd/MM/yyyy HH:mm')}
-                      {item.restorationDate && (
-                        <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                          Pulih: {format(new Date(item.restorationDate), 'dd/MM/yyyy')}
-                        </div>
-                      )}
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {item.userEmail || '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {item.customerPhone ? (
+                        <a 
+                          href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {item.customerPhone}
+                        </a>
+                      ) : '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
                     </td>
                     <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title={item.reason || ''}>
                       {item.reason || '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {item.marketing || '-'}
                     </td>
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                       <span className={clsx(
@@ -255,7 +313,9 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">{item.customerName}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.customerAddress || '-'}</div>
+                            {item.userEmail && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.userEmail}</div>
+                            )}
                           </div>
                           <span className={clsx(
                             "px-2 py-0.5 text-[10px] font-semibold rounded-full",
@@ -282,12 +342,16 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                             ) : '-'}
                           </div>
                           <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Tanggal:</span>
-                            {format(new Date(item.isolationDate), 'dd/MM/yyyy')}
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Active Date:</span>
+                            {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
                             {item.reason || '-'}
+                          </div>
+                          <div className="col-span-2">
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Marketing:</span>
+                            {item.marketing || '-'}
                           </div>
                         </div>
 
