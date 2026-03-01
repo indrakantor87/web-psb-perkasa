@@ -20,11 +20,21 @@ export async function GET(request: Request) {
   const endDate = new Date(currentYear, currentMonth, 1)
 
   try {
-    const where = {
-      requestDate: {
-        gte: startDate,
-        lt: endDate,
-      }
+    const where: any = {
+      OR: [
+        {
+          AND: [
+            { installedDate: { not: null } },
+            { installedDate: { gte: startDate, lt: endDate } }
+          ]
+        },
+        {
+          AND: [
+            { installedDate: null },
+            { requestDate: { gte: startDate, lt: endDate } }
+          ]
+        }
+      ]
     }
 
     // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
