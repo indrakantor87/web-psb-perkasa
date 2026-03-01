@@ -33,10 +33,20 @@ export default async function ListPage({
   const endDate = new Date(currentYear, currentMonth, 1)
 
   const baseWhere: any = {
-    requestDate: {
-      gte: startDate,
-      lt: endDate,
-    },
+    OR: [
+      {
+        AND: [
+          { installedDate: { not: null } },
+          { installedDate: { gte: startDate, lt: endDate } }
+        ]
+      },
+      {
+        AND: [
+          { installedDate: null },
+          { requestDate: { gte: startDate, lt: endDate } }
+        ]
+      }
+    ]
   }
 
   if (session.user.role === 'MARKETING') {
