@@ -23,12 +23,30 @@ export default async function DashboardPage({
 
   const startDate = new Date(currentYear, currentMonth - 1, 1)
   const endDate = new Date(currentYear, currentMonth, 1)
+  const isSelectedCurrentMonth = (() => {
+    const n = new Date()
+    return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
+  })()
+  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING'] as const
 
   const where: any = {
-    requestDate: {
-      gte: startDate,
-      lt: endDate,
-    }
+    OR: [
+      {
+        AND: [
+          { installedDate: { not: null } },
+          { installedDate: { gte: startDate, lt: endDate } }
+        ]
+      },
+      isSelectedCurrentMonth
+        ? {
+            AND: [
+              { installedDate: null },
+              { status: { in: openStatuses } as any },
+              { requestDate: { lt: endDate } }
+            ]
+          }
+        : undefined
+    ].filter(Boolean)
   }
 
   if (session.user.role === 'MARKETING') {
