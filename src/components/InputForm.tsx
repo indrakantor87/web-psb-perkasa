@@ -41,6 +41,12 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+    // Sanitasi input nomor WA: hanya angka
+    if (name === 'phoneNumber') {
+      const digitsOnly = value.replace(/\D/g, '')
+      setFormData((prev) => ({ ...prev, [name]: digitsOnly }))
+      return
+    }
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -150,8 +156,10 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
       return
     }
 
-    if (formData.phoneNumber.length < 10) {
-      setError('Nomor WA minimal 10 digit')
+    // Validasi nomor WA: harus diawali 08, 10–13 digit, hanya angka
+    const waPattern = /^08\d{8,11}$/
+    if (!waPattern.test(formData.phoneNumber)) {
+      setError('Format Nomor WA tidak valid. Gunakan angka saja, diawali 08, 10–13 digit. Contoh: 085865555005')
       return
     }
 
@@ -240,11 +248,14 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
             No WA Aktif
           </label>
           <input
-            type="text"
+            type="tel"
             name="phoneNumber"
             value={formData.phoneNumber}
             onChange={handleChange}
             required
+            pattern="^08\d{8,11}$"
+            inputMode="numeric"
+            placeholder="085865555005"
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
           />
         </div>

@@ -14,7 +14,9 @@ export const ticketCreateSchema = z.object({
   marketingName: z.string().min(1).optional(), // Can be optional if user is Marketing
   teknisi: z.string().optional().nullable(),
   description: z.string().optional(),
-  phoneNumber: z.string().min(10),
+  phoneNumber: z
+    .string()
+    .regex(/^08\d{8,11}$/, 'Nomor WA harus diawali 08, hanya angka, 10–13 digit (contoh: 085865555005)'),
   fotoRumah: z.string().optional().nullable(), // Base64 string
   pengawalan: z.string().optional().nullable(),
   kmz: z.string().optional().nullable(),
