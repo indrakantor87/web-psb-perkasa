@@ -50,8 +50,14 @@ export async function GET(request: Request) {
   if (month && year) {
     const startDate = new Date(`${year}-${month}-01`)
     const endDate = new Date(new Date(startDate).setMonth(startDate.getMonth() + 1))
+    const now = new Date()
+    const isSelectedCurrentMonth = (now.getFullYear() === parseInt(year) && (now.getMonth() + 1) === parseInt(month))
+    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
     
-    // Filter berdasarkan installedDate jika ada; jika belum terpasang, pakai requestDate
+    // Aturan:
+    // - Selalu tampilkan tiket terpasang (installedDate) sesuai bulan pemasangan
+    // - Jika melihat bulan saat ini: tampilkan juga semua tiket yang BELUM terpasang dan masih open dari bulan-bulan sebelumnya (carry-over)
+    // - Jika melihat bulan lampau: tampilkan hanya tiket belum terpasang yang direquest pada bulan tersebut (tanpa carry-over)
     where.OR = [
       {
         AND: [
@@ -59,12 +65,20 @@ export async function GET(request: Request) {
           { installedDate: { gte: startDate, lt: endDate } }
         ]
       },
-      {
-        AND: [
-          { installedDate: null },
-          { requestDate: { gte: startDate, lt: endDate } }
-        ]
-      }
+      isSelectedCurrentMonth
+        ? {
+            AND: [
+              { installedDate: null },
+              { status: { in: openStatuses } as any },
+              { requestDate: { lt: endDate } } // semua open hingga akhir bulan ini
+            ]
+          }
+        : {
+            AND: [
+              { installedDate: null },
+              { requestDate: { gte: startDate, lt: endDate } }
+            ]
+          }
     ]
   } else if (year) {
       const startDate = new Date(`${year}-01-01`)

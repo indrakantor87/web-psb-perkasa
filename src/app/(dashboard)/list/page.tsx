@@ -32,6 +32,12 @@ export default async function ListPage({
   const startDate = new Date(currentYear, currentMonth - 1, 1)
   const endDate = new Date(currentYear, currentMonth, 1)
 
+  const isSelectedCurrentMonth = (() => {
+    const now = new Date()
+    return now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth
+  })()
+  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING'] as const
+
   const baseWhere: any = {
     OR: [
       {
@@ -40,12 +46,20 @@ export default async function ListPage({
           { installedDate: { gte: startDate, lt: endDate } }
         ]
       },
-      {
-        AND: [
-          { installedDate: null },
-          { requestDate: { gte: startDate, lt: endDate } }
-        ]
-      }
+      isSelectedCurrentMonth
+        ? {
+            AND: [
+              { installedDate: null },
+              { status: { in: openStatuses } as any },
+              { requestDate: { lt: endDate } } // carry-over tiket open dari bulan sebelumnya
+            ]
+          }
+        : {
+            AND: [
+              { installedDate: null },
+              { requestDate: { gte: startDate, lt: endDate } }
+            ]
+          }
     ]
   }
 
