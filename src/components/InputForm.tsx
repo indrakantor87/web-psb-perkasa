@@ -98,6 +98,17 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     }
   }
 
+  const handlePhonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const text = e.clipboardData.getData('text')
+    let digits = text.replace(/\D/g, '')
+    if (digits.startsWith('62')) {
+      digits = '0' + digits.slice(2)
+    }
+    const capped = digits.slice(0, 13)
+    setFormData(prev => ({ ...prev, phoneNumber: capped }))
+  }
+
   // Helper to compress image
   const compressImage = async (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -253,6 +264,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
             name="phoneNumber"
             value={formData.phoneNumber}
             onChange={handleChange}
+            onPaste={handlePhonePaste}
             required
             pattern="^08\d{8,11}$"
             inputMode="numeric"
