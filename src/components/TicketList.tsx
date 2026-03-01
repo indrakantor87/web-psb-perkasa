@@ -114,7 +114,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const searchPart = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
     const limitPart = pagination?.pageSize && pagination.pageSize !== 25 ? `&limit=${pagination.pageSize}` : ''
     const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
-    router.push(url)
+    router.replace(url)
   }
 
   // Auto-filter when state changes
@@ -455,7 +455,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const handlePageChange = (newPage: number) => {
     const url = new URL(window.location.href)
     url.searchParams.set('page', newPage.toString())
-    router.push(url.pathname + url.search)
+    router.replace(url.pathname + url.search)
   }
 
   const handleLimitChange = (newLimit: number) => {
@@ -465,7 +465,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const searchPart = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
     const limitPart = newLimit !== 25 ? `&limit=${newLimit}` : ''
     const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
-    router.push(url)
+    router.replace(url)
   }
 
   return (

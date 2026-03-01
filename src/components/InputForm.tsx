@@ -44,7 +44,8 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     // Sanitasi input nomor WA: hanya angka
     if (name === 'phoneNumber') {
       const digitsOnly = value.replace(/\D/g, '')
-      setFormData((prev) => ({ ...prev, [name]: digitsOnly }))
+      const capped = digitsOnly.slice(0, 13)
+      setFormData((prev) => ({ ...prev, [name]: capped }))
       return
     }
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -256,6 +257,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
             pattern="^08\d{8,11}$"
             inputMode="numeric"
             placeholder="08xxxxxxxxxx"
+            maxLength={13}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
           />
         </div>
