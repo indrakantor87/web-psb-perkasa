@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     // Aturan:
     // - Selalu tampilkan tiket terpasang (installedDate) sesuai bulan pemasangan
     // - Jika melihat bulan saat ini: tampilkan juga semua tiket yang BELUM terpasang dan masih open dari bulan-bulan sebelumnya (carry-over)
-    // - Jika melihat bulan lampau: tampilkan hanya tiket belum terpasang yang direquest pada bulan tersebut (tanpa carry-over)
+    // - Jika melihat bulan lampau: JANGAN tampilkan tiket belum terpasang (semua tiket open dipindah tampil ke bulan berjalan)
     where.OR = [
       {
         AND: [
@@ -73,13 +73,10 @@ export async function GET(request: Request) {
               { requestDate: { lt: endDate } } // semua open hingga akhir bulan ini
             ]
           }
-        : {
-            AND: [
-              { installedDate: null },
-              { requestDate: { gte: startDate, lt: endDate } }
-            ]
-          }
+        : undefined
     ]
+    // Bersihkan undefined agar WHERE valid
+    where.OR = where.OR.filter(Boolean)
   } else if (year) {
       const startDate = new Date(`${year}-01-01`)
       const endDate = new Date(`${parseInt(year) + 1}-01-01`)

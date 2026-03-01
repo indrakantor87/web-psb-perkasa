@@ -54,13 +54,8 @@ export default async function ListPage({
               { requestDate: { lt: endDate } } // carry-over tiket open dari bulan sebelumnya
             ]
           }
-        : {
-            AND: [
-              { installedDate: null },
-              { requestDate: { gte: startDate, lt: endDate } }
-            ]
-          }
-    ]
+        : undefined
+    ].filter(Boolean)
   }
 
   if (session.user.role === 'MARKETING') {

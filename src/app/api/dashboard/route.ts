@@ -39,13 +39,8 @@ export async function GET(request: Request) {
                 { requestDate: { lt: endDate } }
               ]
             }
-          : {
-              AND: [
-                { installedDate: null },
-                { requestDate: { gte: startDate, lt: endDate } }
-              ]
-            }
-      ]
+          : undefined
+      ].filter(Boolean)
     }
 
     // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
