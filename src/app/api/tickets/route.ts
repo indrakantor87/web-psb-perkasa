@@ -155,7 +155,12 @@ export async function GET(request: Request) {
       hasPhoto: photoIds.has(t.id)
     }))
 
-    return NextResponse.json(formattedTickets)
+    return NextResponse.json(formattedTickets, {
+      headers: {
+        // Private per-user caching (role-based), short TTL to improve perceived speed
+        'Cache-Control': 'private, max-age=15'
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 })
   }

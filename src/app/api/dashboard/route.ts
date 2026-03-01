@@ -88,6 +88,11 @@ export async function GET(request: Request) {
         month: currentMonth,
         year: currentYear
       }
+    }, {
+      headers: {
+        // Allow CDN/public caching for short period; dashboard tak berisi data sensitif per user
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+      }
     })
 
   } catch (error) {
