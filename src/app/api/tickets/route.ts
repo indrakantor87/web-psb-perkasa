@@ -51,17 +51,38 @@ export async function GET(request: Request) {
     const startDate = new Date(`${year}-${month}-01`)
     const endDate = new Date(new Date(startDate).setMonth(startDate.getMonth() + 1))
     
-    where.requestDate = {
-      gte: startDate,
-      lt: endDate,
-    }
+    // Filter berdasarkan installedDate jika ada; jika belum terpasang, pakai requestDate
+    where.OR = [
+      {
+        AND: [
+          { installedDate: { not: null } },
+          { installedDate: { gte: startDate, lt: endDate } }
+        ]
+      },
+      {
+        AND: [
+          { installedDate: null },
+          { requestDate: { gte: startDate, lt: endDate } }
+        ]
+      }
+    ]
   } else if (year) {
       const startDate = new Date(`${year}-01-01`)
       const endDate = new Date(`${parseInt(year) + 1}-01-01`)
-      where.requestDate = {
-        gte: startDate,
-        lt: endDate,
-      }
+      where.OR = [
+        {
+          AND: [
+            { installedDate: { not: null } },
+            { installedDate: { gte: startDate, lt: endDate } }
+          ]
+        },
+        {
+          AND: [
+            { installedDate: null },
+            { requestDate: { gte: startDate, lt: endDate } }
+          ]
+        }
+      ]
   }
 
   if (status) {
