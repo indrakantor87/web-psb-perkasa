@@ -180,6 +180,22 @@ export default async function DashboardPage({
   `
   const yearTopPackages = yearTopPackagesRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
+  // 2d. Jumlah pelanggan per marketing per tahun
+  const yearMarketingRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
+    WITH src AS (
+      SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name
+      FROM "Ticket"
+      WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
+        AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    )
+    SELECT name, COUNT(*)::int AS count
+    FROM src
+    GROUP BY name
+    ORDER BY COUNT(*) DESC
+    LIMIT 15
+  `
+  const yearMarketingCounts = yearMarketingRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
+
   // 3. Calculate Global Status Counts
   const statusCounts = {
     total: tickets.length,
@@ -233,6 +249,7 @@ export default async function DashboardPage({
         marketingData={marketingDataWithIsolir}
         monthlyData={monthlyData}
         yearTopPackages={yearTopPackages}
+        yearMarketingCounts={yearMarketingCounts}
         statusCounts={statusCounts}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
