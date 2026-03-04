@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function DashboardCharts({ packageData, monthlyData, statusData, showMonthly, year }: Props) {
+  const total = statusData.reduce((acc, cur) => acc + (cur?.value || 0), 0)
   return (
     <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -70,7 +71,7 @@ export default function DashboardCharts({ packageData, monthlyData, statusData, 
         </div>
 
         {/* Status Pie Chart */}
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col relative">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-gray-800 dark:text-white">Ringkasan Status</h3>
             <p className="text-xs text-gray-500">Rasio status tiket saat ini</p>
@@ -102,6 +103,11 @@ export default function DashboardCharts({ packageData, monthlyData, statusData, 
                 />
               </PieChart>
             </ResponsiveContainer>
+            {/* Center Total */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
+              <span className="text-2xl font-bold text-gray-800 dark:text-white">{total}</span>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Total</p>
+            </div>
           </div>
         </div>
       </div>
