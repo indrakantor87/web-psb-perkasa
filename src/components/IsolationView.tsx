@@ -37,6 +37,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(initialSearch)
   const [radbooxFilter, setRadbooxFilter] = useState('ALL')
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
   const [marketingFilter, setMarketingFilter] = useState(initialMarketing)
   const [statusPreset] = useState(initialStatus) // hidden preset (e.g., OPEN)
   const [page, setPage] = useState(1)
@@ -88,7 +89,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
       })()
       const effectiveMarketing = marketingFilter || urlMarketing
-      if (search) params.append('search', search)
+      if (debouncedSearch) params.append('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
@@ -114,13 +115,19 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     }
   }
 
+  // Debounce pencarian untuk mengurangi request beruntun
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(t)
+  }, [search])
+
   useEffect(() => {
     setPage(1)
-  }, [search, limit, radbooxFilter, marketingFilter])
+  }, [debouncedSearch, limit, radbooxFilter, marketingFilter])
 
   useEffect(() => {
     fetchIsolations()
-  }, [search, page, limit, radbooxFilter, marketingFilter])
+  }, [debouncedSearch, page, limit, radbooxFilter, marketingFilter])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

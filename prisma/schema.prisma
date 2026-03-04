@@ -78,6 +78,9 @@ model Isolation {
 
   @@index([status])
   @@index([customerName])
+  @@index([marketing])
+  @@index([isolationDate])
+  @@index([radboox])
 }
 
 model Priority {

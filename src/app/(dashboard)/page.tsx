@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-export const dynamic = 'force-dynamic'
+// Cache dashboard selama 2 menit untuk ringkasan agar mengurangi beban DB
+export const revalidate = 120
 
 export default async function DashboardPage({
   searchParams,
