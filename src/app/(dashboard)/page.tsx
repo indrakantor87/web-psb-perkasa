@@ -64,10 +64,20 @@ export default async function DashboardPage({
     }
   })
 
-  // 1. Group by Package
+  // 1. Group by Package (normalize nama paket)
+  const normalizePackage = (pkg?: string | null) => {
+    const p = (pkg || 'Unknown').toUpperCase()
+    if (p.includes('HOME LITE')) return 'HOME LITE'
+    if (p.includes('HOME BASIC')) return 'HOME BASIC'
+    if (p.includes('HOME STREAM')) return 'HOME STREAM'
+    if (p.includes('HOME ENTERTAIN')) return 'HOME ENTERTAIN'
+    if (p.includes('HOME SMALL')) return 'HOME SMALL'
+    if (p.includes('HOME ADVAN')) return 'HOME ADVAN'
+    return pkg || 'Unknown'
+  }
   const packageCounts: Record<string, number> = {}
   tickets.forEach((t: any) => {
-    const pkg = t.package || 'Unknown'
+    const pkg = normalizePackage(t.package)
     packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
   })
 
@@ -148,11 +158,23 @@ export default async function DashboardPage({
 
   // 2c. Top packages of the year (untuk kebijakan)
   const yearTopPackagesRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
-    SELECT "package" AS name, COUNT(*)::int AS count
-    FROM "Ticket"
-    WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
-      AND COALESCE("installedDate","requestDate") < ${yearEnd}
-    GROUP BY "package"
+    WITH src AS (
+      SELECT CASE
+        WHEN UPPER("package") LIKE '%HOME LITE%' THEN 'HOME LITE'
+        WHEN UPPER("package") LIKE '%HOME BASIC%' THEN 'HOME BASIC'
+        WHEN UPPER("package") LIKE '%HOME STREAM%' THEN 'HOME STREAM'
+        WHEN UPPER("package") LIKE '%HOME ENTERTAIN%' THEN 'HOME ENTERTAIN'
+        WHEN UPPER("package") LIKE '%HOME SMALL%' THEN 'HOME SMALL'
+        WHEN UPPER("package") LIKE '%HOME ADVAN%' THEN 'HOME ADVAN'
+        ELSE COALESCE("package",'Unknown')
+      END AS name
+      FROM "Ticket"
+      WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
+        AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    )
+    SELECT name, COUNT(*)::int AS count
+    FROM src
+    GROUP BY name
     ORDER BY COUNT(*) DESC
     LIMIT 5
   `
