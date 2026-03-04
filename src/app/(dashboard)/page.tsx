@@ -120,6 +120,32 @@ export default async function DashboardPage({
   const marketingData = Array.from(marketingMap.values())
     .sort((a, b) => b.count - a.count)
 
+  // 2b. Monthly recap for selected year (Jan..Dec)
+  // Gunakan installedDate jika ada (tiket selesai), jika tidak ada gunakan requestDate (tiket belum selesai)
+  const yearStart = new Date(currentYear, 0, 1)
+  const yearEnd = new Date(currentYear + 1, 0, 1)
+  const yearTickets = await prisma.ticket.findMany({
+    where: {
+      OR: [
+        { installedDate: { gte: yearStart, lt: yearEnd } },
+        { requestDate:   { gte: yearStart, lt: yearEnd } },
+      ]
+    },
+    select: { requestDate: true, installedDate: true }
+  })
+  const monthlyBuckets: number[] = Array.from({ length: 12 }, () => 0)
+  yearTickets.forEach(t => {
+    const basis = t.installedDate ?? t.requestDate
+    const d = basis as Date
+    const m = d.getMonth()
+    monthlyBuckets[m] = (monthlyBuckets[m] || 0) + 1
+  })
+  const monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+  const monthlyData = monthLabels.map((label, idx) => ({
+    name: label,
+    count: monthlyBuckets[idx] || 0
+  }))
+
   // 3. Calculate Global Status Counts
   const statusCounts = {
     total: tickets.length,
@@ -136,19 +162,42 @@ export default async function DashboardPage({
     else if (t.status === 'ON_PROGRESS') statusCounts.on_progress++
   })
 
-  // Fetch Isolation Count (Status: OPEN)
-  const isolationCount = await prisma.isolation.count({
-    where: {
-      status: 'OPEN'
-    }
+  // Fetch Isolation Count (Status: OPEN) - role aware
+  const isoCountWhere: any = { status: 'OPEN' }
+  if (session.user.role === 'MARKETING') {
+    isoCountWhere.marketing = session.user.name
+  }
+  const isolationCount = await prisma.isolation.count({ where: isoCountWhere })
+
+  // Group isolation by marketing (OPEN only)
+  const isoListWhere: any = { status: 'OPEN' }
+  if (session.user.role === 'MARKETING') {
+    isoListWhere.marketing = session.user.name
+  }
+  const isolations = await prisma.isolation.findMany({
+    where: isoListWhere,
+    select: { marketing: true }
   })
+  const isolirByMarketing = new Map<string, number>()
+  isolations.forEach((iso) => {
+    const name = (iso.marketing || 'Unknown').trim()
+    const key = name.toLowerCase()
+    isolirByMarketing.set(key, (isolirByMarketing.get(key) || 0) + 1)
+  })
+
+  // Merge isolir count into marketingData
+  const marketingDataWithIsolir = marketingData.map((m) => ({
+    ...m,
+    isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
+  }))
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
       <DashboardView 
         packageData={packageData} 
-        marketingData={marketingData}
+        marketingData={marketingDataWithIsolir}
+        monthlyData={monthlyData}
         statusCounts={statusCounts}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}

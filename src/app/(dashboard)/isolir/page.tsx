@@ -4,7 +4,7 @@ import { IsolationView } from '@/components/IsolationView'
 
 export const dynamic = 'force-dynamic'
 
-export default async function IsolirPage() {
+export default async function IsolirPage({ searchParams }: { searchParams?: { search?: string, marketing?: string, status?: string } }) {
   const session = await getSession()
   if (!session) redirect('/login')
 
@@ -17,7 +17,12 @@ export default async function IsolirPage() {
         </p>
       </div>
       
-      <IsolationView userRole={session.user.role} />
+      <IsolationView 
+        userRole={session.user.role} 
+        initialSearch={searchParams?.search || ''} 
+        initialMarketing={searchParams?.marketing || ''} 
+        initialStatus={searchParams?.status || ''} 
+      />
     </div>
   )
 }

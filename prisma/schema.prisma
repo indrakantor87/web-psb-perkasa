@@ -63,6 +63,7 @@ model Isolation {
   userEmail       String?
   activeDate      DateTime?
   marketing       String?
+  radboox         String?
   isolationDate   DateTime @default(now())
   reason          String?
   status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)

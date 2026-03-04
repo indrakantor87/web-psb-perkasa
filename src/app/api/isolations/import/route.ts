@@ -50,26 +50,53 @@ export async function POST(request: Request) {
     const workbook = XLSX.read(buffer, { type: 'buffer' })
     const sheetName = workbook.SheetNames[0]
     const sheet = workbook.Sheets[sheetName]
-    const jsonData = XLSX.utils.sheet_to_json(sheet)
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null })
 
     let successCount = 0
     let errorCount = 0
+    const errorDetails: string[] = []
 
     // Use transaction or createMany? 
     // createMany is faster but strict. Loop allows error handling per row.
     // Given the scale is likely small (hundreds), loop is fine.
 
-    for (const row of jsonData as any[]) {
+    // Header normalization helpers
+    const norm = (s: any) =>
+      (typeof s === 'string'
+        ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ')
+        : s) as string
+    const mapField = (key: string) => {
+      const k = norm(key)
+      if (['NAMA PELANGGAN', 'NAMA', 'CUSTOMER', 'PELAGGAN', 'CUSTOMER NAME'].includes(k)) return 'customerName'
+      if (['USER', 'EMAIL', 'ID PELANGGAN', 'USER EMAIL'].includes(k)) return 'userEmail'
+      if (['NO HP', 'NOHP', 'NO TELP', 'NO TELPON', 'NO HP AKTIF', 'NOHP AKTIF', 'NO HP PELANGGAN', 'NO HP PEL'].includes(k)) return 'customerPhone'
+      if (['ACTIVE DATE', 'AKTIF', 'TANGGAL AKTIF', 'TGL AKTIF', 'START DATE', 'AKTIVE DATE'].includes(k)) return 'activeDate'
+      if (['KETERANGAN', 'ALASAN', 'REASON', 'CATATAN'].includes(k)) return 'reason'
+      if (['MARKETING', 'SALES', 'PIC MARKETING', 'PIC'].includes(k)) return 'marketing'
+      return ''
+    }
+
+    const toIsoRow = (row: Record<string, any>) => {
+      const out: any = {}
+      for (const [k, v] of Object.entries(row)) {
+        const f = mapField(k)
+        if (f) out[f] = v
+      }
+      return out
+    }
+
+    for (const [idx, row] of (jsonData as any[]).entries()) {
       try {
-        const customerName = row['NAMA PELANGGAN']
+        const r = toIsoRow(row)
+        const customerName = r.customerName
         if (!customerName) continue // Skip empty rows
 
-        const userEmail = row['USER']
-        const customerPhone = row['NO. HP'] ? String(row['NO. HP']) : null
-        const activeDateRaw = row['ACTIVE DATE']
+        const userEmail = r.userEmail
+        const customerPhone = r.customerPhone ? String(r.customerPhone) : null
+        const activeDateRaw = r.activeDate
         const activeDate = parseDate(activeDateRaw)
-        const reason = row['KETERANGAN']
-        const marketing = row['MARKETING']
+        const reason = r.reason
+        const marketing = r.marketing
         
         // Check if already exists? Maybe based on customerName?
         // For now, let's just insert. If duplicates are an issue, we can check.
@@ -92,13 +119,17 @@ export async function POST(request: Request) {
       } catch (e) {
         console.error('Row import error:', e)
         errorCount++
+        if (errorDetails.length < 5) {
+          errorDetails.push(`Baris ${idx + 2}: ${String((e as Error).message || e)}`)
+        }
       }
     }
 
     return NextResponse.json({ 
       message: `Import selesai. Berhasil: ${successCount}, Gagal: ${errorCount}`,
       successCount,
-      errorCount
+      errorCount,
+      errors: errorDetails
     })
     
   } catch (error) {

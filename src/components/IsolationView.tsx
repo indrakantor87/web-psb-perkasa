@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
-import { Search, Plus, X, Ban, CheckCircle, Trash2, Upload } from 'lucide-react'
+import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
 
 interface Isolation {
@@ -13,6 +13,7 @@ interface Isolation {
   userEmail?: string | null
   activeDate?: string | null
   marketing?: string | null
+  radboox?: string | null
   isolationDate: string
   reason: string | null
   status: string
@@ -26,26 +27,54 @@ interface Isolation {
 
 interface IsolationViewProps {
   userRole: string
+  initialSearch?: string
+  initialMarketing?: string
+  initialStatus?: string
 }
 
-export function IsolationView({ userRole }: IsolationViewProps) {
+export function IsolationView({ userRole, initialSearch = '', initialMarketing = '', initialStatus = '' }: IsolationViewProps) {
   const [isolations, setIsolations] = useState<Isolation[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [search, setSearch] = useState(initialSearch)
+  const [radbooxFilter, setRadbooxFilter] = useState('ALL')
+  const [marketingFilter, setMarketingFilter] = useState(initialMarketing)
+  const [statusPreset] = useState(initialStatus) // hidden preset (e.g., OPEN)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(25)
+  const [total, setTotal] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editId, setEditId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const m = params.get('marketing') || ''
+      const s = params.get('status') || ''
+      if (m && m !== marketingFilter) setMarketingFilter(m)
+      if (s && !statusPreset) {
+        // statusPreset hanya preset, tidak perlu setState lain
+      }
+    } catch {}
+  }, [marketingFilter, statusPreset])
 
   // Role Permissions
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canDelete = userRole === 'ADMIN'
+  const showActions = canEdit || canDelete
 
   // Form State
   const [formData, setFormData] = useState({
     customerName: '',
     customerAddress: '',
     customerPhone: '',
+    userEmail: '',
+    activeDate: '',
+    marketing: '',
+    radboox: '',
     reason: '',
   })
 
@@ -53,13 +82,29 @@ export function IsolationView({ userRole }: IsolationViewProps) {
     setLoading(true)
     try {
       const params = new URLSearchParams()
+      // Pastikan baca ulang dari URL jika ada
+      const urlMarketing = (() => {
+        try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
+      })()
+      const effectiveMarketing = marketingFilter || urlMarketing
       if (search) params.append('search', search)
-      if (statusFilter !== 'ALL') params.append('status', statusFilter)
+      if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
+      if (effectiveMarketing) params.append('marketing', effectiveMarketing)
+      if (statusPreset) params.append('status', statusPreset)
+      params.append('page', String(page))
+      params.append('limit', String(limit))
       
       const res = await fetch(`/api/isolations?${params.toString()}`)
       if (res.ok) {
         const data = await res.json()
-        setIsolations(data)
+        const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
+        const totalRemote: number = Array.isArray(data) ? data.length : (data.total || 0)
+        const filteredItems = effectiveMarketing
+          ? items.filter(it => (it.marketing || '').toLowerCase().includes(effectiveMarketing.toLowerCase()))
+          : items
+        setIsolations(filteredItems)
+        // Jika client-side filter diterapkan, sesuaikan total agar konsisten di UI
+        setTotal(effectiveMarketing ? filteredItems.length : totalRemote)
       }
     } catch (error) {
       console.error('Failed to fetch isolations', error)
@@ -69,25 +114,32 @@ export function IsolationView({ userRole }: IsolationViewProps) {
   }
 
   useEffect(() => {
+    setPage(1)
+  }, [search, limit, radbooxFilter, marketingFilter])
+
+  useEffect(() => {
     fetchIsolations()
-  }, [search, statusFilter])
+  }, [search, page, limit, radbooxFilter, marketingFilter])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      const res = await fetch('/api/isolations', {
-        method: 'POST',
+      const url = editId ? `/api/isolations/${editId}` : '/api/isolations'
+      const method = editId ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
       
       if (res.ok) {
         setIsModalOpen(false)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', reason: '' })
+        setEditId(null)
+        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', reason: '' })
         fetchIsolations()
       } else {
-        alert('Gagal menambahkan data isolir')
+        alert('Gagal menyimpan data isolir')
       }
     } catch (error) {
       console.error(error)
@@ -97,22 +149,19 @@ export function IsolationView({ userRole }: IsolationViewProps) {
     }
   }
 
-  const handleRestore = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin membuka isolir pelanggan ini?')) return
-
-    try {
-      const res = await fetch(`/api/isolations/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CLOSED' }),
-      })
-      
-      if (res.ok) {
-        fetchIsolations()
-      }
-    } catch (error) {
-      console.error(error)
-    }
+  const openEdit = (item: Isolation) => {
+    setEditId(item.id)
+    setFormData({
+      customerName: item.customerName || '',
+      customerAddress: item.customerAddress || '',
+      customerPhone: item.customerPhone || '',
+      userEmail: item.userEmail || '',
+      activeDate: item.activeDate ? new Date(item.activeDate).toISOString().split('T')[0] : '',
+      marketing: item.marketing || '',
+      radboox: item.radboox || '',
+      reason: item.reason || '',
+    })
+    setIsModalOpen(true)
   }
 
   const handleDelete = async (id: number) => {
@@ -167,6 +216,56 @@ export function IsolationView({ userRole }: IsolationViewProps) {
     }
   }
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true)
+      const XLSXModule = await import('xlsx')
+      const XLSX: any = (XLSXModule as any).default || XLSXModule
+
+      const params = new URLSearchParams()
+      const urlMarketing = (() => {
+        try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
+      })()
+      const effectiveMarketing = marketingFilter || urlMarketing
+      if (search) params.append('search', search)
+      if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
+      if (effectiveMarketing) params.append('marketing', effectiveMarketing)
+      if (statusPreset) params.append('status', statusPreset)
+      params.append('page', '1')
+      params.append('limit', '10000')
+
+      const res = await fetch(`/api/isolations?${params.toString()}`)
+      if (!res.ok) throw new Error('Gagal mengambil data')
+      const data = await res.json()
+      const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
+      const rows = items.map((it, idx) => ({
+        'No': idx + 1,
+        'Nama Pelanggan': it.customerName,
+        'User': it.userEmail || '-',
+        'No. HP': it.customerPhone || '-',
+        'Active Date': it.activeDate ? format(new Date(it.activeDate), 'dd/MM/yyyy') : '-',
+        'Keterangan': it.reason || '-',
+        'Marketing': it.marketing || '-',
+        'Radboox': it.radboox || '-',
+        'Status': it.status,
+        'Tgl Isolasi': it.isolationDate ? format(new Date(it.isolationDate), 'dd/MM/yyyy') : '-',
+        'Tgl Restorasi': it.restorationDate ? format(new Date(it.restorationDate), 'dd/MM/yyyy') : '-',
+        'Teknisi': it.teknisi || '-',
+        'Maps': it.customerAddress || '-'
+      }))
+
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(rows)
+      XLSX.utils.book_append_sheet(wb, ws, 'Isolir')
+      XLSX.writeFile(wb, `Isolir_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+    } catch (e) {
+      alert('Gagal export')
+      console.error(e)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <input
@@ -189,17 +288,27 @@ export function IsolationView({ userRole }: IsolationViewProps) {
             />
           </div>
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={radbooxFilter}
+            onChange={(e) => setRadbooxFilter(e.target.value)}
             className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
           >
-            <option value="ALL">Semua Status</option>
-            <option value="OPEN">Terisolir (Open)</option>
-            <option value="CLOSED">Normal (Closed)</option>
+            <option value="ALL">Semua Radboox</option>
+            <option value="Radboox 24">Radboox 24</option>
+            <option value="Radboox 25">Radboox 25</option>
+            <option value="Radboox 26">Radboox 26</option>
           </select>
         </div>
         {canEdit && (
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-400 dark:border-green-800 disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" />
+              {isExporting ? 'Export...' : 'Export Excel'}
+            </button>
             <button
               type="button"
               onClick={handleImportClick}
@@ -208,8 +317,50 @@ export function IsolationView({ userRole }: IsolationViewProps) {
               <Upload className="h-4 w-4" />
               Import Excel
             </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm('Hapus SEMUA data isolir? Tindakan ini tidak dapat dibatalkan.')) return
+                  try {
+                    setLoading(true)
+                    const res = await fetch('/api/isolations', { method: 'DELETE' })
+                    const data = await res.json()
+                    if (res.ok) {
+                      alert(`Berhasil menghapus ${data.count} data`)
+                      fetchIsolations()
+                    } else {
+                      alert(data.error || 'Gagal menghapus semua data')
+                    }
+                  } catch (e) {
+                    console.error(e)
+                    alert('Terjadi kesalahan saat menghapus semua data')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800"
+                title="Hapus Semua Data"
+              >
+                <Trash2 className="h-4 w-4" />
+                Hapus Semua
+              </button>
+            )}
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setEditId(null)
+                setFormData({
+                  customerName: '',
+                  customerAddress: '',
+                  customerPhone: '',
+                  userEmail: '',
+                  activeDate: '',
+                  marketing: '',
+                  radboox: '',
+                  reason: '',
+                })
+                setIsModalOpen(true)
+              }}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -227,22 +378,26 @@ export function IsolationView({ userRole }: IsolationViewProps) {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Maps</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">No. HP</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Active Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Keterangan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Marketing</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Radboox</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                {showActions && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                  <td colSpan={showActions ? 10 : 9} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={showActions ? 10 : 9} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
                 </tr>
               ) : (
                 isolations.map((item) => (
@@ -252,6 +407,21 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                     </td>
                     <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.userEmail || '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm">
+                      {item.customerAddress ? (
+                        <a
+                          href={item.customerAddress}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          title={item.customerAddress}
+                        >
+                          Maps
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 dark:text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.customerPhone ? (
@@ -274,6 +444,9 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                     <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.marketing || '-'}
                     </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {item.radboox || '-'}
+                    </td>
                     <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                       <span className={clsx(
                         "px-2 py-1 text-xs font-semibold rounded-full",
@@ -284,28 +457,30 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                         {item.status === 'OPEN' ? 'TERISOLIR' : 'NORMAL'}
                       </span>
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        {item.status === 'OPEN' && canEdit && (
-                          <button
-                            onClick={() => handleRestore(item.id)}
-                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                            title="Buka Isolir"
-                          >
-                            <CheckCircle className="h-5 w-5" />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                            title="Hapus Data"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    {showActions && (
+                      <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center gap-2">
+                          {canEdit && (
+                            <button
+                              onClick={() => openEdit(item)}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              title="Edit"
+                            >
+                              <Edit3 className="h-5 w-5" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                              title="Hapus Data"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
 
                     {/* Mobile View (Card Style) */}
                     <td className="table-cell md:hidden px-4 py-4">
@@ -356,13 +531,13 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                         </div>
 
                         <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
-                          {item.status === 'OPEN' && canEdit && (
+                          {canEdit && (
                             <button
-                              onClick={() => handleRestore(item.id)}
-                              className="text-xs flex items-center gap-1 text-green-600 font-medium hover:text-green-700"
+                              onClick={() => openEdit(item)}
+                              className="text-xs flex items-center gap-1 text-blue-600 font-medium hover:text-blue-700"
                             >
-                              <CheckCircle className="h-3.5 w-3.5" />
-                              Buka Isolir
+                              <Edit3 className="h-3.5 w-3.5" />
+                              Edit
                             </button>
                           )}
                           {canDelete && (
@@ -385,12 +560,57 @@ export function IsolationView({ userRole }: IsolationViewProps) {
         </div>
       </div>
 
+      {/* Pagination */}
+      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-4">
+          {total > 0 ? (
+            <span>
+              Menampilkan {Math.min((page - 1) * limit + 1, total)}–
+              {Math.min(page * limit, total)} dari {total} data
+            </span>
+          ) : (
+            <span>Tidak ada data</span>
+          )}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-xs">Tampil</span>
+            <select
+              value={limit}
+              onChange={(e) => setLimit(parseInt(e.target.value, 10))}
+              className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              {[25, 50, 75, 100].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+          >
+            Sebelumnya
+          </button>
+          <span>Halaman {page}</span>
+          <button
+            onClick={() => setPage(p => (page * limit < total ? p + 1 : p))}
+            disabled={page * limit >= total}
+            className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+          >
+            Berikutnya
+          </button>
+        </div>
+      </div>
+
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Tambah Data Isolir</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {editId ? 'Edit Data Isolir' : 'Tambah Data Isolir'}
+              </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
                 <X className="h-5 w-5" />
               </button>
@@ -406,40 +626,81 @@ export function IsolationView({ userRole }: IsolationViewProps) {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">User</label>
+                  <input
+                    type="text"
+                    value={formData.userEmail}
+                    onChange={(e) => setFormData({ ...formData, userEmail: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="ID / Email pelanggan"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No. Handphone / WA</label>
+                  <input
+                    type="text"
+                    value={formData.customerPhone}
+                    onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Active Date</label>
+                  <input
+                    type="date"
+                    value={formData.activeDate}
+                    onChange={(e) => setFormData({ ...formData, activeDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marketing</label>
+                  <input
+                    type="text"
+                    value={formData.marketing}
+                    onChange={(e) => setFormData({ ...formData, marketing: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nama marketing"
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
-                <textarea
-                  rows={2}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Radboox</label>
+                <select
+                  value={formData.radboox}
+                  onChange={(e) => setFormData({ ...formData, radboox: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">- Pilih Radboox -</option>
+                  <option value="Radboox 24">Radboox 24</option>
+                  <option value="Radboox 25">Radboox 25</option>
+                  <option value="Radboox 26">Radboox 26</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link Maps</label>
+                <input
+                  type="text"
                   value={formData.customerAddress}
                   onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://maps.google.com/?q=-6.7,111.0"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No. Handphone / WA</label>
-                <input
-                  type="text"
-                  value={formData.customerPhone}
-                  onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                  placeholder="08xxxxxxxxxx"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alasan Isolir</label>
-                <select
-                  required
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan</label>
+                <textarea
+                  rows={3}
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">- Pilih Alasan -</option>
-                  <option value="Telat Bayar">Telat Bayar</option>
-                  <option value="Permintaan Pelanggan">Permintaan Pelanggan</option>
-                  <option value="Pindah Rumah">Pindah Rumah</option>
-                  <option value="Kerusakan Perangkat">Kerusakan Perangkat</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
+                  placeholder="Tulis keterangan isolir..."
+                />
               </div>
               
               <div className="flex justify-end gap-3 mt-6">

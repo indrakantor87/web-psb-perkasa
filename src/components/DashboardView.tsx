@@ -22,7 +22,8 @@ import {
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
-  marketingData: { name: string; count: number; open: number; pending: number; close: number }[]
+  marketingData: { name: string; count: number; open: number; pending: number; close: number; isolir?: number }[]
+  monthlyData: { name: string; count: number }[]
   statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
   initialPeriod: { month: number; year: number }
   userRole?: string
@@ -32,7 +33,7 @@ interface DashboardViewProps {
 const BAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1']
 
-export function DashboardView({ packageData, marketingData, statusCounts, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, statusCounts, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -69,6 +70,7 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
   const totalPending = marketingData.reduce((acc, curr) => acc + curr.pending, 0)
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
+  const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
 
   const statusData = [
     { name: 'Open', value: statusCounts.open, color: '#ef4444' }, // Red
@@ -253,6 +255,37 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
         </div>
       </div>
 
+      {/* Rekap PSB 12 Bulan (sembunyikan untuk role MARKETING) */}
+      {!isMarketing && (
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap PSB per Bulan</h3>
+              <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal request)</p>
+            </div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            </div>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="count" name="PSB" barSize={28} radius={[6, 6, 0, 0]}>
+                  {monthlyData.map((entry, index) => (
+                    <Cell key={`mcell-${index}`} fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                  ))}
+                  <LabelList dataKey="count" position="top" offset={8} fontSize={11} fontWeight={600} fill="#6b7280" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Marketing Table */}
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
@@ -275,6 +308,7 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                 <th className="px-6 py-4 text-center text-xs font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wider">Pending</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
@@ -326,6 +360,15 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                         {item.count}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                      <button
+                        onClick={() => router.push(`/isolir?marketing=${encodeURIComponent(item.name)}&status=OPEN`)}
+                        className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 hover:underline"
+                        title={`Lihat isolir untuk ${item.name}`}
+                      >
+                        {item.isolir ?? 0}
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
@@ -349,11 +392,14 @@ export function DashboardView({ packageData, marketingData, statusCounts, initia
                   <td className="px-6 py-4 text-center whitespace-nowrap text-gray-900 dark:text-white text-lg">
                     {totalCount}
                   </td>
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-orange-700 dark:text-orange-400">
+                    {totalIsolir}
+                  </td>
                 </tr>
               )}
               {marketingData.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400 italic">
                     Tidak ada data marketing untuk periode ini
                   </td>
                 </tr>

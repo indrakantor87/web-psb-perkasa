@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
 
 interface Ticket {
   id: number
@@ -62,6 +62,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const isMarketing = userRole === 'MARKETING'
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const fileInputId = 'ticket-import-input'
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const [status, setStatus] = useState((initialStatus || 'ALL').toUpperCase())
@@ -468,6 +471,36 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     router.replace(url)
   }
 
+  const handleImportClick = () => {
+    const el = document.getElementById(fileInputId) as HTMLInputElement | null
+    el?.click()
+  }
+
+  const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsImporting(true)
+    setImportError(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/tickets/import', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error || 'Gagal import')
+      }
+      alert(data?.message || 'Import selesai')
+      router.refresh()
+    } catch (err: any) {
+      console.error('Import error', err)
+      setImportError(err.message || 'Gagal import')
+      alert('Gagal import: ' + (err.message || 'Unknown error'))
+    } finally {
+      setIsImporting(false)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
@@ -558,6 +591,28 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             />
           </div>
           <div className="flex items-end h-full pt-3 space-x-2">
+            {userRole !== 'MARKETING' && (
+              <>
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleImportFileChange}
+                />
+                <button
+                  onClick={handleImportClick}
+                  disabled={isImporting}
+                  className="w-full rounded-md bg-gray-600 px-3 py-1 text-sm text-white hover:bg-gray-700 md:w-auto disabled:opacity-60"
+                  title="Import Excel (Admin/CS/NOC)"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    {isImporting ? 'Mengimpor...' : 'Import Excel'}
+                  </span>
+                </button>
+              </>
+            )}
             <button
               onClick={handleExportExcel}
               className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto"
