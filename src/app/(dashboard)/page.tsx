@@ -131,17 +131,18 @@ export default async function DashboardPage({
   const marketingData = Array.from(marketingMap.values())
     .sort((a, b) => b.count - a.count)
 
-  // 2b. Monthly recap for selected year (Jan..Dec) – dihitung langsung di DB
+  // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
   const yearStart = new Date(currentYear, 0, 1)
   const yearEnd = new Date(currentYear + 1, 0, 1)
-  // Gunakan date_trunc di Postgres pada COALESCE(installedDate, requestDate)
+  // Gunakan date_trunc di Postgres pada installedDate saja agar selaras dengan List PSB
   const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
     SELECT
-      EXTRACT(MONTH FROM date_trunc('month', COALESCE("installedDate","requestDate")))::int AS month,
+      EXTRACT(MONTH FROM date_trunc('month', "installedDate"))::int AS month,
       COUNT(*)::int AS count
     FROM "Ticket"
-    WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
-      AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    WHERE "installedDate" IS NOT NULL
+      AND "installedDate" >= ${yearStart}
+      AND "installedDate" < ${yearEnd}
     GROUP BY 1
     ORDER BY 1
   `
@@ -169,8 +170,8 @@ export default async function DashboardPage({
         ELSE COALESCE("package",'Unknown')
       END AS name
       FROM "Ticket"
-      WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
-        AND COALESCE("installedDate","requestDate") < ${yearEnd}
+      WHERE "installedDate" >= ${yearStart}
+        AND "installedDate" < ${yearEnd}
     )
     SELECT name, COUNT(*)::int AS count
     FROM src
@@ -185,8 +186,8 @@ export default async function DashboardPage({
     WITH raw AS (
       SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS raw_name
       FROM "Ticket"
-      WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
-        AND COALESCE("installedDate","requestDate") < ${yearEnd}
+      WHERE "installedDate" >= ${yearStart}
+        AND "installedDate" < ${yearEnd}
     ),
     norm AS (
       SELECT
