@@ -146,6 +146,18 @@ export default async function DashboardPage({
     count: monthlyBuckets[idx] || 0
   }))
 
+  // 2c. Top packages of the year (untuk kebijakan)
+  const yearTopPackagesRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
+    SELECT "package" AS name, COUNT(*)::int AS count
+    FROM "Ticket"
+    WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
+      AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    GROUP BY "package"
+    ORDER BY COUNT(*) DESC
+    LIMIT 5
+  `
+  const yearTopPackages = yearTopPackagesRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
+
   // 3. Calculate Global Status Counts
   const statusCounts = {
     total: tickets.length,
@@ -198,6 +210,7 @@ export default async function DashboardPage({
         packageData={packageData} 
         marketingData={marketingDataWithIsolir}
         monthlyData={monthlyData}
+        yearTopPackages={yearTopPackages}
         statusCounts={statusCounts}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
