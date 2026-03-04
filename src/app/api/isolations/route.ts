@@ -118,21 +118,23 @@ export async function POST(request: Request) {
       reason, teknisi, ticketId 
     } = body
 
-    const isolation = await prisma.isolation.create({
-      data: {
-        customerName,
-        customerAddress,
-        customerPhone,
-        userEmail: userEmail || null,
-        activeDate: activeDate ? new Date(activeDate) : null,
-        marketing: marketing || null,
-        radboox: radboox || null,
-        reason,
-        teknisi: teknisi || session.user.name,
-        ticketId: ticketId ? parseInt(ticketId) : null,
-        status: 'OPEN',
-      },
-    })
+    // Build data object as any to avoid type mismatch if Prisma types are not regenerated yet
+    const createData: any = {
+      customerName,
+      customerAddress,
+      customerPhone,
+      userEmail: userEmail || null,
+      activeDate: activeDate ? new Date(activeDate) : null,
+      marketing: marketing || null,
+      reason,
+      teknisi: teknisi || session.user.name,
+      ticketId: ticketId ? parseInt(ticketId) : null,
+      status: 'OPEN',
+    }
+    if (typeof radboox !== 'undefined') {
+      createData.radboox = radboox || null
+    }
+    const isolation = await prisma.isolation.create({ data: createData })
 
     return NextResponse.json(isolation)
   } catch (error) {

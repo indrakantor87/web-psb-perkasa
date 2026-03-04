@@ -136,7 +136,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       if (res.ok) {
         setIsModalOpen(false)
         setEditId(null)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', reason: '' })
+        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', reason: '' })
         fetchIsolations()
       } else {
         alert('Gagal menyimpan data isolir')

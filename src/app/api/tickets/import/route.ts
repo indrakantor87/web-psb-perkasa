@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import * as XLSX from 'xlsx'
+// Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
 function parseDate(value: any): Date | null {
   if (!value) return null
@@ -31,6 +31,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    const XLSXModule = await import('xlsx')
+    const XLSX: any = (XLSXModule as any).default || XLSXModule
     const form = await request.formData()
     const file = form.get('file') as File | null
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
     const buf = await file.arrayBuffer()
     const wb = XLSX.read(buf, { type: 'buffer' })
     const sheet = wb.Sheets[wb.SheetNames[0]]
-    let rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: null })
+    let rows = XLSX.utils.sheet_to_json(sheet, { defval: null }) as Array<Record<string, any>>
 
     // Header normalization helpers
     const norm = (s: any) =>
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
     // Fallback: jika rows kosong (header bukan di baris pertama), cari header secara dinamis
     if (!rows || rows.length === 0) {
       try {
-        const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: null }) as any[][]
+        const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][]
         // Cari baris header yang memiliki minimal kolom 'NAMA PELANGGAN' setelah dinormalisasi
         let headerIdx = -1
         for (let i = 0; i < aoa.length; i++) {

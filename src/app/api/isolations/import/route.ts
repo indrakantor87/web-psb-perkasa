@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import * as XLSX from 'xlsx'
+// Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 // Helper to parse DD/MM/YYYY or Excel serial date
 function parseDate(dateStr: string | number): Date | null {
@@ -39,6 +39,8 @@ export async function POST(request: Request) {
   // Let's allow those who can access Isolir page usually.
   
   try {
+    const XLSXModule = await import('xlsx')
+    const XLSX: any = (XLSXModule as any).default || XLSXModule
     const formData = await request.formData()
     const file = formData.get('file') as File
     
