@@ -63,7 +63,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
   // Role Permissions
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canDelete = userRole === 'ADMIN'
+  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const showActions = canEdit || canDelete
 
