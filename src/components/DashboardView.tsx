@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Calendar,
   Filter,
+  TrendingUp,
   User,
   WifiOff
 } from 'lucide-react'

@@ -121,26 +121,25 @@ export default async function DashboardPage({
   const marketingData = Array.from(marketingMap.values())
     .sort((a, b) => b.count - a.count)
 
-  // 2b. Monthly recap for selected year (Jan..Dec)
-  // Gunakan installedDate jika ada (tiket selesai), jika tidak ada gunakan requestDate (tiket belum selesai)
+  // 2b. Monthly recap for selected year (Jan..Dec) – dihitung langsung di DB
   const yearStart = new Date(currentYear, 0, 1)
   const yearEnd = new Date(currentYear + 1, 0, 1)
-  const yearTickets = await prisma.ticket.findMany({
-    where: {
-      OR: [
-        { installedDate: { gte: yearStart, lt: yearEnd } },
-        { requestDate:   { gte: yearStart, lt: yearEnd } },
-      ]
-    },
-    select: { requestDate: true, installedDate: true }
-  })
+  // Gunakan date_trunc di Postgres pada COALESCE(installedDate, requestDate)
+  const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
+    SELECT
+      EXTRACT(MONTH FROM date_trunc('month', COALESCE("installedDate","requestDate")))::int AS month,
+      COUNT(*)::int AS count
+    FROM "Ticket"
+    WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
+      AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    GROUP BY 1
+    ORDER BY 1
+  `
   const monthlyBuckets: number[] = Array.from({ length: 12 }, () => 0)
-  yearTickets.forEach(t => {
-    const basis = t.installedDate ?? t.requestDate
-    const d = basis as Date
-    const m = d.getMonth()
-    monthlyBuckets[m] = (monthlyBuckets[m] || 0) + 1
-  })
+  for (const row of monthlyRows) {
+    const idx = Math.max(1, Math.min(12, row.month)) - 1
+    monthlyBuckets[idx] = row.count || 0
+  }
   const monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
   const monthlyData = monthLabels.map((label, idx) => ({
     name: label,
