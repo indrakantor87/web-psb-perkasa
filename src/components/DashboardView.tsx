@@ -168,34 +168,36 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         year={year}
       />
 
-      {/* Paket Terlaris Tahunan */}
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Paket Terlaris (Tahun {year})</h3>
-            <p className="text-xs text-gray-500">5 paket dengan pemasangan terbanyak</p>
-          </div>
-          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {yearTopPackages.map((p, idx) => (
-            <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
-                  {idx + 1}
-                </span>
-                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</span>
-              </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{p.count}</span>
+      {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
+      {!isMarketing && (
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Paket Terlaris (Tahun {year})</h3>
+              <p className="text-xs text-gray-500">5 paket dengan pemasangan terbanyak</p>
             </div>
-          ))}
-          {yearTopPackages.length === 0 && (
-            <div className="text-sm text-gray-500 dark:text-gray-400 italic">Tidak ada data paket untuk tahun ini</div>
-          )}
+            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {yearTopPackages.map((p, idx) => (
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{p.count}</span>
+              </div>
+            ))}
+            {yearTopPackages.length === 0 && (
+              <div className="text-sm text-gray-500 dark:text-gray-400 italic">Tidak ada data paket untuk tahun ini</div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Marketing Table */}
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
