@@ -75,6 +75,7 @@ export async function POST(request: Request) {
       if (['ACTIVE DATE', 'AKTIF', 'TANGGAL AKTIF', 'TGL AKTIF', 'START DATE', 'AKTIVE DATE'].includes(k)) return 'activeDate'
       if (['KETERANGAN', 'ALASAN', 'REASON', 'CATATAN'].includes(k)) return 'reason'
       if (['MARKETING', 'SALES', 'PIC MARKETING', 'PIC'].includes(k)) return 'marketing'
+      if (['RADBOOX', 'RADBOX', 'RADBOOK', 'RADBOOX AREA'].includes(k)) return 'radboox'
       return ''
     }
 
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
         const activeDate = parseDate(activeDateRaw)
         const reason = r.reason
         const marketing = r.marketing
+        const radboox = r.radboox ? String(r.radboox) : null
         
         // Check if already exists? Maybe based on customerName?
         // For now, let's just insert. If duplicates are an issue, we can check.
@@ -112,6 +114,7 @@ export async function POST(request: Request) {
             activeDate: activeDate,
             reason: reason ? String(reason) : null,
             marketing: marketing ? String(marketing) : null,
+            radboox: radboox,
             status: 'OPEN',
             isolationDate: new Date(), // Set isolation time to now
             teknisi: session.user.name, // Log who imported it
