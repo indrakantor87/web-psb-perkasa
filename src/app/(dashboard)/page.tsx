@@ -182,15 +182,25 @@ export default async function DashboardPage({
 
   // 2d. Jumlah pelanggan per marketing per tahun
   const yearMarketingRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
-    WITH src AS (
-      SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name
+    WITH raw AS (
+      SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS raw_name
       FROM "Ticket"
       WHERE COALESCE("installedDate","requestDate") >= ${yearStart}
         AND COALESCE("installedDate","requestDate") < ${yearEnd}
+    ),
+    norm AS (
+      SELECT
+        CASE
+          WHEN raw_name ILIKE 'marketing %' THEN TRIM(SUBSTRING(raw_name FROM 11))  -- remove 'marketing ' (10 chars + space)
+          WHEN raw_name ILIKE 'marketing:%' THEN TRIM(SUBSTRING(raw_name FROM 12)) -- remove 'marketing:' (10 chars + :)
+          WHEN raw_name ILIKE 'marketing-%' THEN TRIM(SUBSTRING(raw_name FROM 12)) -- remove 'marketing-' (10 chars + -)
+          ELSE raw_name
+        END AS name
+      FROM raw
     )
-    SELECT name, COUNT(*)::int AS count
-    FROM src
-    GROUP BY name
+    SELECT COALESCE(NULLIF(name, ''), 'Unknown') AS name, COUNT(*)::int AS count
+    FROM norm
+    GROUP BY COALESCE(NULLIF(name, ''), 'Unknown')
     ORDER BY COUNT(*) DESC
     LIMIT 15
   `
