@@ -149,7 +149,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   // Only ADMIN can bulk delete
-  if (session.user.role !== 'ADMIN') {
+  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {

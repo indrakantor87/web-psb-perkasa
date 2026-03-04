@@ -64,6 +64,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   // Role Permissions
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canDelete = userRole === 'ADMIN'
+  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const showActions = canEdit || canDelete
 
   // Form State
@@ -317,7 +318,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
               <Upload className="h-4 w-4" />
               Import Excel
             </button>
-            {canDelete && (
+            {canBulkDelete && (
               <button
                 type="button"
                 onClick={async () => {
