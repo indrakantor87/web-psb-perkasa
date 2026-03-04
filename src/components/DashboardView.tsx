@@ -278,10 +278,16 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                           <span>{Math.round(progress)}%</span>
                         </div>
                         <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className="bg-green-500 h-1.5 rounded-full" 
-                            style={{ width: `${Math.min(progress, 100)}%` }}
-                          />
+                          {(() => {
+                            const pct = Math.round(progress)
+                            const colorClass = pct < 50 ? 'bg-red-500' : pct < 75 ? 'bg-amber-500' : 'bg-green-500'
+                            return (
+                              <div
+                                className={`${colorClass} h-1.5 rounded-full`}
+                                style={{ width: `${Math.min(pct, 100)}%` }}
+                              />
+                            )
+                          })()}
                         </div>
                       </div>
                     </td>
