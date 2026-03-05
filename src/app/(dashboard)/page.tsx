@@ -129,7 +129,7 @@ export default async function DashboardPage({
   })
 
   const marketingData = Array.from(marketingMap.values())
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => b.close - a.close)
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
   const yearStart = new Date(currentYear, 0, 1)
