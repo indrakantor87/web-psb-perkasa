@@ -181,9 +181,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
             </div>
           </div>
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-3 [column-fill:balance]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {yearTopPackages.map((p, idx) => (
-              <div key={idx} className="break-inside-avoid mb-3 flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3">
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
                     {idx + 1}
@@ -194,7 +194,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </div>
             ))}
             {yearTopPackages.length === 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 italic">Tidak ada data paket untuk tahun ini</div>
+              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+                Tidak ada data paket untuk tahun ini
+              </div>
             )}
           </div>
         </div>
@@ -212,9 +214,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
             </div>
           </div>
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-3 [column-fill:balance]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {yearMarketingCounts.map((m, idx) => (
-              <div key={idx} className="break-inside-avoid mb-3 flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3">
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs font-bold">
                     {idx + 1}
@@ -225,9 +227,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </div>
             ))}
             {yearMarketingCounts.length === 0 && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 italic">Tidak ada data untuk tahun ini</div>
+              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+                Tidak ada data untuk tahun ini
+              </div>
             )}
           </div>
+
         </div>
       )}
 
