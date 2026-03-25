@@ -30,19 +30,24 @@ export type TicketListCounts = {
   PENDING: number
 }
 
-export const getTicketsListData = unstable_cache(
-  async (args: {
-    role: string
-    userName: string
-    month: number
-    year: number
-    status: string
-    marketing: string
-    search: string
-    page: number
-    pageSize: number
-  }) => {
-    const { role, userName, month, year, status, marketing, search, page, pageSize } = args
+type Args = {
+  role: string
+  userName: string
+  month: number
+  year: number
+  status: string
+  marketing: string
+  search: string
+  page: number
+  pageSize: number
+}
+
+function toCacheKey(args: Args) {
+  return `tickets-list:${JSON.stringify(args)}`
+}
+
+async function queryTicketsList(args: Args) {
+  const { role, userName, month, year, status, marketing, search, page, pageSize } = args
 
     const startDate = new Date(year, month - 1, 1)
     const endDate = new Date(year, month, 1)
@@ -92,7 +97,7 @@ export const getTicketsListData = unstable_cache(
     const where: Prisma.TicketWhereInput = { ...baseWhere }
     if (status && status !== 'ALL') where.status = status
 
-    const baseSelect = {
+    const selectFull = {
       id: true,
       customerName: true,
       birthDate: true,
@@ -116,7 +121,30 @@ export const getTicketsListData = unstable_cache(
           role: true,
         },
       },
-    } as const
+    } satisfies Prisma.TicketSelect
+
+    const selectMinimal = {
+      id: true,
+      customerName: true,
+      birthDate: true,
+      locationMap: true,
+      requestDate: true,
+      installedDate: true,
+      package: true,
+      marketingName: true,
+      description: true,
+      phoneNumber: true,
+      pengawalan: true,
+      kmz: true,
+      priority: true,
+      status: true,
+      closedBy: {
+        select: {
+          name: true,
+          role: true,
+        },
+      },
+    } satisfies Prisma.TicketSelect
 
     const orderByWithStatusOrder: Prisma.TicketOrderByWithRelationInput[] = [
       { statusOrder: 'asc' },
@@ -130,32 +158,56 @@ export const getTicketsListData = unstable_cache(
 
     const fetchTickets = async () => {
       try {
-        return await prisma.ticket.findMany({
+        const rows = await prisma.ticket.findMany({
           where,
           orderBy: orderByWithStatusOrder,
           skip: (page - 1) * pageSize,
           take: pageSize,
-          select: baseSelect,
+          select: selectFull,
         })
+        return rows as unknown as TicketListRow[]
       } catch {
         try {
-          return await prisma.ticket.findMany({
-            where,
-            orderBy: orderByFallback,
-            skip: (page - 1) * pageSize,
-            take: pageSize,
-            select: baseSelect,
-          })
-        } catch {
-          const selectNoPhoto = { ...baseSelect, hasPhoto: undefined } as unknown as Prisma.TicketSelect
           const rows = await prisma.ticket.findMany({
             where,
             orderBy: orderByFallback,
             skip: (page - 1) * pageSize,
             take: pageSize,
-            select: selectNoPhoto,
+            select: selectFull,
           })
-          return rows.map((t) => ({ ...(t as unknown as Omit<TicketListRow, 'hasPhoto'>), hasPhoto: false })) as unknown as TicketListRow[]
+          return rows as unknown as TicketListRow[]
+        } catch {
+          try {
+            const rows = await prisma.ticket.findMany({
+              where,
+              orderBy: orderByFallback,
+              skip: (page - 1) * pageSize,
+              take: pageSize,
+              select: selectMinimal,
+            })
+            return rows.map((t) => ({
+              ...(t as unknown as Omit<TicketListRow, 'teknisi' | 'pembayaran' | 'hasPhoto'>),
+              teknisi: null,
+              pembayaran: null,
+              hasPhoto: false,
+            })) as unknown as TicketListRow[]
+          } catch {
+            const selectMinimalNoRelation = { ...selectMinimal, closedBy: undefined } as unknown as Prisma.TicketSelect
+            const rows = await prisma.ticket.findMany({
+              where,
+              orderBy: orderByFallback,
+              skip: (page - 1) * pageSize,
+              take: pageSize,
+              select: selectMinimalNoRelation,
+            })
+            return rows.map((t) => ({
+              ...(t as unknown as Omit<TicketListRow, 'teknisi' | 'pembayaran' | 'hasPhoto' | 'closedBy'>),
+              teknisi: null,
+              pembayaran: null,
+              hasPhoto: false,
+              closedBy: null,
+            })) as unknown as TicketListRow[]
+          }
         }
       }
     }
@@ -183,7 +235,9 @@ export const getTicketsListData = unstable_cache(
     }
 
     return { tickets, totalCount, counts }
-  },
-  ['tickets-list-data'],
-  { revalidate: 15 }
-)
+}
+
+export async function getTicketsListData(args: Args) {
+  const key = toCacheKey(args)
+  return unstable_cache(() => queryTicketsList(args), [key], { revalidate: 15 })()
+}

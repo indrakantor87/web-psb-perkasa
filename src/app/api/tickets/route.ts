@@ -108,7 +108,7 @@ export async function GET(request: Request) {
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15', 'X-Cache': 'HIT' } })
     }
-    const baseSelect = {
+    const selectFull = {
       id: true,
       customerName: true,
       birthDate: true,
@@ -131,7 +131,30 @@ export async function GET(request: Request) {
           role: true
         }
       }
-    } as const
+    } satisfies Prisma.TicketSelect
+
+    const selectMinimal = {
+      id: true,
+      customerName: true,
+      birthDate: true,
+      locationMap: true,
+      requestDate: true,
+      installedDate: true,
+      package: true,
+      marketingName: true,
+      description: true,
+      phoneNumber: true,
+      pengawalan: true,
+      kmz: true,
+      priority: true,
+      status: true,
+      closedBy: {
+        select: {
+          name: true,
+          role: true
+        }
+      }
+    } satisfies Prisma.TicketSelect
 
     const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
       // { statusOrder: 'asc' }, // Disabled until server restart
@@ -139,14 +162,15 @@ export async function GET(request: Request) {
       { installedDate: { sort: 'desc', nulls: 'last' } }
     ]
 
-    const tickets = await prisma.ticket.findMany({
-      where,
-      orderBy,
-      select: baseSelect
-    }).catch(async () => {
-      const selectNoPhoto = { ...baseSelect, hasPhoto: undefined } as unknown as Prisma.TicketSelect
-      const rows = await prisma.ticket.findMany({ where, orderBy, select: selectNoPhoto })
-      return rows.map((t) => ({ ...t, hasPhoto: false }))
+    const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull }).catch(async () => {
+      try {
+        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimal })
+        return rows.map((t) => ({ ...t, pembayaran: null, hasPhoto: false }))
+      } catch {
+        const selectMinimalNoRelation = { ...selectMinimal, closedBy: undefined } as unknown as Prisma.TicketSelect
+        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimalNoRelation })
+        return rows.map((t) => ({ ...t, closedBy: null, pembayaran: null, hasPhoto: false }))
+      }
     })
 
     cache.set(cacheKey, tickets, 15_000)
