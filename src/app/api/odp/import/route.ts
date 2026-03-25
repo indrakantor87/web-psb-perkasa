@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -109,70 +110,123 @@ export async function POST(request: Request) {
       }
     }
 
+    const normalizedRows: Array<{
+      nama_odp: string
+      wilayah: string
+      lokasi: string
+      terpakai: number
+      status_tiang: string
+    }> = []
+
     let ok = 0
     let fail = 0
 
     for (const row of rawRows) {
+      const r = Object.prototype.hasOwnProperty.call(row, 'nama_odp') ? row : toOdpRow(row)
+      const isTrulyEmpty = Object.values(r).every((v) => v === null || v === '' || typeof v === 'undefined')
+      if (isTrulyEmpty) continue
+
+      const nama_odp = String(r.nama_odp ?? '').trim()
+      const wilayah = String(r.wilayah ?? 'Pati').trim() || 'Pati'
+      const lokasi = String(r.lokasi ?? '').trim()
+      const statusRaw = String(r.status_tiang ?? '').trim()
+      const t = statusRaw.toLowerCase().replace(/\s+/g, '')
+      const status_tiang =
+        t === '' || t === 'na' || t === 'n/a'
+          ? 'n/a'
+          : t === 'perkasa'
+            ? 'Perkasa'
+            : t === 'numpang'
+              ? 'Numpang'
+              : statusRaw
+      const terpakaiRaw = r.terpakai
+      const terpakai = terpakaiRaw === null || typeof terpakaiRaw === 'undefined' || terpakaiRaw === '' ? 0 : toInt(terpakaiRaw)
+
+      if (!nama_odp || !wilayah || !lokasi) { fail++; continue }
+      if (!Number.isFinite(terpakai) || terpakai < 0 || terpakai > 8) { fail++; continue }
+
+      normalizedRows.push({ nama_odp, wilayah, lokasi, terpakai, status_tiang })
+    }
+
+    const map = new Map<string, (typeof normalizedRows)[number]>()
+    for (const r of normalizedRows) {
+      map.set(`${r.nama_odp.toLowerCase()}|${r.wilayah.toLowerCase()}`, r)
+    }
+    const rowsToProcess = Array.from(map.values())
+
+    const batchSize = 500
+    for (let i = 0; i < rowsToProcess.length; i += batchSize) {
+      const chunk = rowsToProcess.slice(i, i + batchSize)
+      if (chunk.length === 0) continue
       try {
-        const r = Object.prototype.hasOwnProperty.call(row, 'nama_odp') ? row : toOdpRow(row)
-        const isTrulyEmpty = Object.values(r).every((v) => v === null || v === '' || typeof v === 'undefined')
-        if (isTrulyEmpty) continue
+        const values = Prisma.join(
+          chunk.map((r) =>
+            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, ${r.terpakai}, ${r.status_tiang})`
+          )
+        )
 
-        const nama_odp = String(r.nama_odp ?? '').trim()
-        const wilayah = String(r.wilayah ?? 'Pati').trim() || 'Pati'
-        const lokasi = String(r.lokasi ?? '').trim()
-        const statusRaw = String(r.status_tiang ?? '').trim()
-        const t = statusRaw.toLowerCase().replace(/\s+/g, '')
-        const status_tiang =
-          t === '' || t === 'na' || t === 'n/a'
-            ? 'n/a'
-            : t === 'perkasa'
-              ? 'Perkasa'
-              : t === 'numpang'
-                ? 'Numpang'
-                : statusRaw
-        const terpakaiRaw = r.terpakai
-        const terpakai = terpakaiRaw === null || typeof terpakaiRaw === 'undefined' || terpakaiRaw === '' ? 0 : toInt(terpakaiRaw)
+        await prisma.$executeRaw(Prisma.sql`
+          UPDATE psb_odp AS o
+          SET wilayah = v.wilayah,
+              lokasi = v.lokasi,
+              kapasitas = 8,
+              terpakai = v.terpakai,
+              status_tiang = v.status_tiang,
+              updated_at = NOW()
+          FROM (VALUES ${values}) AS v(nama_odp, wilayah, lokasi, terpakai, status_tiang)
+          WHERE o.is_active = TRUE
+            AND lower(o.nama_odp) = lower(v.nama_odp)
+            AND lower(o.wilayah) = lower(v.wilayah)
+        `)
 
-        if (!nama_odp || !wilayah || !lokasi) {
-          fail++
-          continue
-        }
-        if (!Number.isFinite(terpakai) || terpakai < 0 || terpakai > 8) {
-          fail++
-          continue
-        }
+        await prisma.$executeRaw(Prisma.sql`
+          INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
+          SELECT v.nama_odp, v.wilayah, v.lokasi, 8, v.terpakai, v.status_tiang, TRUE, NOW(), NOW()
+          FROM (VALUES ${values}) AS v(nama_odp, wilayah, lokasi, terpakai, status_tiang)
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM psb_odp o
+            WHERE o.is_active = TRUE
+              AND lower(o.nama_odp) = lower(v.nama_odp)
+              AND lower(o.wilayah) = lower(v.wilayah)
+          )
+        `)
 
-        const existing = await prisma.$queryRaw<Array<{ id: number }>>`
-          SELECT id
-          FROM psb_odp
-          WHERE is_active = TRUE AND lower(nama_odp) = lower(${nama_odp}) AND lower(wilayah) = lower(${wilayah})
-          ORDER BY id DESC
-          LIMIT 1
-        `
-        const existingId = existing[0]?.id
-
-        if (existingId) {
-          await prisma.$executeRaw`
-            UPDATE psb_odp
-            SET wilayah = ${wilayah},
-                lokasi = ${lokasi},
-                kapasitas = 8,
-                terpakai = ${terpakai},
-                status_tiang = ${status_tiang},
-                updated_at = NOW()
-            WHERE id = ${existingId}
-          `
-        } else {
-          await prisma.$executeRaw`
-            INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
-            VALUES (${nama_odp}, ${wilayah}, ${lokasi}, 8, ${terpakai}, ${status_tiang}, TRUE, NOW(), NOW())
-          `
-        }
-
-        ok++
+        ok += chunk.length
       } catch {
-        fail++
+        for (const r of chunk) {
+          try {
+            const existing = await prisma.$queryRaw<Array<{ id: number }>>`
+              SELECT id
+              FROM psb_odp
+              WHERE is_active = TRUE AND lower(nama_odp) = lower(${r.nama_odp}) AND lower(wilayah) = lower(${r.wilayah})
+              ORDER BY id DESC
+              LIMIT 1
+            `
+            const existingId = existing[0]?.id
+
+            if (existingId) {
+              await prisma.$executeRaw`
+                UPDATE psb_odp
+                SET wilayah = ${r.wilayah},
+                    lokasi = ${r.lokasi},
+                    kapasitas = 8,
+                    terpakai = ${r.terpakai},
+                    status_tiang = ${r.status_tiang},
+                    updated_at = NOW()
+                WHERE id = ${existingId}
+              `
+            } else {
+              await prisma.$executeRaw`
+                INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
+                VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())
+              `
+            }
+            ok++
+          } catch {
+            fail++
+          }
+        }
       }
     }
 
