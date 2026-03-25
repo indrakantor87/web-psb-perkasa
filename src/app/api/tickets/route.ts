@@ -108,37 +108,45 @@ export async function GET(request: Request) {
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15', 'X-Cache': 'HIT' } })
     }
-    const tickets = await prisma.ticket.findMany({
-      where,
-      orderBy: [
-        // { statusOrder: 'asc' }, // Disabled until server restart
-        { requestDate: 'desc' },
-        { installedDate: { sort: 'desc', nulls: 'last' } }
-      ],
-      select: {
-        id: true,
-        customerName: true,
-        birthDate: true,
-        locationMap: true,
-        requestDate: true,
-        installedDate: true,
-        package: true,
-        marketingName: true,
-        description: true,
-        phoneNumber: true,
-        pengawalan: true,
-        kmz: true,
-        priority: true,
-        status: true,
-        pembayaran: true,
-        hasPhoto: true,
-        closedBy: {
-          select: {
-            name: true,
-            role: true
-          }
+    const baseSelect = {
+      id: true,
+      customerName: true,
+      birthDate: true,
+      locationMap: true,
+      requestDate: true,
+      installedDate: true,
+      package: true,
+      marketingName: true,
+      description: true,
+      phoneNumber: true,
+      pengawalan: true,
+      kmz: true,
+      priority: true,
+      status: true,
+      pembayaran: true,
+      hasPhoto: true,
+      closedBy: {
+        select: {
+          name: true,
+          role: true
         }
       }
+    } as const
+
+    const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
+      // { statusOrder: 'asc' }, // Disabled until server restart
+      { requestDate: 'desc' },
+      { installedDate: { sort: 'desc', nulls: 'last' } }
+    ]
+
+    const tickets = await prisma.ticket.findMany({
+      where,
+      orderBy,
+      select: baseSelect
+    }).catch(async () => {
+      const selectNoPhoto = { ...baseSelect, hasPhoto: undefined } as unknown as Prisma.TicketSelect
+      const rows = await prisma.ticket.findMany({ where, orderBy, select: selectNoPhoto })
+      return rows.map((t) => ({ ...t, hasPhoto: false }))
     })
 
     cache.set(cacheKey, tickets, 15_000)

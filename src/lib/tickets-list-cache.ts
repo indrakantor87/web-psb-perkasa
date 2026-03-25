@@ -92,38 +92,76 @@ export const getTicketsListData = unstable_cache(
     const where: Prisma.TicketWhereInput = { ...baseWhere }
     if (status && status !== 'ALL') where.status = status
 
-    const [tickets, totalCount, groupedCountsRaw] = await Promise.all([
-      prisma.ticket.findMany({
-        where,
-        orderBy: [{ statusOrder: 'asc' }, { requestDate: 'desc' }, { installedDate: { sort: 'desc', nulls: 'last' } }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+    const baseSelect = {
+      id: true,
+      customerName: true,
+      birthDate: true,
+      locationMap: true,
+      requestDate: true,
+      installedDate: true,
+      package: true,
+      marketingName: true,
+      teknisi: true,
+      description: true,
+      phoneNumber: true,
+      pengawalan: true,
+      kmz: true,
+      priority: true,
+      status: true,
+      pembayaran: true,
+      hasPhoto: true,
+      closedBy: {
         select: {
-          id: true,
-          customerName: true,
-          birthDate: true,
-          locationMap: true,
-          requestDate: true,
-          installedDate: true,
-          package: true,
-          marketingName: true,
-          teknisi: true,
-          description: true,
-          phoneNumber: true,
-          pengawalan: true,
-          kmz: true,
-          priority: true,
-          status: true,
-          pembayaran: true,
-          hasPhoto: true,
-          closedBy: {
-            select: {
-              name: true,
-              role: true,
-            },
-          },
+          name: true,
+          role: true,
         },
-      }),
+      },
+    } as const
+
+    const orderByWithStatusOrder: Prisma.TicketOrderByWithRelationInput[] = [
+      { statusOrder: 'asc' },
+      { requestDate: 'desc' },
+      { installedDate: { sort: 'desc', nulls: 'last' } },
+    ]
+    const orderByFallback: Prisma.TicketOrderByWithRelationInput[] = [
+      { requestDate: 'desc' },
+      { installedDate: { sort: 'desc', nulls: 'last' } },
+    ]
+
+    const fetchTickets = async () => {
+      try {
+        return await prisma.ticket.findMany({
+          where,
+          orderBy: orderByWithStatusOrder,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          select: baseSelect,
+        })
+      } catch {
+        try {
+          return await prisma.ticket.findMany({
+            where,
+            orderBy: orderByFallback,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+            select: baseSelect,
+          })
+        } catch {
+          const selectNoPhoto = { ...baseSelect, hasPhoto: undefined } as unknown as Prisma.TicketSelect
+          const rows = await prisma.ticket.findMany({
+            where,
+            orderBy: orderByFallback,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+            select: selectNoPhoto,
+          })
+          return rows.map((t) => ({ ...(t as unknown as Omit<TicketListRow, 'hasPhoto'>), hasPhoto: false })) as unknown as TicketListRow[]
+        }
+      }
+    }
+
+    const [tickets, totalCount, groupedCountsRaw] = await Promise.all([
+      fetchTickets(),
       prisma.ticket.count({ where }),
       role !== 'MARKETING'
         ? prisma.ticket.groupBy({
