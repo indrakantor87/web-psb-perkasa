@@ -91,12 +91,13 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
-  const fetchRows = useCallback(async (signal?: AbortSignal) => {
+  const fetchRows = useCallback(async (signal?: AbortSignal, bypassCache?: boolean) => {
     const url = new URL('/api/odp', window.location.origin)
     url.searchParams.set('q', q)
     url.searchParams.set('wilayah', wilayah)
     url.searchParams.set('page', String(page))
     url.searchParams.set('pageSize', String(pageSize))
+    if (bypassCache) url.searchParams.set('bypassCache', '1')
     const r = await fetch(url.toString(), { cache: 'no-store', signal })
     const data = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat data')
@@ -187,7 +188,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       setError(data?.error ?? 'Gagal menghapus')
       return
     }
-    await fetchRows()
+    setRows((prev) => prev.filter((x) => x.id !== row.id))
+    setTotal((prev) => Math.max(0, prev - 1))
+    setSelectedIds((prev) => prev.filter((id) => id !== row.id))
+    await fetchRows(undefined, true)
   }
 
   const toggleRowSelected = (id: number) => {
@@ -222,8 +226,12 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       })
       const data = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal menghapus data')
+      const idsSet = new Set(selectedIds)
+      const removedOnPage = rows.filter((x) => idsSet.has(x.id)).length
+      setRows((prev) => prev.filter((x) => !idsSet.has(x.id)))
+      setTotal((prev) => Math.max(0, prev - removedOnPage))
       setSelectedIds([])
-      await fetchRows()
+      await fetchRows(undefined, true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {

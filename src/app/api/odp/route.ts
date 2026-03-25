@@ -91,12 +91,15 @@ export async function GET(req: Request) {
   const pageSize = Math.min(100, Math.max(5, toInt(url.searchParams.get('pageSize'), 10)))
   const offset = (page - 1) * pageSize
   const like = q ? `%${q}%` : ''
+  const bypassCache = (url.searchParams.get('bypassCache') ?? '').trim() === '1'
   const cacheKey = `odp:${JSON.stringify({ q, all, wilayah, page, pageSize })}`
 
   try {
-    const cached = cache.get<{ total: number; page: number; pageSize: number; rows: Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>; wilayahList: string[] } | Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>>(cacheKey)
-    if (cached) {
-      return NextResponse.json(cached, { headers: { 'Cache-Control': 'public, max-age=20, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
+    if (!bypassCache) {
+      const cached = cache.get<{ total: number; page: number; pageSize: number; rows: Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>; wilayahList: string[] } | Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>>(cacheKey)
+      if (cached) {
+        return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
+      }
     }
     const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>`
       SELECT COUNT(*) AS total
@@ -129,8 +132,8 @@ export async function GET(req: Request) {
     `
 
     if (all) {
-      cache.set(cacheKey, rows, 60_000)
-      return NextResponse.json(rows, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=120', 'X-Cache': 'MISS' } })
+      if (!bypassCache) cache.set(cacheKey, rows, 60_000)
+      return NextResponse.json(rows, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
     }
 
     const wilayahRows = await prisma.$queryRaw<Array<{ wilayah: string }>>`
@@ -142,8 +145,8 @@ export async function GET(req: Request) {
     const wilayahList = wilayahRows.map((x) => x.wilayah).filter(Boolean)
 
     const payload = { total, page, pageSize, rows, wilayahList }
-    cache.set(cacheKey, payload, 20_000)
-    return NextResponse.json(payload, { headers: { 'Cache-Control': 'public, max-age=20, stale-while-revalidate=60', 'X-Cache': 'MISS' } })
+    if (!bypassCache) cache.set(cacheKey, payload, 20_000)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=20, stale-while-revalidate=60', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: message || 'DB error' }, { status: 500 })
