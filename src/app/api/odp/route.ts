@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +38,11 @@ async function ensureOdpTable() {
     ALTER TABLE psb_odp
     ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
   `)
+
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
 }
+
 
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
@@ -58,8 +63,13 @@ export async function GET(req: Request) {
   const pageSize = Math.min(100, Math.max(5, toInt(url.searchParams.get('pageSize'), 10)))
   const offset = (page - 1) * pageSize
   const like = q ? `%${q}%` : ''
+  const cacheKey = `odp:${JSON.stringify({ q, all, wilayah, page, pageSize })}`
 
   try {
+    const cached = cache.get<{ total: number; page: number; pageSize: number; rows: Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>; wilayahList: string[] } | Array<{ id: number; nama_odp: string; wilayah: string; lokasi: string; kapasitas: number; terpakai: number; status_tiang: string }>>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'public, max-age=20, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
+    }
     const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>`
       SELECT COUNT(*) AS total
       FROM psb_odp o
@@ -90,7 +100,10 @@ export async function GET(req: Request) {
       LIMIT ${all ? 50000 : pageSize} OFFSET ${all ? 0 : offset}
     `
 
-    if (all) return NextResponse.json(rows)
+    if (all) {
+      cache.set(cacheKey, rows, 60_000)
+      return NextResponse.json(rows, { headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=120', 'X-Cache': 'MISS' } })
+    }
 
     const wilayahRows = await prisma.$queryRaw<Array<{ wilayah: string }>>`
       SELECT DISTINCT o.wilayah
@@ -100,7 +113,9 @@ export async function GET(req: Request) {
     `
     const wilayahList = wilayahRows.map((x) => x.wilayah).filter(Boolean)
 
-    return NextResponse.json({ total, page, pageSize, rows, wilayahList })
+    const payload = { total, page, pageSize, rows, wilayahList }
+    cache.set(cacheKey, payload, 20_000)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'public, max-age=20, stale-while-revalidate=60', 'X-Cache': 'MISS' } })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: message || 'DB error' }, { status: 500 })

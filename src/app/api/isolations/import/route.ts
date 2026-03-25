@@ -151,7 +151,7 @@ export async function POST(request: Request) {
           skipDuplicates: false,
         })
         successCount += result.count
-      } catch (e) {
+      } catch {
         // Fallback: try per-row create to salvage partial failures
         for (let j = 0; j < chunk.length; j++) {
           try {

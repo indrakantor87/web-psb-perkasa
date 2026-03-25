@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import type { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -61,6 +62,11 @@ export async function GET(request: Request) {
   }
 
   try {
+    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, page, limit, role: session.user.role, user: session.user.name })}`
+    const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'public, max-age=15, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
+    }
     const [total, isolations] = await Promise.all([
       prisma.isolation.count({ where }),
       prisma.isolation.findMany({
@@ -81,12 +87,14 @@ export async function GET(request: Request) {
       })
     ])
 
-    return NextResponse.json({
+    const payload = {
       items: isolations,
       total,
       page,
       limit
-    })
+    }
+    cache.set(cacheKey, payload, 15_000)
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'public, max-age=15, stale-while-revalidate=60', 'X-Cache': 'MISS' } })
   } catch (error) {
     console.error('Failed to fetch isolations:', error)
     return NextResponse.json({ error: 'Failed to fetch isolations' }, { status: 500 })

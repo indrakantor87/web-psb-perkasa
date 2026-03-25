@@ -88,7 +88,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       const urlMarketing = (() => {
         try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
       })()
-      const effectiveMarketing = marketingFilter || urlMarketing
+      const effectiveMarketing = (marketingFilter || urlMarketing).trim()
       if (debouncedSearch) params.append('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
@@ -101,12 +101,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         const data = await res.json()
         const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
         const totalRemote: number = Array.isArray(data) ? data.length : (data.total || 0)
-        const filteredItems = effectiveMarketing
-          ? items.filter(it => (it.marketing || '').toLowerCase().includes(effectiveMarketing.toLowerCase()))
-          : items
-        setIsolations(filteredItems)
-        // Jika client-side filter diterapkan, sesuaikan total agar konsisten di UI
-        setTotal(effectiveMarketing ? filteredItems.length : totalRemote)
+        setIsolations(items)
+        setTotal(totalRemote)
       }
     } catch (error) {
       console.error('Failed to fetch isolations', error)
@@ -601,7 +597,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           </button>
           <span>Halaman {page}</span>
           <button
-            onClick={() => setPage(p => (page * limit < total ? p + 1 : p))}
+            onClick={() => setPage((p) => (p * limit < total ? p + 1 : p))}
             disabled={page * limit >= total}
             className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
           >

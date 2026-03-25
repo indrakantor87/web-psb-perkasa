@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
 import type { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,29 @@ export async function GET(request: Request) {
   }
 
   try {
+    const cacheKey = `tickets:${JSON.stringify({ month, year, status, search, role: session.user.role, user: session.user.name })}`
+    const cached = cache.get<{
+      id: number
+      customerName: string
+      birthDate: Date | null
+      locationMap: string
+      requestDate: Date
+      installedDate: Date | null
+      package: string
+      marketingName: string
+      description: string | null
+      phoneNumber: string
+      pengawalan: string | null
+      kmz: string | null
+      priority: string | null
+      status: string
+      pembayaran: string | null
+      closedBy: { name: string; role: string } | null
+      hasPhoto: boolean
+    }[]>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15', 'X-Cache': 'HIT' } })
+    }
     // Optimasi: Fetch data tiket tanpa kolom fotoRumah yang berat
     // Dan fetch ID tiket yang punya foto secara terpisah
     const [tickets, ticketsWithPhotos] = await Promise.all([
@@ -138,10 +162,12 @@ export async function GET(request: Request) {
       hasPhoto: photoIds.has(t.id)
     }))
 
+    cache.set(cacheKey, formattedTickets, 15_000)
     return NextResponse.json(formattedTickets, {
       headers: {
         // Private per-user caching (role-based), short TTL to improve perceived speed
-        'Cache-Control': 'private, max-age=15'
+        'Cache-Control': 'private, max-age=15',
+        'X-Cache': 'MISS'
       }
     })
   } catch {
