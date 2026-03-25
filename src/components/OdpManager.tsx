@@ -67,6 +67,7 @@ function Modal({
 export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const defaultWilayah = useMemo(() => ['Pati', 'Bumiayu', 'Banjarsari', 'Kedungbulus', 'Trangkil', 'Margoyoso'], [])
   const [q, setQ] = useState('')
+  const [qDebounced, setQDebounced] = useState('')
   const [wilayah, setWilayah] = useState('')
   const [wilayahList, setWilayahList] = useState<string[]>(defaultWilayah)
   const [page, setPage] = useState(1)
@@ -91,9 +92,14 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 350)
+    return () => clearTimeout(t)
+  }, [q])
+
   const fetchRows = useCallback(async (signal?: AbortSignal, bypassCache?: boolean) => {
     const url = new URL('/api/odp', window.location.origin)
-    url.searchParams.set('q', q)
+    url.searchParams.set('q', qDebounced)
     url.searchParams.set('wilayah', wilayah)
     url.searchParams.set('page', String(page))
     url.searchParams.set('pageSize', String(pageSize))
@@ -106,7 +112,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     const fromServer = Array.isArray(data?.wilayahList) ? (data.wilayahList as string[]) : []
     const merged = Array.from(new Set([...defaultWilayah, ...fromServer].map((x) => String(x).trim()).filter(Boolean)))
     setWilayahList(merged)
-  }, [defaultWilayah, page, pageSize, q, wilayah])
+  }, [defaultWilayah, page, pageSize, qDebounced, wilayah])
 
   useEffect(() => {
     const controller = new AbortController()

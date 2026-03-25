@@ -85,13 +85,18 @@ export async function GET(req: Request) {
       return NextResponse.json(rows, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
     }
 
-    const wilayahRows = await prisma.$queryRaw<Array<{ wilayah: string }>>`
-      SELECT DISTINCT o.wilayah
-      FROM psb_odp o
-      WHERE o.is_active = TRUE
-      ORDER BY o.wilayah ASC
-    `
-    const wilayahList = wilayahRows.map((x) => x.wilayah).filter(Boolean)
+    const wilayahCacheKey = 'odp:wilayahList'
+    let wilayahList = cache.get<string[]>(wilayahCacheKey)
+    if (!wilayahList) {
+      const wilayahRows = await prisma.$queryRaw<Array<{ wilayah: string }>>`
+        SELECT DISTINCT o.wilayah
+        FROM psb_odp o
+        WHERE o.is_active = TRUE
+        ORDER BY o.wilayah ASC
+      `
+      wilayahList = wilayahRows.map((x) => x.wilayah).filter(Boolean)
+      cache.set(wilayahCacheKey, wilayahList, 5 * 60_000)
+    }
 
     const payload = { total, page, pageSize, rows, wilayahList }
     if (!bypassCache) cache.set(cacheKey, payload, 20_000)
