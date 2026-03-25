@@ -27,7 +27,7 @@ export function TemplateManager() {
       if (!res.ok) throw new Error('Failed to fetch templates')
       const data = await res.json()
       setTemplates(data)
-    } catch (err) {
+    } catch {
       setError('Failed to load template data')
     } finally {
       setLoading(false)
@@ -54,7 +54,7 @@ export function TemplateManager() {
 
       await fetchTemplates()
       setNewTemplate({ name: '', content: '', isDefault: false })
-    } catch (err) {
+    } catch {
       setError('Failed to add template')
     } finally {
       setAdding(false)
@@ -72,7 +72,7 @@ export function TemplateManager() {
       if (!res.ok) throw new Error('Failed to delete template')
 
       setTemplates(templates.filter(t => t.id !== id))
-    } catch (err) {
+    } catch {
       setError('Failed to delete template')
     }
   }
@@ -103,7 +103,7 @@ export function TemplateManager() {
 
       await fetchTemplates()
       setEditingId(null)
-    } catch (err) {
+    } catch {
       setError('Failed to update template')
     }
   }

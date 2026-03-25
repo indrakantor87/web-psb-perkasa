@@ -42,7 +42,7 @@ export default function ChangePasswordForm() {
         }),
       })
 
-      const data = await res.json()
+      const data = (await res.json()) as { error?: string }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to change password')
@@ -55,8 +55,8 @@ export default function ChangePasswordForm() {
         confirmPassword: ''
       })
       router.refresh()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

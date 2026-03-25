@@ -50,10 +50,8 @@ export async function POST(request: Request) {
         role,
       },
     })
-
-    const { password: _, ...userWithoutPassword } = newUser
-
-    return NextResponse.json(userWithoutPassword)
+    const safeUser = { id: newUser.id, name: newUser.name, username: newUser.username, role: newUser.role, createdAt: newUser.createdAt }
+    return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Create user error:', error)
     return NextResponse.json({ 
@@ -77,6 +75,7 @@ export async function GET() {
   try {
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, username: true, role: true, createdAt: true },
     })
 
     // Return users. 
@@ -118,10 +117,8 @@ export async function PUT(request: Request) {
       where: { id },
       data: { password: hashedPassword },
     })
-
-    const { password: _, ...userWithoutPassword } = updatedUser
-
-    return NextResponse.json(userWithoutPassword)
+    const safeUser = { id: updatedUser.id, name: updatedUser.name, username: updatedUser.username, role: updatedUser.role, createdAt: updatedUser.createdAt }
+    return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Reset password error:', error)
     return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 })

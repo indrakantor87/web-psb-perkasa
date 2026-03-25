@@ -9,7 +9,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json(priorities)
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error fetching priorities' },
       { status: 500 }
@@ -29,8 +29,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const json = await request.json()
-    const { name, color } = json
+    const json = (await request.json().catch(() => ({}))) as { name?: string; color?: string }
+    const name = json.name
+    const color = json.color
 
     if (!name || !color) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const priority = await (prisma as any).priority.create({
+    const priority = await prisma.priority.create({
       data: {
         name,
         color,
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(priority)
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error creating priority' },
       { status: 500 }

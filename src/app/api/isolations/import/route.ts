@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
+export const runtime = 'nodejs'
+
 // Helper to parse DD/MM/YYYY or Excel serial date
 function parseDate(dateStr: string | number): Date | null {
   if (!dateStr) return null
@@ -39,8 +41,7 @@ export async function POST(request: Request) {
   // Let's allow those who can access Isolir page usually.
   
   try {
-    const XLSXModule = await import('xlsx')
-    const XLSX: any = (XLSXModule as any).default || XLSXModule
+    const XLSX = await import('xlsx')
     const formData = await request.formData()
     const file = formData.get('file') as File
     
@@ -48,11 +49,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    const buffer = await file.arrayBuffer()
+    const buffer = Buffer.from(await file.arrayBuffer())
     const workbook = XLSX.read(buffer, { type: 'buffer' })
     const sheetName = workbook.SheetNames[0]
     const sheet = workbook.Sheets[sheetName]
-    const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null })
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
     let successCount = 0
     let errorCount = 0
@@ -63,10 +64,7 @@ export async function POST(request: Request) {
     // Given the scale is likely small (hundreds), loop is fine.
 
     // Header normalization helpers
-    const norm = (s: any) =>
-      (typeof s === 'string'
-        ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ')
-        : s) as string
+    const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
     const mapField = (key: string) => {
       const k = norm(key)
       if (['NAMA PELANGGAN', 'NAMA', 'CUSTOMER', 'PELAGGAN', 'CUSTOMER NAME'].includes(k)) return 'customerName'
@@ -79,53 +77,90 @@ export async function POST(request: Request) {
       return ''
     }
 
-    const toIsoRow = (row: Record<string, any>) => {
-      const out: any = {}
+    type IsoRow = {
+      customerName?: unknown
+      userEmail?: unknown
+      customerPhone?: unknown
+      activeDate?: unknown
+      reason?: unknown
+      marketing?: unknown
+      radboox?: unknown
+    }
+
+    const toIsoRow = (row: Record<string, unknown>): IsoRow => {
+      const out: IsoRow = {}
       for (const [k, v] of Object.entries(row)) {
         const f = mapField(k)
-        if (f) out[f] = v
+        if (f) (out as Record<string, unknown>)[f] = v
       }
       return out
     }
 
-    for (const [idx, row] of (jsonData as any[]).entries()) {
-      try {
-        const r = toIsoRow(row)
-        const customerName = r.customerName
-        if (!customerName) continue // Skip empty rows
+    const toCreate: Array<{
+      customerName: string
+      userEmail: string | null
+      customerPhone: string | null
+      activeDate: Date | null
+      reason: string | null
+      marketing: string | null
+      radboox: string | null
+      status: string
+      isolationDate: Date
+      teknisi: string | null
+    }> = []
 
-        const userEmail = r.userEmail
+    for (const [idx, row] of jsonData.entries()) {
+      const r = toIsoRow(row)
+      const customerName = r.customerName
+      if (!customerName) { continue }
+      try {
+        const userEmail = r.userEmail ? String(r.userEmail) : null
         const customerPhone = r.customerPhone ? String(r.customerPhone) : null
         const activeDateRaw = r.activeDate
-        const activeDate = parseDate(activeDateRaw)
-        const reason = r.reason
-        const marketing = r.marketing
+        const activeDate = parseDate(typeof activeDateRaw === 'number' || typeof activeDateRaw === 'string' ? activeDateRaw : String(activeDateRaw ?? ''))
+        const reason = r.reason ? String(r.reason) : null
+        const marketing = r.marketing ? String(r.marketing) : null
         const radboox = r.radboox ? String(r.radboox) : null
-        
-        // Check if already exists? Maybe based on customerName?
-        // For now, let's just insert. If duplicates are an issue, we can check.
-        // But user asked to "import", implying adding data.
-        
-        await prisma.isolation.create({
-          data: {
-            customerName: String(customerName),
-            userEmail: userEmail ? String(userEmail) : null,
-            customerPhone: customerPhone,
-            activeDate: activeDate,
-            reason: reason ? String(reason) : null,
-            marketing: marketing ? String(marketing) : null,
-            radboox: radboox,
-            status: 'OPEN',
-            isolationDate: new Date(), // Set isolation time to now
-            teknisi: session.user.name, // Log who imported it
-          }
+
+        toCreate.push({
+          customerName: String(customerName),
+          userEmail,
+          customerPhone,
+          activeDate,
+          reason,
+          marketing,
+          radboox,
+          status: 'OPEN',
+          isolationDate: new Date(),
+          teknisi: session.user.name ?? null,
         })
-        successCount++
       } catch (e) {
-        console.error('Row import error:', e)
         errorCount++
-        if (errorDetails.length < 5) {
-          errorDetails.push(`Baris ${idx + 2}: ${String((e as Error).message || e)}`)
+        if (errorDetails.length < 5) errorDetails.push(`Baris ${idx + 2}: ${String((e as Error).message || e)}`)
+      }
+    }
+
+    // Batch insert to reduce per-row roundtrips
+    const batchSize = 1000
+    for (let i = 0; i < toCreate.length; i += batchSize) {
+      const chunk = toCreate.slice(i, i + batchSize)
+      if (chunk.length === 0) continue
+      try {
+        const result = await prisma.isolation.createMany({
+          data: chunk,
+          skipDuplicates: false,
+        })
+        successCount += result.count
+      } catch (e) {
+        // Fallback: try per-row create to salvage partial failures
+        for (let j = 0; j < chunk.length; j++) {
+          try {
+            await prisma.isolation.create({ data: chunk[j] })
+            successCount++
+          } catch (err) {
+            errorCount++
+            if (errorDetails.length < 5) errorDetails.push(`Baris ${i + j + 2}: ${String((err as Error).message || err)}`)
+          }
         }
       }
     }

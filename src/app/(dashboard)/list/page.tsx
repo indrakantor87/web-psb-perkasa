@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getPriorities, getDefaultTemplate } from '@/lib/data'
+import type { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,26 +37,21 @@ export default async function ListPage({
     const now = new Date()
     return now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth
   })()
-  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING'] as const
+  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
 
-  const baseWhere: any = {
-    OR: [
-      {
-        AND: [
-          { installedDate: { not: null } },
-          { installedDate: { gte: startDate, lt: endDate } }
-        ]
-      },
-      isSelectedCurrentMonth
-        ? {
-            AND: [
-              { installedDate: null },
-              { status: { in: openStatuses } as any },
-              { requestDate: { lt: endDate } } // carry-over tiket open dari bulan sebelumnya
-            ]
-          }
-        : undefined
-    ].filter(Boolean)
+  const baseWhereOr: Prisma.TicketWhereInput[] = [
+    {
+      AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }],
+    },
+  ]
+  if (isSelectedCurrentMonth) {
+    baseWhereOr.push({
+      AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
+    })
+  }
+
+  const baseWhere: Prisma.TicketWhereInput = {
+    OR: baseWhereOr,
   }
 
   if (session.user.role === 'MARKETING') {

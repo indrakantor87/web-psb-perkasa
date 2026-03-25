@@ -3,7 +3,9 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 // Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
-function parseDate(value: any): Date | null {
+export const runtime = 'nodejs'
+
+function parseDate(value: unknown): Date | null {
   if (!value) return null
   if (typeof value === 'number') {
     return new Date(Math.round((value - 25569) * 86400 * 1000))
@@ -31,22 +33,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const XLSXModule = await import('xlsx')
-    const XLSX: any = (XLSXModule as any).default || XLSXModule
+    const XLSX = await import('xlsx')
     const form = await request.formData()
     const file = form.get('file') as File | null
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
 
-    const buf = await file.arrayBuffer()
+    const buf = Buffer.from(await file.arrayBuffer())
     const wb = XLSX.read(buf, { type: 'buffer' })
     const sheet = wb.Sheets[wb.SheetNames[0]]
-    let rows = XLSX.utils.sheet_to_json(sheet, { defval: null }) as Array<Record<string, any>>
+    let rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
     // Header normalization helpers
-    const norm = (s: any) =>
-      (typeof s === 'string'
-        ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ')
-        : s) as string
+    const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
     const mapField = (key: string) => {
       const k = norm(key)
       if (['NAMA PELANGGAN','NAMA','CUSTOMER','NAMA CUSTOMER'].includes(k)) return 'customerName'
@@ -65,11 +63,28 @@ export async function POST(request: Request) {
       if (['NO HP','NO TELP','NO TELEPON','NO WA','WA','NO WA AKTIF','NOHP','PHONE','TELEPON'].includes(k)) return 'phoneNumber'
       return ''
     }
-    const toTicketRow = (row: Record<string, any>) => {
-      const out: any = {}
+    type TicketRow = {
+      customerName?: unknown
+      birthDate?: unknown
+      locationMap?: unknown
+      requestDate?: unknown
+      installedDate?: unknown
+      package?: unknown
+      marketingName?: unknown
+      pengawalan?: unknown
+      kmz?: unknown
+      priority?: unknown
+      description?: unknown
+      pembayaran?: unknown
+      status?: unknown
+      phoneNumber?: unknown
+    }
+
+    const toTicketRow = (row: Record<string, unknown>): TicketRow => {
+      const out: TicketRow = {}
       for (const [k, v] of Object.entries(row)) {
         const f = mapField(k)
-        if (f) out[f] = v
+        if (f) (out as Record<string, unknown>)[f] = v
       }
       return out
     }
@@ -77,12 +92,12 @@ export async function POST(request: Request) {
     // Fallback: jika rows kosong (header bukan di baris pertama), cari header secara dinamis
     if (!rows || rows.length === 0) {
       try {
-        const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as any[][]
+        const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null })
         // Cari baris header yang memiliki minimal kolom 'NAMA PELANGGAN' setelah dinormalisasi
         let headerIdx = -1
         for (let i = 0; i < aoa.length; i++) {
           const row = aoa[i] || []
-          const normalized = row.map(c => (typeof c === 'string' ? c : (c ?? '')).toString())
+          const normalized = row.map((c) => (typeof c === 'string' ? c : String(c ?? '')))
           const hasName = normalized.some(cell => mapField(cell))
           if (hasName && normalized.some(cell => norm(cell) === 'NAMA PELANGGAN')) {
             headerIdx = i
@@ -90,16 +105,16 @@ export async function POST(request: Request) {
           }
         }
         if (headerIdx >= 0) {
-          const headerRow = aoa[headerIdx].map((h: any) => (h ?? '').toString())
+          const headerRow = (aoa[headerIdx] || []).map((h) => String(h ?? ''))
           const indexMap: Record<number, string> = {}
-          headerRow.forEach((h: any, idx: number) => {
+          headerRow.forEach((h, idx) => {
             const f = mapField(h)
             if (f) indexMap[idx] = f
           })
-          const collected: Record<string, any>[] = []
+          const collected: Array<Record<string, unknown>> = []
           for (let r = headerIdx + 1; r < aoa.length; r++) {
             const row = aoa[r] || []
-            const obj: Record<string, any> = {}
+            const obj: Record<string, unknown> = {}
             Object.entries(indexMap).forEach(([idxStr, field]) => {
               const idx = Number(idxStr)
               obj[field] = row[idx] ?? null
@@ -109,7 +124,7 @@ export async function POST(request: Request) {
           }
           rows = collected
         }
-      } catch (e) {
+      } catch {
         // ignore fallback error; rows akan tetap kosong dan menghitung 0/0
       }
     }
@@ -166,8 +181,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ message: `Import selesai. Berhasil: ${ok}, Gagal: ${fail}` })
-  } catch (e) {
-    console.error('Import error', e)
+  } catch {
+    console.error('Import error')
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

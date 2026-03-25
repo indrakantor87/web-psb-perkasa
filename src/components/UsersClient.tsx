@@ -50,8 +50,6 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   // Permissions
   const isAdmin = currentUser?.role === 'ADMIN'
   const canCreate = isAdmin
-  const canDelete = isAdmin
-  const canReset = isAdmin
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -88,10 +86,10 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         body: JSON.stringify(formData),
       })
 
-      let data;
+      let data: { error?: string }
       const contentType = res.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") !== -1) {
-        data = await res.json();
+        data = (await res.json()) as { error?: string }
       } else {
         const text = await res.text();
         throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
@@ -110,8 +108,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       })
       fetchUsers()
       router.refresh()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -149,7 +147,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         }),
       })
 
-      const data = await res.json()
+      const data = (await res.json()) as { error?: string }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to reset password')
@@ -157,8 +155,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       setSuccess('Password berhasil direset!')
       handleCloseResetModal()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }
@@ -188,7 +186,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         method: 'DELETE',
       })
 
-      const data = await res.json()
+      const data = (await res.json()) as { error?: string }
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to delete user')
@@ -198,8 +196,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       handleCloseDeleteModal()
       fetchUsers()
       router.refresh()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

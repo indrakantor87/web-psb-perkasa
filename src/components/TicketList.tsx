@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
@@ -71,7 +71,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [marketing, setMarketing] = useState(initialMarketing || '')
   const [search, setSearch] = useState(initialSearch || '')
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
-  const [activeActionId, setActiveActionId] = useState<number | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
@@ -110,7 +109,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       .replace(/{{location}}/g, ticket.locationMap || '')
   }
 
-  const handleFilter = () => {
+  const handleFilter = useCallback(() => {
     const base = `/list?month=${month}&year=${year}`
     const statusPart = status === 'ALL' ? '' : `&status=${status}`
     const marketingPart = marketing.trim() ? `&marketing=${encodeURIComponent(marketing.trim())}` : ''
@@ -118,7 +117,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const limitPart = pagination?.pageSize && pagination.pageSize !== 25 ? `&limit=${pagination.pageSize}` : ''
     const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
     router.replace(url)
-  }
+  }, [marketing, month, pagination?.pageSize, router, search, status, year])
 
   // Auto-filter when state changes
   useEffect(() => {
@@ -126,7 +125,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       handleFilter()
     }, 500)
     return () => clearTimeout(timer)
-  }, [month, year, status, marketing, search])
+  }, [handleFilter])
 
   const handleCloseTicket = async (e: React.MouseEvent, id: number) => {
     e.preventDefault()
@@ -149,7 +148,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       } else {
         alert('Failed to close ticket')
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred while closing ticket')
     } finally {
       setLoadingId(null)
@@ -179,7 +178,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Failed to change status to On Progress')
         router.refresh() // Revert
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred while changing status')
       router.refresh()
     } finally {
@@ -207,7 +206,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Failed to update pengawalan')
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       alert('Error updating pengawalan')
       router.refresh()
     }
@@ -232,7 +231,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Failed to update pembayaran')
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       alert('Error updating pembayaran')
       router.refresh()
     }
@@ -266,7 +265,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       setEditTicket(ticketToEdit)
       setEditFile(null)
     }
-    setActiveActionId(null)
   }
 
   const handleUpdateTicket = async (e: React.FormEvent) => {
@@ -310,7 +308,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Failed to update ticket')
         router.refresh() // Revert
       }
-    } catch (error) {
+    } catch {
       alert('An error occurred during update')
       router.refresh()
     } finally {
@@ -336,16 +334,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         } else {
           alert('Gagal menghapus data')
         }
-      } catch (error) {
+      } catch {
         alert('Terjadi kesalahan saat menghapus data')
       } finally {
         setLoadingId(null)
       }
     }
-  }
-
-  const handleStartEditKmz = (id: number, currentValue?: string | null) => {
-    setKmzEdit({ id, value: currentValue || '' })
   }
 
   const handleSaveKmz = async (id: number, value: string) => {
@@ -367,7 +361,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Gagal menyimpan KMZ')
         router.refresh()
       }
-    } catch (e) {
+    } catch {
       alert('Error menyimpan KMZ')
       router.refresh()
     }
@@ -396,7 +390,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         alert('Failed to change priority')
         router.refresh()
       }
-    } catch (error) {
+    } catch {
       alert('Error changing priority')
       router.refresh()
     }
@@ -485,16 +479,17 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       const form = new FormData()
       form.append('file', file)
       const res = await fetch('/api/tickets/import', { method: 'POST', body: form })
-      const data = await res.json()
+      const data = (await res.json()) as { error?: string; message?: string }
       if (!res.ok) {
-        throw new Error(data?.error || 'Gagal import')
+        throw new Error(data.error || 'Gagal import')
       }
-      alert(data?.message || 'Import selesai')
+      alert(data.message || 'Import selesai')
       router.refresh()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Import error', err)
-      setImportError(err.message || 'Gagal import')
-      alert('Gagal import: ' + (err.message || 'Unknown error'))
+      const msg = err instanceof Error ? err.message : String(err)
+      setImportError(msg || 'Gagal import')
+      alert('Gagal import: ' + (msg || 'Unknown error'))
     } finally {
       setIsImporting(false)
       e.target.value = ''
@@ -615,14 +610,20 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             )}
             <button
               onClick={handleExportExcel}
-              className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto"
+              disabled={isExporting}
+              className="w-full rounded-md bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700 md:w-auto disabled:opacity-60"
             >
-              Ekspor ke Excel
+              {isExporting ? 'Mengekspor...' : 'Ekspor ke Excel'}
             </button>
           </div>
         </div>
       </div>
 
+      {importError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+          {importError}
+        </div>
+      )}
 
       <div className="overflow-x-auto overflow-y-hidden rounded-lg bg-white dark:bg-gray-800 shadow-sm">
         <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">

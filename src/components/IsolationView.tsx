@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -80,7 +80,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     reason: '',
   })
 
-  const fetchIsolations = async () => {
+  const fetchIsolations = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -113,7 +113,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedSearch, limit, marketingFilter, page, radbooxFilter, statusPreset])
 
   // Debounce pencarian untuk mengurangi request beruntun
   useEffect(() => {
@@ -127,7 +127,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
   useEffect(() => {
     fetchIsolations()
-  }, [debouncedSearch, page, limit, radbooxFilter, marketingFilter])
+  }, [fetchIsolations])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -193,7 +193,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     fileInputRef.current.click()
   }
 
-  const handleFileChange = async (e: any) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -206,7 +206,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         method: 'POST',
         body: formData,
       })
-      const data = await res.json()
+      const data = (await res.json()) as { message?: string; error?: string }
       if (res.ok) {
         alert(data.message || 'Import berhasil')
         fetchIsolations()
@@ -227,8 +227,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const handleExportExcel = async () => {
     try {
       setIsExporting(true)
-      const XLSXModule = await import('xlsx')
-      const XLSX: any = (XLSXModule as any).default || XLSXModule
+      const XLSX = await import('xlsx')
 
       const params = new URLSearchParams()
       const urlMarketing = (() => {

@@ -42,11 +42,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // Exclude password from session
-    const { password: _, ...userWithoutPassword } = user
-    await login(userWithoutPassword, rememberMe)
+    const sessionUser = { id: user.id, name: user.name, username: user.username, role: user.role }
+    await login(sessionUser, rememberMe)
 
-    return NextResponse.json(userWithoutPassword)
+    return NextResponse.json(sessionUser)
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(

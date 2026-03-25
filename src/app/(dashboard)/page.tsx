@@ -2,6 +2,7 @@ import { DashboardView } from '@/components/DashboardView'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { Prisma } from '@prisma/client'
 
 // Cache dashboard selama 2 menit untuk ringkasan agar mengurangi beban DB
 export const revalidate = 120
@@ -28,26 +29,21 @@ export default async function DashboardPage({
     const n = new Date()
     return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
   })()
-  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING'] as const
+  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
 
-  const where: any = {
-    OR: [
-      {
-        AND: [
-          { installedDate: { not: null } },
-          { installedDate: { gte: startDate, lt: endDate } }
-        ]
-      },
-      isSelectedCurrentMonth
-        ? {
-            AND: [
-              { installedDate: null },
-              { status: { in: openStatuses } as any },
-              { requestDate: { lt: endDate } }
-            ]
-          }
-        : undefined
-    ].filter(Boolean)
+  const whereOr: Prisma.TicketWhereInput[] = [
+    {
+      AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }],
+    },
+  ]
+  if (isSelectedCurrentMonth) {
+    whereOr.push({
+      AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
+    })
+  }
+
+  const where: Prisma.TicketWhereInput = {
+    OR: whereOr,
   }
 
   if (session.user.role === 'MARKETING') {
@@ -76,7 +72,7 @@ export default async function DashboardPage({
     return pkg || 'Unknown'
   }
   const packageCounts: Record<string, number> = {}
-  tickets.forEach((t: any) => {
+  tickets.forEach((t) => {
     const pkg = normalizePackage(t.package)
     packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
   })
@@ -84,7 +80,7 @@ export default async function DashboardPage({
   // 2. Group by Marketing and Status
   const marketingMap = new Map<string, { name: string; open: number; pending: number; close: number; count: number }>()
 
-  tickets.forEach((t: any) => {
+  tickets.forEach((t) => {
     const rawName = t.marketingName || 'Unknown'
     const name = rawName.trim()
     const key = name.toLowerCase()
@@ -216,7 +212,7 @@ export default async function DashboardPage({
     on_progress: 0
   }
 
-  tickets.forEach((t: any) => {
+  tickets.forEach((t) => {
     if (t.status === 'OPEN') statusCounts.open++
     else if (t.status === 'CLOSE') statusCounts.close++
     else if (t.status === 'PENDING') statusCounts.pending++
@@ -224,14 +220,14 @@ export default async function DashboardPage({
   })
 
   // Fetch Isolation Count (Status: OPEN) - role aware
-  const isoCountWhere: any = { status: 'OPEN' }
+  const isoCountWhere: Prisma.IsolationWhereInput = { status: 'OPEN' }
   if (session.user.role === 'MARKETING') {
     isoCountWhere.marketing = session.user.name
   }
   const isolationCount = await prisma.isolation.count({ where: isoCountWhere })
 
   // Group isolation by marketing (OPEN only)
-  const isoListWhere: any = { status: 'OPEN' }
+  const isoListWhere: Prisma.IsolationWhereInput = { status: 'OPEN' }
   if (session.user.role === 'MARKETING') {
     isoListWhere.marketing = session.user.name
   }

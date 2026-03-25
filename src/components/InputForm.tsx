@@ -1,23 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 export function InputForm({ user }: { user?: { name: string; role: string } }) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  if (user?.role === 'TEKNISI') {
-    return (
-      <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
-        <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
-        <p className="mt-2 text-sm text-red-600">
-          You do not have permission to create new PSB data.
-        </p>
-      </div>
-    )
-  }
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -29,6 +16,15 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     birthDate: '',
   })
   const [fotoRumah, setFotoRumah] = useState<File | null>(null)
+
+  if (user?.role === 'TEKNISI') {
+    return (
+      <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
+        <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
+        <p className="mt-2 text-sm text-red-600">You do not have permission to create new PSB data.</p>
+      </div>
+    )
+  }
 
   const packages = [
     'HOME LITE',
@@ -212,7 +208,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
           setError(data.error || 'Failed to submit')
         }
       }
-    } catch (err) {
+    } catch {
       setLoading(false)
       setError('An error occurred')
     }

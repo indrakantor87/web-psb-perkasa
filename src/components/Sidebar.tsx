@@ -1,30 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 
 export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string }; onExpand?: () => void }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [zoomLevel, setZoomLevel] = useState(100)
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    if (typeof window === 'undefined') return 100
+    const savedZoom = window.localStorage.getItem('zoomLevel')
+    const n = Number(savedZoom)
+    return Number.isFinite(n) && n > 0 ? n : 100
+  })
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
   const isMarketing = user?.role === 'MARKETING'
-
-  useEffect(() => {
-    setMounted(true)
-    const savedZoom = localStorage.getItem('zoomLevel')
-    if (savedZoom) {
-      setZoomLevel(Number(savedZoom))
-    }
-  }, [])
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`
@@ -151,21 +144,20 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
                 </select>
               </div>
 
-              {mounted && (
-                <div className="block rounded-lg py-2 px-3 text-sm text-gray-400">
-                  <div className="mb-1 text-xs">Theme</div>
-                  <select
-                    value={theme}
-                    onChange={(e) => setTheme(e.target.value)}
-                    className="w-full rounded bg-gray-800 border border-gray-700 text-white text-xs py-1 focus:outline-none focus:border-blue-500"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="system">System</option>
-                  </select>
-                </div>
-              )}
+              <div className="block rounded-lg py-2 px-3 text-sm text-gray-400">
+                <div className="mb-1 text-xs">Theme</div>
+                <select
+                  value={theme ?? 'system'}
+                  onChange={(e) => setTheme(e.target.value)}
+                  className="w-full rounded bg-gray-800 border border-gray-700 text-white text-xs py-1 focus:outline-none focus:border-blue-500"
+                  onClick={(e) => e.stopPropagation()}
+                  suppressHydrationWarning
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">System</option>
+                </select>
+              </div>
             </div>
           )}
         </div>

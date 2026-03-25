@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const templates = await (prisma as any).whatsappTemplate.findMany({
+    const templates = await prisma.whatsappTemplate.findMany({
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json(templates)
@@ -35,8 +35,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const json = await request.json()
-    const { name, content, isDefault } = json
+    const json = (await request.json().catch(() => ({}))) as { name?: string; content?: string; isDefault?: boolean }
+    const name = json.name
+    const content = json.content
+    const isDefault = json.isDefault
 
     if (!name || !content) {
       return NextResponse.json(
@@ -47,13 +49,13 @@ export async function POST(request: Request) {
 
     if (isDefault) {
       // Unset other defaults
-      await (prisma as any).whatsappTemplate.updateMany({
+      await prisma.whatsappTemplate.updateMany({
         where: { isDefault: true },
         data: { isDefault: false },
       })
     }
 
-    const template = await (prisma as any).whatsappTemplate.create({
+    const template = await prisma.whatsappTemplate.create({
       data: {
         name,
         content,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -20,7 +21,12 @@ export async function GET(request: Request) {
     return 25
   })()
 
-  const where: any = {}
+  const where: Prisma.IsolationWhereInput = {}
+  const appendAnd = (clause: Prisma.IsolationWhereInput) => {
+    const current = where.AND
+    const arr = Array.isArray(current) ? current : current ? [current] : []
+    where.AND = [...arr, clause]
+  }
 
   if (status && status.trim() !== '') {
     where.status = status.trim().toUpperCase()
@@ -39,30 +45,18 @@ export async function GET(request: Request) {
   }
   if (marketing && marketing.trim() !== '') {
     const mk = marketing.trim()
-    where.AND = [
-      ...(where.AND || []),
-      {
-        OR: [
-          { marketing: { equals: mk } },
-          { marketing: { contains: mk, mode: 'insensitive' } }
-        ]
-      }
-    ]
+    appendAnd({
+      OR: [{ marketing: { equals: mk } }, { marketing: { contains: mk, mode: 'insensitive' } }],
+    })
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privileged = ['ADMIN', 'CS', 'NOC']
-  if (!privileged.includes((await getSession())!.user.role)) {
-    const me = (await getSession())!.user.name?.trim()
+  if (!privileged.includes(session.user.role)) {
+    const me = session.user.name?.trim()
     if (me) {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: [
-            { marketing: { equals: me } },
-            { marketing: { contains: me, mode: 'insensitive' } }
-          ]
-        }
-      ]
+      appendAnd({
+        OR: [{ marketing: { equals: me } }, { marketing: { contains: me, mode: 'insensitive' } }],
+      })
     }
   }
 
@@ -111,29 +105,33 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json()
-    const { 
-      customerName, customerAddress, customerPhone, 
-      userEmail, activeDate, marketing, radboox,
-      reason, teknisi, ticketId 
-    } = body
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+    const customerName = String(body.customerName ?? '')
+    const customerAddress = typeof body.customerAddress === 'string' ? body.customerAddress : undefined
+    const customerPhone = typeof body.customerPhone === 'string' ? body.customerPhone : undefined
+    const userEmail = typeof body.userEmail === 'string' ? body.userEmail : null
+    const marketing = typeof body.marketing === 'string' ? body.marketing : null
+    const reason = typeof body.reason === 'string' ? body.reason : undefined
+    const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
+    const radboox = typeof body.radboox === 'string' ? body.radboox : null
+    const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
+    const ticketIdRaw = body.ticketId
+    const ticketId = typeof ticketIdRaw === 'number' ? Math.trunc(ticketIdRaw) : typeof ticketIdRaw === 'string' ? parseInt(ticketIdRaw, 10) : null
 
-    // Build data object as any to avoid type mismatch if Prisma types are not regenerated yet
-    const createData: any = {
+    const createData: Prisma.IsolationUncheckedCreateInput = {
       customerName,
       customerAddress,
       customerPhone,
-      userEmail: userEmail || null,
-      activeDate: activeDate ? new Date(activeDate) : null,
-      marketing: marketing || null,
+      userEmail,
+      activeDate,
+      marketing,
+      radboox,
       reason,
       teknisi: teknisi || session.user.name,
-      ticketId: ticketId ? parseInt(ticketId) : null,
+      ticketId,
       status: 'OPEN',
     }
-    if (typeof radboox !== 'undefined') {
-      createData.radboox = radboox || null
-    }
+
     const isolation = await prisma.isolation.create({ data: createData })
 
     return NextResponse.json(isolation)
@@ -143,7 +141,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

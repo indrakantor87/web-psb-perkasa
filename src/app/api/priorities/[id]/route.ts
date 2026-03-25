@@ -9,11 +9,11 @@ export async function DELETE(
   try {
     const { id: idStr } = await params
     const id = parseInt(idStr)
-    await (prisma as any).priority.delete({
+    await prisma.priority.delete({
       where: { id },
     })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error deleting priority' },
       { status: 500 }

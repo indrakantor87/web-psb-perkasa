@@ -23,7 +23,7 @@ export function PriorityManager() {
       if (!res.ok) throw new Error('Failed to fetch priorities')
       const data = await res.json()
       setPriorities(data)
-    } catch (err) {
+    } catch {
       setError('Failed to load priority data')
     } finally {
       setLoading(false)
@@ -50,7 +50,7 @@ export function PriorityManager() {
 
       await fetchPriorities()
       setNewPriority({ name: '', color: '' })
-    } catch (err) {
+    } catch {
       setError('Failed to add priority')
     } finally {
       setAdding(false)
@@ -68,7 +68,7 @@ export function PriorityManager() {
       if (!res.ok) throw new Error('Failed to delete priority')
 
       setPriorities(priorities.filter(p => p.id !== id))
-    } catch (err) {
+    } catch {
       setError('Failed to delete priority')
     }
   }

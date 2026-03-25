@@ -20,18 +20,20 @@ export async function PUT(
   const { id } = await params
 
   try {
-    const json = await request.json()
-    const { name, content, isDefault } = json
+    const json = (await request.json().catch(() => ({}))) as { name?: string; content?: string; isDefault?: boolean }
+    const name = json.name
+    const content = json.content
+    const isDefault = json.isDefault ?? false
 
     if (isDefault) {
       // Unset other defaults
-      await (prisma as any).whatsappTemplate.updateMany({
+      await prisma.whatsappTemplate.updateMany({
         where: { isDefault: true, id: { not: parseInt(id) } },
         data: { isDefault: false },
       })
     }
 
-    const template = await (prisma as any).whatsappTemplate.update({
+    const template = await prisma.whatsappTemplate.update({
       where: { id: parseInt(id) },
       data: {
         name,
@@ -41,7 +43,7 @@ export async function PUT(
     })
 
     return NextResponse.json(template)
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error updating template' },
       { status: 500 }
@@ -66,12 +68,12 @@ export async function DELETE(
   const { id } = await params
 
   try {
-    await (prisma as any).whatsappTemplate.delete({
+    await prisma.whatsappTemplate.delete({
       where: { id: parseInt(id) },
     })
 
     return NextResponse.json({ message: 'Template deleted' })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Error deleting template' },
       { status: 500 }

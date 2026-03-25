@@ -2,20 +2,10 @@
 
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { clsx } from 'clsx'
-import { 
-  LayoutDashboard, 
-  Ticket, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle,
-  Calendar,
-  Filter,
-  TrendingUp,
-  User,
-  WifiOff
-} from 'lucide-react'
+import { LayoutDashboard, Ticket, CheckCircle2, Clock, AlertCircle, Calendar, TrendingUp, User, WifiOff } from 'lucide-react'
+
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
@@ -35,12 +25,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
-  const [mounted, setMounted] = useState(false)
   const isMarketing = userRole === 'MARKETING'
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -48,21 +33,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   ]
 
   const years = [2024, 2025, 2026, 2027]
-
-  if (!mounted) {
-    return (
-      <div className="space-y-6 animate-pulse">
-        <div className="flex w-fit items-center space-x-4 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-800">
-           <div className="h-10 w-64 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-        </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 rounded-xl bg-white dark:bg-gray-800 shadow-sm"></div>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
   const totalOpen = marketingData.reduce((acc, curr) => acc + curr.open, 0)
   const totalPending = marketingData.reduce((acc, curr) => acc + curr.pending, 0)

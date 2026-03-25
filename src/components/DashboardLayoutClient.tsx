@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { clsx } from 'clsx'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
+import type { SessionUser } from '@/lib/auth'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
-  user: any
+  user: SessionUser
 }
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {

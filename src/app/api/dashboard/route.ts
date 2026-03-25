@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -21,27 +22,15 @@ export async function GET(request: Request) {
 
   try {
     const isSelectedCurrentMonth = (now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth)
-    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING'] as const
+    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
 
-    const where: any = {
-      OR: [
-        {
-          AND: [
-            { installedDate: { not: null } },
-            { installedDate: { gte: startDate, lt: endDate } }
-          ]
-        },
-        isSelectedCurrentMonth
-          ? {
-              AND: [
-                { installedDate: null },
-                { status: { in: openStatuses } as any },
-                { requestDate: { lt: endDate } }
-              ]
-            }
-          : undefined
-      ].filter(Boolean)
+    const whereOr: Prisma.TicketWhereInput[] = [
+      { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
+    ]
+    if (isSelectedCurrentMonth) {
+      whereOr.push({ AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }] })
     }
+    const where: Prisma.TicketWhereInput = { OR: whereOr }
 
     // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
     const tickets = await prisma.ticket.findMany({
@@ -54,7 +43,7 @@ export async function GET(request: Request) {
 
     // 1. Group by Package
     const packageCounts: Record<string, number> = {}
-    tickets.forEach((t: any) => {
+    tickets.forEach((t) => {
       const pkg = t.package || 'Unknown'
       packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
     })
@@ -62,7 +51,7 @@ export async function GET(request: Request) {
     // 2. Group by Marketing
     const marketingMap = new Map<string, { name: string, count: number }>()
     
-    tickets.forEach((t: any) => {
+    tickets.forEach((t) => {
       const rawName = t.marketingName || 'Unknown'
       const name = rawName.trim()
       const key = name.toLowerCase()

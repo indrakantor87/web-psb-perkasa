@@ -1,9 +1,7 @@
 
-const { PrismaClient } = require('@prisma/client')
-
-const prisma = new PrismaClient()
-
 async function main() {
+  const { PrismaClient } = await import('@prisma/client')
+  const prisma = new PrismaClient()
   console.log('Start updating hasPhoto field...')
 
   const batchSize = 100
@@ -40,13 +38,11 @@ async function main() {
   }
 
   console.log(`Finished! Updated ${updatedCount} tickets to hasPhoto=true.`)
+  await prisma.$disconnect()
 }
 
 main()
   .catch((e) => {
     console.error(e)
     process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
   })

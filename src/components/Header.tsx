@@ -1,37 +1,32 @@
 'use client'
 
-import { Menu, User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban } from 'lucide-react'
+import { Menu, User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
+import type { SessionUser } from '@/lib/auth'
 
-export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => void }) {
+export function Header({ user, onMenuClick }: { user: SessionUser; onMenuClick?: () => void }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
-  const [zoomLevel, setZoomLevel] = useState(100)
-  const [mounted, setMounted] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    if (typeof window === 'undefined') return 100
+    const savedZoom = window.localStorage.getItem('zoomLevel')
+    const n = Number(savedZoom)
+    return Number.isFinite(n) && n > 0 ? n : 100
+  })
   const isMarketing = user?.role === 'MARKETING'
   const dropdownRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setMounted(true)
-    const savedZoom = localStorage.getItem('zoomLevel')
-    if (savedZoom) {
-      setZoomLevel(Number(savedZoom))
-    }
-  }, [])
-
-  useEffect(() => {
-    if (mounted) {
-      document.documentElement.style.fontSize = `${zoomLevel}%`
-      localStorage.setItem('zoomLevel', String(zoomLevel))
-    }
-  }, [zoomLevel, mounted])
+    document.documentElement.style.fontSize = `${zoomLevel}%`
+    localStorage.setItem('zoomLevel', String(zoomLevel))
+  }, [zoomLevel])
 
   // Close click outside
   useEffect(() => {
@@ -54,6 +49,7 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
     { href: '/isolir', label: 'Isolir', icon: Ban },
+    ...(user?.role !== 'MARKETING' ? [{ href: '/odp', label: 'PORT ODP', icon: Wifi }] : []),
   ]
 
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
@@ -171,21 +167,20 @@ export function Header({ user, onMenuClick }: { user: any; onMenuClick?: () => v
                   </select>
                 </div>
 
-                {mounted && (
-                  <div className="px-4 py-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
-                    <select
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value)}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
-                    </select>
-                  </div>
-                )}
+                <div className="px-4 py-2">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
+                  <select
+                    value={theme ?? 'system'}
+                    onChange={(e) => setTheme(e.target.value)}
+                    className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                    suppressHydrationWarning
+                  >
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="system">System</option>
+                  </select>
+                </div>
               </div>
             )}
           </div>

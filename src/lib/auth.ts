@@ -5,7 +5,20 @@ import { NextRequest, NextResponse } from 'next/server'
 const SECRET_KEY = process.env.JWT_SECRET_KEY || 'rahasia-perkasa-networks-2026'
 const key = new TextEncoder().encode(SECRET_KEY)
 
-export async function encrypt(payload: any, expiresIn: string = '24h') {
+export type SessionUser = {
+  id: number
+  name: string
+  username: string
+  role: string
+}
+
+export type SessionData = {
+  user: SessionUser
+  expires: string
+  rememberMe?: boolean
+}
+
+export async function encrypt(payload: Record<string, unknown>, expiresIn: string = '24h') {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -13,21 +26,21 @@ export async function encrypt(payload: any, expiresIn: string = '24h') {
     .sign(key)
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionData> {
   const { payload } = await jwtVerify(input, key, {
     algorithms: ['HS256'],
   })
-  return payload
+  return payload as unknown as SessionData
 }
 
-export async function login(userData: any, rememberMe: boolean = false) {
+export async function login(userData: SessionUser, rememberMe: boolean = false) {
   // Determine expiration based on rememberMe
   // Default: 24 hours, Remember Me: 30 days
   const expiresIn = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
   const expires = new Date(Date.now() + expiresIn)
   
   // Create the session
-  const session = await encrypt({ user: userData, expires, rememberMe }, rememberMe ? '30d' : '24h')
+  const session = await encrypt({ user: userData, expires: expires.toISOString(), rememberMe }, rememberMe ? '30d' : '24h')
 
   // Save the session in a cookie
   const cookieStore = await cookies()
@@ -46,7 +59,7 @@ export async function getSession() {
   if (!session) return null
   try {
     return await decrypt(session)
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -59,14 +72,14 @@ export async function updateSession(request: NextRequest) {
   const parsed = await decrypt(session)
   
   const expiresIn = parsed.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
-  parsed.expires = new Date(Date.now() + expiresIn)
+  parsed.expires = new Date(Date.now() + expiresIn).toISOString()
   
   const res = NextResponse.next()
   res.cookies.set({
     name: 'session',
     value: await encrypt(parsed, parsed.rememberMe ? '30d' : '24h'),
     httpOnly: true,
-    expires: parsed.expires,
+    expires: new Date(parsed.expires),
   })
   return res
 }

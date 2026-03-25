@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 
 export async function PUT(
   request: Request,
@@ -16,7 +17,7 @@ export async function PUT(
 
   try {
     const contentType = request.headers.get('content-type') || ''
-    let updateData: any = {}
+    let updateData: Prisma.TicketUncheckedUpdateInput = {}
     let status: string | undefined
     let pengawalan: string | undefined
     let kmz: string | undefined
@@ -42,25 +43,25 @@ export async function PUT(
 
       // Handle regular fields
       const customerName = formData.get('customerName')
-      if (customerName) updateData.customerName = customerName
+      if (typeof customerName === 'string' && customerName) updateData.customerName = customerName
 
       const phoneNumber = formData.get('phoneNumber')
-      if (phoneNumber) updateData.phoneNumber = phoneNumber
+      if (typeof phoneNumber === 'string' && phoneNumber) updateData.phoneNumber = phoneNumber
 
       const pkg = formData.get('package')
-      if (pkg) updateData.package = pkg
+      if (typeof pkg === 'string' && pkg) updateData.package = pkg
 
       const marketingName = formData.get('marketingName')
-      if (marketingName) updateData.marketingName = marketingName
+      if (typeof marketingName === 'string' && marketingName) updateData.marketingName = marketingName
 
       const teknisi = formData.get('teknisi')
-      if (teknisi) updateData.teknisi = teknisi
+      if (typeof teknisi === 'string' && teknisi) updateData.teknisi = teknisi
 
       const description = formData.get('description')
       if (description !== null) updateData.description = description.toString()
 
       const locationMap = formData.get('locationMap')
-      if (locationMap) updateData.locationMap = locationMap
+      if (typeof locationMap === 'string' && locationMap) updateData.locationMap = locationMap
 
       const birthDate = formData.get('birthDate')
       if (birthDate) updateData.birthDate = new Date(birthDate.toString())
@@ -74,19 +75,25 @@ export async function PUT(
       priority = formData.get('priority')?.toString()
 
     } else {
-      const body = await request.json()
+      const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
       console.log(`[API] Updating ticket ${ticketId} by ${session.user.username} (${session.user.role})`, body)
-      const { status: s, pengawalan: p, kmz: k, priority: pri, ...restData } = body
-      status = s
-      pengawalan = p
-      kmz = k
-      priority = pri
-      updateData = { ...restData }
-      
-      // Handle installedDate if present in JSON
-      if (updateData.installedDate) {
-        updateData.installedDate = new Date(updateData.installedDate)
+      status = typeof body.status === 'string' ? body.status : undefined
+      pengawalan = typeof body.pengawalan === 'string' ? body.pengawalan : undefined
+      kmz = typeof body.kmz === 'string' ? body.kmz : undefined
+      priority = typeof body.priority === 'string' ? body.priority : undefined
+
+      const allowed = ['customerName', 'phoneNumber', 'package', 'marketingName', 'teknisi', 'description', 'locationMap', 'birthDate', 'installedDate', 'pembayaran'] as const
+      const next: Prisma.TicketUncheckedUpdateInput = {}
+      for (const k of allowed) {
+        const v = body[k]
+        if (typeof v === 'undefined' || v === null) continue
+        if (k === 'birthDate' || k === 'installedDate') {
+          next[k] = new Date(String(v))
+        } else {
+          next[k] = String(v)
+        }
       }
+      updateData = next
     }
 
     // Only allow authorized roles to update pengawalan
@@ -137,14 +144,13 @@ export async function PUT(
       ticket = await prisma.ticket.update({
         where: { id: ticketId },
         data: {
+          ...updateData,
           status: 'CLOSE',
-          // statusOrder: 1, // Temporarily disabled
           installedDate: new Date(),
           closedById: session.user.id,
-          ...updateData
         },
-        select: { id: true, status: true } // Optimization: Only return minimal fields
-      } as any)
+        select: { id: true, status: true },
+      })
     } else {
       // Normal update (e.g. editing details)
       /* const statusUpdate = status !== undefined ? { 
@@ -152,22 +158,20 @@ export async function PUT(
         statusOrder: status === 'OPEN' ? 0 : 1 
       } : {} */
 
+      const data: Prisma.TicketUncheckedUpdateInput = { ...updateData }
+      if (typeof status !== 'undefined') data.status = status
+
       ticket = await prisma.ticket.update({
         where: { id: ticketId },
-        data: {
-          status, // Reverted to simple status update
-          // ...statusUpdate,
-          ...updateData
-        } as any,
-        select: { id: true, status: true } // Optimization: Only return minimal fields
+        data,
+        select: { id: true, status: true },
       })
     }
 
     return NextResponse.json(ticket)
 
-  } catch (error: any) {
-    console.error(error)
-    return NextResponse.json({ error: error.message || 'Failed to update ticket' }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 })
   }
 }
 
@@ -193,7 +197,7 @@ export async function DELETE(
       select: { id: true }
     })
     return NextResponse.json({ message: 'Ticket deleted' })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to delete ticket' }, { status: 500 })
   }
 }

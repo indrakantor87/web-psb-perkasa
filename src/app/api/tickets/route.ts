@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
+import type { Prisma } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   const status = searchParams.get('status')
   const search = searchParams.get('search')
 
-  const where: any = {}
+  const where: Prisma.TicketWhereInput = {}
 
   // Handle Search
   if (search && search.trim()) {
@@ -58,41 +59,23 @@ export async function GET(request: Request) {
     // - Selalu tampilkan tiket terpasang (installedDate) sesuai bulan pemasangan
     // - Jika melihat bulan saat ini: tampilkan juga semua tiket yang BELUM terpasang dan masih open dari bulan-bulan sebelumnya (carry-over)
     // - Jika melihat bulan lampau: JANGAN tampilkan tiket belum terpasang (semua tiket open dipindah tampil ke bulan berjalan)
-    where.OR = [
+    const or: Prisma.TicketWhereInput[] = [
       {
-        AND: [
-          { installedDate: { not: null } },
-          { installedDate: { gte: startDate, lt: endDate } }
-        ]
+        AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }],
       },
-      isSelectedCurrentMonth
-        ? {
-            AND: [
-              { installedDate: null },
-              { status: { in: openStatuses } as any },
-              { requestDate: { lt: endDate } } // semua open hingga akhir bulan ini
-            ]
-          }
-        : undefined
     ]
-    // Bersihkan undefined agar WHERE valid
-    where.OR = where.OR.filter(Boolean)
+    if (isSelectedCurrentMonth) {
+      or.push({
+        AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
+      })
+    }
+    where.OR = or
   } else if (year) {
       const startDate = new Date(`${year}-01-01`)
       const endDate = new Date(`${parseInt(year) + 1}-01-01`)
       where.OR = [
-        {
-          AND: [
-            { installedDate: { not: null } },
-            { installedDate: { gte: startDate, lt: endDate } }
-          ]
-        },
-        {
-          AND: [
-            { installedDate: null },
-            { requestDate: { gte: startDate, lt: endDate } }
-          ]
-        }
+        { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
+        { AND: [{ installedDate: null }, { requestDate: { gte: startDate, lt: endDate } }] },
       ]
   }
 
@@ -161,7 +144,7 @@ export async function GET(request: Request) {
         'Cache-Control': 'private, max-age=15'
       }
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 })
   }
 }
@@ -270,8 +253,9 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json(ticket)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error)
-    return NextResponse.json({ error: error.message || 'Failed to create ticket' }, { status: 500 })
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: message || 'Failed to create ticket' }, { status: 500 })
   }
 }

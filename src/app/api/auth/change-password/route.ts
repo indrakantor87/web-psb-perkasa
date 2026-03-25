@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     // Get user from database to get the current password hash
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: session.user.id },
     })
 
     if (!user) {
