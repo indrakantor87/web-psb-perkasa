@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { unstable_cache } from 'next/cache'
 import type { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export type TicketListRow = {
   id: number
@@ -239,5 +239,9 @@ async function queryTicketsList(args: Args) {
 
 export async function getTicketsListData(args: Args) {
   const key = toCacheKey(args)
-  return unstable_cache(() => queryTicketsList(args), [key], { revalidate: 15 })()
+  const cached = cache.get<Awaited<ReturnType<typeof queryTicketsList>>>(key)
+  if (cached) return cached
+  const value = await queryTicketsList(args)
+  cache.set(key, value, 15_000)
+  return value
 }

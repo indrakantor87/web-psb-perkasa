@@ -35,8 +35,12 @@ export default async function ListPage({
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
   const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
-  const [{ tickets, totalCount, counts }, priorities, defaultTemplate] = await Promise.all([
-    getTicketsListData({
+  let tickets: Awaited<ReturnType<typeof getTicketsListData>>['tickets'] = []
+  let totalCount = 0
+  let countsForUi: Awaited<ReturnType<typeof getTicketsListData>>['counts'] | undefined = undefined
+  const [priorities, defaultTemplate] = await Promise.all([getPriorities(), getDefaultTemplate()])
+  try {
+    const list = await getTicketsListData({
       role: session.user.role,
       userName: session.user.name,
       month: currentMonth,
@@ -46,11 +50,15 @@ export default async function ListPage({
       search: currentSearch,
       page: currentPageNumber,
       pageSize,
-    }),
-    getPriorities(),
-    getDefaultTemplate(),
-  ])
-  const countsForUi = counts ?? undefined
+    })
+    tickets = list.tickets
+    totalCount = list.totalCount
+    countsForUi = list.counts ?? undefined
+  } catch {
+    tickets = []
+    totalCount = 0
+    countsForUi = undefined
+  }
 
   // No need for separate photo query anymore
   const formattedTickets = tickets.map(t => ({
