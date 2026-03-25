@@ -29,6 +29,15 @@ export async function ensureOdpTable() {
         ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
       `)
 
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odp ENABLE ROW LEVEL SECURITY;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odp FORCE ROW LEVEL SECURITY;`)
+        await prisma.$executeRawUnsafe(`DROP POLICY IF EXISTS psb_odp_service_role_all ON psb_odp;`)
+        await prisma.$executeRawUnsafe(
+          `CREATE POLICY psb_odp_service_role_all ON psb_odp FOR ALL TO service_role USING (true) WITH CHECK (true);`
+        )
+      } catch {}
+
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_active ON psb_odp (is_active);`)
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
