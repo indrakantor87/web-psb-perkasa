@@ -23,6 +23,7 @@ export function Header({ user }: { user: SessionUser }) {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
   const settingsRefMobile = useRef<HTMLDivElement>(null)
+  const settingsOverlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`
@@ -37,7 +38,8 @@ export function Header({ user }: { user: SessionUser }) {
       }
       const inDesktop = settingsRefDesktop.current?.contains(event.target as Node) ?? false
       const inMobile = settingsRefMobile.current?.contains(event.target as Node) ?? false
-      if (!inDesktop && !inMobile) {
+      const inOverlay = settingsOverlayRef.current?.contains(event.target as Node) ?? false
+      if (!inDesktop && !inMobile && !inOverlay) {
         setIsSettingsOpen(false)
       }
     }
@@ -265,58 +267,53 @@ export function Header({ user }: { user: SessionUser }) {
               </button>
 
               {isSettingsOpen && (
-                <div className="absolute left-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
-                  {settingsLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      prefetch={false}
-                      onClick={() => setIsSettingsOpen(false)}
-                      className={clsx(
-                        'block px-4 py-2 text-sm transition-colors',
-                        pathname === link.href
-                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-
-                  {settingsLinks.length > 0 && (
-                    <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-                  )}
-
-                  <div className="px-4 py-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
-                    <select
-                      value={zoomLevel}
-                      onChange={(e) => setZoomLevel(Number(e.target.value))}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value={100}>100%</option>
-                      <option value={90}>90%</option>
-                      <option value={80}>80%</option>
-                      <option value={75}>75%</option>
-                      <option value={60}>60%</option>
-                      <option value={50}>50%</option>
-                    </select>
-                  </div>
-
-                  <div className="px-4 py-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
-                    <select
-                      value={theme ?? 'system'}
-                      onChange={(e) => setTheme(e.target.value)}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      onClick={(e) => e.stopPropagation()}
-                      suppressHydrationWarning
-                    >
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
-                      <option value="system">System</option>
-                    </select>
+                <div ref={settingsOverlayRef} className="fixed top-16 left-0 right-0 z-[60] px-2">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-w-full mx-auto">
+                    {settingsLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        prefetch={false}
+                        onClick={() => setIsSettingsOpen(false)}
+                        className={clsx(
+                          'block px-4 py-2 text-sm transition-colors',
+                          pathname === link.href
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    {settingsLinks.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
+                    <div className="px-4 py-2">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
+                      <select
+                        value={zoomLevel}
+                        onChange={(e) => setZoomLevel(Number(e.target.value))}
+                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value={100}>100%</option>
+                        <option value={90}>90%</option>
+                        <option value={80}>80%</option>
+                        <option value={75}>75%</option>
+                        <option value={60}>60%</option>
+                        <option value={50}>50%</option>
+                      </select>
+                    </div>
+                    <div className="px-4 py-2">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
+                      <select
+                        value={theme ?? 'system'}
+                        onChange={(e) => setTheme(e.target.value)}
+                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        suppressHydrationWarning
+                      >
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="system">System</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
