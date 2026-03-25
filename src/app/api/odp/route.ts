@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -39,8 +40,35 @@ async function ensureOdpTable() {
     ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
   `)
 
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_active ON psb_odp (is_active);`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
+
+  const idx = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND tablename = 'psb_odp'
+        AND indexname = 'uq_psb_odp_key_active'
+    ) AS "exists"
+  `
+  if (!idx[0]?.exists) {
+    await prisma.$executeRawUnsafe(`
+      WITH ranked AS (
+        SELECT id,
+               row_number() OVER (PARTITION BY lower(nama_odp), lower(wilayah) ORDER BY id DESC) AS rn
+        FROM psb_odp
+        WHERE is_active = TRUE
+      )
+      UPDATE psb_odp
+      SET is_active = FALSE, updated_at = NOW()
+      WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+    `)
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odp_key_active ON psb_odp ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE;`
+    )
+  }
 }
 
 
@@ -145,10 +173,19 @@ export async function POST(req: Request) {
   if (!Number.isFinite(terpakai) || terpakai < 0) return NextResponse.json({ error: 'Terpakai tidak valid' }, { status: 400 })
   if (terpakai > kapasitas) return NextResponse.json({ error: 'Terpakai melebihi kapasitas' }, { status: 400 })
 
-  await prisma.$executeRaw`
+  await prisma.$executeRaw(Prisma.sql`
     INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
     VALUES (${nama_odp}, ${wilayah}, ${lokasi}, ${kapasitas}, ${terpakai}, ${status_tiang}, TRUE, NOW(), NOW())
-  `
+    ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
+    DO UPDATE SET
+      wilayah = EXCLUDED.wilayah,
+      lokasi = EXCLUDED.lokasi,
+      kapasitas = 8,
+      terpakai = EXCLUDED.terpakai,
+      status_tiang = EXCLUDED.status_tiang,
+      updated_at = NOW()
+  `)
 
+  cache.invalidateByPrefix('odp:')
   return NextResponse.json({ ok: true }, { status: 201 })
 }

@@ -80,6 +80,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [importError, setImportError] = useState<string | null>(null)
   const fileInputId = 'odp-import-input'
 
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<OdpRow | null>(null)
@@ -121,6 +125,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   useEffect(() => {
     setPage(1)
   }, [q, pageSize, wilayah])
+
+  useEffect(() => {
+    setSelectedIds([])
+  }, [q, wilayah])
 
   const openAdd = () => {
     setEditing(null)
@@ -180,6 +188,47 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       return
     }
     await fetchRows()
+  }
+
+  const toggleRowSelected = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const toggleSelectAllCurrent = () => {
+    const pageIds = rows.map((r) => r.id)
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedSet.has(id))
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)))
+    } else {
+      setSelectedIds((prev) => {
+        const s = new Set(prev)
+        pageIds.forEach((id) => s.add(id))
+        return Array.from(s)
+      })
+    }
+  }
+
+  const deleteSelected = async () => {
+    if (!canEdit) return
+    if (selectedIds.length === 0) return
+    if (!confirm(`Hapus ${selectedIds.length} ODP yang dipilih?`)) return
+    setBulkDeleting(true)
+    setError(null)
+    try {
+      const r = await fetch('/api/odp/bulk-delete', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal menghapus data')
+      setSelectedIds([])
+      await fetchRows()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBulkDeleting(false)
+    }
   }
 
   const handleExportExcel = async () => {
@@ -270,6 +319,17 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               Tambah ODP
             </button>
           )}
+          {canEdit && selectedIds.length > 0 && (
+            <button
+              onClick={deleteSelected}
+              disabled={bulkDeleting}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              title="Hapus ODP yang dipilih"
+            >
+              <Trash2 className="h-4 w-4" />
+              {bulkDeleting ? 'Menghapus...' : `Hapus Dipilih (${selectedIds.length})`}
+            </button>
+          )}
           <button
             onClick={handleExportExcel}
             disabled={isExporting}
@@ -329,6 +389,16 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                {canEdit && (
+                  <th className="py-3 pr-4 pl-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
+                      onChange={toggleSelectAllCurrent}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                  </th>
+                )}
                 <th className="py-3 pr-4 pl-3">#</th>
                 <th className="py-3 pr-4">Nama ODP</th>
                 <th className="py-3 pr-4">POP</th>
@@ -344,13 +414,13 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
             <tbody className="text-sm text-gray-800 dark:text-gray-200">
               {loading ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 10 : 9}>
+                  <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 11 : 9}>
                     Loading...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 10 : 9}>
+                  <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 11 : 9}>
                     Tidak ada data.
                   </td>
                 </tr>
@@ -361,6 +431,16 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                   const sisa = Math.max(0, kapasitas - terpakai)
                   return (
                     <tr key={row.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
+                      {canEdit && (
+                        <td className="py-3 pr-4 pl-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedSet.has(row.id)}
+                            onChange={() => toggleRowSelected(row.id)}
+                            className="h-4 w-4 rounded border-gray-300"
+                          />
+                        </td>
+                      )}
                       <td className="py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
                       <td className="py-3 pr-4 font-semibold">{row.nama_odp}</td>
                       <td className="py-3 pr-4">{row.wilayah || 'Pati'}</td>

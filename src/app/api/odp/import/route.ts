@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
@@ -34,6 +35,32 @@ async function ensureOdpTable() {
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_active ON psb_odp (is_active);`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
+
+  const idx = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND tablename = 'psb_odp'
+        AND indexname = 'uq_psb_odp_key_active'
+    ) AS "exists"
+  `
+  if (!idx[0]?.exists) {
+    await prisma.$executeRawUnsafe(`
+      WITH ranked AS (
+        SELECT id,
+               row_number() OVER (PARTITION BY lower(nama_odp), lower(wilayah) ORDER BY id DESC) AS rn
+        FROM psb_odp
+        WHERE is_active = TRUE
+      )
+      UPDATE psb_odp
+      SET is_active = FALSE, updated_at = NOW()
+      WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+    `)
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odp_key_active ON psb_odp ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE;`
+    )
+  }
 }
 
 export async function POST(request: Request) {
@@ -161,67 +188,39 @@ export async function POST(request: Request) {
       try {
         const values = Prisma.join(
           chunk.map((r) =>
-            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, ${r.terpakai}, ${r.status_tiang})`
+            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())`
           )
         )
 
         await prisma.$executeRaw(Prisma.sql`
-          UPDATE psb_odp AS o
-          SET wilayah = v.wilayah,
-              lokasi = v.lokasi,
-              kapasitas = 8,
-              terpakai = v.terpakai,
-              status_tiang = v.status_tiang,
-              updated_at = NOW()
-          FROM (VALUES ${values}) AS v(nama_odp, wilayah, lokasi, terpakai, status_tiang)
-          WHERE o.is_active = TRUE
-            AND lower(o.nama_odp) = lower(v.nama_odp)
-            AND lower(o.wilayah) = lower(v.wilayah)
-        `)
-
-        await prisma.$executeRaw(Prisma.sql`
           INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
-          SELECT v.nama_odp, v.wilayah, v.lokasi, 8, v.terpakai, v.status_tiang, TRUE, NOW(), NOW()
-          FROM (VALUES ${values}) AS v(nama_odp, wilayah, lokasi, terpakai, status_tiang)
-          WHERE NOT EXISTS (
-            SELECT 1
-            FROM psb_odp o
-            WHERE o.is_active = TRUE
-              AND lower(o.nama_odp) = lower(v.nama_odp)
-              AND lower(o.wilayah) = lower(v.wilayah)
-          )
+          VALUES ${values}
+          ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
+          DO UPDATE SET
+            wilayah = EXCLUDED.wilayah,
+            lokasi = EXCLUDED.lokasi,
+            kapasitas = 8,
+            terpakai = EXCLUDED.terpakai,
+            status_tiang = EXCLUDED.status_tiang,
+            updated_at = NOW()
         `)
 
         ok += chunk.length
       } catch {
         for (const r of chunk) {
           try {
-            const existing = await prisma.$queryRaw<Array<{ id: number }>>`
-              SELECT id
-              FROM psb_odp
-              WHERE is_active = TRUE AND lower(nama_odp) = lower(${r.nama_odp}) AND lower(wilayah) = lower(${r.wilayah})
-              ORDER BY id DESC
-              LIMIT 1
-            `
-            const existingId = existing[0]?.id
-
-            if (existingId) {
-              await prisma.$executeRaw`
-                UPDATE psb_odp
-                SET wilayah = ${r.wilayah},
-                    lokasi = ${r.lokasi},
-                    kapasitas = 8,
-                    terpakai = ${r.terpakai},
-                    status_tiang = ${r.status_tiang},
-                    updated_at = NOW()
-                WHERE id = ${existingId}
-              `
-            } else {
-              await prisma.$executeRaw`
-                INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
-                VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())
-              `
-            }
+            await prisma.$executeRaw(Prisma.sql`
+              INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
+              VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())
+              ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
+              DO UPDATE SET
+                wilayah = EXCLUDED.wilayah,
+                lokasi = EXCLUDED.lokasi,
+                kapasitas = 8,
+                terpakai = EXCLUDED.terpakai,
+                status_tiang = EXCLUDED.status_tiang,
+                updated_at = NOW()
+            `)
             ok++
           } catch {
             fail++
@@ -230,6 +229,7 @@ export async function POST(request: Request) {
       }
     }
 
+    cache.invalidateByPrefix('odp:')
     return NextResponse.json({ message: `Import selesai. Berhasil: ${ok}, Gagal: ${fail}` })
   } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

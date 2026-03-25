@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
@@ -37,6 +38,36 @@ async function ensureOdpTable() {
     ALTER TABLE psb_odp
     ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
   `)
+
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_active ON psb_odp (is_active);`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
+
+  const idx = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND tablename = 'psb_odp'
+        AND indexname = 'uq_psb_odp_key_active'
+    ) AS "exists"
+  `
+  if (!idx[0]?.exists) {
+    await prisma.$executeRawUnsafe(`
+      WITH ranked AS (
+        SELECT id,
+               row_number() OVER (PARTITION BY lower(nama_odp), lower(wilayah) ORDER BY id DESC) AS rn
+        FROM psb_odp
+        WHERE is_active = TRUE
+      )
+      UPDATE psb_odp
+      SET is_active = FALSE, updated_at = NOW()
+      WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+    `)
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odp_key_active ON psb_odp ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE;`
+    )
+  }
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -67,6 +98,17 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!Number.isFinite(terpakai) || terpakai < 0) return NextResponse.json({ error: 'Terpakai tidak valid' }, { status: 400 })
   if (terpakai > kapasitas) return NextResponse.json({ error: 'Terpakai melebihi kapasitas' }, { status: 400 })
 
+  const conflict = await prisma.$queryRaw<Array<{ id: number }>>`
+    SELECT id
+    FROM psb_odp
+    WHERE is_active = TRUE
+      AND id <> ${odpId}
+      AND lower(nama_odp) = lower(${nama_odp})
+      AND lower(wilayah) = lower(${wilayah})
+    LIMIT 1
+  `
+  if (conflict[0]?.id) return NextResponse.json({ error: 'ODP sudah ada di POP tersebut' }, { status: 400 })
+
   await prisma.$executeRaw`
     UPDATE psb_odp
     SET nama_odp = ${nama_odp},
@@ -79,6 +121,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     WHERE id = ${odpId} AND is_active = TRUE
   `
 
+  cache.invalidateByPrefix('odp:')
   return NextResponse.json({ ok: true })
 }
 
@@ -101,5 +144,6 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
     WHERE id = ${odpId}
   `
 
+  cache.invalidateByPrefix('odp:')
   return NextResponse.json({ ok: true })
 }
