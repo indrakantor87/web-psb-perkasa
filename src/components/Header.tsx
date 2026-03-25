@@ -267,8 +267,8 @@ export function Header({ user }: { user: SessionUser }) {
               </button>
 
               {isSettingsOpen && (
-                <div ref={settingsOverlayRef} className="fixed top-16 left-0 right-0 z-[60] px-2">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-w-full mx-auto">
+                <div ref={settingsOverlayRef} className="fixed top-16 right-2 z-[60] w-72">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
                     {settingsLinks.map((link) => (
                       <Link
                         key={link.href}
@@ -276,7 +276,7 @@ export function Header({ user }: { user: SessionUser }) {
                         prefetch={false}
                         onClick={() => setIsSettingsOpen(false)}
                         className={clsx(
-                          'block px-4 py-2 text-sm transition-colors',
+                          'block px-3 py-2 text-sm transition-colors',
                           pathname === link.href
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                             : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
@@ -286,7 +286,7 @@ export function Header({ user }: { user: SessionUser }) {
                       </Link>
                     ))}
                     {settingsLinks.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
-                    <div className="px-4 py-2">
+                    <div className="px-3 py-2">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
                       <select
                         value={zoomLevel}
@@ -301,7 +301,7 @@ export function Header({ user }: { user: SessionUser }) {
                         <option value={50}>50%</option>
                       </select>
                     </div>
-                    <div className="px-4 py-2">
+                    <div className="px-3 py-2">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
                       <select
                         value={theme ?? 'system'}

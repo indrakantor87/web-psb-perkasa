@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
+import { ensureOdpTable } from '@/lib/odp-init'
 
 export const runtime = 'nodejs'
 
@@ -18,64 +19,6 @@ function normalizeStatusTiang(s: string) {
   if (t === 'numpang') return 'Numpang'
   return s
 }
-
-async function ensureOdpTable() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS psb_odp (
-      id SERIAL PRIMARY KEY,
-      nama_odp VARCHAR(100) NOT NULL,
-      wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati',
-      lokasi TEXT NOT NULL,
-      kapasitas INT NOT NULL DEFAULT 8,
-      terpakai INT NOT NULL DEFAULT 0,
-      status_tiang VARCHAR(50) NOT NULL DEFAULT 'Tegak',
-      is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `)
-
-  await prisma.$executeRawUnsafe(`
-    ALTER TABLE psb_odp
-    ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
-  `)
-
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_active ON psb_odp (is_active);`)
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_wilayah ON psb_odp (wilayah);`)
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp ON psb_odp (nama_odp);`)
-  try {
-    await prisma.$executeRawUnsafe(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_nama_odp_trgm ON psb_odp USING gin (nama_odp gin_trgm_ops);`)
-    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_psb_odp_lokasi_trgm ON psb_odp USING gin (lokasi gin_trgm_ops);`)
-  } catch {}
-
-  const idx = await prisma.$queryRaw<Array<{ exists: boolean }>>`
-    SELECT EXISTS (
-      SELECT 1
-      FROM pg_indexes
-      WHERE schemaname = current_schema()
-        AND tablename = 'psb_odp'
-        AND indexname = 'uq_psb_odp_key_active'
-    ) AS "exists"
-  `
-  if (!idx[0]?.exists) {
-    await prisma.$executeRawUnsafe(`
-      WITH ranked AS (
-        SELECT id,
-               row_number() OVER (PARTITION BY lower(nama_odp), lower(wilayah) ORDER BY id DESC) AS rn
-        FROM psb_odp
-        WHERE is_active = TRUE
-      )
-      UPDATE psb_odp
-      SET is_active = FALSE, updated_at = NOW()
-      WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
-    `)
-    await prisma.$executeRawUnsafe(
-      `CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odp_key_active ON psb_odp ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE;`
-    )
-  }
-}
-
 
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
@@ -106,13 +49,16 @@ export async function GET(req: Request) {
         return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
       }
     }
-    const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>`
+    const whereParts = [Prisma.sql`o.is_active = TRUE`]
+    if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
+    if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
+    const whereSql = Prisma.join(whereParts, ' AND ')
+
+    const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
       SELECT COUNT(*) AS total
       FROM psb_odp o
-      WHERE o.is_active = TRUE
-        AND (${wilayah} = '' OR o.wilayah = ${wilayah})
-        AND (${like} = '' OR o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})
-    `
+      WHERE ${whereSql}
+    `)
     const totalValue = totalRows[0]?.total
     const total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue ?? 0)
 
@@ -126,15 +72,13 @@ export async function GET(req: Request) {
         terpakai: number
         status_tiang: string
       }>
-    >`
+    >(Prisma.sql`
       SELECT o.id, o.nama_odp, o.wilayah, o.lokasi, o.kapasitas, o.terpakai, o.status_tiang
       FROM psb_odp o
-      WHERE o.is_active = TRUE
-        AND (${wilayah} = '' OR o.wilayah = ${wilayah})
-        AND (${like} = '' OR o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})
+      WHERE ${whereSql}
       ORDER BY o.id DESC
       LIMIT ${all ? 50000 : pageSize} OFFSET ${all ? 0 : offset}
-    `
+    `)
 
     if (all) {
       if (!bypassCache) cache.set(cacheKey, rows, 60_000)

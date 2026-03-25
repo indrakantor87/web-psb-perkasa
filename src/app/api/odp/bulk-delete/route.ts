@@ -3,25 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { ensureOdpTable } from '@/lib/odp-init'
 
 export const runtime = 'nodejs'
-
-async function ensureOdpTable() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS psb_odp (
-      id SERIAL PRIMARY KEY,
-      nama_odp VARCHAR(100) NOT NULL,
-      wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati',
-      lokasi TEXT NOT NULL,
-      kapasitas INT NOT NULL DEFAULT 8,
-      terpakai INT NOT NULL DEFAULT 0,
-      status_tiang VARCHAR(50) NOT NULL DEFAULT 'Tegak',
-      is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `)
-}
 
 export async function POST(req: Request) {
   const session = await getSession()

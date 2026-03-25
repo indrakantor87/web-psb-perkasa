@@ -108,62 +108,41 @@ export async function GET(request: Request) {
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15', 'X-Cache': 'HIT' } })
     }
-    // Optimasi: Fetch data tiket tanpa kolom fotoRumah yang berat
-    // Dan fetch ID tiket yang punya foto secara terpisah
-    const [tickets, ticketsWithPhotos] = await Promise.all([
-      prisma.ticket.findMany({
-        where,
-        orderBy: [
-          // { statusOrder: 'asc' }, // Disabled until server restart
-          { requestDate: 'desc' },
-          { installedDate: { sort: 'desc', nulls: 'last' } }
-        ],
-        select: {
-          id: true,
-          customerName: true,
-          birthDate: true,
-          locationMap: true,
-          requestDate: true,
-          installedDate: true,
-          package: true,
-          marketingName: true,
-          description: true,
-          phoneNumber: true,
-          pengawalan: true,
-          kmz: true,
-          priority: true,
-          status: true,
-          pembayaran: true,
-          closedBy: {
-            select: {
-              name: true,
-              role: true
-            }
+    const tickets = await prisma.ticket.findMany({
+      where,
+      orderBy: [
+        // { statusOrder: 'asc' }, // Disabled until server restart
+        { requestDate: 'desc' },
+        { installedDate: { sort: 'desc', nulls: 'last' } }
+      ],
+      select: {
+        id: true,
+        customerName: true,
+        birthDate: true,
+        locationMap: true,
+        requestDate: true,
+        installedDate: true,
+        package: true,
+        marketingName: true,
+        description: true,
+        phoneNumber: true,
+        pengawalan: true,
+        kmz: true,
+        priority: true,
+        status: true,
+        pembayaran: true,
+        hasPhoto: true,
+        closedBy: {
+          select: {
+            name: true,
+            role: true
           }
         }
-      }),
-      prisma.ticket.findMany({
-        where: {
-          ...where,
-          fotoRumah: {
-            not: null
-          }
-        },
-        select: {
-          id: true
-        }
-      })
-    ])
+      }
+    })
 
-    const photoIds = new Set(ticketsWithPhotos.map(t => t.id))
-
-    const formattedTickets = tickets.map(t => ({
-      ...t,
-      hasPhoto: photoIds.has(t.id)
-    }))
-
-    cache.set(cacheKey, formattedTickets, 15_000)
-    return NextResponse.json(formattedTickets, {
+    cache.set(cacheKey, tickets, 15_000)
+    return NextResponse.json(tickets, {
       headers: {
         // Private per-user caching (role-based), short TTL to improve perceived speed
         'Cache-Control': 'private, max-age=15',

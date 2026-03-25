@@ -1,10 +1,9 @@
 import { TicketList } from '@/components/TicketList'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getPriorities, getDefaultTemplate } from '@/lib/data'
-import type { Prisma } from '@prisma/client'
 import { ensureDbOptimizations } from '@/lib/db-init'
+import { getTicketsListData } from '@/lib/tickets-list-cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,138 +31,26 @@ export default async function ListPage({
   const currentMarketing = typeof marketingParam === 'string' ? marketingParam : ''
   const currentSearch = typeof searchParam === 'string' ? searchParam : ''
 
-  const startDate = new Date(currentYear, currentMonth - 1, 1)
-  const endDate = new Date(currentYear, currentMonth, 1)
-
-  const isSelectedCurrentMonth = (() => {
-    const now = new Date()
-    return now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth
-  })()
-  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
-
-  const baseWhereOr: Prisma.TicketWhereInput[] = [
-    {
-      AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }],
-    },
-  ]
-  if (isSelectedCurrentMonth) {
-    baseWhereOr.push({
-      AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
-    })
-  }
-
-  const baseWhere: Prisma.TicketWhereInput = {
-    OR: baseWhereOr,
-  }
-
-  if (session.user.role === 'MARKETING') {
-    baseWhere.marketingName = session.user.name
-  } else if (currentMarketing && currentMarketing.trim()) {
-    baseWhere.marketingName = {
-      contains: currentMarketing.trim(),
-    }
-  }
-
-  if (currentSearch && currentSearch.trim()) {
-    const searchTrimmed = currentSearch.trim()
-    const searchInt = parseInt(searchTrimmed)
-    const isNum = !isNaN(searchInt)
-
-    baseWhere.OR = [
-      { customerName: { contains: searchTrimmed, mode: 'insensitive' } },
-      { pengawalan: { contains: searchTrimmed, mode: 'insensitive' } },
-    ]
-
-    if (isNum) {
-      baseWhere.OR.push({ id: searchInt })
-    }
-  }
-
-  const where = { ...baseWhere }
-  if (currentStatus !== 'ALL') {
-    where.status = currentStatus
-  }
-
   const pageParam = resolvedSearchParams.page
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
   const pageSize = typeof limitParam === 'string' ? parseInt(limitParam) : 25
 
-  const [tickets, totalCount, groupedCountsRaw, priorities, defaultTemplate] = await Promise.all([
-    prisma.ticket.findMany({
-      where,
-      orderBy: [
-        { statusOrder: 'asc' }, 
-        { requestDate: 'desc' },
-        { installedDate: { sort: 'desc', nulls: 'last' } }
-      ],
-      skip: (currentPageNumber - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        customerName: true,
-        birthDate: true,
-        locationMap: true,
-        requestDate: true,
-        installedDate: true,
-        package: true,
-        marketingName: true,
-        teknisi: true, // Field teknisi
-        description: true,
-        phoneNumber: true,
-        pengawalan: true,
-        kmz: true,
-        priority: true,
-        status: true,
-        pembayaran: true,
-        hasPhoto: true, // Field optimasi
-        // fotoRumah: true, // REMOVED for performance (base64 too large)
-        closedBy: {
-          select: {
-            name: true,
-            role: true
-          }
-        }
-      }
+  const [{ tickets, totalCount, counts }, priorities, defaultTemplate] = await Promise.all([
+    getTicketsListData({
+      role: session.user.role,
+      userName: session.user.name,
+      month: currentMonth,
+      year: currentYear,
+      status: currentStatus,
+      marketing: currentMarketing,
+      search: currentSearch,
+      page: currentPageNumber,
+      pageSize,
     }),
-    prisma.ticket.count({ where }),
-    // Optimization: Fetch all status counts in one query using groupBy
-    session.user.role !== 'MARKETING' 
-      ? prisma.ticket.groupBy({
-          by: ['status'],
-          _count: {
-            status: true
-          },
-          where: baseWhere
-        })
-      : Promise.resolve([]),
-    // Fetch priorities (cached)
     getPriorities(),
-    // Fetch default template (cached)
-    getDefaultTemplate()
+    getDefaultTemplate(),
   ])
-
-  // Calculate counts for status badges
-  let counts: {
-    OPEN: number
-    ON_PROGRESS: number
-    CLOSE: number
-    PENDING: number
-  } | undefined = undefined
-
-  if (session.user.role !== 'MARKETING') {
-    // Initialize defaults
-    counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
-    
-    // Map groupBy results to counts object
-    const groupedCounts = groupedCountsRaw as Array<{ status: string, _count: { status: number } }>
-    
-    groupedCounts.forEach(item => {
-      const status = item.status
-      if (counts && status in counts) {
-        counts[status as keyof typeof counts] = item._count.status
-      }
-    })
-  }
+  const countsForUi = counts ?? undefined
 
   // No need for separate photo query anymore
   const formattedTickets = tickets.map(t => ({
@@ -196,7 +83,7 @@ export default async function ListPage({
               totalCount: totalCount,
               pageSize
             }}
-            counts={counts}
+            counts={countsForUi}
             priorities={priorities}
             defaultTemplateContent={defaultTemplate?.content || ''}
           />

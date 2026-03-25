@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, CheckCircle2, Clock, AlertCircle, Calendar, TrendingUp, User, WifiOff } from 'lucide-react'
 
@@ -26,6 +26,25 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const isMarketing = userRole === 'MARKETING'
+  const [chartsVisible, setChartsVisible] = useState(false)
+  const chartsRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (chartsVisible) return
+    const el = chartsRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setChartsVisible(true)
+          obs.disconnect()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [chartsVisible])
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -131,13 +150,21 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         />
       </div>
 
-      <ChartSection
-        packageData={packageData}
-        monthlyData={monthlyData}
-        statusData={statusData}
-        showMonthly={!isMarketing}
-        year={year}
-      />
+      <div ref={chartsRef}>
+        {chartsVisible ? (
+          <ChartSection
+            packageData={packageData}
+            monthlyData={monthlyData}
+            statusData={statusData}
+            showMonthly={!isMarketing}
+            year={year}
+          />
+        ) : (
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="h-56 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700/40" />
+          </div>
+        )}
+      </div>
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
       {!isMarketing && (
