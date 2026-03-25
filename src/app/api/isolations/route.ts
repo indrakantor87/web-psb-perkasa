@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, page, limit, role: session.user.role, user: session.user.name })}`
     const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
     if (cached) {
-      return NextResponse.json(cached, { headers: { 'Cache-Control': 'public, max-age=15, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
+      return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=60', 'X-Cache': 'HIT' } })
     }
     const [total, isolations] = await Promise.all([
       prisma.isolation.count({ where }),
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
       limit
     }
     cache.set(cacheKey, payload, 15_000)
-    return NextResponse.json(payload, { headers: { 'Cache-Control': 'public, max-age=15, stale-while-revalidate=60', 'X-Cache': 'MISS' } })
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=60', 'X-Cache': 'MISS' } })
   } catch (error) {
     console.error('Failed to fetch isolations:', error)
     return NextResponse.json({ error: 'Failed to fetch isolations' }, { status: 500 })

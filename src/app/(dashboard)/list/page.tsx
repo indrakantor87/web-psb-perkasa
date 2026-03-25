@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getPriorities, getDefaultTemplate } from '@/lib/data'
 import type { Prisma } from '@prisma/client'
+import { ensureDbOptimizations } from '@/lib/db-init'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function ListPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  await ensureDbOptimizations()
 
   const resolvedSearchParams = await searchParams
   const monthParam = resolvedSearchParams.month

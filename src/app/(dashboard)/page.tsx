@@ -2,7 +2,8 @@ import { DashboardView } from '@/components/DashboardView'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import type { Prisma } from '@prisma/client'
+import { Prisma as PrismaSql } from '@prisma/client'
+import { ensureDbOptimizations } from '@/lib/db-init'
 
 // Cache dashboard selama 2 menit untuk ringkasan agar mengurangi beban DB
 export const revalidate = 120
@@ -14,6 +15,7 @@ export default async function DashboardPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  await ensureDbOptimizations()
 
   const resolvedSearchParams = await searchParams
   const monthParam = resolvedSearchParams.month
@@ -31,101 +33,86 @@ export default async function DashboardPage({
   })()
   const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
 
-  const whereOr: Prisma.TicketWhereInput[] = [
-    {
-      AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }],
-    },
-  ]
-  if (isSelectedCurrentMonth) {
-    whereOr.push({
-      AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
-    })
-  }
+  const marketingRole = session.user.role === 'MARKETING'
+  const marketingName = session.user.name || ''
 
-  const where: Prisma.TicketWhereInput = {
-    OR: whereOr,
-  }
+  const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
+  const marketingClause = marketingRole ? PrismaSql.sql`AND "marketingName" = ${marketingName}` : PrismaSql.sql``
+  const carryClause = isSelectedCurrentMonth
+    ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN (${statusVals}) AND "requestDate" < ${endDate})`
+    : PrismaSql.sql``
 
-  if (session.user.role === 'MARKETING') {
-    where.marketingName = session.user.name
-  }
-
-  // Fetch tickets for manual aggregation (workaround for Prisma groupBy issues on Vercel)
-  const tickets = await prisma.ticket.findMany({
-    where,
-    select: {
-      package: true,
-      marketingName: true,
-      status: true
-    }
-  })
-
-  // 1. Group by Package (normalize nama paket)
-  const normalizePackage = (pkg?: string | null) => {
-    const p = (pkg || 'Unknown').toUpperCase()
-    if (p.includes('HOME LITE')) return 'HOME LITE'
-    if (p.includes('HOME BASIC')) return 'HOME BASIC'
-    if (p.includes('HOME STREAM')) return 'HOME STREAM'
-    if (p.includes('HOME ENTERTAIN')) return 'HOME ENTERTAIN'
-    if (p.includes('HOME SMALL')) return 'HOME SMALL'
-    if (p.includes('HOME ADVAN')) return 'HOME ADVAN'
-    return pkg || 'Unknown'
-  }
-  const packageCounts: Record<string, number> = {}
-  tickets.forEach((t) => {
-    const pkg = normalizePackage(t.package)
-    packageCounts[pkg] = (packageCounts[pkg] || 0) + 1
-  })
-
-  // 2. Group by Marketing and Status
-  const marketingMap = new Map<string, { name: string; open: number; pending: number; close: number; count: number }>()
-
-  tickets.forEach((t) => {
-    const rawName = t.marketingName || 'Unknown'
-    const name = rawName.trim()
-    const key = name.toLowerCase()
-
-    const current = marketingMap.get(key) || { name, open: 0, pending: 0, close: 0, count: 0 }
-    
-    current.count += 1
-    
-    if (t.status === 'OPEN') {
-      current.open += 1
-    } else if (t.status === 'PENDING') {
-      current.pending += 1
-    } else if (t.status === 'CLOSE') {
-      current.close += 1
-    }
-    
-    marketingMap.set(key, current)
-  })
+  const [statusRows, packageRows, marketingRows] = await Promise.all([
+    prisma.$queryRaw<Array<{ status: string; count: number }>>(PrismaSql.sql`
+      SELECT "status" AS status, COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE (
+        ("installedDate" IS NOT NULL AND "installedDate" >= ${startDate} AND "installedDate" < ${endDate})
+        ${carryClause}
+      )
+      ${marketingClause}
+      GROUP BY "status"
+    `),
+    prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
+      WITH src AS (
+        SELECT CASE
+          WHEN UPPER("package") LIKE '%HOME LITE%' THEN 'HOME LITE'
+          WHEN UPPER("package") LIKE '%HOME BASIC%' THEN 'HOME BASIC'
+          WHEN UPPER("package") LIKE '%HOME STREAM%' THEN 'HOME STREAM'
+          WHEN UPPER("package") LIKE '%HOME ENTERTAIN%' THEN 'HOME ENTERTAIN'
+          WHEN UPPER("package") LIKE '%HOME SMALL%' THEN 'HOME SMALL'
+          WHEN UPPER("package") LIKE '%HOME ADVAN%' THEN 'HOME ADVAN'
+          ELSE COALESCE("package",'Unknown')
+        END AS name
+        FROM "Ticket"
+        WHERE (
+          ("installedDate" IS NOT NULL AND "installedDate" >= ${startDate} AND "installedDate" < ${endDate})
+          ${carryClause}
+        )
+        ${marketingClause}
+      )
+      SELECT name, COUNT(*)::int AS count
+      FROM src
+      GROUP BY name
+      ORDER BY COUNT(*) DESC
+    `),
+    prisma.$queryRaw<Array<{ name: string; count: number; open: number; pending: number; close: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
+        COUNT(*)::int AS count,
+        SUM(CASE WHEN "status" = 'OPEN' THEN 1 ELSE 0 END)::int AS open,
+        SUM(CASE WHEN "status" = 'PENDING' THEN 1 ELSE 0 END)::int AS pending,
+        SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END)::int AS close
+      FROM "Ticket"
+      WHERE (
+        ("installedDate" IS NOT NULL AND "installedDate" >= ${startDate} AND "installedDate" < ${endDate})
+        ${carryClause}
+      )
+      ${marketingClause}
+      GROUP BY COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown')
+      ORDER BY SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END) DESC
+    `),
+  ])
 
   const packageOrder = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
+  const packageData = packageRows
+    .map((r) => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
+    .sort((a, b) => {
+      const indexA = packageOrder.indexOf(a.name)
+      const indexB = packageOrder.indexOf(b.name)
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB
+      if (indexA !== -1) return -1
+      if (indexB !== -1) return 1
+      return a.name.localeCompare(b.name)
+    })
 
-  const packageData = Object.entries(packageCounts).map(([name, count]) => ({
-    name,
-    count
-  })).sort((a: { name: string }, b: { name: string }) => {
-    const indexA = packageOrder.indexOf(a.name)
-    const indexB = packageOrder.indexOf(b.name)
-    
-    // If both are in the list, sort by index
-    if (indexA !== -1 && indexB !== -1) {
-      return indexA - indexB
-    }
-    
-    // If only a is in the list, it comes first
-    if (indexA !== -1) return -1
-    
-    // If only b is in the list, it comes first
-    if (indexB !== -1) return 1
-    
-    // If neither, sort alphabetically
-    return a.name.localeCompare(b.name)
-  })
-
-  const marketingData = Array.from(marketingMap.values())
-    .sort((a, b) => b.close - a.close)
+  const marketingData = marketingRows.map((r) => ({
+    name: r.name || 'Unknown',
+    count: Number(r.count || 0),
+    open: Number(r.open || 0),
+    pending: Number(r.pending || 0),
+    close: Number(r.close || 0),
+  }))
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
   const yearStart = new Date(currentYear, 0, 1)
@@ -203,44 +190,24 @@ export default async function DashboardPage({
   `
   const yearMarketingCounts = yearMarketingRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
-  // 3. Calculate Global Status Counts
   const statusCounts = {
-    total: tickets.length,
-    open: 0,
-    close: 0,
-    pending: 0,
-    on_progress: 0
+    total: statusRows.reduce((acc, r) => acc + Number(r.count || 0), 0),
+    open: statusRows.find((r) => r.status === 'OPEN')?.count || 0,
+    close: statusRows.find((r) => r.status === 'CLOSE')?.count || 0,
+    pending: statusRows.find((r) => r.status === 'PENDING')?.count || 0,
+    on_progress: statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0,
   }
 
-  tickets.forEach((t) => {
-    if (t.status === 'OPEN') statusCounts.open++
-    else if (t.status === 'CLOSE') statusCounts.close++
-    else if (t.status === 'PENDING') statusCounts.pending++
-    else if (t.status === 'ON_PROGRESS') statusCounts.on_progress++
-  })
-
-  // Fetch Isolation Count (Status: OPEN) - role aware
-  const isoCountWhere: Prisma.IsolationWhereInput = { status: 'OPEN' }
-  if (session.user.role === 'MARKETING') {
-    isoCountWhere.marketing = session.user.name
-  }
-  const isolationCount = await prisma.isolation.count({ where: isoCountWhere })
-
-  // Group isolation by marketing (OPEN only)
-  const isoListWhere: Prisma.IsolationWhereInput = { status: 'OPEN' }
-  if (session.user.role === 'MARKETING') {
-    isoListWhere.marketing = session.user.name
-  }
-  const isolations = await prisma.isolation.findMany({
-    where: isoListWhere,
-    select: { marketing: true }
-  })
-  const isolirByMarketing = new Map<string, number>()
-  isolations.forEach((iso) => {
-    const name = (iso.marketing || 'Unknown').trim()
-    const key = name.toLowerCase()
-    isolirByMarketing.set(key, (isolirByMarketing.get(key) || 0) + 1)
-  })
+  const isoRoleClause = marketingRole ? PrismaSql.sql`AND "marketing" = ${marketingName}` : PrismaSql.sql``
+  const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
+    SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
+    FROM "Isolation"
+    WHERE "status" = 'OPEN'
+    ${isoRoleClause}
+    GROUP BY COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown')
+  `)
+  const isolirByMarketing = new Map<string, number>(isoRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)]))
+  const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
   // Merge isolir count into marketingData
   const marketingDataWithIsolir = marketingData.map((m) => ({
