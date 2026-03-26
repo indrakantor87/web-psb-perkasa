@@ -2,9 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
-import { Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { Map, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
-type OdpRow = {
+// Komponen peta diload secara dinamis hanya di sisi klien untuk menghindari error 'window is not defined'
+const OdpRealtimeMap = dynamic(() => import('./OdpRealtimeMap'), {
+  ssr: false,
+  loading: () => <div className="h-[420px] w-full rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse flex items-center justify-center text-sm text-gray-500">Memuat Peta...</div>,
+})
+
+export type OdpRow = {
   id: number
   nama_odp: string
   wilayah: string
@@ -12,11 +19,45 @@ type OdpRow = {
   kapasitas: number
   terpakai: number
   status_tiang: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 function toInt(v: string) {
   const n = Number(v)
   return Number.isFinite(n) ? Math.trunc(n) : NaN
+}
+
+function parseLatLng(input: string) {
+  const s = String(input ?? '').trim()
+  if (!s) return null
+  const direct = s.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/)
+  const at = s.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const q = s.match(/[?&]q=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const ll = s.match(/[?&]ll=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const m = direct ?? at ?? q ?? ll
+  if (!m) return null
+  const a = Number(m[1])
+  const b = Number(m[2])
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null
+
+  const aIsLat = a >= -90 && a <= 90
+  const bIsLat = b >= -90 && b <= 90
+  const aIsLng = a >= -180 && a <= 180
+  const bIsLng = b >= -180 && b <= 180
+
+  if (aIsLat && bIsLng) return { latitude: a, longitude: b }
+  if (aIsLng && bIsLat) return { latitude: b, longitude: a }
+  return null
+}
+
+function statusColor(kapasitas: number, terpakai: number) {
+  const cap = Math.max(1, Number(kapasitas) || 8)
+  const used = Math.max(0, Number(terpakai) || 0)
+  const ratio = used / cap
+  if (used >= cap) return '#ef4444'
+  if (ratio > 0.5) return '#f59e0b'
+  return '#10b981'
 }
 
 function OdpBadge({ kapasitas, terpakai }: { kapasitas: number; terpakai: number }) {
@@ -85,10 +126,17 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
 
+  const [mapOpen, setMapOpen] = useState(false)
+  const [mapRows, setMapRows] = useState<OdpRow[]>([])
+  const [mapLoading, setMapLoading] = useState(false)
+  const [mapError, setMapError] = useState<string | null>(null)
+  const [mapKey, setMapKey] = useState(0) // Untuk men-trigger re-fetch peta manual/setelah edit
+  const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
+
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<OdpRow | null>(null)
-  const [form, setForm] = useState({ nama_odp: '', wilayah: 'Pati', lokasi: '', terpakai: '0', status_tiang: 'Perkasa' })
+  const [form, setForm] = useState({ nama_odp: '', wilayah: 'Pati', lokasi: '', koordinat: '', terpakai: '0', status_tiang: 'Perkasa' })
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
@@ -137,15 +185,52 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     setSelectedIds([])
   }, [q, wilayah])
 
+  const fetchMap = useCallback(async (signal?: AbortSignal) => {
+    const url = new URL('/api/odp', window.location.origin)
+    url.searchParams.set('q', qDebounced)
+    url.searchParams.set('wilayah', wilayah)
+    url.searchParams.set('map', '1')
+    url.searchParams.set('bypassCache', '1')
+    const r = await fetch(url.toString(), { cache: 'no-store', signal })
+    const data = await r.json().catch(() => [])
+    if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat peta')
+    setMapRows(Array.isArray(data) ? data : [])
+  }, [qDebounced, wilayah])
+
+  useEffect(() => {
+    if (!mapOpen) return
+    const controller = new AbortController()
+    setMapLoading(true)
+    setMapError(null)
+    fetchMap(controller.signal)
+      .catch((e: unknown) => {
+        if (controller.signal.aborted) return
+        setMapError(e instanceof Error ? e.message : String(e))
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setMapLoading(false)
+      })
+    return () => controller.abort()
+  }, [fetchMap, mapOpen, mapKey])
+
   const openAdd = () => {
     setEditing(null)
-    setForm({ nama_odp: '', wilayah: wilayah || 'Pati', lokasi: '', terpakai: '0', status_tiang: 'Perkasa' })
+    setForm({ nama_odp: '', wilayah: wilayah || 'Pati', lokasi: '', koordinat: '', terpakai: '0', status_tiang: 'Perkasa' })
     setModalOpen(true)
   }
 
   const openEdit = (row: OdpRow) => {
     setEditing(row)
-    setForm({ nama_odp: row.nama_odp, wilayah: row.wilayah || 'Pati', lokasi: row.lokasi, terpakai: String(row.terpakai ?? 0), status_tiang: row.status_tiang ?? 'Perkasa' })
+    const koordinat =
+      Number.isFinite(row.latitude) && Number.isFinite(row.longitude) ? `${Number(row.latitude)},${Number(row.longitude)}` : ''
+    setForm({
+      nama_odp: row.nama_odp,
+      wilayah: row.wilayah || 'Pati',
+      lokasi: row.lokasi,
+      koordinat,
+      terpakai: String(row.terpakai ?? 0),
+      status_tiang: row.status_tiang ?? 'Perkasa',
+    })
     setModalOpen(true)
   }
 
@@ -161,12 +246,17 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       if (!Number.isFinite(terpakai) || terpakai < 0) throw new Error('Terpakai tidak valid')
       if (terpakai > 8) throw new Error('Terpakai maksimal 8')
 
+      const coords = parseLatLng(form.koordinat.trim()) ?? parseLatLng(form.lokasi.trim())
+      if (form.koordinat.trim() && !coords) throw new Error('Koordinat tidak valid. Gunakan format lat,lng atau link maps')
+
       const payload = {
         nama_odp: form.nama_odp.trim(),
         wilayah: form.wilayah.trim(),
         lokasi: form.lokasi.trim(),
         terpakai,
         status_tiang: form.status_tiang.trim() || 'Perkasa',
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
       }
 
       const target = editing ? `/api/odp/${editing.id}` : '/api/odp'
@@ -178,6 +268,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
       setModalOpen(false)
       await fetchRows()
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -238,6 +329,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       setTotal((prev) => Math.max(0, prev - removedOnPage))
       setSelectedIds([])
       await fetchRows(undefined, true)
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -308,7 +400,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal import')
       alert((data as { message?: string })?.message ?? 'Import selesai')
-      await fetchRows()
+      await fetchRows(undefined, true)
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       setImportError(msg)
@@ -316,6 +409,24 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     } finally {
       setIsImporting(false)
       e.target.value = ''
+    }
+  }
+
+  const handleLocationClick = (odp: OdpRow) => {
+    if (Number.isFinite(odp.latitude) && Number.isFinite(odp.longitude)) {
+      setMapOpen(true)
+      setFocusedOdpId(odp.id)
+      
+      // Gunakan setTimeout untuk memastikan elemen peta sudah dirender
+      setTimeout(() => {
+        const mapEl = document.getElementById('odp-map-container')
+        if (mapEl) {
+          // Gunakan scrollIntoView yang lebih modern dan handal
+          mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }, 400)
     }
   }
 
@@ -327,6 +438,14 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">1 ODP berisi 8 port. Merah (penuh), Kuning (&gt; 50%), Hijau (&lt; 50%).</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setMapOpen((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            title="Tampilan peta realtime"
+          >
+            <Map className="h-4 w-4" />
+            {mapOpen ? 'Tutup Peta' : 'Lihat Peta'}
+          </button>
           {canEdit && (
             <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
               <Plus className="h-4 w-4" />
@@ -399,6 +518,23 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         {error && <div className="mt-4 rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{error}</div>}
         {importError && <div className="mt-3 rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{importError}</div>}
 
+        {mapOpen && (
+          <div id="odp-map-container" className="mt-4 space-y-3">
+            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+              <span>Marker: {mapRows.length}</span>
+              <button onClick={() => setMapKey((k) => k + 1)} disabled={mapLoading} className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50">
+                {mapLoading ? 'Memuat...' : 'Refresh Peta'}
+              </button>
+            </div>
+            {mapError && <div className="rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{mapError}</div>}
+            {mapLoading ? (
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
+            ) : (
+              <OdpRealtimeMap rows={mapRows} focusId={focusedOdpId} />
+            )}
+          </div>
+        )}
+
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full">
             <thead>
@@ -458,7 +594,23 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                       <td className="py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
                       <td className="py-3 pr-4 font-semibold">{row.nama_odp}</td>
                       <td className="py-3 pr-4">{row.wilayah || 'Pati'}</td>
-                      <td className="py-3 pr-4">{row.lokasi}</td>
+                      <td className="py-3 pr-4">
+                        {(() => {
+                          const hasCoords = Number.isFinite(row.latitude) && Number.isFinite(row.longitude)
+                          const parsed = !hasCoords ? parseLatLng(row.lokasi) : null
+                          const isClickable = hasCoords || parsed !== null
+                          
+                          if (isClickable) {
+                            const mapRow = hasCoords ? row : { ...row, latitude: parsed!.latitude, longitude: parsed!.longitude }
+                            return (
+                              <button onClick={() => handleLocationClick(mapRow)} className="text-left hover:text-blue-600 dark:hover:text-blue-400 hover:underline decoration-dashed underline-offset-4 transition-colors" title="Lihat di Peta">
+                                {row.lokasi}
+                              </button>
+                            )
+                          }
+                          return row.lokasi
+                        })()}
+                      </td>
                       <td className="py-3 pr-4">{kapasitas}</td>
                       <td className={clsx('py-3 pr-4', terpakai >= kapasitas ? 'font-bold text-red-400' : '')}>{terpakai}</td>
                       <td className={clsx('py-3 pr-4', sisa === 0 ? 'font-bold text-red-400' : '')}>{sisa}</td>
@@ -525,6 +677,15 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <div className="md:col-span-2">
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Lokasi</label>
             <input value={form.lokasi} onChange={(e) => setForm((p) => ({ ...p, lokasi: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="Alamat / patokan lokasi" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Koordinat</label>
+            <input
+              value={form.koordinat}
+              onChange={(e) => setForm((p) => ({ ...p, koordinat: e.target.value }))}
+              className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white"
+              placeholder="-6.888,110.905 atau link Google Maps"
+            />
           </div>
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kapasitas</label>

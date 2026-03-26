@@ -6,6 +6,18 @@ import { loginSchema } from '@/lib/validations'
 
 export async function POST(request: Request) {
   try {
+    if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_ADMIN === '1') {
+      const userCount = await prisma.user.count().catch(() => 1)
+      if (userCount === 0) {
+        try {
+          const hashed = await bcrypt.hash('123456', 10)
+          await prisma.user.create({
+            data: { name: 'Admin', username: 'admin', password: hashed, role: 'ADMIN' },
+          })
+        } catch {}
+      }
+    }
+
     const body = await request.json()
     
     // Validate input

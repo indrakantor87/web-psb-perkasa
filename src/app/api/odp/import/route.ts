@@ -12,6 +12,25 @@ function toInt(v: unknown) {
   return Number.isFinite(n) ? Math.trunc(n) : NaN
 }
 
+function parseLatLng(input: string) {
+  const s = String(input ?? '').trim()
+  if (!s) return null
+
+  const direct = s.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/)
+  const at = s.match(/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const q = s.match(/[?&]q=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const ll = s.match(/[?&]ll=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const m = direct ?? at ?? q ?? ll
+  if (!m) return null
+
+  const latitude = Number(m[1])
+  const longitude = Number(m[2])
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  if (latitude < -90 || latitude > 90) return null
+  if (longitude < -180 || longitude > 180) return null
+  return { latitude, longitude }
+}
+
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,6 +58,9 @@ export async function POST(request: Request) {
       if (['NAMA ODP', 'ODP', 'NAMA'].includes(k)) return 'nama_odp'
       if (['POP', 'WILAYAH', 'REGION', 'AREA'].includes(k)) return 'wilayah'
       if (['LOKASI', 'ALAMAT'].includes(k)) return 'lokasi'
+      if (['KOORDINAT', 'KOORDINAT (LAT,LNG)', 'COORDINATE', 'COORDINATES', 'COORDS', 'MAPS'].includes(k)) return 'koordinat'
+      if (['LAT', 'LATITUDE'].includes(k)) return 'latitude'
+      if (['LNG', 'LON', 'LONG', 'LONGITUDE'].includes(k)) return 'longitude'
       if (['TERPAKAI', 'USED'].includes(k)) return 'terpakai'
       if (['STATUS TIANG', 'TIANG'].includes(k)) return 'status_tiang'
       return ''
@@ -90,6 +112,8 @@ export async function POST(request: Request) {
       nama_odp: string
       wilayah: string
       lokasi: string
+      latitude: number | null
+      longitude: number | null
       terpakai: number
       status_tiang: string
     }> = []
@@ -105,6 +129,15 @@ export async function POST(request: Request) {
       const nama_odp = String(r.nama_odp ?? '').trim()
       const wilayah = String(r.wilayah ?? 'Pati').trim() || 'Pati'
       const lokasi = String(r.lokasi ?? '').trim()
+      const latRaw = r.latitude
+      const lngRaw = r.longitude
+      const lat = latRaw === null || typeof latRaw === 'undefined' || latRaw === '' ? NaN : Number(latRaw)
+      const lng = lngRaw === null || typeof lngRaw === 'undefined' || lngRaw === '' ? NaN : Number(lngRaw)
+      const koordinat = String((r as Record<string, unknown>).koordinat ?? '').trim()
+      const parsedFromKoordinat = parseLatLng(koordinat)
+      const parsedFromLokasi = parseLatLng(lokasi)
+      const latitude = Number.isFinite(lat) ? lat : parsedFromKoordinat?.latitude ?? parsedFromLokasi?.latitude ?? null
+      const longitude = Number.isFinite(lng) ? lng : parsedFromKoordinat?.longitude ?? parsedFromLokasi?.longitude ?? null
       const statusRaw = String(r.status_tiang ?? '').trim()
       const t = statusRaw.toLowerCase().replace(/\s+/g, '')
       const status_tiang =
@@ -120,8 +153,10 @@ export async function POST(request: Request) {
 
       if (!nama_odp || !wilayah || !lokasi) { fail++; continue }
       if (!Number.isFinite(terpakai) || terpakai < 0 || terpakai > 8) { fail++; continue }
+      if (latitude !== null && (latitude < -90 || latitude > 90)) { fail++; continue }
+      if (longitude !== null && (longitude < -180 || longitude > 180)) { fail++; continue }
 
-      normalizedRows.push({ nama_odp, wilayah, lokasi, terpakai, status_tiang })
+      normalizedRows.push({ nama_odp, wilayah, lokasi, latitude, longitude, terpakai, status_tiang })
     }
 
     const map = new Map<string, (typeof normalizedRows)[number]>()
@@ -137,12 +172,12 @@ export async function POST(request: Request) {
       try {
         const values = Prisma.join(
           chunk.map((r) =>
-            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())`
+            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())`
           )
         )
 
         await prisma.$executeRaw(Prisma.sql`
-          INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
+          INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, latitude, longitude, is_active, created_at, updated_at)
           VALUES ${values}
           ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
           DO UPDATE SET
@@ -151,6 +186,8 @@ export async function POST(request: Request) {
             kapasitas = 8,
             terpakai = EXCLUDED.terpakai,
             status_tiang = EXCLUDED.status_tiang,
+            latitude = EXCLUDED.latitude,
+            longitude = EXCLUDED.longitude,
             updated_at = NOW()
         `)
 
@@ -159,8 +196,8 @@ export async function POST(request: Request) {
         for (const r of chunk) {
           try {
             await prisma.$executeRaw(Prisma.sql`
-              INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, is_active, created_at, updated_at)
-              VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, TRUE, NOW(), NOW())
+              INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, latitude, longitude, is_active, created_at, updated_at)
+              VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())
               ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
               DO UPDATE SET
                 wilayah = EXCLUDED.wilayah,
@@ -168,6 +205,8 @@ export async function POST(request: Request) {
                 kapasitas = 8,
                 terpakai = EXCLUDED.terpakai,
                 status_tiang = EXCLUDED.status_tiang,
+                latitude = EXCLUDED.latitude,
+                longitude = EXCLUDED.longitude,
                 updated_at = NOW()
             `)
             ok++

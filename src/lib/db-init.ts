@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 type GlobalState = {
   __dbInitPromise?: Promise<void>
@@ -36,6 +37,23 @@ export async function ensureDbOptimizations() {
       for (const sql of trigramStatements) {
         try {
           await prisma.$executeRawUnsafe(sql)
+        } catch {}
+      }
+
+      if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_ADMIN === '1') {
+        try {
+          const userCount = await prisma.user.count()
+          if (userCount === 0) {
+            const hashed = await bcrypt.hash('123456', 10)
+            await prisma.user.create({
+              data: {
+                name: 'Admin',
+                username: 'admin',
+                password: hashed,
+                role: 'ADMIN',
+              },
+            })
+          }
         } catch {}
       }
     })()

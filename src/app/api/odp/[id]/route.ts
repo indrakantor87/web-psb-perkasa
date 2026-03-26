@@ -11,6 +11,25 @@ function toInt(v: string) {
   return Number.isFinite(n) ? Math.trunc(n) : NaN
 }
 
+function parseLatLng(input: string) {
+  const s = String(input ?? '').trim()
+  if (!s) return null
+
+  const direct = s.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/)
+  const at = s.match(/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const q = s.match(/[?&]q=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const ll = s.match(/[?&]ll=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const m = direct ?? at ?? q ?? ll
+  if (!m) return null
+
+  const latitude = Number(m[1])
+  const longitude = Number(m[2])
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  if (latitude < -90 || latitude > 90) return null
+  if (longitude < -180 || longitude > 180) return null
+  return { latitude, longitude }
+}
+
 function normalizeStatusTiang(s: string) {
   const t = s.toLowerCase().replace(/\s+/g, '')
   if (t === 'na' || t === 'n/a') return 'n/a'
@@ -40,6 +59,15 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const statusNorm = normalizeStatusTiang(status_tiang)
   const kapasitas = 8
   const terpakai = Math.trunc(Number(body?.terpakai ?? 0))
+  const latitudeRaw = body?.latitude
+  const longitudeRaw = body?.longitude
+  const latitude = latitudeRaw === null || typeof latitudeRaw === 'undefined' || latitudeRaw === '' ? NaN : Number(latitudeRaw)
+  const longitude = longitudeRaw === null || typeof longitudeRaw === 'undefined' || longitudeRaw === '' ? NaN : Number(longitudeRaw)
+  const parsed = parseLatLng(lokasi)
+  const finalLatitude = Number.isFinite(latitude) ? latitude : parsed?.latitude ?? null
+  const finalLongitude = Number.isFinite(longitude) ? longitude : parsed?.longitude ?? null
+  if (finalLatitude !== null && (finalLatitude < -90 || finalLatitude > 90)) return NextResponse.json({ error: 'Latitude tidak valid' }, { status: 400 })
+  if (finalLongitude !== null && (finalLongitude < -180 || finalLongitude > 180)) return NextResponse.json({ error: 'Longitude tidak valid' }, { status: 400 })
 
   if (!nama_odp) return NextResponse.json({ error: 'Nama ODP wajib diisi' }, { status: 400 })
   if (!wilayah) return NextResponse.json({ error: 'Wilayah wajib diisi' }, { status: 400 })
@@ -66,6 +94,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
         kapasitas = ${kapasitas},
         terpakai = ${terpakai},
         status_tiang = ${statusNorm},
+        latitude = ${finalLatitude},
+        longitude = ${finalLongitude},
         updated_at = NOW()
     WHERE id = ${odpId} AND is_active = TRUE
   `

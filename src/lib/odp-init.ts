@@ -14,6 +14,8 @@ export async function ensureOdpTable() {
           Array<{
             table_exists: boolean
             has_wilayah: boolean
+            has_latitude: boolean
+            has_longitude: boolean
             has_idx_active: boolean
             has_idx_wilayah: boolean
             has_idx_nama: boolean
@@ -32,13 +34,28 @@ export async function ensureOdpTable() {
             ) AS table_exists
           ),
           cols AS (
-            SELECT EXISTS (
-              SELECT 1
-              FROM information_schema.columns
-              WHERE table_schema = current_schema()
-                AND table_name = 'psb_odp'
-                AND column_name = 'wilayah'
-            ) AS has_wilayah
+            SELECT
+              EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'psb_odp'
+                  AND column_name = 'wilayah'
+              ) AS has_wilayah,
+              EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'psb_odp'
+                  AND column_name = 'latitude'
+              ) AS has_latitude,
+              EXISTS (
+                SELECT 1
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'psb_odp'
+                  AND column_name = 'longitude'
+              ) AS has_longitude
           ),
           idx AS (
             SELECT
@@ -66,6 +83,8 @@ export async function ensureOdpTable() {
           SELECT
             tbl.table_exists,
             cols.has_wilayah,
+            cols.has_latitude,
+            cols.has_longitude,
             idx.has_idx_active,
             idx.has_idx_wilayah,
             idx.has_idx_nama,
@@ -81,6 +100,8 @@ export async function ensureOdpTable() {
         if (
           c?.table_exists &&
           c?.has_wilayah &&
+          c?.has_latitude &&
+          c?.has_longitude &&
           c?.has_idx_active &&
           c?.has_idx_wilayah &&
           c?.has_idx_nama &&
@@ -102,6 +123,8 @@ export async function ensureOdpTable() {
           kapasitas INT NOT NULL DEFAULT 8,
           terpakai INT NOT NULL DEFAULT 0,
           status_tiang VARCHAR(50) NOT NULL DEFAULT 'Tegak',
+          latitude DOUBLE PRECISION,
+          longitude DOUBLE PRECISION,
           is_active BOOLEAN NOT NULL DEFAULT TRUE,
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -111,6 +134,16 @@ export async function ensureOdpTable() {
       await prisma.$executeRawUnsafe(`
         ALTER TABLE psb_odp
         ADD COLUMN IF NOT EXISTS wilayah VARCHAR(50) NOT NULL DEFAULT 'Pati';
+      `)
+
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE psb_odp
+        ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+      `)
+
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE psb_odp
+        ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
       `)
 
       try {
