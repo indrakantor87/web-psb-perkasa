@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -42,14 +43,45 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        username: normalizedUsername,
-        password: hashedPassword,
-        role,
-      },
-    })
+    async function repairUserIdSequence() {
+      await prisma.$executeRaw`
+        SELECT setval(
+          pg_get_serial_sequence('"User"', 'id'),
+          COALESCE((SELECT MAX(id) FROM "User"), 0) + 1,
+          false
+        );
+      `
+    }
+    function isUserIdUniqueError(e: unknown) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError)) return false
+      if (e.code !== 'P2002') return false
+      const target = (e.meta as any)?.target
+      if (Array.isArray(target)) return target.includes('id')
+      return target === 'id'
+    }
+
+    let newUser
+    try {
+      newUser = await prisma.user.create({
+        data: {
+          name,
+          username: normalizedUsername,
+          password: hashedPassword,
+          role,
+        },
+      })
+    } catch (e) {
+      if (!isUserIdUniqueError(e)) throw e
+      await repairUserIdSequence()
+      newUser = await prisma.user.create({
+        data: {
+          name,
+          username: normalizedUsername,
+          password: hashedPassword,
+          role,
+        },
+      })
+    }
     const safeUser = { id: newUser.id, name: newUser.name, username: newUser.username, role: newUser.role, createdAt: newUser.createdAt }
     return NextResponse.json(safeUser)
   } catch (error) {
