@@ -2,10 +2,29 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
+
+async function repairTicketIdSequence() {
+  await prisma.$executeRaw`
+    SELECT setval(
+      pg_get_serial_sequence('"Ticket"', 'id'),
+      COALESCE((SELECT MAX(id) FROM "Ticket"), 0) + 1,
+      false
+    );
+  `
+}
+
+function isTicketIdUniqueError(error: unknown) {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false
+  if (error.code !== 'P2002') return false
+  const meta = (error.meta ?? {}) as { target?: unknown }
+  const target = meta.target
+  if (Array.isArray(target)) return target.includes('id')
+  return target === 'id'
+}
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -272,22 +291,29 @@ export async function POST(request: Request) {
     }
 
     // Create ticket using standard Prisma create
-    const ticket = await prisma.ticket.create({
-      data: {
-        customerName,
-        birthDate: birthDateObj,
-        locationMap,
-        package: pkg,
-        marketingName: finalMarketingName,
-        description,
-        phoneNumber,
-        pengawalan: finalPengawalan,
-        fotoRumah: fotoRumahPath,
-        hasPhoto: !!fotoRumahPath,
-        status: 'OPEN',
-        requestDate: new Date(),
-      },
-    })
+    const createData: Prisma.TicketCreateInput = {
+      customerName,
+      birthDate: birthDateObj,
+      locationMap,
+      package: pkg,
+      marketingName: finalMarketingName,
+      description,
+      phoneNumber,
+      pengawalan: finalPengawalan,
+      fotoRumah: fotoRumahPath,
+      hasPhoto: !!fotoRumahPath,
+      status: 'OPEN',
+      requestDate: new Date(),
+    }
+
+    let ticket
+    try {
+      ticket = await prisma.ticket.create({ data: createData })
+    } catch (e) {
+      if (!isTicketIdUniqueError(e)) throw e
+      await repairTicketIdSequence()
+      ticket = await prisma.ticket.create({ data: createData })
+    }
 
     return NextResponse.json(ticket)
   } catch (error: unknown) {
