@@ -29,7 +29,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
     { href: '/isolir', label: 'Isolir', icon: Ban },
-    ...(['KARYAWAN', 'NOC', 'CS', 'TEKNISI', 'MARKETING'].includes(String(user?.role)) ? [{ href: '/odp', label: 'PORT ODP', icon: Wifi }] : []),
+    { href: '/odp', label: 'PORT ODP', icon: Wifi },
   ]
 
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
