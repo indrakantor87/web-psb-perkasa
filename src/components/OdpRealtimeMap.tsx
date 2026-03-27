@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
+import { CircleMarker, LayersControl, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import * as L from 'leaflet'
 import type { OdpRow } from './OdpManager'
 
@@ -79,7 +79,17 @@ export default function OdpRealtimeMap({ rows, focusId }: { rows: OdpRow[]; focu
     <div className="rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
       <div className="h-[420px] w-full">
         <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full">
-          <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="OpenStreetMap">
+              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Satelit (Esri)">
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
           <MapController points={points} focusId={focusId} rows={rows} />
           {rows
             .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))

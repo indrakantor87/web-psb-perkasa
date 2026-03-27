@@ -51,15 +51,6 @@ function parseLatLng(input: string) {
   return null
 }
 
-function statusColor(kapasitas: number, terpakai: number) {
-  const cap = Math.max(1, Number(kapasitas) || 8)
-  const used = Math.max(0, Number(terpakai) || 0)
-  const ratio = used / cap
-  if (used >= cap) return '#ef4444'
-  if (ratio > 0.5) return '#f59e0b'
-  return '#10b981'
-}
-
 function OdpBadge({ kapasitas, terpakai }: { kapasitas: number; terpakai: number }) {
   const cap = Math.max(1, Number(kapasitas) || 8)
   const used = Math.max(0, Number(terpakai) || 0)

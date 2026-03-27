@@ -55,7 +55,8 @@ export async function POST(request: Request) {
     function isUserIdUniqueError(e: unknown) {
       if (!(e instanceof Prisma.PrismaClientKnownRequestError)) return false
       if (e.code !== 'P2002') return false
-      const target = (e.meta as any)?.target
+      const meta = e.meta as { target?: unknown } | undefined
+      const target = meta?.target
       if (Array.isArray(target)) return target.includes('id')
       return target === 'id'
     }
