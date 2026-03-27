@@ -56,7 +56,7 @@ function normalizeStatusTiang(s: string) {
 
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
-  if (session && session.user.role === 'MARKETING') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     await ensureOdpTable()
