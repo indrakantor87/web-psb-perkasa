@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export async function PUT(
   request: Request,
@@ -131,8 +132,7 @@ export async function PUT(
       // Marketing cannot close tickets (handled below)
     }
 
-    // Check if trying to close ticket
-    let ticket;
+    let ticket
     if (status === 'CLOSE') {
       if (session.user.role === 'MARKETING') {
         return NextResponse.json(
@@ -141,16 +141,31 @@ export async function PUT(
         )
       }
 
-      ticket = await prisma.ticket.update({
+      const current = await prisma.ticket.findUnique({
         where: { id: ticketId },
-        data: {
-          ...updateData,
-          status: 'CLOSE',
-          installedDate: new Date(),
-          closedById: session.user.id,
-        },
-        select: { id: true, status: true },
+        select: { status: true },
       })
+      if (current?.status === 'CLOSE') {
+        ticket = await prisma.ticket.update({
+          where: { id: ticketId },
+          data: {
+            ...updateData,
+            status: 'CLOSE',
+          },
+          select: { id: true, status: true },
+        })
+      } else {
+        ticket = await prisma.ticket.update({
+          where: { id: ticketId },
+          data: {
+            ...updateData,
+            status: 'CLOSE',
+            installedDate: new Date(),
+            closedById: session.user.id,
+          },
+          select: { id: true, status: true },
+        })
+      }
     } else {
       // Normal update (e.g. editing details)
       /* const statusUpdate = status !== undefined ? { 
@@ -168,6 +183,8 @@ export async function PUT(
       })
     }
 
+    cache.invalidateByPrefix('tickets-list:')
+    cache.invalidateByPrefix('tickets:')
     return NextResponse.json(ticket)
 
   } catch {
