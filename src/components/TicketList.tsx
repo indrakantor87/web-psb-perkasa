@@ -1142,7 +1142,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       {/* Edit Modal */}
       {editTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 flex flex-col">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Ticket</h3>
               <button
@@ -1156,8 +1156,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               </button>
             </div>
             
-            <form onSubmit={handleUpdateTicket} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleUpdateTicket} className="flex-1 min-h-0 flex flex-col">
+              <div className="p-6 space-y-4 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Name</label>
                   <input
@@ -1312,8 +1313,9 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </div>
                 )}
               </div>
+              </div>
 
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="px-6 py-4 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
                 <button
                   type="button"
                   onClick={() => setEditTicket(null)}
