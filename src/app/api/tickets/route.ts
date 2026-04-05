@@ -315,6 +315,9 @@ export async function POST(request: Request) {
       ticket = await prisma.ticket.create({ data: createData })
     }
 
+    cache.invalidateByPrefix('tickets-list:')
+    cache.invalidateByPrefix('tickets:')
+
     return NextResponse.json(ticket)
   } catch (error: unknown) {
     console.error(error)

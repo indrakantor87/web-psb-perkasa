@@ -27,6 +27,7 @@ export async function PUT(
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const role = (session.user.role || '').toUpperCase()
 
   const { id } = await params
   const ticketId = parseInt(id)
@@ -114,19 +115,19 @@ export async function PUT(
 
     // Only allow authorized roles to update pengawalan
     if (pengawalan !== undefined) {
-      if (['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+      if (['ADMIN', 'CS', 'NOC'].includes(role)) {
         updateData.pengawalan = pengawalan
       }
     }
     // Only allow authorized roles to update kmz
     if (kmz !== undefined) {
-      if (['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+      if (['ADMIN', 'CS', 'NOC'].includes(role)) {
         updateData.kmz = kmz
       }
     }
     // Only allow authorized roles to update priority
     if (priority !== undefined) {
-      if (['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(session.user.role)) {
+      if (['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)) {
          updateData.priority = priority
        } else {
          return NextResponse.json({ error: 'Unauthorized to update priority' }, { status: 403 })
@@ -134,13 +135,13 @@ export async function PUT(
     }
 
     // Security: Field-level RBAC
-    if (session.user.role === 'TEKNISI') {
+    if (role === 'TEKNISI') {
       // Teknisi cannot change marketing info or package
       delete updateData.marketingName
       delete updateData.package
     }
 
-    if (session.user.role === 'MARKETING') {
+    if (role === 'MARKETING') {
       // Marketing cannot change technical info
       delete updateData.teknisi
       delete updateData.installedDate
@@ -148,10 +149,15 @@ export async function PUT(
     }
 
     status = normalizeStatus(status)
+    if (typeof status !== 'undefined' && status !== '') {
+      if (!['ADMIN', 'CS', 'NOC', 'TEKNISI', 'MARKETING'].includes(role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    }
 
     let ticket
     if (status === 'CLOSE') {
-      if (session.user.role === 'MARKETING') {
+      if (role === 'MARKETING') {
         return NextResponse.json(
           { error: 'Marketing cannot close tickets' },
           { status: 403 }

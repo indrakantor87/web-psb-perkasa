@@ -186,6 +186,41 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
+  const handleReopenTicket = async (e: React.MouseEvent, id: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!confirm('Apakah Anda yakin ingin membuka kembali tiket ini?')) {
+      return
+    }
+
+    // Optimistic update
+    setTicketsState(prev => prev.map(t => 
+      t.id === id ? { ...t, status: 'OPEN' } : t
+    ))
+
+    setLoadingId(id)
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'OPEN' }),
+      })
+
+      if (res.ok) {
+        router.refresh()
+      } else {
+        alert('Failed to reopen ticket')
+        router.refresh() // Revert
+      }
+    } catch {
+      alert('An error occurred while reopening ticket')
+      router.refresh()
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
   const handleUpdatePengawalan = async (id: number, value: string) => {
     // Optimistic update
     setTicketsState(prev => prev.map(t => 
@@ -251,11 +286,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     'HOME ADVAN',
   ]
 
-  const canClose = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canEditKmz = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canEditPriority = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole)
-  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole)
+  const role = (userRole || '').toUpperCase()
+  const canClose = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
+  const canEditKmz = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
+  const canEditPriority = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
+  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
+  const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
+
+  const normalizeStatus = (s: string) => s.toUpperCase().replace(/\s+/g, '_')
 
   const handleEditTicket = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
@@ -290,7 +328,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
       if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
       if (editTicket.priority) formData.append('priority', editTicket.priority)
-      if (canEditStatus) formData.append('status', editTicket.status)
+      if (canEditStatus) formData.append('status', normalizeStatus(editTicket.status))
       
       // New fields
       if (editTicket.installedDate) formData.append('installedDate', editTicket.installedDate)
@@ -972,6 +1010,16 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           <div className="flex flex-wrap gap-3">
                             {userRole !== 'MARKETING' ? (
                               <>
+                                {ticket.status !== 'OPEN' && canClose && (
+                                  <button
+                                    onClick={(e) => handleReopenTicket(e, ticket.id)}
+                                    disabled={loadingId === ticket.id}
+                                    className="rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 disabled:opacity-50 border border-red-200"
+                                  >
+                                    Reopen
+                                  </button>
+                                )}
+
                                 <button
                                   onClick={(e) => handleOnProgressTicket(e, ticket.id)}
                                   disabled={loadingId === ticket.id || !(['OPEN', 'PENDING'].includes(ticket.status) && canClose)}
@@ -1256,7 +1304,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <p className="text-xs text-gray-500 mt-1">Max 3MB (.jpg, .png)</p>
                 </div>
                 
-                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole) && (
+                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
                    <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
                     <select
@@ -1272,7 +1320,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </div>
                 )}
 
-                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
                     <div>
                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pengawalan</label>
                      <select
@@ -1287,7 +1335,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                    </div>
                  )}
 
-                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
                    <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">KMZ</label>
                     <input
@@ -1304,7 +1352,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                     <select
                       value={editTicket.status}
-                      onChange={(e) => setEditTicket({ ...editTicket, status: e.target.value })}
+                      onChange={(e) => setEditTicket({ ...editTicket, status: normalizeStatus(e.target.value) })}
                       className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="OPEN">OPEN</option>
