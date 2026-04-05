@@ -4,6 +4,15 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 
+function statusOrderFor(status: string) {
+  const s = (status || '').toUpperCase()
+  if (s === 'OPEN') return 0
+  if (s === 'ON_PROGRESS') return 1
+  if (s === 'PENDING') return 2
+  if (s === 'CLOSE') return 3
+  return 9
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -145,12 +154,19 @@ export async function PUT(
         where: { id: ticketId },
         select: { status: true },
       })
+      const installedDateForClose =
+        updateData.installedDate instanceof Date
+          ? updateData.installedDate
+          : typeof updateData.installedDate === 'string'
+            ? new Date(updateData.installedDate)
+            : new Date()
       if (current?.status === 'CLOSE') {
         ticket = await prisma.ticket.update({
           where: { id: ticketId },
           data: {
             ...updateData,
             status: 'CLOSE',
+            statusOrder: statusOrderFor('CLOSE'),
           },
           select: { id: true, status: true },
         })
@@ -160,7 +176,8 @@ export async function PUT(
           data: {
             ...updateData,
             status: 'CLOSE',
-            installedDate: new Date(),
+            installedDate: installedDateForClose,
+            statusOrder: statusOrderFor('CLOSE'),
             closedById: session.user.id,
           },
           select: { id: true, status: true },
@@ -174,7 +191,10 @@ export async function PUT(
       } : {} */
 
       const data: Prisma.TicketUncheckedUpdateInput = { ...updateData }
-      if (typeof status !== 'undefined') data.status = status
+      if (typeof status !== 'undefined') {
+        data.status = status
+        data.statusOrder = statusOrderFor(status)
+      }
 
       ticket = await prisma.ticket.update({
         where: { id: ticketId },

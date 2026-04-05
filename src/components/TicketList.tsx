@@ -255,6 +255,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const canEditKmz = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canEditPriority = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
+  const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(userRole)
 
   const handleEditTicket = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
@@ -289,6 +290,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
       if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
       if (editTicket.priority) formData.append('priority', editTicket.priority)
+      if (canEditStatus) formData.append('status', editTicket.status)
       
       // New fields
       if (editTicket.installedDate) formData.append('installedDate', editTicket.installedDate)
@@ -1297,7 +1299,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </div>
                 )}
 
-                {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                {canEditStatus && (
                    <div>
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                     <select
