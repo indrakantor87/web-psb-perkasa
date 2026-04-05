@@ -194,6 +194,16 @@ export async function PUT(
       if (typeof status !== 'undefined') {
         data.status = status
         data.statusOrder = statusOrderFor(status)
+        if (status !== 'CLOSE') {
+          data.closedById = null
+          const current = await prisma.ticket.findUnique({
+            where: { id: ticketId },
+            select: { status: true },
+          })
+          if (current?.status === 'CLOSE') {
+            data.installedDate = null
+          }
+        }
       }
 
       ticket = await prisma.ticket.update({
