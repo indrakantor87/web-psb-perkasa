@@ -12,9 +12,6 @@
     "mobile:open": "npx cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.2",
-    "@capacitor/cli": "^8.0.2",
-    "@capacitor/core": "^8.0.2",
     "@prisma/client": "6.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.16.0",
