@@ -13,6 +13,12 @@ function statusOrderFor(status: string) {
   return 9
 }
 
+function normalizeStatus(input: unknown) {
+  const s = String(input ?? '').trim()
+  if (!s) return undefined
+  return s.toUpperCase().replace(/\s+/g, '_')
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -141,6 +147,8 @@ export async function PUT(
       // Marketing cannot close tickets (handled below)
     }
 
+    status = normalizeStatus(status)
+
     let ticket
     if (status === 'CLOSE') {
       if (session.user.role === 'MARKETING') {
@@ -196,13 +204,7 @@ export async function PUT(
         data.statusOrder = statusOrderFor(status)
         if (status !== 'CLOSE') {
           data.closedById = null
-          const current = await prisma.ticket.findUnique({
-            where: { id: ticketId },
-            select: { status: true },
-          })
-          if (current?.status === 'CLOSE') {
-            data.installedDate = null
-          }
+          data.installedDate = null
         }
       }
 
