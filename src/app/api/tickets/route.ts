@@ -176,8 +176,7 @@ export async function GET(request: Request) {
     } satisfies Prisma.TicketSelect
 
     const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'asc' },
-      { installedDate: { sort: 'desc', nulls: 'last' } }
+      { requestDate: 'asc' }
     ]
 
     const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull }).catch(async () => {
