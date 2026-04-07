@@ -147,10 +147,10 @@ async function queryTicketsList(args: Args) {
     } satisfies Prisma.TicketSelect
 
     const orderByWithStatusOrder: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'asc' }
+      { requestDate: 'desc' }
     ]
     const orderByFallback: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'asc' }
+      { requestDate: 'desc' }
     ]
 
     const [totalCount, groupedCountsRaw] = await Promise.all([
@@ -164,9 +164,7 @@ async function queryTicketsList(args: Args) {
         : Promise.resolve([]),
     ])
 
-    const totalPages = Math.ceil(totalCount / pageSize)
-    const effectivePage = totalPages > 0 ? Math.max(1, totalPages - page + 1) : 1
-    const skip = (effectivePage - 1) * pageSize
+    const skip = (page - 1) * pageSize
 
     const fetchTickets = async () => {
       try {

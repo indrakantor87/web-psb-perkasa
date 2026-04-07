@@ -486,11 +486,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const currentTickets = ticketsState
   const pageSize = pagination?.pageSize || 25
   const totalCount = pagination?.totalCount || 0
-  const totalPages = pagination?.totalPages || 1
   const currentPage = pagination?.currentPage || 1
 
-  // Reverse numbering logic: Page 1 shows newest items but numbers are absolute (1 = oldest)
-  const indexOfFirstItem = (totalPages - currentPage) * pageSize
+  // Standard descending numbering: Page 1 starts from totalCount (newest)
+  // Example (totalCount: 50, pageSize: 25, page: 1): index 0 -> 50, index 1 -> 49...
+  const startingNumber = totalCount - ((currentPage - 1) * pageSize)
+  const indexOfFirstItem = (currentPage - 1) * pageSize
   const indexOfLastItem = indexOfFirstItem + currentTickets.length
 
   const handlePageChange = (newPage: number) => {
@@ -706,7 +707,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       >
                         {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
-                      <span>{indexOfFirstItem + index + 1}</span>
+                      <span>{startingNumber - index}</span>
                     </div>
                   </td>
                   <td className="hidden md:table-cell px-3 py-3 text-left text-xs text-gray-900 dark:text-white max-w-[200px]">
@@ -815,7 +816,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           >
                             {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-                          <span className="text-gray-500 dark:text-gray-400">{indexOfFirstItem + index + 1}</span>
+                          <span className="text-gray-500 dark:text-gray-400">{startingNumber - index}</span>
                         </div>
                         <button
                           type="button"

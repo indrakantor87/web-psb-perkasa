@@ -178,13 +178,11 @@ export async function GET(request: Request) {
     } satisfies Prisma.TicketSelect
 
     const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'asc' }
+      { requestDate: 'desc' }
     ]
 
     const totalCount = await prisma.ticket.count({ where })
-    const totalPages = Math.ceil(totalCount / pageSize)
-    const effectivePage = totalPages > 0 ? Math.max(1, totalPages - page + 1) : 1
-    const skip = (effectivePage - 1) * pageSize
+    const skip = (page - 1) * pageSize
 
     const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull, skip, take: pageSize }).catch(async () => {
       try {
