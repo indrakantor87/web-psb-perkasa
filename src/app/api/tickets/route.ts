@@ -37,6 +37,8 @@ export async function GET(request: Request) {
   const year = searchParams.get('year')
   const status = searchParams.get('status')
   const search = searchParams.get('search')
+  const page = parseInt(searchParams.get('page') || '1')
+  const pageSize = parseInt(searchParams.get('limit') || '25')
 
   const where: Prisma.TicketWhereInput = {}
 
@@ -179,13 +181,18 @@ export async function GET(request: Request) {
       { requestDate: 'asc' }
     ]
 
-    const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull }).catch(async () => {
+    const totalCount = await prisma.ticket.count({ where })
+    const totalPages = Math.ceil(totalCount / pageSize)
+    const effectivePage = totalPages > 0 ? Math.max(1, totalPages - page + 1) : 1
+    const skip = (effectivePage - 1) * pageSize
+
+    const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull, skip, take: pageSize }).catch(async () => {
       try {
-        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimal })
+        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimal, skip, take: pageSize })
         return rows.map((t) => ({ ...t, pembayaran: null, hasPhoto: false }))
       } catch {
         const selectMinimalNoRelation = { ...selectMinimal, closedBy: undefined } as unknown as Prisma.TicketSelect
-        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimalNoRelation })
+        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimalNoRelation, skip, take: pageSize })
         return rows.map((t) => ({ ...t, closedBy: null, pembayaran: null, hasPhoto: false }))
       }
     })

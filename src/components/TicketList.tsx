@@ -485,7 +485,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   // Pagination Logic
   const currentTickets = ticketsState
   const pageSize = pagination?.pageSize || 25
-  const indexOfFirstItem = (currentPage - 1) * pageSize
+  const totalCount = pagination?.totalCount || 0
+  const totalPages = pagination?.totalPages || 1
+  const currentPage = pagination?.currentPage || 1
+
+  // Reverse numbering logic: Page 1 shows newest items but numbers are absolute (1 = oldest)
+  const indexOfFirstItem = (totalPages - currentPage) * pageSize
   const indexOfLastItem = indexOfFirstItem + currentTickets.length
 
   const handlePageChange = (newPage: number) => {

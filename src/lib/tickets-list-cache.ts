@@ -153,12 +153,27 @@ async function queryTicketsList(args: Args) {
       { requestDate: 'asc' }
     ]
 
+    const [totalCount, groupedCountsRaw] = await Promise.all([
+      prisma.ticket.count({ where }),
+      role !== 'MARKETING'
+        ? prisma.ticket.groupBy({
+            by: ['status'],
+            _count: { status: true },
+            where: baseWhere,
+          })
+        : Promise.resolve([]),
+    ])
+
+    const totalPages = Math.ceil(totalCount / pageSize)
+    const effectivePage = totalPages > 0 ? Math.max(1, totalPages - page + 1) : 1
+    const skip = (effectivePage - 1) * pageSize
+
     const fetchTickets = async () => {
       try {
         const rows = await prisma.ticket.findMany({
           where,
           orderBy: orderByWithStatusOrder,
-          skip: (page - 1) * pageSize,
+          skip,
           take: pageSize,
           select: selectFull,
         })
@@ -168,7 +183,7 @@ async function queryTicketsList(args: Args) {
           const rows = await prisma.ticket.findMany({
             where,
             orderBy: orderByFallback,
-            skip: (page - 1) * pageSize,
+            skip,
             take: pageSize,
             select: selectFull,
           })
@@ -178,7 +193,7 @@ async function queryTicketsList(args: Args) {
             const rows = await prisma.ticket.findMany({
               where,
               orderBy: orderByFallback,
-              skip: (page - 1) * pageSize,
+              skip,
               take: pageSize,
               select: selectMinimal,
             })
@@ -193,7 +208,7 @@ async function queryTicketsList(args: Args) {
             const rows = await prisma.ticket.findMany({
               where,
               orderBy: orderByFallback,
-              skip: (page - 1) * pageSize,
+              skip,
               take: pageSize,
               select: selectMinimalNoRelation,
             })
@@ -209,17 +224,7 @@ async function queryTicketsList(args: Args) {
       }
     }
 
-    const [tickets, totalCount, groupedCountsRaw] = await Promise.all([
-      fetchTickets(),
-      prisma.ticket.count({ where }),
-      role !== 'MARKETING'
-        ? prisma.ticket.groupBy({
-            by: ['status'],
-            _count: { status: true },
-            where: baseWhere,
-          })
-        : Promise.resolve([]),
-    ])
+    const tickets = await fetchTickets()
 
     let counts: TicketListCounts | null = null
     if (role !== 'MARKETING') {
