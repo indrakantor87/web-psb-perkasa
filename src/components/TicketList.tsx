@@ -485,9 +485,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   // Pagination Logic
   const currentTickets = ticketsState
   const pageSize = pagination?.pageSize || 25
-  const totalCount = pagination?.totalCount || 0
-  const totalPages = pagination?.totalPages || 1
-  const currentPage = pagination?.currentPage || 1
 
   // Standard descending numbering: Page 1 starts from totalCount (newest)
   // Example (totalCount: 50, pageSize: 25, page: 1): index 0 -> 50, index 1 -> 49...
