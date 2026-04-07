@@ -147,13 +147,10 @@ async function queryTicketsList(args: Args) {
     } satisfies Prisma.TicketSelect
 
     const orderByWithStatusOrder: Prisma.TicketOrderByWithRelationInput[] = [
-      { statusOrder: 'asc' },
-      { requestDate: 'desc' },
-      { installedDate: { sort: 'desc', nulls: 'last' } },
+      { requestDate: 'asc' }
     ]
     const orderByFallback: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'desc' },
-      { installedDate: { sort: 'desc', nulls: 'last' } },
+      { requestDate: 'asc' }
     ]
 
     const fetchTickets = async () => {
