@@ -176,7 +176,7 @@ export async function GET(request: Request) {
     } satisfies Prisma.TicketSelect
 
     const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
-      { requestDate: 'desc' },
+      { requestDate: 'asc' },
       { installedDate: { sort: 'desc', nulls: 'last' } }
     ]
 
