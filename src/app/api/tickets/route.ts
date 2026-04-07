@@ -176,7 +176,6 @@ export async function GET(request: Request) {
     } satisfies Prisma.TicketSelect
 
     const orderBy: Prisma.TicketOrderByWithRelationInput[] = [
-      // { statusOrder: 'asc' }, // Disabled until server restart
       { requestDate: 'desc' },
       { installedDate: { sort: 'desc', nulls: 'last' } }
     ]
