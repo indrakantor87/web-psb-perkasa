@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, X, MapPin, Download, Upload } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, MapPin, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface CoveredArea {
   id: number
@@ -19,6 +19,8 @@ export function CoveredAreaManager() {
   const [submitting, setSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 25
 
   const [formData, setFormData] = useState({
     name: '',
@@ -162,6 +164,11 @@ export function CoveredAreaManager() {
     }
   }
 
+  const totalPages = Math.ceil(areas.length / pageSize)
+  const indexOfLastItem = currentPage * pageSize
+  const indexOfFirstItem = indexOfLastItem - pageSize
+  const currentItems = areas.slice(indexOfFirstItem, indexOfLastItem)
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm gap-4">
@@ -207,24 +214,28 @@ export function CoveredAreaManager() {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
+                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
               </tr>
-            ) : areas.length === 0 ? (
+            ) : currentItems.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
+                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
               </tr>
             ) : (
-              areas.map((area) => (
+              currentItems.map((area, index) => (
                 <tr key={area.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {indexOfFirstItem + index + 1}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100 uppercase">
                     {area.name}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
@@ -254,6 +265,49 @@ export function CoveredAreaManager() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && areas.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Menampilkan <span className="font-medium">{indexOfFirstItem + 1}</span> sampai{' '}
+            <span className="font-medium">{Math.min(indexOfLastItem, areas.length)}</span> dari{' '}
+            <span className="font-medium">{areas.length}</span> area
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={clsx(
+                    "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+                    currentPage === page
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+                  )}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
