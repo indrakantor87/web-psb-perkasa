@@ -11,7 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
-RUN npm prune --omit=dev --ignore-scripts && npm cache clean --force
+# RUN npm prune --omit=dev --ignore-scripts && npm cache clean --force
 
 FROM node:20-alpine AS runner
 WORKDIR /app
