@@ -106,9 +106,26 @@ model MarketingActivity {
   marketingName String
   activity      String
   notes         String?
+  
+  areaId        Int?
+  area          CoveredArea? @relation(fields: [areaId], references: [id])
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([date])
   @@index([marketingName])
+}
+
+model CoveredArea {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  
+  activities  MarketingActivity[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
 }
