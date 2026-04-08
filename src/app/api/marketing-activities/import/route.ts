@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const buf = Buffer.from(await file.arrayBuffer())
     const wb = XLSX.read(buf, { type: 'buffer' })
     const sheet = wb.Sheets[wb.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
+    let rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
     const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
     
@@ -56,28 +56,73 @@ export async function POST(request: Request) {
       return ''
     }
 
+    // Dynamic header detection (fallback)
+    if (!rows || rows.length === 0 || !rows.some(r => Object.keys(r).some(k => mapField(k)))) {
+      try {
+        const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null })
+        let headerIdx = -1
+        for (let i = 0; i < aoa.length; i++) {
+          const row = aoa[i] || []
+          const normalized = row.map((c) => (typeof c === 'string' ? c : String(c ?? '')))
+          if (normalized.some(cell => mapField(cell))) {
+            headerIdx = i
+            break
+          }
+        }
+
+        if (headerIdx >= 0) {
+          const headerRow = (aoa[headerIdx] || []).map((h) => String(h ?? ''))
+          const indexMap: Record<number, string> = {}
+          headerRow.forEach((h, idx) => {
+            const f = mapField(h)
+            if (f) indexMap[idx] = f
+          })
+
+          const collected: Array<Record<string, unknown>> = []
+          for (let r = headerIdx + 1; r < aoa.length; r++) {
+            const rowData = aoa[r] || []
+            const obj: Record<string, unknown> = {}
+            Object.entries(indexMap).forEach(([idxStr, field]) => {
+              const idx = Number(idxStr)
+              obj[field] = rowData[idx] ?? null
+            })
+            collected.push(obj)
+          }
+          rows = collected
+        }
+      } catch (err) {
+        console.error('Fallback detection error:', err)
+      }
+    }
+
     let ok = 0, fail = 0
     for (const row of rows) {
       try {
         const mapped: any = {}
-        for (const [k, v] of Object.entries(row)) {
-          const field = mapField(k)
-          if (field) mapped[field] = v
+        // If the row was from sheet_to_json directly
+        if (!row.marketingName && !row.activity) {
+          for (const [k, v] of Object.entries(row)) {
+            const field = mapField(k)
+            if (field) mapped[field] = v
+          }
+        } else {
+          // If the row was already mapped in fallback logic
+          Object.assign(mapped, row)
         }
 
         const isTrulyEmpty = Object.values(mapped).every(v => v === null || v === '' || typeof v === 'undefined')
         if (isTrulyEmpty) continue
 
-        if (!mapped.marketingName || !mapped.activity) {
-          fail++
-          continue
+        // Required field: activity or marketingName
+        if (!mapped.activity && !mapped.marketingName) {
+           continue
         }
 
         await prisma.marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
-            marketingName: String(mapped.marketingName),
-            activity: String(mapped.activity),
+            marketingName: String(mapped.marketingName || '-'),
+            activity: String(mapped.activity || '-'),
             notes: mapped.notes ? String(mapped.notes) : null,
           }
         })
