@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, MapPin, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
+import { clsx } from 'clsx'
 
 interface CoveredArea {
   id: number
