@@ -49,10 +49,10 @@ export async function POST(request: Request) {
     
     const mapField = (key: string) => {
       const k = norm(key)
-      if (['TANGGAL', 'DATE', 'TGL'].includes(k)) return 'date'
-      if (['NAMA MARKETING', 'MARKETING', 'SALES', 'NAMA'].includes(k)) return 'marketingName'
-      if (['AKTIVITAS', 'ACTIVITY', 'KEGIATAN'].includes(k)) return 'activity'
-      if (['KETERANGAN', 'NOTES', 'NOTE', 'CATATAN'].includes(k)) return 'notes'
+      if (['TANGGAL', 'DATE', 'TGL', 'WAKTU'].includes(k)) return 'date'
+      if (['NAMA MARKETING', 'MARKETING', 'SALES', 'NAMA', 'USER', 'PETUGAS'].includes(k)) return 'marketingName'
+      if (['AKTIVITAS', 'ACTIVITY', 'KEGIATAN', 'PEKERJAAN', 'HASIL', 'PROGRESS'].includes(k)) return 'activity'
+      if (['KETERANGAN', 'NOTES', 'NOTE', 'CATATAN', 'KET'].includes(k)) return 'notes'
       return ''
     }
 
@@ -61,9 +61,10 @@ export async function POST(request: Request) {
       try {
         const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null })
         let headerIdx = -1
-        for (let i = 0; i < aoa.length; i++) {
+        // Scan up to first 20 rows for header
+        for (let i = 0; i < Math.min(aoa.length, 20); i++) {
           const row = aoa[i] || []
-          const normalized = row.map((c) => (typeof c === 'string' ? c : String(c ?? '')))
+          const normalized = row.map((c) => norm(c))
           if (normalized.some(cell => mapField(cell))) {
             headerIdx = i
             break
@@ -82,11 +83,14 @@ export async function POST(request: Request) {
           for (let r = headerIdx + 1; r < aoa.length; r++) {
             const rowData = aoa[r] || []
             const obj: Record<string, unknown> = {}
+            let hasData = false
             Object.entries(indexMap).forEach(([idxStr, field]) => {
               const idx = Number(idxStr)
-              obj[field] = rowData[idx] ?? null
+              const val = rowData[idx]
+              obj[field] = val ?? null
+              if (val !== null && val !== '') hasData = true
             })
-            collected.push(obj)
+            if (hasData) collected.push(obj)
           }
           rows = collected
         }
@@ -96,18 +100,21 @@ export async function POST(request: Request) {
     }
 
     let ok = 0, fail = 0
+    let lastError = ''
+
     for (const row of rows) {
       try {
         const mapped: any = {}
-        // If the row was from sheet_to_json directly
-        if (!row.marketingName && !row.activity) {
+        
+        // Check if row already has the fields (from fallback)
+        if (row.marketingName || row.activity || row.date) {
+          Object.assign(mapped, row)
+        } else {
+          // Map from keys
           for (const [k, v] of Object.entries(row)) {
             const field = mapField(k)
             if (field) mapped[field] = v
           }
-        } else {
-          // If the row was already mapped in fallback logic
-          Object.assign(mapped, row)
         }
 
         const isTrulyEmpty = Object.values(mapped).every(v => v === null || v === '' || typeof v === 'undefined')
@@ -121,20 +128,25 @@ export async function POST(request: Request) {
         await prisma.marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
-            marketingName: String(mapped.marketingName || '-'),
-            activity: String(mapped.activity || '-'),
-            notes: mapped.notes ? String(mapped.notes) : null,
+            marketingName: String(mapped.marketingName || '-').trim(),
+            activity: String(mapped.activity || '-').trim(),
+            notes: mapped.notes ? String(mapped.notes).trim() : null,
           }
         })
         ok++
-      } catch (e) {
-        console.error('Row import error', e)
+      } catch (e: any) {
+        console.error('Row import error:', e)
         fail++
+        lastError = e.message || String(e)
       }
     }
 
     cache.invalidateByPrefix('marketing-activities:')
-    return NextResponse.json({ message: `Import selesai. Berhasil: ${ok}, Gagal: ${fail}` })
+    let message = `Import selesai. Berhasil: ${ok}, Gagal: ${fail}`
+    if (fail > 0 && ok === 0) {
+      message += `. Error terakhir: ${lastError}`
+    }
+    return NextResponse.json({ message })
   } catch (error) {
     console.error('Import error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
