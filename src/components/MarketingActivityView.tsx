@@ -620,9 +620,8 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area Kunjungan</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area Kunjungan (Opsional)</label>
                 <select
-                  required
                   value={formData.areaId}
                   onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
                   className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
