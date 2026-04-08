@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -53,6 +53,7 @@ export function Header({ user }: { user: SessionUser }) {
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
+    { href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList },
     { href: '/isolir', label: 'Isolir', icon: Ban },
     { href: '/odp', label: 'PORT ODP', icon: Wifi },
   ]
