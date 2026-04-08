@@ -37,6 +37,11 @@ export async function GET(request: Request) {
   try {
     const activities = await prisma.marketingActivity.findMany({
       where,
+      include: {
+        area: {
+          select: { name: true }
+        }
+      },
       orderBy: { date: 'desc' },
     })
 
@@ -55,9 +60,9 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { date, marketingName, activity, notes } = body
+    const { date, marketingName, activity, notes, areaId } = body
 
-    if (!date || !marketingName || !activity) {
+    if (!date || !marketingName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
@@ -65,8 +70,9 @@ export async function POST(request: Request) {
       data: {
         date: new Date(date),
         marketingName,
-        activity,
+        activity: activity || '-',
         notes: notes || '',
+        areaId: areaId ? parseInt(areaId) : null,
       },
     })
 

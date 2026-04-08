@@ -99,6 +99,13 @@ export async function POST(request: Request) {
       }
     }
 
+    let areas: any[] = []
+    try {
+      areas = await prisma.coveredArea.findMany()
+    } catch (e) {
+      console.error('Failed to fetch areas for import', e)
+    }
+
     let ok = 0, fail = 0
     let lastError = ''
 
@@ -125,12 +132,21 @@ export async function POST(request: Request) {
            continue
         }
 
+        // Try to match areaId from activity text if possible
+        let areaId = null
+        if (mapped.activity && areas.length > 0) {
+          const act = norm(mapped.activity)
+          const found = areas.find(a => act.includes(norm(a.name)))
+          if (found) areaId = found.id
+        }
+
         await prisma.marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
             marketingName: String(mapped.marketingName || '-').trim(),
             activity: String(mapped.activity || '-').trim(),
             notes: mapped.notes ? String(mapped.notes).trim() : null,
+            areaId: areaId
           }
         })
         ok++

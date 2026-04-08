@@ -17,21 +17,21 @@ export async function PUT(
 
   try {
     const body = await request.json()
-    const { date, marketingName, activity, notes } = body
+    const { date, marketingName, activity, notes, areaId } = body
 
-    const updateData: any = {}
-    if (date) updateData.date = new Date(date)
-    if (marketingName) updateData.marketingName = marketingName
-    if (activity) updateData.activity = activity
-    if (notes !== undefined) updateData.notes = notes
-
-    const updated = await prisma.marketingActivity.update({
+    const updatedActivity = await prisma.marketingActivity.update({
       where: { id: activityId },
-      data: updateData,
+      data: {
+        date: date ? new Date(date) : undefined,
+        marketingName,
+        activity,
+        notes,
+        areaId: areaId !== undefined ? (areaId ? parseInt(areaId) : null) : undefined,
+      },
     })
 
     cache.invalidateByPrefix('marketing-activities:')
-    return NextResponse.json(updated)
+    return NextResponse.json(updatedActivity)
   } catch (error) {
     console.error('Failed to update marketing activity:', error)
     return NextResponse.json({ error: 'Failed to update activity' }, { status: 500 })

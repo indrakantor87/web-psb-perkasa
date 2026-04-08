@@ -12,8 +12,15 @@ interface MarketingActivity {
   marketingName: string
   activity: string
   notes?: string | null
+  areaId?: number | null
+  area?: { name: string } | null
   createdAt: string
   updatedAt: string
+}
+
+interface CoveredArea {
+  id: number
+  name: string
 }
 
 interface MarketingActivityViewProps {
@@ -24,6 +31,7 @@ interface MarketingActivityViewProps {
 export function MarketingActivityView({ userRole, userName }: MarketingActivityViewProps) {
   const router = useRouter()
   const [activities, setActivities] = useState<MarketingActivity[]>([])
+  const [coveredAreas, setCoveredAreas] = useState<CoveredArea[]>([])
   const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -42,6 +50,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     marketingName: userRole === 'MARKETING' ? userName : '',
+    areaId: '',
     activity: '',
     notes: '',
   })
@@ -49,6 +58,15 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const fetchActivities = useCallback(async () => {
     setLoading(true)
     try {
+      // Fetch areas if not loaded
+      if (coveredAreas.length === 0) {
+        const areasRes = await fetch('/api/covered-areas')
+        if (areasRes.ok) {
+          const areasData = await areasRes.json()
+          setCoveredAreas(areasData)
+        }
+      }
+
       const params = new URLSearchParams({
         month: month.toString(),
         year: year.toString(),
@@ -77,6 +95,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
       setFormData({
         date: format(new Date(activity.date), 'yyyy-MM-dd'),
         marketingName: activity.marketingName,
+        areaId: activity.areaId?.toString() || '',
         activity: activity.activity,
         notes: activity.notes || '',
       })
@@ -85,6 +104,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
       setFormData({
         date: format(new Date(), 'yyyy-MM-dd'),
         marketingName: userRole === 'MARKETING' ? userName : '',
+        areaId: '',
         activity: '',
         notes: '',
       })
@@ -364,6 +384,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                                 <thead className="bg-gray-100 dark:bg-gray-800">
                                   <tr>
                                     <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Tanggal</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Area</th>
                                     <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Aktivitas</th>
                                     <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Keterangan</th>
                                     <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 uppercase w-24">Action</th>
@@ -374,6 +395,9 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                                     <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                       <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
                                         {format(new Date(activity.date), 'dd/MM/yyyy')}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                                        {activity.area?.name || '-'}
                                       </td>
                                       <td className="px-4 py-3 text-xs text-gray-900 dark:text-gray-100">
                                         {activity.activity === '-' ? (
@@ -460,13 +484,26 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aktivitas</label>
-                <textarea
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area Kunjungan</label>
+                <select
                   required
-                  rows={3}
+                  value={formData.areaId}
+                  onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
+                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                >
+                  <option value="">- Pilih Area -</option>
+                  {coveredAreas.map((area) => (
+                    <option key={area.id} value={area.id}>{area.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aktivitas (Opsional)</label>
+                <textarea
+                  rows={2}
                   value={formData.activity}
                   onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-                  placeholder="Apa yang dikerjakan hari ini?"
+                  placeholder="Apa yang dikerjakan? (Bisa dikosongkan jika hanya kunjungan area)"
                   className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
                 />
               </div>
