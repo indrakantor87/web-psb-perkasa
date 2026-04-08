@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Calendar, Download, Upload } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Calendar, Download, Upload, ChevronRight, ChevronDown } from 'lucide-react'
 
 interface MarketingActivity {
   id: number
@@ -24,6 +24,7 @@ interface MarketingActivityViewProps {
 export function MarketingActivityView({ userRole, userName }: MarketingActivityViewProps) {
   const router = useRouter()
   const [activities, setActivities] = useState<MarketingActivity[]>([])
+  const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<MarketingActivity | null>(null)
@@ -197,6 +198,29 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   ]
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
 
+  // Grouping logic
+  const groupedActivities = activities.reduce((acc, curr) => {
+    const name = curr.marketingName
+    if (!acc[name]) {
+      acc[name] = {
+        name,
+        activities: [],
+        count: 0,
+        noCount: 0
+      }
+    }
+    acc[name].activities.push(curr)
+    // If activity is "-" or empty, it counts as "tidak"
+    if (curr.activity === '-' || !curr.activity.trim()) {
+      acc[name].noCount++
+    } else {
+      acc[name].count++
+    }
+    return acc
+  }, {} as Record<string, { name: string; activities: MarketingActivity[]; count: number; noCount: number }>)
+
+  const sortedMarketingNames = Object.keys(groupedActivities).sort()
+
   return (
     <div className="space-y-4">
       {/* Filters & Add Button */}
@@ -286,11 +310,11 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Marketing</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktivitas</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ada Aktivitas</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tidak Ada</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hari</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -298,47 +322,98 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 <tr>
                   <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
                 </tr>
-              ) : activities.length === 0 ? (
+              ) : sortedMarketingNames.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data untuk periode ini</td>
                 </tr>
               ) : (
-                activities.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {format(new Date(activity.date), 'dd/MM/yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-medium">
-                      {activity.marketingName}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                      {activity.activity}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 italic">
-                      {activity.notes || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenModal(activity)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
-                          <button
-                            onClick={() => handleDelete(activity.id)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                sortedMarketingNames.map((name) => {
+                  const group = groupedActivities[name]
+                  const isExpanded = expandedMarketing === name
+                  return (
+                    <Fragment key={name}>
+                      <tr 
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                        onClick={() => setExpandedMarketing(isExpanded ? null : name)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-bold">
+                          {name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            {group.count} Hari
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            {group.noCount} Hari
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                          {group.activities.length}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={5} className="px-0 py-0 bg-gray-50/50 dark:bg-gray-900/20">
+                            <div className="p-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+                              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+                                <thead className="bg-gray-100 dark:bg-gray-800">
+                                  <tr>
+                                    <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Tanggal</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Aktivitas</th>
+                                    <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Keterangan</th>
+                                    <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 uppercase w-24">Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                                  {group.activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((activity) => (
+                                    <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                      <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
+                                        {format(new Date(activity.date), 'dd/MM/yyyy')}
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-900 dark:text-gray-100">
+                                        {activity.activity === '-' ? (
+                                          <span className="text-red-500 italic font-medium">Tidak Ada Aktivitas</span>
+                                        ) : activity.activity}
+                                      </td>
+                                      <td className="px-4 py-3 text-xs text-gray-500 italic">
+                                        {activity.notes || '-'}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-xs text-center">
+                                        <div className="flex justify-center gap-1">
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(activity); }}
+                                            className="text-blue-600 hover:text-blue-900 p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                            title="Edit"
+                                          >
+                                            <Edit2 className="h-3.5 w-3.5" />
+                                          </button>
+                                          {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleDelete(activity.id); }}
+                                              className="text-red-600 hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+                                              title="Hapus"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })
               )}
             </tbody>
           </table>
