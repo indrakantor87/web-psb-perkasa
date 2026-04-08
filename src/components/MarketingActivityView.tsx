@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Calendar } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Calendar, Download, Upload } from 'lucide-react'
 
 interface MarketingActivity {
   id: number
@@ -28,6 +28,8 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingActivity, setEditingActivity] = useState<MarketingActivity | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   // Filters
   const now = new Date()
@@ -135,6 +137,60 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
     }
   }
 
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const XLSX = await import('xlsx')
+      const dataToExport = activities.map(a => ({
+        'Tanggal': format(new Date(a.date), 'dd/MM/yyyy'),
+        'Nama Marketing': a.marketingName,
+        'Aktivitas': a.activity,
+        'Keterangan': a.notes || '-'
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Aktivitas Marketing')
+      XLSX.writeFile(workbook, `Aktivitas_Marketing_${months[month-1]}_${year}.xlsx`)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Gagal export data')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/marketing-activities/import', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        const result = await res.json()
+        alert(result.message)
+        fetchActivities()
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Gagal import data')
+      }
+    } catch (error) {
+      console.error('Import error:', error)
+      alert('Terjadi kesalahan saat import')
+    } finally {
+      setIsImporting(false)
+      e.target.value = ''
+    }
+  }
+
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -186,13 +242,42 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
             </div>
           )}
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Aktivitas
-        </button>
+        <div className="flex gap-2">
+          {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+            <>
+              <button
+                disabled={isImporting}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                onClick={() => document.getElementById('marketing-import-input')?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                {isImporting ? 'Importing...' : 'Import'}
+              </button>
+              <input
+                id="marketing-import-input"
+                type="file"
+                className="hidden"
+                accept=".xlsx,.xls"
+                onChange={handleImport}
+              />
+            </>
+          )}
+          <button
+            onClick={handleExport}
+            disabled={isExporting || activities.length === 0}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Aktivitas
+          </button>
+        </div>
       </div>
 
       {/* Table */}
