@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi } from 'lucide-react'
+import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi, ClipboardList } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
@@ -28,6 +28,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
     { href: '/list', label: 'List Data', icon: List },
+    { href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList },
     { href: '/isolir', label: 'Isolir', icon: Ban },
     { href: '/odp', label: 'PORT ODP', icon: Wifi },
   ]
