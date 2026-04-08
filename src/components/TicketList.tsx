@@ -328,6 +328,8 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
       if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
       if (editTicket.priority) formData.append('priority', editTicket.priority)
+      if (editTicket.pembayaran) formData.append('pembayaran', editTicket.pembayaran)
+      if (editTicket.teknisi) formData.append('teknisi', editTicket.teknisi)
       if (canEditStatus) formData.append('status', normalizeStatus(editTicket.status))
       
       // New fields
@@ -1254,6 +1256,28 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Teknisi</label>
+                  <input
+                    type="text"
+                    value={editTicket.teknisi || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, teknisi: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nama teknisi..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pembayaran</label>
+                  <select
+                    value={editTicket.pembayaran || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, pembayaran: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">- Pilih -</option>
+                    <option value="Cash">Cash</option>
+                    <option value="TF">TF</option>
+                  </select>
                 </div>
 
                 <div className="md:col-span-2">

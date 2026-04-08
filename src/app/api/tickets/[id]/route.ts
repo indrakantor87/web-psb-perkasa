@@ -251,6 +251,8 @@ export async function DELETE(
       where: { id: parseInt(id) },
       select: { id: true }
     })
+    cache.invalidateByPrefix('tickets-list:')
+    cache.invalidateByPrefix('tickets:')
     return NextResponse.json({ message: 'Ticket deleted' })
   } catch {
     return NextResponse.json({ error: 'Failed to delete ticket' }, { status: 500 })
