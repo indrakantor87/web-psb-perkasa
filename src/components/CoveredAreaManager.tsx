@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, X, MapPin } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, MapPin, Download, Upload } from 'lucide-react'
 
 interface CoveredArea {
   id: number
@@ -17,6 +17,8 @@ export function CoveredAreaManager() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingArea, setEditingArea] = useState<CoveredArea | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -108,20 +110,97 @@ export function CoveredAreaManager() {
     }
   }
 
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const XLSX = await import('xlsx')
+      const dataToExport = areas.map(a => ({
+        'Nama Area': a.name,
+        'Keterangan': a.description || '-'
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Area')
+      XLSX.writeFile(workbook, `Master_Area_Covered_${new Date().toISOString().split('T')[0]}.xlsx`)
+    } catch (error) {
+      console.error('Export error:', error)
+      alert('Gagal export data')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/covered-areas/import', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (res.ok) {
+        const result = await res.json()
+        alert(result.message)
+        fetchAreas()
+      } else {
+        const error = await res.json()
+        alert(error.error || 'Gagal import data')
+      }
+    } catch (error) {
+      console.error('Import error:', error)
+      alert('Terjadi kesalahan saat import')
+    } finally {
+      setIsImporting(false)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm gap-4">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
           <MapPin className="h-5 w-5 text-blue-600" />
           Master Data Area Tercover
         </h2>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Tambah Area
-        </button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            disabled={isImporting}
+            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            onClick={() => document.getElementById('area-import-input')?.click()}
+          >
+            <Upload className="h-4 w-4" />
+            {isImporting ? 'Importing...' : 'Import'}
+          </button>
+          <input
+            id="area-import-input"
+            type="file"
+            className="hidden"
+            accept=".xlsx,.xls"
+            onChange={handleImport}
+          />
+          <button
+            onClick={handleExport}
+            disabled={isExporting || areas.length === 0}
+            className="flex-1 sm:flex-none bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Exporting...' : 'Export'}
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Area
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
