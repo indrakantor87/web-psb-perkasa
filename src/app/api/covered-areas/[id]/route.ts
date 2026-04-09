@@ -27,7 +27,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const updatedArea = await prisma.coveredArea.update({
+    const updatedArea = await (prisma as any).coveredArea.update({
       where: { id: areaId },
       data: {
         name,
@@ -67,7 +67,7 @@ export async function DELETE(
   const areaId = parseInt(id)
 
   try {
-    await prisma.coveredArea.delete({
+    await (prisma as any).coveredArea.delete({
       where: { id: areaId },
     })
 

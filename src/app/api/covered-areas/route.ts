@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const areas = await prisma.coveredArea.findMany({
+    const areas = await (prisma as any).coveredArea.findMany({
       orderBy: { name: 'asc' },
     })
     return NextResponse.json(areas)
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const newArea = await prisma.coveredArea.create({
+    const newArea = await (prisma as any).coveredArea.create({
       data: {
         name,
         description,
