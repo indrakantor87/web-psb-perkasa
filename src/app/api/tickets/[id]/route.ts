@@ -36,7 +36,7 @@ export async function PUT(
     const contentType = request.headers.get('content-type') || ''
     let updateData: Prisma.TicketUncheckedUpdateInput = {}
     let status: string | undefined
-    let pengawalan: string | undefined
+    let pengawalan: string | null | undefined
     let kmz: string | undefined
     let priority: string | undefined
 
@@ -95,7 +95,12 @@ export async function PUT(
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
       console.log(`[API] Updating ticket ${ticketId} by ${session.user.username} (${session.user.role})`, body)
       status = typeof body.status === 'string' ? body.status : undefined
-      pengawalan = typeof body.pengawalan === 'string' ? body.pengawalan : undefined
+      pengawalan =
+        typeof body.pengawalan === 'string'
+          ? body.pengawalan
+          : body.pengawalan === null
+            ? null
+            : undefined
       kmz = typeof body.kmz === 'string' ? body.kmz : undefined
       priority = typeof body.priority === 'string' ? body.priority : undefined
 

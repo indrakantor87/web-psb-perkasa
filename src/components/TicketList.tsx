@@ -222,16 +222,17 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   }
 
   const handleUpdatePengawalan = async (id: number, value: string) => {
+    const nextValue = value === '' ? null : value
     // Optimistic update
     setTicketsState(prev => prev.map(t => 
-      t.id === id ? { ...t, pengawalan: value } : t
+      t.id === id ? { ...t, pengawalan: nextValue } : t
     ))
 
     try {
       const res = await fetch(`/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pengawalan: value }),
+        body: JSON.stringify({ pengawalan: nextValue }),
       })
 
       if (res.ok) {
@@ -752,7 +753,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
-                    {ticket.pengawalan ? ticket.pengawalan : 'Tidak'}
+                    {ticket.pengawalan ? ticket.pengawalan : '-'}
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.kmz || '-'}
@@ -876,7 +877,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         </span>
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan ? ticket.pengawalan : 'Tidak'}
+                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan ? ticket.pengawalan : '-'}
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">KMZ:</span>{' '}
@@ -916,16 +917,17 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pengawalan</label>
                             {canClose ? (
                               <select
-                                value={(ticket.pengawalan || 'tidak').toLowerCase()}
+                                value={(ticket.pengawalan || '').toLowerCase()}
                                 onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
                                 className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
                               >
+                                <option value="">-</option>
                                 <option value="tidak">Tidak</option>
                                 <option value="onsite">Onsite</option>
                                 <option value="onchat">Onchat</option>
                               </select>
                             ) : (
-                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan ? ticket.pengawalan : 'Tidak'}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan ? ticket.pengawalan : '-'}</div>
                             )}
                           </div>
                           <div className="space-y-1">
