@@ -276,6 +276,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       setError(data?.error ?? 'Gagal menghapus')
       return
     }
+    setMapRows((prev) => prev.filter((x) => x.id !== row.id))
+    setFocusedOdpId((prev) => (prev === row.id ? null : prev))
     setRows((prev) => prev.filter((x) => x.id !== row.id))
     setTotal((prev) => Math.max(0, prev - 1))
     setSelectedIds((prev) => prev.filter((id) => id !== row.id))
@@ -316,6 +318,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       const data = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal menghapus data')
       const idsSet = new Set(selectedIds)
+      setMapRows((prev) => prev.filter((x) => !idsSet.has(x.id)))
+      setFocusedOdpId((prev) => (prev !== null && idsSet.has(prev) ? null : prev))
       const removedOnPage = rows.filter((x) => idsSet.has(x.id)).length
       setRows((prev) => prev.filter((x) => !idsSet.has(x.id)))
       setTotal((prev) => Math.max(0, prev - removedOnPage))

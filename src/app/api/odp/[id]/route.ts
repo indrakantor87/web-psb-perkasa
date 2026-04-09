@@ -86,7 +86,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   `
   if (conflict[0]?.id) return NextResponse.json({ error: 'ODP sudah ada di POP tersebut' }, { status: 400 })
 
-  await prisma.$executeRaw`
+  const count = await prisma.$executeRaw`
     UPDATE psb_odp
     SET nama_odp = ${nama_odp},
         wilayah = ${wilayah},
@@ -99,6 +99,7 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
         updated_at = NOW()
     WHERE id = ${odpId} AND is_active = TRUE
   `
+  if (!count) return NextResponse.json({ error: 'ODP tidak ditemukan' }, { status: 404 })
 
   cache.invalidateByPrefix('odp:')
   return NextResponse.json({ ok: true })
@@ -117,11 +118,12 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   const odpId = toInt(id)
   if (!Number.isFinite(odpId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
-  await prisma.$executeRaw`
+  const count = await prisma.$executeRaw`
     UPDATE psb_odp
     SET is_active = FALSE, updated_at = NOW()
-    WHERE id = ${odpId}
+    WHERE id = ${odpId} AND is_active = TRUE
   `
+  if (!count) return NextResponse.json({ error: 'ODP tidak ditemukan' }, { status: 404 })
 
   cache.invalidateByPrefix('odp:')
   return NextResponse.json({ ok: true })
