@@ -135,6 +135,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       return
     }
 
+    const nowIso = new Date().toISOString()
+    setTicketsState(prev => prev.map(t =>
+      t.id === id ? { ...t, status: 'CLOSE', installedDate: nowIso } : t
+    ))
+
     setLoadingId(id)
     try {
       const res = await fetch(`/api/tickets/${id}`, {
@@ -147,9 +152,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         router.refresh()
       } else {
         alert('Failed to close ticket')
+        router.refresh()
       }
     } catch {
       alert('An error occurred while closing ticket')
+      router.refresh()
     } finally {
       setLoadingId(null)
     }

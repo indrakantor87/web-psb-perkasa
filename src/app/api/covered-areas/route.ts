@@ -3,6 +3,13 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 
+type CoveredAreaDelegate = {
+  findMany: (args?: unknown) => Promise<unknown>
+  create: (args: unknown) => Promise<unknown>
+}
+
+const prismaUnsafe = prisma as unknown as { coveredArea: CoveredAreaDelegate }
+
 export async function GET() {
   const session = await getSession()
   if (!session) {
@@ -10,7 +17,7 @@ export async function GET() {
   }
 
   try {
-    const areas = await (prisma as any).coveredArea.findMany({
+    const areas = await prismaUnsafe.coveredArea.findMany({
       orderBy: { name: 'asc' },
     })
     return NextResponse.json(areas)
@@ -38,7 +45,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const newArea = await (prisma as any).coveredArea.create({
+    const newArea = await prismaUnsafe.coveredArea.create({
       data: {
         name,
         description,

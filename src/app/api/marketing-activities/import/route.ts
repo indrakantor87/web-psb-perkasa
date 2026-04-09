@@ -5,6 +5,14 @@ import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
+type CoveredAreaDelegate = {
+  findMany: (args?: unknown) => Promise<Array<{ id: number; name: string }>>
+}
+type MarketingActivityDelegate = {
+  create: (args: unknown) => Promise<unknown>
+}
+const prismaUnsafe = prisma as unknown as { coveredArea: CoveredAreaDelegate; marketingActivity: MarketingActivityDelegate }
+
 function parseDate(value: unknown): Date | null {
   if (!value) return null
   if (typeof value === 'number') {
@@ -101,7 +109,7 @@ export async function POST(request: Request) {
 
     let areas: Array<{ id: number; name: string }> = []
     try {
-      areas = await (prisma as any).coveredArea.findMany({ select: { id: true, name: true } })
+      areas = await prismaUnsafe.coveredArea.findMany({ select: { id: true, name: true } })
     } catch (e) {
       console.error('Failed to fetch areas for import', e)
     }
@@ -155,7 +163,7 @@ export async function POST(request: Request) {
           matchedAreaIds[3] = unique[3] ?? null
         }
 
-        await (prisma as any).marketingActivity.create({
+        await prismaUnsafe.marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
             marketingName: String(mapped.marketingName || '-').trim(),

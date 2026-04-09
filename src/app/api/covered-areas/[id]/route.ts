@@ -3,6 +3,13 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 
+type CoveredAreaDelegate = {
+  update: (args: unknown) => Promise<unknown>
+  delete: (args: unknown) => Promise<unknown>
+}
+
+const prismaUnsafe = prisma as unknown as { coveredArea: CoveredAreaDelegate }
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -27,7 +34,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const updatedArea = await (prisma as any).coveredArea.update({
+    const updatedArea = await prismaUnsafe.coveredArea.update({
       where: { id: areaId },
       data: {
         name,
@@ -67,7 +74,7 @@ export async function DELETE(
   const areaId = parseInt(id)
 
   try {
-    await (prisma as any).coveredArea.delete({
+    await prismaUnsafe.coveredArea.delete({
       where: { id: areaId },
     })
 

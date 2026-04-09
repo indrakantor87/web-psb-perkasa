@@ -142,6 +142,7 @@ export async function POST(request: Request) {
 
     const isolation = await prisma.isolation.create({ data: createData })
 
+    cache.invalidateByPrefix('isolations:')
     return NextResponse.json(isolation)
   } catch (error) {
     console.error('Failed to create isolation:', error)
@@ -160,6 +161,7 @@ export async function DELETE() {
   }
   try {
     const deleted = await prisma.isolation.deleteMany({})
+    cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true, count: deleted.count })
   } catch (error) {
     console.error('Failed to bulk delete isolations:', error)

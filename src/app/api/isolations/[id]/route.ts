@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 
 export async function PUT(
   request: Request,
@@ -28,6 +29,7 @@ export async function PUT(
       },
     })
 
+    cache.invalidateByPrefix('isolations:')
     return NextResponse.json(isolation)
   } catch (error) {
     console.error('Failed to update isolation:', error)
@@ -56,6 +58,7 @@ export async function DELETE(
       where: { id: parseInt(id) },
     })
 
+    cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete isolation:', error)
