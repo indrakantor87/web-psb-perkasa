@@ -752,7 +752,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
-                    {ticket.pengawalan || '-'}
+                    {ticket.pengawalan ? ticket.pengawalan : 'Tidak'}
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
                     {ticket.kmz || '-'}
@@ -876,7 +876,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         </span>
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan || '-'}
+                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan ? ticket.pengawalan : 'Tidak'}
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">KMZ:</span>{' '}
@@ -925,7 +925,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                 <option value="onchat">Onchat</option>
                               </select>
                             ) : (
-                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan || '-'}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan ? ticket.pengawalan : 'Tidak'}</div>
                             )}
                           </div>
                           <div className="space-y-1">
