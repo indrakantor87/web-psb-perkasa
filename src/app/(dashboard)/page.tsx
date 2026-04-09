@@ -4,9 +4,9 @@ import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Prisma as PrismaSql } from '@prisma/client'
 import { ensureDbOptimizations } from '@/lib/db-init'
+import { cache } from '@/lib/cache'
 
-// Cache dashboard selama 2 menit untuk ringkasan agar mengurangi beban DB
-export const revalidate = 120
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage({
   searchParams,
@@ -24,6 +24,40 @@ export default async function DashboardPage({
   const now = new Date()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
+
+  const cacheKey = `dashboard:${JSON.stringify({
+    role: session.user.role,
+    name: session.user.name,
+    month: currentMonth,
+    year: currentYear,
+  })}`
+  const cached = cache.get<{
+    packageData: { name: string; count: number }[]
+    marketingDataWithIsolir: { name: string; count: number; open: number; pending: number; close: number; isolir?: number }[]
+    monthlyData: { name: string; count: number }[]
+    yearTopPackages: { name: string; count: number }[]
+    yearMarketingCounts: { name: string; count: number }[]
+    statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
+    isolationCount: number
+  }>(cacheKey)
+  if (cached) {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+        <DashboardView
+          packageData={cached.packageData}
+          marketingData={cached.marketingDataWithIsolir}
+          monthlyData={cached.monthlyData}
+          yearTopPackages={cached.yearTopPackages}
+          yearMarketingCounts={cached.yearMarketingCounts}
+          statusCounts={cached.statusCounts}
+          initialPeriod={{ month: currentMonth, year: currentYear }}
+          userRole={session.user.role}
+          isolationCount={cached.isolationCount}
+        />
+      </div>
+    )
+  }
 
   const startDate = new Date(currentYear, currentMonth - 1, 1)
   const endDate = new Date(currentYear, currentMonth, 1)
@@ -214,6 +248,20 @@ export default async function DashboardPage({
     ...m,
     isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
   }))
+
+  cache.set(
+    cacheKey,
+    {
+      packageData,
+      marketingDataWithIsolir,
+      monthlyData,
+      yearTopPackages,
+      yearMarketingCounts,
+      statusCounts,
+      isolationCount,
+    },
+    120_000
+  )
 
   return (
     <div>
