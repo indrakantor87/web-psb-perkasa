@@ -190,6 +190,32 @@ export default async function DashboardPage({
   `
   const yearMarketingCounts = yearMarketingRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
+  // 2e. Yearly CLOSE per marketing (total pelanggan tahunan = ticket CLOSE berdasar installedDate di tahun berjalan)
+  const yearCloseRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
+    SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name, COUNT(*)::int AS count
+    FROM "Ticket"
+    WHERE "status" = 'CLOSE'
+      AND "installedDate" IS NOT NULL
+      AND "installedDate" >= ${yearStart}
+      AND "installedDate" < ${yearEnd}
+    GROUP BY COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown')
+  `
+  const yearCloseByMarketing = new Map<string, number>(
+    yearCloseRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)])
+  )
+
+  // 2f. Aktivitas Marketing tahunan per marketing
+  const yearActivityRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
+    SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name, COUNT(*)::int AS count
+    FROM "MarketingActivity"
+    WHERE "date" >= ${yearStart}
+      AND "date" < ${yearEnd}
+    GROUP BY COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown')
+  `
+  const yearActivityByMarketing = new Map<string, number>(
+    yearActivityRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)])
+  )
+
   const statusCounts = {
     total: statusRows.reduce((acc, r) => acc + Number(r.count || 0), 0),
     open: statusRows.find((r) => r.status === 'OPEN')?.count || 0,
@@ -215,6 +241,23 @@ export default async function DashboardPage({
     isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
   }))
 
+  // Compose yearly performance dataset
+  const namesSet = new Set<string>()
+  for (const k of [...yearCloseByMarketing.keys(), ...yearActivityByMarketing.keys(), ...marketingDataWithIsolir.map(m => m.name.toLowerCase()), ...isolirByMarketing.keys()]) {
+    namesSet.add(k)
+  }
+  const yearPerformance = Array.from(namesSet).map((k) => {
+    const name = k.charAt(0).toUpperCase() + k.slice(1)
+    const monthClose = marketingDataWithIsolir.find(m => m.name.toLowerCase() === k)?.close || 0
+    return {
+      name,
+      yearClose: yearCloseByMarketing.get(k) || 0,
+      monthClose,
+      activity: yearActivityByMarketing.get(k) || 0,
+      isolirOpen: isolirByMarketing.get(k) || 0,
+    }
+  })
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
@@ -228,6 +271,7 @@ export default async function DashboardPage({
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
         isolationCount={isolationCount}
+        yearPerformance={yearPerformance}
       />
     </div>
   )

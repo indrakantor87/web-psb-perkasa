@@ -17,11 +17,12 @@ interface DashboardViewProps {
   initialPeriod: { month: number; year: number }
   userRole?: string
   isolationCount?: number
+  yearPerformance?: Array<{ name: string; yearClose: number; monthClose: number; activity: number; isolirOpen: number }>
 }
 
 const ChartSection = dynamic(() => import('./charts/DashboardCharts'), { ssr: false })
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, initialPeriod, userRole, isolationCount = 0, yearPerformance = [] }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -293,6 +294,102 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             <div className="h-56 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700/40" />
           </div>
         )}
+      </div>
+
+      {/* Kinerja Marketing Tahunan */}
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Kinerja Marketing Tahunan</h3>
+            <p className="text-xs text-gray-500">Performa berdasarkan Ticket CLOSE, Aktivitas Marketing, dan Isolir OPEN (Tahun {year})</p>
+          </div>
+          <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+          </div>
+        </div>
+
+        {(() => {
+          const sumYearClose = yearPerformance.reduce((s, r) => s + (r.yearClose || 0), 0)
+          const sumMonthClose = yearPerformance.reduce((s, r) => s + (r.monthClose || 0), 0)
+          const maxActivity = Math.max(1, ...yearPerformance.map(r => r.activity || 0))
+          const targetIsolirRate = 0.1
+          const weights = { y: 0.35, m: 0.25, a: 0.25, i: 0.15 }
+
+          const rows = yearPerformance.map(r => {
+            const yearShare = sumYearClose > 0 ? (r.yearClose / sumYearClose) * 100 : 0
+            const monthShare = sumMonthClose > 0 ? (r.monthClose / sumMonthClose) * 100 : 0
+            const activityScore = maxActivity > 0 ? (r.activity / maxActivity) * 100 : 0
+            const isolirRate = r.yearClose > 0 ? (r.isolirOpen / r.yearClose) : (r.isolirOpen > 0 ? 1 : 0)
+            const isolirPenalty = Math.min(100, Math.max(0, (isolirRate / targetIsolirRate) * 100))
+            const score = (weights.y * yearShare) + (weights.m * monthShare) + (weights.a * activityScore) + (weights.i * (100 - isolirPenalty))
+            return {
+              ...r,
+              yearShare,
+              monthShare,
+              activityScore,
+              isolirPenalty,
+              score
+            }
+          }).sort((a, b) => b.score - a.score)
+
+          return (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Close (Thn)</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Close (Bln)</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aktivitas (Thn)</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Isolir OPEN</th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Performa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {rows.map((r, i) => (
+                    <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-3 shadow-sm">
+                            {r.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{r.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">{r.yearClose}</td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">{r.monthClose}</td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">{r.activity}</td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400">{r.isolirOpen}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
+                        <div className="w-full max-w-[140px] mx-auto">
+                          <div className="flex justify-between text-[10px] mb-1 text-gray-500">
+                            <span>{Math.round(r.score)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`${r.score < 50 ? 'bg-red-500' : r.score < 75 ? 'bg-amber-500' : 'bg-green-500'} h-1.5 rounded-full`}
+                              style={{ width: `${Math.min(Math.round(r.score), 100)}%` }}
+                              title={`Year ${r.yearShare.toFixed(1)}% • Month ${r.monthShare.toFixed(1)}% • Activity ${r.activityScore.toFixed(1)}% • Penalty ${r.isolirPenalty.toFixed(1)}%`}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400 italic">
+                        Data tidak tersedia untuk tahun ini
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
