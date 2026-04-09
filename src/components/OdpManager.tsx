@@ -118,8 +118,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
 
   const [mapOpen, setMapOpen] = useState(false)
+  const [mapRows, setMapRows] = useState<OdpRow[]>([])
   const [mapLoading, setMapLoading] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
+  const [mapKey, setMapKey] = useState(0)
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -174,16 +176,33 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     setSelectedIds([])
   }, [q, wilayah])
 
-  const mapRows = useMemo(() => {
-    return rows
-      .map((r) => {
-        if (Number.isFinite(r.latitude) && Number.isFinite(r.longitude)) return r
-        const parsed = parseLatLng(r.lokasi)
-        if (!parsed) return { ...r, latitude: null, longitude: null }
-        return { ...r, latitude: parsed.latitude, longitude: parsed.longitude }
+  const fetchMap = useCallback(async (signal?: AbortSignal) => {
+    const url = new URL('/api/odp', window.location.origin)
+    url.searchParams.set('q', qDebounced)
+    url.searchParams.set('wilayah', wilayah)
+    url.searchParams.set('map', '1')
+    url.searchParams.set('bypassCache', '1')
+    const r = await fetch(url.toString(), { cache: 'no-store', signal })
+    const data = await r.json().catch(() => [])
+    if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat peta')
+    setMapRows(Array.isArray(data) ? (data as OdpRow[]) : [])
+  }, [qDebounced, wilayah])
+
+  useEffect(() => {
+    if (!mapOpen) return
+    const controller = new AbortController()
+    setMapLoading(true)
+    setMapError(null)
+    fetchMap(controller.signal)
+      .catch((e: unknown) => {
+        if (controller.signal.aborted) return
+        setMapError(e instanceof Error ? e.message : String(e))
       })
-      .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
-  }, [rows])
+      .finally(() => {
+        if (!controller.signal.aborted) setMapLoading(false)
+      })
+    return () => controller.abort()
+  }, [fetchMap, mapKey, mapOpen])
 
   const openAdd = () => {
     setEditing(null)
@@ -240,6 +259,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
       setModalOpen(false)
       await fetchRows()
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -260,6 +280,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     setTotal((prev) => Math.max(0, prev - 1))
     setSelectedIds((prev) => prev.filter((id) => id !== row.id))
     await fetchRows(undefined, true)
+    if (mapOpen) setMapKey((k) => k + 1)
   }
 
   const toggleRowSelected = (id: number) => {
@@ -300,6 +321,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       setTotal((prev) => Math.max(0, prev - removedOnPage))
       setSelectedIds([])
       await fetchRows(undefined, true)
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -371,6 +393,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal import')
       alert((data as { message?: string })?.message ?? 'Import selesai')
       await fetchRows(undefined, true)
+      if (mapOpen) setMapKey((k) => k + 1)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       setImportError(msg)
@@ -492,17 +515,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
             <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
               <span>Marker: {mapRows.length}</span>
               <button
-                onClick={async () => {
-                  setMapLoading(true)
-                  setMapError(null)
-                  try {
-                    await fetchRows(undefined, true)
-                  } catch (e: unknown) {
-                    setMapError(e instanceof Error ? e.message : String(e))
-                  } finally {
-                    setMapLoading(false)
-                  }
-                }}
+                onClick={() => setMapKey((k) => k + 1)}
                 disabled={mapLoading}
                 className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50"
               >
