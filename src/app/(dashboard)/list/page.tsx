@@ -1,7 +1,7 @@
 import { TicketList } from '@/components/TicketList'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getPriorities, getDefaultTemplate } from '@/lib/data'
+import { getDefaultTemplate } from '@/lib/data'
 import { ensureDbOptimizations } from '@/lib/db-init'
 import { getTicketsListData } from '@/lib/tickets-list-cache'
 
@@ -38,7 +38,7 @@ export default async function ListPage({
   let tickets: Awaited<ReturnType<typeof getTicketsListData>>['tickets'] = []
   let totalCount = 0
   let countsForUi: Awaited<ReturnType<typeof getTicketsListData>>['counts'] | undefined = undefined
-  const [priorities, defaultTemplate] = await Promise.all([getPriorities(), getDefaultTemplate()])
+  const defaultTemplate = await getDefaultTemplate()
   try {
     const list = await getTicketsListData({
       role: session.user.role,
@@ -92,7 +92,6 @@ export default async function ListPage({
               pageSize
             }}
             counts={countsForUi}
-            priorities={priorities}
             defaultTemplateContent={defaultTemplate?.content || ''}
           />
         </div>

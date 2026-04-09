@@ -28,12 +28,6 @@ interface Ticket {
   closedBy?: { name: string } | null
 }
 
-interface Priority {
-  id: number
-  name: string
-  color: string
-}
-
 interface TicketListProps {
   tickets: Ticket[]
   userRole: string
@@ -53,11 +47,10 @@ interface TicketListProps {
     CLOSE: number
     PENDING: number
   }
-  priorities?: Priority[]
   defaultTemplateContent?: string
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts, priorities = [], defaultTemplateContent = '' }: TicketListProps) {
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
   const [loadingId, setLoadingId] = useState<number | null>(null)
@@ -82,7 +75,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
 
-  const colSpan = userRole !== 'MARKETING' ? 17 : 16
+  const colSpan = userRole !== 'MARKETING' ? 16 : 15
 
   // Sync local state when props change
   useEffect(() => {
@@ -93,12 +86,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const currentPage = pagination?.currentPage || 1
   const totalPages = pagination?.totalPages || 1
   const totalCount = pagination?.totalCount || tickets.length
-
-  const getPriorityColor = (priorityName: string | null | undefined) => {
-    if (!priorityName) return 'bg-gray-200 text-gray-800'
-    const found = priorities.find(p => p.name === priorityName)
-    return found ? found.color : 'bg-gray-200 text-gray-800'
-  }
 
   const formatMessage = (template: string, ticket: Ticket) => {
     return template
@@ -297,7 +284,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const role = (userRole || '').toUpperCase()
   const canClose = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
   const canEditKmz = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
-  const canEditPriority = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
   const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
 
@@ -335,7 +321,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       formData.append('description', editTicket.description || '')
       if (editTicket.pengawalan) formData.append('pengawalan', editTicket.pengawalan)
       if (editTicket.kmz) formData.append('kmz', editTicket.kmz)
-      if (editTicket.priority) formData.append('priority', editTicket.priority)
       if (editTicket.pembayaran) formData.append('pembayaran', editTicket.pembayaran)
       if (editTicket.teknisi) formData.append('teknisi', editTicket.teknisi)
       if (canEditStatus) formData.append('status', normalizeStatus(editTicket.status))
@@ -416,35 +401,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
-  const handleUpdatePriority = async (id: number, value: string) => {
-    // Determine status based on priority value
-    // If priority is selected -> PENDING
-    // If priority is reset (empty) -> OPEN
-    const newStatus = value ? 'PENDING' : 'OPEN'
-
-    // Optimistic update
-    setTicketsState(prev => prev.map(t => 
-      t.id === id ? { ...t, priority: value, status: newStatus } : t
-    ))
-
-    try {
-      const res = await fetch(`/api/tickets/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priority: value || null, status: newStatus }),
-      })
-      if (res.ok) {
-        router.refresh()
-      } else {
-        alert('Failed to change priority')
-        router.refresh()
-      }
-    } catch {
-      alert('Error changing priority')
-      router.refresh()
-    }
-  }
-
   const handleExportExcel = async () => {
     setIsExporting(true)
     try {
@@ -472,7 +428,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         'Marketing': ticket.marketingName,
         'Pengawalan': ticket.pengawalan || '-',
         'KMZ': ticket.kmz || '-',
-        'Prioritas': ticket.priority || '-',
         'Keterangan': ticket.description || '-',
         'Pembayaran': ticket.pembayaran || '-',
         'Status': ticket.status,
@@ -697,7 +652,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Prioritas</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Aksi</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No WA Aktif</th>
@@ -772,15 +726,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     <div className="line-clamp-3 whitespace-normal">
                       {ticket.description || '-'}
                     </div>
-                  </td>
-                  <td className="hidden md:table-cell px-3 py-3 text-xs">
-                    {ticket.priority ? (
-                      <span className={clsx('inline-flex items-center justify-center text-center whitespace-normal max-w-[120px] rounded-full px-2 py-0.5 text-[9px] leading-tight', getPriorityColor(ticket.priority))}>
-                        {ticket.priority}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
                   </td>
                   <td className="hidden md:table-cell px-3 py-3 text-xs">
                     <span className={clsx(
@@ -897,9 +842,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         )}
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Prioritas:</span> {ticket.priority || '-'}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
                         <span className="font-medium">Pembayaran:</span> {ticket.pembayaran || '-'}
                       </div>
                       <div>
@@ -957,35 +899,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
                         {userRole !== 'MARKETING' && (
                           <div className="space-y-3">
-                            <div className="space-y-1">
-                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Prioritas</label>
-                              {canEditPriority ? (
-                                <select
-                                  value={ticket.priority || ''}
-                                  onChange={(e) => handleUpdatePriority(ticket.id, e.target.value)}
-                                  className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                                >
-                                  <option value="">- Pilih -</option>
-                                  {priorities.length > 0 ? priorities.map((p) => (
-                                    <option key={p.id} value={p.name}>{p.name}</option>
-                                  )) : (
-                                    <>
-                                      <option value="LOW">LOW</option>
-                                      <option value="MEDIUM">MEDIUM</option>
-                                      <option value="HIGH">HIGH</option>
-                                    </>
-                                  )}
-                                </select>
-                              ) : (
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {ticket.priority ? (
-                                    <span className={clsx('inline-flex rounded-full px-2 py-0.5 text-xs', getPriorityColor(ticket.priority))}>
-                                      {ticket.priority}
-                                    </span>
-                                  ) : '-'}
-                                </div>
-                              )}
-                            </div>
                             <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
                                 <div className="space-y-1">
@@ -1086,10 +999,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             ))}
             {ticketsState.length === 0 && (
               <tr>
-            <td colSpan={20} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-              No data for this period
-            </td>
-          </tr>
+                <td colSpan={colSpan} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                  No data for this period
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -1341,22 +1254,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <p className="text-xs text-gray-500 mt-1">Max 3MB (.jpg, .png)</p>
                 </div>
                 
-                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
-                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
-                    <select
-                      value={editTicket.priority || ''}
-                      onChange={(e) => setEditTicket({ ...editTicket, priority: e.target.value })}
-                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">- Select -</option>
-                      {priorities.map((p) => (
-                        <option key={p.id} value={p.name}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
                     <div>
                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pengawalan</label>
