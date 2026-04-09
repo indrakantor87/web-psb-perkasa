@@ -101,7 +101,7 @@ export async function POST(request: Request) {
 
     let areas: Array<{ id: number; name: string }> = []
     try {
-      areas = await prisma.coveredArea.findMany({ select: { id: true, name: true } })
+      areas = await (prisma as any).coveredArea.findMany({ select: { id: true, name: true } })
     } catch (e) {
       console.error('Failed to fetch areas for import', e)
     }
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
           matchedAreaIds[3] = unique[3] ?? null
         }
 
-        await prisma.marketingActivity.create({
+        await (prisma as any).marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
             marketingName: String(mapped.marketingName || '-').trim(),
