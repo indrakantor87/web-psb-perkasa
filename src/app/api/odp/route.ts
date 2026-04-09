@@ -96,7 +96,7 @@ export async function GET(req: Request) {
     const whereParts = [Prisma.sql`o.is_active = TRUE`]
     if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
-    if (map) whereParts.push(Prisma.sql`(o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'})`)
+    if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
     const whereSql = Prisma.join(whereParts, ' AND ')
 
     const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
