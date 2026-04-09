@@ -150,89 +150,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         />
       </div>
 
-      <div ref={chartsRef}>
-        {chartsVisible ? (
-          <ChartSection
-            packageData={packageData}
-            monthlyData={monthlyData}
-            statusData={statusData}
-            showMonthly={!isMarketing}
-            year={year}
-          />
-        ) : (
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="h-56 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700/40" />
-          </div>
-        )}
-      </div>
-
-      {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMarketing && (
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Paket Terlaris (Tahun {year})</h3>
-              <p className="text-xs text-gray-500">5 paket dengan pemasangan terbanyak</p>
-            </div>
-            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {yearTopPackages.map((p, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{p.count}</span>
-              </div>
-            ))}
-            {yearTopPackages.length === 0 && (
-              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
-                Tidak ada data paket untuk tahun ini
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMarketing && (
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Pelanggan per Marketing (Tahun {year})</h3>
-              <p className="text-xs text-gray-500">15 marketing dengan jumlah pelanggan terbanyak</p>
-            </div>
-            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {yearMarketingCounts.map((m, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs font-bold">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{m.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{m.count}</span>
-              </div>
-            ))}
-            {yearMarketingCounts.length === 0 && (
-              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
-                Tidak ada data untuk tahun ini
-              </div>
-            )}
-          </div>
-
-        </div>
-      )}
-
       {/* Marketing Table */}
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
@@ -361,6 +278,89 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           </table>
         </div>
       </div>
+
+      <div ref={chartsRef}>
+        {chartsVisible ? (
+          <ChartSection
+            packageData={packageData}
+            monthlyData={monthlyData}
+            statusData={statusData}
+            showMonthly={!isMarketing}
+            year={year}
+          />
+        ) : (
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="h-56 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700/40" />
+          </div>
+        )}
+      </div>
+
+      {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
+      {!isMarketing && (
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Paket Terlaris (Tahun {year})</h3>
+              <p className="text-xs text-gray-500">5 paket dengan pemasangan terbanyak</p>
+            </div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {yearTopPackages.map((p, idx) => (
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{p.count}</span>
+              </div>
+            ))}
+            {yearTopPackages.length === 0 && (
+              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+                Tidak ada data paket untuk tahun ini
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
+      {!isMarketing && (
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Pelanggan per Marketing (Tahun {year})</h3>
+              <p className="text-xs text-gray-500">15 marketing dengan jumlah pelanggan terbanyak</p>
+            </div>
+            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {yearMarketingCounts.map((m, idx) => (
+              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 text-xs font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{m.name}</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{m.count}</span>
+              </div>
+            ))}
+            {yearMarketingCounts.length === 0 && (
+              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+                Tidak ada data untuk tahun ini
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
     </div>
   )
 }
