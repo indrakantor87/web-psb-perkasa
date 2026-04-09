@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
   const year = searchParams.get('year')
   const marketing = searchParams.get('marketing')
 
-  const where: any = {}
+  const where: Prisma.MarketingActivityWhereInput = {}
 
   if (month && year) {
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
@@ -40,7 +41,16 @@ export async function GET(request: Request) {
       include: {
         area: {
           select: { name: true }
-        }
+        },
+        area2: {
+          select: { name: true }
+        },
+        area3: {
+          select: { name: true }
+        },
+        area4: {
+          select: { name: true }
+        },
       },
       orderBy: { date: 'desc' },
     })
@@ -60,11 +70,24 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { date, marketingName, activity, notes, areaId } = body
+    const { date, marketingName, activity, notes, areaId, areaId2, areaId3, areaId4 } = body
 
     if (!date || !marketingName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    const parseOptionalInt = (v: unknown) => {
+      if (v === null || typeof v === 'undefined' || v === '') return null
+      const n = parseInt(String(v), 10)
+      return Number.isFinite(n) ? n : null
+    }
+
+    const picked = [parseOptionalInt(areaId), parseOptionalInt(areaId2), parseOptionalInt(areaId3), parseOptionalInt(areaId4)]
+    const uniquePicked = picked.map((val, idx) => {
+      if (val === null) return null
+      const firstIndex = picked.findIndex(v => v === val)
+      return firstIndex === idx ? val : null
+    })
 
     const newActivity = await prisma.marketingActivity.create({
       data: {
@@ -72,7 +95,10 @@ export async function POST(request: Request) {
         marketingName,
         activity: activity || '-',
         notes: notes || '',
-        areaId: areaId ? parseInt(areaId) : null,
+        areaId: uniquePicked[0],
+        areaId2: uniquePicked[1],
+        areaId3: uniquePicked[2],
+        areaId4: uniquePicked[3],
       },
     })
 

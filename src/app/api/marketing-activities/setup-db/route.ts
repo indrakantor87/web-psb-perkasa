@@ -41,10 +41,19 @@ export async function GET() {
       CREATE UNIQUE INDEX IF NOT EXISTS "CoveredArea_name_key" ON "CoveredArea"("name");
     `)
 
-    // Add areaId to MarketingActivity if it doesn't exist
+    // Add areaId columns to MarketingActivity if they don't exist
     try {
       await prisma.$executeRawUnsafe(`
         ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "areaId" INTEGER;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "areaId2" INTEGER;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "areaId3" INTEGER;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "areaId4" INTEGER;
       `)
       
       // Attempt to add foreign key (may fail if already exists)
@@ -58,12 +67,49 @@ export async function GET() {
       } catch (fkError) {
         console.log('Foreign key might already exist:', fkError)
       }
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "MarketingActivity" 
+          ADD CONSTRAINT "MarketingActivity_areaId2_fkey" 
+          FOREIGN KEY ("areaId2") REFERENCES "CoveredArea"("id") 
+          ON DELETE SET NULL ON UPDATE CASCADE;
+        `)
+      } catch (fkError) {
+        console.log('Foreign key might already exist:', fkError)
+      }
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "MarketingActivity" 
+          ADD CONSTRAINT "MarketingActivity_areaId3_fkey" 
+          FOREIGN KEY ("areaId3") REFERENCES "CoveredArea"("id") 
+          ON DELETE SET NULL ON UPDATE CASCADE;
+        `)
+      } catch (fkError) {
+        console.log('Foreign key might already exist:', fkError)
+      }
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "MarketingActivity" 
+          ADD CONSTRAINT "MarketingActivity_areaId4_fkey" 
+          FOREIGN KEY ("areaId4") REFERENCES "CoveredArea"("id") 
+          ON DELETE SET NULL ON UPDATE CASCADE;
+        `)
+      } catch (fkError) {
+        console.log('Foreign key might already exist:', fkError)
+      }
     } catch (colError) {
       console.log('Error adding areaId column:', colError)
     }
 
     return NextResponse.json({ message: 'Database setup completed successfully' })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || String(error) }, { status: 500 })
+  } catch (error: unknown) {
+    const message =
+      typeof error === 'object' && error && 'message' in error
+        ? String((error as { message?: unknown }).message)
+        : String(error)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

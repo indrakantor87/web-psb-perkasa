@@ -99,9 +99,9 @@ export async function POST(request: Request) {
       }
     }
 
-    let areas: any[] = []
+    let areas: Array<{ id: number; name: string }> = []
     try {
-      areas = await prisma.coveredArea.findMany()
+      areas = await prisma.coveredArea.findMany({ select: { id: true, name: true } })
     } catch (e) {
       console.error('Failed to fetch areas for import', e)
     }
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
 
     for (const row of rows) {
       try {
-        const mapped: any = {}
+        const mapped: { date?: unknown; marketingName?: unknown; activity?: unknown; notes?: unknown } & Record<string, unknown> = {}
         
         // Check if row already has the fields (from fallback)
         if (row.marketingName || row.activity || row.date) {
@@ -132,12 +132,27 @@ export async function POST(request: Request) {
            continue
         }
 
-        // Try to match areaId from activity text if possible
-        let areaId = null
+        const matchedAreaIds: Array<number | null> = [null, null, null, null]
         if (mapped.activity && areas.length > 0) {
           const act = norm(mapped.activity)
-          const found = areas.find(a => act.includes(norm(a.name)))
-          if (found) areaId = found.id
+          const hits = areas
+            .map((a) => {
+              const nameNorm = norm(a.name)
+              const pos = nameNorm ? act.indexOf(nameNorm) : -1
+              return { id: a.id as number, pos }
+            })
+            .filter((x) => x.pos >= 0)
+            .sort((a, b) => a.pos - b.pos)
+
+          const unique: number[] = []
+          for (const h of hits) {
+            if (!unique.includes(h.id)) unique.push(h.id)
+            if (unique.length >= 4) break
+          }
+          matchedAreaIds[0] = unique[0] ?? null
+          matchedAreaIds[1] = unique[1] ?? null
+          matchedAreaIds[2] = unique[2] ?? null
+          matchedAreaIds[3] = unique[3] ?? null
         }
 
         await prisma.marketingActivity.create({
@@ -146,14 +161,20 @@ export async function POST(request: Request) {
             marketingName: String(mapped.marketingName || '-').trim(),
             activity: String(mapped.activity || '-').trim(),
             notes: mapped.notes ? String(mapped.notes).trim() : null,
-            areaId: areaId
+            areaId: matchedAreaIds[0],
+            areaId2: matchedAreaIds[1],
+            areaId3: matchedAreaIds[2],
+            areaId4: matchedAreaIds[3],
           }
         })
         ok++
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error('Row import error:', e)
         fail++
-        lastError = e.message || String(e)
+        lastError =
+          typeof e === 'object' && e && 'message' in e
+            ? String((e as { message?: unknown }).message)
+            : String(e)
       }
     }
 

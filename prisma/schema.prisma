@@ -108,7 +108,16 @@ model MarketingActivity {
   notes         String?
   
   areaId        Int?
-  area          CoveredArea? @relation(fields: [areaId], references: [id])
+  area          CoveredArea? @relation("MarketingActivityArea1", fields: [areaId], references: [id])
+
+  areaId2       Int?
+  area2         CoveredArea? @relation("MarketingActivityArea2", fields: [areaId2], references: [id])
+
+  areaId3       Int?
+  area3         CoveredArea? @relation("MarketingActivityArea3", fields: [areaId3], references: [id])
+
+  areaId4       Int?
+  area4         CoveredArea? @relation("MarketingActivityArea4", fields: [areaId4], references: [id])
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -121,8 +130,11 @@ model CoveredArea {
   id          Int      @id @default(autoincrement())
   name        String   @unique
   description String?
-  
-  activities  MarketingActivity[]
+
+  marketingActivities1 MarketingActivity[] @relation("MarketingActivityArea1")
+  marketingActivities2 MarketingActivity[] @relation("MarketingActivityArea2")
+  marketingActivities3 MarketingActivity[] @relation("MarketingActivityArea3")
+  marketingActivities4 MarketingActivity[] @relation("MarketingActivityArea4")
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

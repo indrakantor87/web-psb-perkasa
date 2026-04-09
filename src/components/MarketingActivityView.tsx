@@ -14,6 +14,12 @@ interface MarketingActivity {
   notes?: string | null
   areaId?: number | null
   area?: { name: string } | null
+  areaId2?: number | null
+  area2?: { name: string } | null
+  areaId3?: number | null
+  area3?: { name: string } | null
+  areaId4?: number | null
+  area4?: { name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -52,6 +58,9 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
     date: format(new Date(), 'yyyy-MM-dd'),
     marketingName: userRole === 'MARKETING' ? userName : '',
     areaId: '',
+    areaId2: '',
+    areaId3: '',
+    areaId4: '',
     activity: '',
     notes: '',
   })
@@ -97,6 +106,9 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
         date: format(new Date(activity.date), 'yyyy-MM-dd'),
         marketingName: activity.marketingName,
         areaId: activity.areaId?.toString() || '',
+        areaId2: activity.areaId2?.toString() || '',
+        areaId3: activity.areaId3?.toString() || '',
+        areaId4: activity.areaId4?.toString() || '',
         activity: activity.activity,
         notes: activity.notes || '',
       })
@@ -106,6 +118,9 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
         date: format(new Date(), 'yyyy-MM-dd'),
         marketingName: userRole === 'MARKETING' ? userName : '',
         areaId: '',
+        areaId2: '',
+        areaId3: '',
+        areaId4: '',
         activity: '',
         notes: '',
       })
@@ -166,6 +181,10 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
       const dataToExport = activities.map(a => ({
         'Tanggal': format(new Date(a.date), 'dd/MM/yyyy'),
         'Nama Marketing': a.marketingName,
+        'Area 1': a.area?.name || '-',
+        'Area 2': a.area2?.name || '-',
+        'Area 3': a.area3?.name || '-',
+        'Area 4': a.area4?.name || '-',
         'Aktivitas': a.activity,
         'Keterangan': a.notes || '-'
       }))
@@ -243,14 +262,43 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const sortedMarketingNames = Object.keys(groupedActivities).sort()
 
   // Area statistics calculation
+  const areaVisitCounts = new Map<number, number>()
+  for (const a of activities) {
+    const ids = [a.areaId, a.areaId2, a.areaId3, a.areaId4].filter(
+      (x): x is number => typeof x === 'number' && x > 0
+    )
+    const uniqueIds = Array.from(new Set(ids))
+    for (const id of uniqueIds) {
+      areaVisitCounts.set(id, (areaVisitCounts.get(id) || 0) + 1)
+    }
+  }
+  const totalAreaVisits = Array.from(areaVisitCounts.values()).reduce((sum, v) => sum + v, 0)
+
   const areaStats = coveredAreas.map(area => {
-    const visits = activities.filter(a => a.areaId === area.id).length
+    const visits = areaVisitCounts.get(area.id) || 0
     return {
       ...area,
       visits,
-      percentage: activities.length > 0 ? (visits / activities.length) * 100 : 0
+      percentage: totalAreaVisits > 0 ? (visits / totalAreaVisits) * 100 : 0
     }
   }).sort((a, b) => b.visits - a.visits)
+
+  const areaFields = ['areaId', 'areaId2', 'areaId3', 'areaId4'] as const
+  const selectedAreaValues = areaFields.map(f => formData[f]).filter(Boolean)
+  const getAvailableAreas = (currentValue: string) =>
+    coveredAreas.filter(a => !selectedAreaValues.includes(a.id.toString()) || a.id.toString() === currentValue)
+
+  const updateAreaField = (field: typeof areaFields[number], value: string) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value }
+      if (value) {
+        for (const f of areaFields) {
+          if (f !== field && next[f] === value) next[f] = ''
+        }
+      }
+      return next
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -438,7 +486,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                                           {format(new Date(activity.date), 'dd/MM/yyyy')}
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
-                                          {activity.area?.name || '-'}
+                                        {[activity.area?.name, activity.area2?.name, activity.area3?.name, activity.area4?.name].filter(Boolean).join(', ') || '-'}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-900 dark:text-gray-100">
                                           {activity.activity === '-' ? (
@@ -493,7 +541,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 Persentase Kunjungan Per Area
               </h3>
               <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
-                Total: {activities.length} Aktivitas
+                Total: {totalAreaVisits} Kunjungan
               </span>
             </div>
             <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto custom-scrollbar">
@@ -619,18 +667,59 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area Kunjungan (Opsional)</label>
-                <select
-                  value={formData.areaId}
-                  onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
-                >
-                  <option value="">- Pilih Area -</option>
-                  {coveredAreas.map((area) => (
-                    <option key={area.id} value={area.id}>{area.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 1 (Opsional)</label>
+                  <select
+                    value={formData.areaId}
+                    onChange={(e) => updateAreaField('areaId', e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  >
+                    <option value="">- Pilih Area -</option>
+                    {getAvailableAreas(formData.areaId).map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 2 (Opsional)</label>
+                  <select
+                    value={formData.areaId2}
+                    onChange={(e) => updateAreaField('areaId2', e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  >
+                    <option value="">- Pilih Area -</option>
+                    {getAvailableAreas(formData.areaId2).map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 3 (Opsional)</label>
+                  <select
+                    value={formData.areaId3}
+                    onChange={(e) => updateAreaField('areaId3', e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  >
+                    <option value="">- Pilih Area -</option>
+                    {getAvailableAreas(formData.areaId3).map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 4 (Opsional)</label>
+                  <select
+                    value={formData.areaId4}
+                    onChange={(e) => updateAreaField('areaId4', e.target.value)}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  >
+                    <option value="">- Pilih Area -</option>
+                    {getAvailableAreas(formData.areaId4).map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aktivitas (Opsional)</label>

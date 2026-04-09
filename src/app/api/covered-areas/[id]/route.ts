@@ -37,8 +37,12 @@ export async function PUT(
 
     cache.invalidateByPrefix('covered-areas:')
     return NextResponse.json(updatedArea)
-  } catch (error: any) {
-    if (error.code === 'P2002') {
+  } catch (error: unknown) {
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? (error as { code?: string }).code
+        : undefined
+    if (code === 'P2002') {
       return NextResponse.json({ error: 'Nama area sudah ada' }, { status: 400 })
     }
     console.error('Failed to update covered area:', error)

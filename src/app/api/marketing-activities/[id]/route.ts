@@ -17,7 +17,20 @@ export async function PUT(
 
   try {
     const body = await request.json()
-    const { date, marketingName, activity, notes, areaId } = body
+    const { date, marketingName, activity, notes, areaId, areaId2, areaId3, areaId4 } = body
+
+    const parseOptionalInt = (v: unknown) => {
+      if (v === null || typeof v === 'undefined' || v === '') return null
+      const n = parseInt(String(v), 10)
+      return Number.isFinite(n) ? n : null
+    }
+
+    const picked = [parseOptionalInt(areaId), parseOptionalInt(areaId2), parseOptionalInt(areaId3), parseOptionalInt(areaId4)]
+    const uniquePicked = picked.map((val, idx) => {
+      if (val === null) return null
+      const firstIndex = picked.findIndex(v => v === val)
+      return firstIndex === idx ? val : null
+    })
 
     const updatedActivity = await prisma.marketingActivity.update({
       where: { id: activityId },
@@ -26,7 +39,10 @@ export async function PUT(
         marketingName,
         activity,
         notes,
-        areaId: areaId !== undefined ? (areaId ? parseInt(areaId) : null) : undefined,
+        areaId: areaId !== undefined ? uniquePicked[0] : undefined,
+        areaId2: areaId2 !== undefined ? uniquePicked[1] : undefined,
+        areaId3: areaId3 !== undefined ? uniquePicked[2] : undefined,
+        areaId4: areaId4 !== undefined ? uniquePicked[3] : undefined,
       },
     })
 

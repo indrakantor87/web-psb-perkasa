@@ -58,14 +58,19 @@ export async function POST(request: Request) {
     let ok = 0, fail = 0
     for (let i = headerIdx + 1; i < aoa.length; i++) {
       const row = aoa[i]
-      const data: any = {}
+      const data: { name?: string; description?: string } = {}
       let hasName = false
 
       Object.entries(fieldMap).forEach(([idx, field]) => {
         const val = row[Number(idx)]
         if (val !== null && val !== undefined && val !== '') {
-          data[field] = String(val).trim()
-          if (field === 'name') hasName = true
+          const text = String(val).trim()
+          if (field === 'name') {
+            data.name = text
+            hasName = true
+          } else if (field === 'description') {
+            data.description = text
+          }
         }
       })
 
@@ -73,9 +78,9 @@ export async function POST(request: Request) {
 
       try {
         await prisma.coveredArea.upsert({
-          where: { name: data.name },
+          where: { name: data.name! },
           update: { description: data.description || null },
-          create: { name: data.name, description: data.description || null }
+          create: { name: data.name!, description: data.description || null }
         })
         ok++
       } catch (e) {
