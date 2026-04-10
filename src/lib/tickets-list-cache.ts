@@ -238,10 +238,15 @@ async function queryTicketsList(args: Args) {
 }
 
 export async function getTicketsListData(args: Args) {
-  const key = toCacheKey(args)
-  const cached = cache.get<Awaited<ReturnType<typeof queryTicketsList>>>(key)
-  if (cached) return cached
-  const value = await queryTicketsList(args)
-  cache.set(key, value, 15_000)
-  return value
+  const shouldUseCache = process.env.NODE_ENV !== 'production'
+  if (shouldUseCache) {
+    const key = toCacheKey(args)
+    const cached = cache.get<Awaited<ReturnType<typeof queryTicketsList>>>(key)
+    if (cached) return cached
+    const value = await queryTicketsList(args)
+    cache.set(key, value, 15_000)
+    return value
+  }
+
+  return queryTicketsList(args)
 }
