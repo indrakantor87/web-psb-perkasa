@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
+import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -11,14 +12,13 @@ export async function GET(request: Request) {
   // The requirement says "tiap tanggal 1 di bulan baru data menjadi 0".
   // So default view is current month.
   
-  const now = new Date()
+  const now = jakartaNow()
   const currentMonth = month ? parseInt(month) : now.getMonth() + 1
   const currentYear = year ? parseInt(year) : now.getFullYear()
 
   // Construct date range for the selected month
   // Note: month is 1-indexed in our params, but 0-indexed in Date constructor
-  const startDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
-  const endDate = new Date(Date.UTC(currentYear, currentMonth, 1))
+  const { start: startDate, end: endDate } = jakartaMonthRange(currentYear, currentMonth)
 
   try {
     const isSelectedCurrentMonth = (now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth)

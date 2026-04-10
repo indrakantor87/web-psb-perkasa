@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,10 +72,11 @@ export async function GET(request: Request) {
   }
 
   if (month && year) {
-    const startDate = new Date(`${year}-${month}-01`)
-    const endDate = new Date(new Date(startDate).setMonth(startDate.getMonth() + 1))
-    const now = new Date()
-    const isSelectedCurrentMonth = (now.getFullYear() === parseInt(year) && (now.getMonth() + 1) === parseInt(month))
+    const y = parseInt(year)
+    const m = parseInt(month)
+    const { start: startDate, end: endDate } = jakartaMonthRange(y, m)
+    const now = jakartaNow()
+    const isSelectedCurrentMonth = now.getFullYear() === y && (now.getMonth() + 1) === m
     const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
     
     // Aturan:
@@ -93,8 +95,9 @@ export async function GET(request: Request) {
     }
     where.OR = or
   } else if (year) {
-      const startDate = new Date(`${year}-01-01`)
-      const endDate = new Date(`${parseInt(year) + 1}-01-01`)
+      const y = parseInt(year)
+      const startDate = new Date(Date.UTC(y, 0, 1) - JAKARTA_OFFSET_MS)
+      const endDate = new Date(Date.UTC(y + 1, 0, 1) - JAKARTA_OFFSET_MS)
       where.OR = [
         { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
         { AND: [{ installedDate: null }, { requestDate: { gte: startDate, lt: endDate } }] },

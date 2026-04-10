@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
+import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-time'
 // Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
 export const runtime = 'nodejs'
@@ -9,10 +10,7 @@ export const runtime = 'nodejs'
 function parseDate(value: unknown): Date | null {
   if (!value) return null
   if (typeof value === 'number') {
-    const ms = Math.round((value - 25569) * 86400 * 1000)
-    const d = new Date(ms)
-    if (isNaN(d.getTime())) return null
-    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+    return jakartaDateFromExcelSerial(value)
   }
   if (typeof value === 'string') {
     const parts = value.split(/[\/\-]/)
@@ -20,11 +18,12 @@ function parseDate(value: unknown): Date | null {
       const [d, m, y] = parts.map(p => parseInt(p, 10))
       if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
         const year = y < 100 ? 2000 + y : y
-        return new Date(Date.UTC(year, (m - 1), d))
+        return jakartaDateFromDMY(d, m, year)
       }
     }
     const dt = new Date(value)
-    return isNaN(dt.getTime()) ? null : dt
+    if (isNaN(dt.getTime())) return null
+    return jakartaDateFromDMY(dt.getDate(), dt.getMonth() + 1, dt.getFullYear())
   }
   return null
 }

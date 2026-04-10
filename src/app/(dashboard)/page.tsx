@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Prisma as PrismaSql } from '@prisma/client'
 import { ensureDbOptimizations } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
+import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ export default async function DashboardPage({
   const monthParam = resolvedSearchParams.month
   const yearParam = resolvedSearchParams.year
 
-  const now = new Date()
+  const now = jakartaNow()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
 
@@ -59,10 +60,9 @@ export default async function DashboardPage({
     )
   }
 
-  const startDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
-  const endDate = new Date(Date.UTC(currentYear, currentMonth, 1))
+  const { start: startDate, end: endDate } = jakartaMonthRange(currentYear, currentMonth)
   const isSelectedCurrentMonth = (() => {
-    const n = new Date()
+    const n = jakartaNow()
     return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
   })()
   const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
@@ -149,8 +149,8 @@ export default async function DashboardPage({
   }))
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
-  const yearStart = new Date(Date.UTC(currentYear, 0, 1))
-  const yearEnd = new Date(Date.UTC(currentYear + 1, 0, 1))
+  const yearStart = new Date(Date.UTC(currentYear, 0, 1) - JAKARTA_OFFSET_MS)
+  const yearEnd = new Date(Date.UTC(currentYear + 1, 0, 1) - JAKARTA_OFFSET_MS)
   // Gunakan date_trunc di Postgres pada installedDate saja agar selaras dengan List PSB
   const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
     SELECT

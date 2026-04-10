@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 
 export type TicketListRow = {
   id: number
@@ -49,11 +50,10 @@ function toCacheKey(args: Args) {
 async function queryTicketsList(args: Args) {
   const { role, userName, month, year, status, marketing, search, page, pageSize } = args
 
-    const startDate = new Date(Date.UTC(year, month - 1, 1))
-    const endDate = new Date(Date.UTC(year, month, 1))
+    const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
     const isSelectedCurrentMonth = (() => {
-      const now = new Date()
+      const now = jakartaNow()
       return now.getFullYear() === year && (now.getMonth() + 1) === month
     })()
     const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
