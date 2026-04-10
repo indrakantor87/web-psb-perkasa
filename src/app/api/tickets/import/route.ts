@@ -154,8 +154,9 @@ export async function POST(request: Request) {
         // Semua data impor dari Excel dianggap sudah selesai (CLOSE)
         const status = 'CLOSE'
         const phone = r.phoneNumber || ''
-        const requestDate = parseDate(req) || new Date()
-        const installedDate = parseDate(install) ?? requestDate
+        const installedDate = parseDate(install)
+        if (!installedDate) { fail++; continue }
+        const requestDate = parseDate(req) || installedDate
 
         await prisma.ticket.create({
           data: {

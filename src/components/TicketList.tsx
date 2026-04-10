@@ -57,6 +57,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const fileInputId = 'ticket-import-input'
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -286,6 +287,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const canEditKmz = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
   const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
+  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
 
   const normalizeStatus = (s: string) => s.toUpperCase().replace(/\s+/g, '_')
 
@@ -504,6 +506,38 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     }
   }
 
+  const handleBulkDelete = async () => {
+    if (!canBulkDelete) return
+    const text = prompt('Ketik HAPUS untuk konfirmasi hapus semua data sesuai filter saat ini:')
+    if (text !== 'HAPUS') return
+    setIsBulkDeleting(true)
+    try {
+      const res = await fetch('/api/tickets/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month,
+          year,
+          status,
+          marketing,
+          search,
+          confirmText: text,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert((data as { error?: string })?.error ?? 'Gagal menghapus data')
+        return
+      }
+      setTicketsState([])
+      router.refresh()
+    } catch {
+      alert('Terjadi kesalahan saat menghapus data')
+    } finally {
+      setIsBulkDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
@@ -623,6 +657,16 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             >
               {isExporting ? 'Mengekspor...' : 'Ekspor ke Excel'}
             </button>
+            {canBulkDelete && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="w-full rounded-md bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 md:w-auto disabled:opacity-60"
+                title="Hapus semua data sesuai filter"
+              >
+                {isBulkDeleting ? 'Menghapus...' : 'Hapus Semua'}
+              </button>
+            )}
           </div>
         </div>
       </div>
