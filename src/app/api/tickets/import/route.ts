@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { cache } from '@/lib/cache'
 // Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
 export const runtime = 'nodejs'
@@ -151,14 +152,16 @@ export async function POST(request: Request) {
         // Semua data impor dari Excel dianggap sudah selesai (CLOSE)
         const status = 'CLOSE'
         const phone = r.phoneNumber || ''
+        const requestDate = parseDate(req) || new Date()
+        const installedDate = parseDate(install) ?? requestDate
 
         await prisma.ticket.create({
           data: {
             customerName: String(nama),
             birthDate: parseDate(birth),
             locationMap: String(maps || ''),
-            requestDate: parseDate(req) || new Date(),
-            installedDate: parseDate(install),
+            requestDate,
+            installedDate,
             package: String(paket),
             marketingName: String(marketing),
             teknisi: null,
@@ -180,6 +183,8 @@ export async function POST(request: Request) {
       }
     }
 
+    cache.invalidateByPrefix('tickets-list:')
+    cache.invalidateByPrefix('tickets:')
     return NextResponse.json({ message: `Import selesai. Berhasil: ${ok}, Gagal: ${fail}` })
   } catch {
     console.error('Import error')
