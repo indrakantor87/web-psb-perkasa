@@ -17,8 +17,8 @@ export async function GET(request: Request) {
 
   // Construct date range for the selected month
   // Note: month is 1-indexed in our params, but 0-indexed in Date constructor
-  const startDate = new Date(currentYear, currentMonth - 1, 1)
-  const endDate = new Date(currentYear, currentMonth, 1)
+  const startDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
+  const endDate = new Date(Date.UTC(currentYear, currentMonth, 1))
 
   try {
     const isSelectedCurrentMonth = (now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth)

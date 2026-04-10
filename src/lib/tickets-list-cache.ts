@@ -49,8 +49,8 @@ function toCacheKey(args: Args) {
 async function queryTicketsList(args: Args) {
   const { role, userName, month, year, status, marketing, search, page, pageSize } = args
 
-    const startDate = new Date(year, month - 1, 1)
-    const endDate = new Date(year, month, 1)
+    const startDate = new Date(Date.UTC(year, month - 1, 1))
+    const endDate = new Date(Date.UTC(year, month, 1))
 
     const isSelectedCurrentMonth = (() => {
       const now = new Date()

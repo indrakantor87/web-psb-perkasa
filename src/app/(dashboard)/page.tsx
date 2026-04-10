@@ -59,8 +59,8 @@ export default async function DashboardPage({
     )
   }
 
-  const startDate = new Date(currentYear, currentMonth - 1, 1)
-  const endDate = new Date(currentYear, currentMonth, 1)
+  const startDate = new Date(Date.UTC(currentYear, currentMonth - 1, 1))
+  const endDate = new Date(Date.UTC(currentYear, currentMonth, 1))
   const isSelectedCurrentMonth = (() => {
     const n = new Date()
     return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
@@ -149,8 +149,8 @@ export default async function DashboardPage({
   }))
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
-  const yearStart = new Date(currentYear, 0, 1)
-  const yearEnd = new Date(currentYear + 1, 0, 1)
+  const yearStart = new Date(Date.UTC(currentYear, 0, 1))
+  const yearEnd = new Date(Date.UTC(currentYear + 1, 0, 1))
   // Gunakan date_trunc di Postgres pada installedDate saja agar selaras dengan List PSB
   const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
     SELECT

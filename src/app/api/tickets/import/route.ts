@@ -9,7 +9,10 @@ export const runtime = 'nodejs'
 function parseDate(value: unknown): Date | null {
   if (!value) return null
   if (typeof value === 'number') {
-    return new Date(Math.round((value - 25569) * 86400 * 1000))
+    const ms = Math.round((value - 25569) * 86400 * 1000)
+    const d = new Date(ms)
+    if (isNaN(d.getTime())) return null
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
   }
   if (typeof value === 'string') {
     const parts = value.split(/[\/\-]/)
@@ -17,7 +20,7 @@ function parseDate(value: unknown): Date | null {
       const [d, m, y] = parts.map(p => parseInt(p, 10))
       if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
         const year = y < 100 ? 2000 + y : y
-        return new Date(year, (m - 1), d)
+        return new Date(Date.UTC(year, (m - 1), d))
       }
     }
     const dt = new Date(value)
