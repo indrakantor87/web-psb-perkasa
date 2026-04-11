@@ -590,7 +590,12 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
             {mapLoading ? (
               <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
             ) : (
-              <OdpRealtimeMap rows={mapRows} focusId={focusedOdpId} searchPoint={searchPoint} />
+              <OdpRealtimeMap
+                key={`${searchPoint ? `${searchPoint.latitude}:${searchPoint.longitude}` : 'no-target'}`}
+                rows={mapRows}
+                focusId={focusedOdpId}
+                searchPoint={searchPoint}
+              />
             )}
           </div>
         )}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CircleMarker, LayersControl, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { CircleMarker, LayersControl, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import * as L from 'leaflet'
 import type { OdpRow } from './OdpManager'
 
@@ -18,6 +18,8 @@ function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
   const h = sa * sa + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * sb * sb
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
+
+type LatLngPoint = { latitude: number; longitude: number }
 
 function MarkerWithRef({
   r,
@@ -121,6 +123,29 @@ function MapController({
   return null
 }
 
+function RouteCollector({
+  enabled,
+  onAddPoint,
+}: {
+  enabled: boolean
+  onAddPoint: (p: LatLngPoint) => void
+}) {
+  useMapEvents({
+    click: (e) => {
+      if (!enabled) return
+      onAddPoint({ latitude: e.latlng.lat, longitude: e.latlng.lng })
+    },
+  })
+  return null
+}
+
+const routePointIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:10px;height:10px;border-radius:9999px;background:#3b82f6;border:2px solid #ffffff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+})
+
 export default function OdpRealtimeMap({
   rows,
   focusId,
@@ -131,6 +156,8 @@ export default function OdpRealtimeMap({
   searchPoint: { latitude: number; longitude: number } | null
 }) {
   const [measureId, setMeasureId] = useState<number | null>(null)
+  const [routeEnabled, setRouteEnabled] = useState(false)
+  const [routePoints, setRoutePoints] = useState<LatLngPoint[]>([])
   const points = useMemo(() => rows.filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude)).map((r) => [Number(r.latitude), Number(r.longitude)] as [number, number]), [rows])
   const center = useMemo<[number, number]>(() => {
     if (points.length === 0) return [-6.889, 110.905]
@@ -147,13 +174,62 @@ export default function OdpRealtimeMap({
     return r
   }, [measureId, rows])
 
-  const measuredDistance = useMemo(() => {
+  const routePositions = useMemo(() => {
     if (!measured || !searchPoint) return null
-    return distanceM(Number(searchPoint.latitude), Number(searchPoint.longitude), Number(measured.latitude), Number(measured.longitude))
-  }, [measured, searchPoint])
+    const start: [number, number] = [Number(measured.latitude), Number(measured.longitude)]
+    const end: [number, number] = [Number(searchPoint.latitude), Number(searchPoint.longitude)]
+    const mid = routePoints.map((p) => [Number(p.latitude), Number(p.longitude)] as [number, number])
+    return [start, ...mid, end]
+  }, [measured, routePoints, searchPoint])
+
+  const routeDistance = useMemo(() => {
+    if (!routePositions) return null
+    let total = 0
+    for (let i = 1; i < routePositions.length; i++) {
+      const a = routePositions[i - 1]
+      const b = routePositions[i]
+      total += distanceM(a[0], a[1], b[0], b[1])
+    }
+    return total
+  }, [routePositions])
+
+  const canRouteMeasure = routeEnabled && !!measured && !!searchPoint
+
+  const removeRoutePointAt = (idx: number) => {
+    setRoutePoints((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const moveRoutePointAt = (idx: number, p: LatLngPoint) => {
+    setRoutePoints((prev) => prev.map((x, i) => (i === idx ? p : x)))
+  }
 
   return (
-    <div className="rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
+    <div className="relative rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
+      <div className="absolute left-3 top-3 z-[1000] flex items-center gap-2 rounded-lg bg-white/90 px-2 py-1 text-xs text-gray-800 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/90 dark:text-gray-200 dark:ring-gray-800">
+        <button
+          type="button"
+          onClick={() => setRouteEnabled((v) => !v)}
+          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
+        >
+          {routeEnabled ? 'Mode Rute: ON' : 'Mode Rute: OFF'}
+        </button>
+        <button
+          type="button"
+          disabled={!routeEnabled || routePoints.length === 0}
+          onClick={() => setRoutePoints((prev) => prev.slice(0, -1))}
+          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          disabled={!routeEnabled || routePoints.length === 0}
+          onClick={() => setRoutePoints([])}
+          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800"
+        >
+          Reset
+        </button>
+      </div>
       <div className="h-[420px] w-full">
         <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full">
           <LayersControl position="topright">
@@ -168,6 +244,12 @@ export default function OdpRealtimeMap({
             </LayersControl.BaseLayer>
           </LayersControl>
           <MapController points={points} focusId={focusId} rows={rows} searchPoint={searchPoint} />
+          <RouteCollector
+            enabled={canRouteMeasure}
+            onAddPoint={(p) => {
+              setRoutePoints((prev) => [...prev, p])
+            }}
+          />
           {searchPoint && Number.isFinite(searchPoint.latitude) && Number.isFinite(searchPoint.longitude) && (
             <CircleMarker
               center={[Number(searchPoint.latitude), Number(searchPoint.longitude)]}
@@ -184,25 +266,48 @@ export default function OdpRealtimeMap({
               </Popup>
             </CircleMarker>
           )}
-          {searchPoint && measured && (
+          {routePositions && (
             <Polyline
-              positions={[
-                [Number(searchPoint.latitude), Number(searchPoint.longitude)],
-                [Number(measured.latitude), Number(measured.longitude)],
-              ]}
+              positions={routePositions}
               pathOptions={{ color: '#3b82f6', weight: 3, opacity: 0.9 }}
             >
-              {measuredDistance !== null && (
+              {routeDistance !== null && (
                 <Tooltip direction="top" sticky opacity={0.95}>
-                  {Math.round(measuredDistance)} m
+                  {Math.round(routeDistance)} m
                 </Tooltip>
               )}
             </Polyline>
           )}
+          {canRouteMeasure &&
+            routePoints.map((p, idx) => (
+              <Marker
+                key={`${idx}-${p.latitude}-${p.longitude}`}
+                position={[Number(p.latitude), Number(p.longitude)]}
+                draggable
+                icon={routePointIcon}
+                eventHandlers={{
+                  dragend: (e) => {
+                    const marker = e.target as unknown as { getLatLng: () => { lat: number; lng: number } }
+                    const ll = marker.getLatLng()
+                    moveRoutePointAt(idx, { latitude: ll.lat, longitude: ll.lng })
+                  },
+                  contextmenu: () => removeRoutePointAt(idx),
+                }}
+              />
+            ))}
           {rows
             .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
             .map((r) => (
-              <MarkerWithRef key={r.id} r={r} isFocused={r.id === focusId} searchPoint={searchPoint} onMeasure={setMeasureId} />
+              <MarkerWithRef
+                key={r.id}
+                r={r}
+                isFocused={r.id === focusId}
+                searchPoint={searchPoint}
+                onMeasure={(id) => {
+                  setMeasureId(id)
+                  if (routeEnabled) setRoutePoints([])
+                }}
+              />
             ))}
         </MapContainer>
       </div>
