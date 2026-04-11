@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
-import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const dynamic = 'force-dynamic'
@@ -38,36 +37,33 @@ export async function GET(request: Request) {
   const year = searchParams.get('year')
   const status = searchParams.get('status')
   const search = searchParams.get('search')
+  const all = searchParams.get('all') === '1'
   const page = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('limit') || '25')
 
-  const where: Prisma.TicketWhereInput = {}
+  const and: Prisma.TicketWhereInput[] = []
 
   // Handle Search
   if (search && search.trim()) {
     const searchTrimmed = search.trim()
-    const searchInt = parseInt(searchTrimmed)
-    const isNum = !isNaN(searchInt)
+    const searchInt = parseInt(searchTrimmed, 10)
+    const isNum = !Number.isNaN(searchInt)
 
-    where.OR = [
+    const searchOr: Prisma.TicketWhereInput[] = [
       { customerName: { contains: searchTrimmed, mode: 'insensitive' } },
       { pengawalan: { contains: searchTrimmed, mode: 'insensitive' } },
     ]
-
-    if (isNum) {
-      where.OR.push({ id: searchInt })
-    }
+    if (isNum) searchOr.push({ id: searchInt })
+    and.push({ OR: searchOr })
   }
 
   // Filter for Marketing role
   if (session.user.role === 'MARKETING') {
-    where.marketingName = session.user.name
+    and.push({ marketingName: session.user.name })
   } else {
     const marketingParam = searchParams.get('marketing')
     if (marketingParam && marketingParam.trim()) {
-      where.marketingName = {
-        contains: marketingParam.trim(),
-      }
+      and.push({ marketingName: { contains: marketingParam.trim() } })
     }
   }
 
@@ -93,45 +89,25 @@ export async function GET(request: Request) {
         AND: [{ installedDate: null }, { status: { in: openStatuses } }, { requestDate: { lt: endDate } }],
       })
     }
-    where.OR = or
+    and.push({ OR: or })
   } else if (year) {
       const y = parseInt(year)
       const startDate = new Date(Date.UTC(y, 0, 1) - JAKARTA_OFFSET_MS)
       const endDate = new Date(Date.UTC(y + 1, 0, 1) - JAKARTA_OFFSET_MS)
-      where.OR = [
-        { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
-        { AND: [{ installedDate: null }, { requestDate: { gte: startDate, lt: endDate } }] },
-      ]
+      and.push({
+        OR: [
+          { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
+          { AND: [{ installedDate: null }, { requestDate: { gte: startDate, lt: endDate } }] },
+        ],
+      })
   }
 
-  if (status) {
-    where.status = status
+  if (status && status !== 'ALL') {
+    and.push({ status })
   }
 
   try {
-    const cacheKey = `tickets:${JSON.stringify({ month, year, status, search, role: session.user.role, user: session.user.name })}`
-    const cached = cache.get<{
-      id: number
-      customerName: string
-      birthDate: Date | null
-      locationMap: string
-      requestDate: Date
-      installedDate: Date | null
-      package: string
-      marketingName: string
-      description: string | null
-      phoneNumber: string
-      pengawalan: string | null
-      kmz: string | null
-      priority: string | null
-      status: string
-      pembayaran: string | null
-      closedBy: { name: string; role: string } | null
-      hasPhoto: boolean
-    }[]>(cacheKey)
-    if (cached) {
-      return NextResponse.json(cached, { headers: { 'Cache-Control': 'private, max-age=15', 'X-Cache': 'HIT' } })
-    }
+    const where: Prisma.TicketWhereInput = and.length ? { AND: and } : {}
     const selectFull = {
       id: true,
       customerName: true,
@@ -184,26 +160,37 @@ export async function GET(request: Request) {
       { requestDate: 'desc' }
     ]
 
-    const totalCount = await prisma.ticket.count({ where })
     const skip = (page - 1) * pageSize
 
-    const tickets = await prisma.ticket.findMany({ where, orderBy, select: selectFull, skip, take: pageSize }).catch(async () => {
+    const tickets = await prisma.ticket.findMany({
+      where,
+      orderBy,
+      select: selectFull,
+      ...(all ? {} : { skip, take: pageSize }),
+    }).catch(async () => {
       try {
-        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimal, skip, take: pageSize })
+        const rows = await prisma.ticket.findMany({
+          where,
+          orderBy,
+          select: selectMinimal,
+          ...(all ? {} : { skip, take: pageSize }),
+        })
         return rows.map((t) => ({ ...t, pembayaran: null, hasPhoto: false }))
       } catch {
         const selectMinimalNoRelation = { ...selectMinimal, closedBy: undefined } as unknown as Prisma.TicketSelect
-        const rows = await prisma.ticket.findMany({ where, orderBy, select: selectMinimalNoRelation, skip, take: pageSize })
+        const rows = await prisma.ticket.findMany({
+          where,
+          orderBy,
+          select: selectMinimalNoRelation,
+          ...(all ? {} : { skip, take: pageSize }),
+        })
         return rows.map((t) => ({ ...t, closedBy: null, pembayaran: null, hasPhoto: false }))
       }
     })
 
-    cache.set(cacheKey, tickets, 15_000)
     return NextResponse.json(tickets, {
       headers: {
-        // Private per-user caching (role-based), short TTL to improve perceived speed
-        'Cache-Control': 'private, max-age=15',
-        'X-Cache': 'MISS'
+        'Cache-Control': 'no-store'
       }
     })
   } catch {
@@ -223,12 +210,8 @@ export async function POST(request: Request) {
   }
   
   try {
-    console.log('--- POST /api/tickets ---')
-    console.log('Role:', session.user.role)
-
     const formData = await request.formData()
     const file = formData.get('fotoRumah') as File | null
-    console.log('File:', file ? `Name: ${file.name}, Size: ${file.size}, Type: ${file.type}` : 'No file')
 
     let fotoRumahPath = null
 
@@ -247,7 +230,6 @@ export async function POST(request: Request) {
       // Fallback to Base64 (Google Drive integration removed)
       const buffer = Buffer.from(await file.arrayBuffer())
       fotoRumahPath = `data:${file.type};base64,${buffer.toString('base64')}`
-      console.log('File processed to Base64')
     }
 
     const rawData = {

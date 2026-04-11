@@ -93,7 +93,6 @@ export async function PUT(
 
     } else {
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
-      console.log(`[API] Updating ticket ${ticketId} by ${session.user.username} (${session.user.role})`, body)
       status = typeof body.status === 'string' ? body.status : undefined
       pengawalan =
         typeof body.pengawalan === 'string'

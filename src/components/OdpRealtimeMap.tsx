@@ -258,7 +258,7 @@ export default function OdpRealtimeMap({
         )}
       </div>
       <div className={`${heightClass} w-full`}>
-        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={19}>
+        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={19} preferCanvas>
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="Street (OSM)">
               <TileLayer

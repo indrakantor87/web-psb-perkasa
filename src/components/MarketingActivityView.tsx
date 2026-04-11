@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, Fragment } from 'react'
-import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Calendar, Download, Upload, ChevronRight, ChevronDown, BarChart2, Users } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Download, Upload, ChevronRight, ChevronDown, BarChart2, Users } from 'lucide-react'
 
 interface MarketingActivity {
   id: number
@@ -35,7 +34,6 @@ interface MarketingActivityViewProps {
 }
 
 export function MarketingActivityView({ userRole, userName }: MarketingActivityViewProps) {
-  const router = useRouter()
   const [activities, setActivities] = useState<MarketingActivity[]>([])
   const [coveredAreas, setCoveredAreas] = useState<CoveredArea[]>([])
   const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
@@ -93,7 +91,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
     } finally {
       setLoading(false)
     }
-  }, [month, year, marketingSearch])
+  }, [month, year, marketingSearch, coveredAreas.length])
 
   useEffect(() => {
     fetchActivities()

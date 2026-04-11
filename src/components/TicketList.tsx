@@ -412,6 +412,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       const params = new URLSearchParams()
       params.set('month', month.toString())
       params.set('year', year.toString())
+      params.set('all', '1')
       if (status !== 'ALL') params.set('status', status)
       if (marketing) params.set('marketing', marketing)
       if (search) params.set('search', search)
