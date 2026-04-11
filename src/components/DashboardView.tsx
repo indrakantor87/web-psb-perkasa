@@ -62,7 +62,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const statusData = [
     { name: 'Open', value: statusCounts.open, color: '#ef4444' }, // Red
     { name: 'Close', value: statusCounts.close, color: '#10b981' }, // Green
-    { name: 'On Progress', value: statusCounts.on_progress, color: '#3b82f6' }, // Blue
+    { name: 'On Process', value: statusCounts.on_progress, color: '#3b82f6' }, // Blue
   ].filter(item => item.value > 0)
 
   return (
@@ -129,9 +129,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         <StatCard 
           title="Sedang Proses" 
           value={statusCounts.on_progress} 
-          icon={<Clock className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+          icon={<Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
           trend="Aktif"
-          color="bg-indigo-50 dark:bg-indigo-900/20"
+          color="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard 
           title="Terbuka" 
@@ -168,7 +168,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">On Progress</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">On Process</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
@@ -215,7 +215,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
                         {item.on_progress}
                       </span>
                     </td>
@@ -252,7 +252,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   <td className="px-6 py-4 text-center whitespace-nowrap text-green-700 dark:text-green-400">
                     {totalClose}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-indigo-700 dark:text-indigo-400">
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-blue-700 dark:text-blue-400">
                     {totalOnProgress}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
