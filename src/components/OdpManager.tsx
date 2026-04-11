@@ -103,6 +103,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [q, setQ] = useState('')
   const [qQuery, setQQuery] = useState('')
   const [qDebounced, setQDebounced] = useState('')
+  const [geoResolving, setGeoResolving] = useState(false)
   const [wilayah, setWilayah] = useState('')
   const [wilayahList, setWilayahList] = useState<string[]>(defaultWilayah)
   const [page, setPage] = useState(1)
@@ -558,12 +559,45 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                 if (parsed) {
                   setSearchPoint(parsed)
                   setQQuery('')
+                  setMapError(null)
                   setMapOpen(true)
                   setMapKey((k) => k + 1)
+                  setGeoResolving(false)
                 } else {
-                  setSearchPoint(null)
-                  setNearest(null)
-                  setQQuery(v)
+                  const isMapsLink = /maps\.app\.goo\.gl|google\.com\/maps|maps\.google\.com/i.test(v)
+                  if (isMapsLink) {
+                    setGeoResolving(true)
+                    setMapError(null)
+                    setSearchPoint(null)
+                    setNearest(null)
+                    setQQuery('')
+                    setMapOpen(true)
+                    setMapKey((k) => k + 1)
+                    fetch('/api/maps/resolve', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ url: v }),
+                    })
+                      .then(async (r) => {
+                        const data = await r.json().catch(() => ({}))
+                        if (!r.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal membaca link maps')
+                        const lat = Number((data as { latitude?: unknown }).latitude)
+                        const lng = Number((data as { longitude?: unknown }).longitude)
+                        if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('Koordinat tidak valid')
+                        setSearchPoint({ latitude: lat, longitude: lng })
+                      })
+                      .catch((err: unknown) => {
+                        setMapError(err instanceof Error ? err.message : String(err))
+                      })
+                      .finally(() => {
+                        setGeoResolving(false)
+                      })
+                  } else {
+                    setGeoResolving(false)
+                    setSearchPoint(null)
+                    setNearest(null)
+                    setQQuery(v)
+                  }
                 }
               }}
               placeholder="Cari ODP / lokasi... (paste link Google Maps)"
@@ -594,6 +628,11 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                 {mapLoading ? 'Memuat...' : 'Refresh Peta'}
               </button>
             </div>
+            {geoResolving && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-700 dark:text-blue-200 ring-1 ring-blue-200 dark:ring-blue-900/40">
+                Membaca link Google Maps...
+              </div>
+            )}
             {mapError && <div className="rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{mapError}</div>}
             {mapLoading ? (
               <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
