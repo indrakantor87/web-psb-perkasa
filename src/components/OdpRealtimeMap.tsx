@@ -258,33 +258,22 @@ export default function OdpRealtimeMap({
         )}
       </div>
       <div className={`${heightClass} w-full`}>
-        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={20}>
+        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={19}>
           <LayersControl position="topright">
-            <LayersControl.BaseLayer name="Street (OSM)">
+            <LayersControl.BaseLayer checked name="Street (OSM)">
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                detectRetina
-                maxZoom={20}
+                maxZoom={19}
                 maxNativeZoom={19}
-              />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer checked name="Street (HD)">
-              <TileLayer
-                attribution="&copy; OpenStreetMap contributors, &copy; CARTO"
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                subdomains={['a', 'b', 'c', 'd']}
-                maxZoom={20}
-                maxNativeZoom={20}
-                detectRetina
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satelit (Esri)">
               <TileLayer
                 attribution="Tiles &copy; Esri"
-                url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={20}
-                maxNativeZoom={20}
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+                maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
