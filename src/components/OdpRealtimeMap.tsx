@@ -46,10 +46,24 @@ function statusColor(kapasitas: number, terpakai: number) {
   return '#10b981'
 }
 
-function MapController({ points, focusId, rows }: { points: Array<[number, number]>; focusId: number | null; rows: OdpRow[] }) {
+function MapController({
+  points,
+  focusId,
+  rows,
+  searchPoint,
+}: {
+  points: Array<[number, number]>
+  focusId: number | null
+  rows: OdpRow[]
+  searchPoint: { latitude: number; longitude: number } | null
+}) {
   const map = useMap()
   
   useEffect(() => {
+    if (searchPoint && Number.isFinite(searchPoint.latitude) && Number.isFinite(searchPoint.longitude)) {
+      map.flyTo([Number(searchPoint.latitude), Number(searchPoint.longitude)], 16, { duration: 1.2 })
+      return
+    }
     if (focusId) {
       const target = rows.find(r => r.id === focusId)
       if (target && Number.isFinite(target.latitude) && Number.isFinite(target.longitude)) {
@@ -61,12 +75,20 @@ function MapController({ points, focusId, rows }: { points: Array<[number, numbe
     if (points.length === 0) return
     const bounds = L.latLngBounds(points)
     map.fitBounds(bounds, { padding: [24, 24] })
-  }, [map, points, focusId, rows])
+  }, [map, points, focusId, rows, searchPoint])
 
   return null
 }
 
-export default function OdpRealtimeMap({ rows, focusId }: { rows: OdpRow[]; focusId: number | null }) {
+export default function OdpRealtimeMap({
+  rows,
+  focusId,
+  searchPoint,
+}: {
+  rows: OdpRow[]
+  focusId: number | null
+  searchPoint: { latitude: number; longitude: number } | null
+}) {
   const points = useMemo(() => rows.filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude)).map((r) => [Number(r.latitude), Number(r.longitude)] as [number, number]), [rows])
   const center = useMemo<[number, number]>(() => {
     if (points.length === 0) return [-6.889, 110.905]
@@ -90,7 +112,23 @@ export default function OdpRealtimeMap({ rows, focusId }: { rows: OdpRow[]; focu
               />
             </LayersControl.BaseLayer>
           </LayersControl>
-          <MapController points={points} focusId={focusId} rows={rows} />
+          <MapController points={points} focusId={focusId} rows={rows} searchPoint={searchPoint} />
+          {searchPoint && Number.isFinite(searchPoint.latitude) && Number.isFinite(searchPoint.longitude) && (
+            <CircleMarker
+              center={[Number(searchPoint.latitude), Number(searchPoint.longitude)]}
+              radius={10}
+              pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.35, weight: 3 }}
+            >
+              <Popup>
+                <div className="space-y-1 min-w-[150px]">
+                  <div className="text-sm font-bold">Lokasi Pencarian</div>
+                  <div className="text-[10px] text-gray-500">
+                    {Number(searchPoint.latitude).toFixed(6)}, {Number(searchPoint.longitude).toFixed(6)}
+                  </div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          )}
           {rows
             .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
             .map((r) => (

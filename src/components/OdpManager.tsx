@@ -35,7 +35,9 @@ function parseLatLng(input: string) {
   const at = s.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
   const q = s.match(/[?&]q=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
   const ll = s.match(/[?&]ll=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-  const m = direct ?? at ?? q ?? ll
+  const query = s.match(/[?&]query=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+  const data3d4d = s.match(/!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/)
+  const m = direct ?? at ?? q ?? ll ?? query ?? data3d4d
   if (!m) return null
   const a = Number(m[1])
   const b = Number(m[2])
@@ -99,6 +101,7 @@ function Modal({
 export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const defaultWilayah = useMemo(() => ['Pati', 'Bumiayu', 'Banjarsari', 'Kedungbulus', 'Trangkil', 'Margoyoso'], [])
   const [q, setQ] = useState('')
+  const [qQuery, setQQuery] = useState('')
   const [qDebounced, setQDebounced] = useState('')
   const [wilayah, setWilayah] = useState('')
   const [wilayahList, setWilayahList] = useState<string[]>(defaultWilayah)
@@ -123,6 +126,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [mapError, setMapError] = useState<string | null>(null)
   const [mapKey, setMapKey] = useState(0)
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
+  const [searchPoint, setSearchPoint] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [nearest, setNearest] = useState<{ id: number; name: string; distanceM: number } | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -132,9 +137,9 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
   useEffect(() => {
-    const t = setTimeout(() => setQDebounced(q), 350)
+    const t = setTimeout(() => setQDebounced(qQuery), 350)
     return () => clearTimeout(t)
-  }, [q])
+  }, [qQuery])
 
   const fetchRows = useCallback(async (signal?: AbortSignal, bypassCache?: boolean) => {
     const url = new URL('/api/odp', window.location.origin)
@@ -203,6 +208,43 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       })
     return () => controller.abort()
   }, [fetchMap, mapKey, mapOpen])
+
+  useEffect(() => {
+    if (!searchPoint) {
+      setNearest(null)
+      return
+    }
+    if (mapRows.length === 0) {
+      setNearest(null)
+      return
+    }
+    const lat = Number(searchPoint.latitude)
+    const lng = Number(searchPoint.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setNearest(null)
+      return
+    }
+    const toRad = (v: number) => (v * Math.PI) / 180
+    const hav = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+      const R = 6371000
+      const dLat = toRad(bLat - aLat)
+      const dLng = toRad(bLng - aLng)
+      const sa = Math.sin(dLat / 2)
+      const sb = Math.sin(dLng / 2)
+      const h = sa * sa + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * sb * sb
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+    }
+    let best: { id: number; name: string; distanceM: number } | null = null
+    for (const r of mapRows) {
+      if (!Number.isFinite(r.latitude) || !Number.isFinite(r.longitude)) continue
+      const d = hav(lat, lng, Number(r.latitude), Number(r.longitude))
+      if (!best || d < best.distanceM) {
+        best = { id: r.id, name: r.nama_odp, distanceM: d }
+      }
+    }
+    setNearest(best)
+    if (best) setFocusedOdpId(best.id)
+  }, [mapRows, searchPoint])
 
   const openAdd = () => {
     setEditing(null)
@@ -507,7 +549,26 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               </select>
           </div>
           <div className="flex items-center gap-2">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari ODP / lokasi..." className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white md:w-80" />
+            <input
+              value={q}
+              onChange={(e) => {
+                const v = e.target.value
+                setQ(v)
+                const parsed = parseLatLng(v)
+                if (parsed) {
+                  setSearchPoint(parsed)
+                  setQQuery('')
+                  setMapOpen(true)
+                  setMapKey((k) => k + 1)
+                } else {
+                  setSearchPoint(null)
+                  setNearest(null)
+                  setQQuery(v)
+                }
+              }}
+              placeholder="Cari ODP / lokasi... (paste link Google Maps)"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white md:w-80"
+            />
           </div>
         </div>
 
@@ -517,7 +578,14 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         {mapOpen && (
           <div id="odp-map-container" className="mt-4 space-y-3">
             <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-              <span>Marker: {mapRows.length}</span>
+              <span>
+                Marker: {mapRows.length}
+                {nearest && (
+                  <span className="ml-2 text-gray-600 dark:text-gray-300">
+                    • Terdekat: {nearest.name} ({Math.round(nearest.distanceM)} m)
+                  </span>
+                )}
+              </span>
               <button
                 onClick={() => setMapKey((k) => k + 1)}
                 disabled={mapLoading}
@@ -530,7 +598,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
             {mapLoading ? (
               <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
             ) : (
-              <OdpRealtimeMap rows={mapRows} focusId={focusedOdpId} />
+              <OdpRealtimeMap rows={mapRows} focusId={focusedOdpId} searchPoint={searchPoint} />
             )}
           </div>
         )}
