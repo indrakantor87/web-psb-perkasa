@@ -266,6 +266,7 @@ export default function OdpRealtimeMap({
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 detectRetina
                 maxZoom={20}
+                maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satelit (Esri)">
@@ -274,6 +275,7 @@ export default function OdpRealtimeMap({
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 detectRetina
                 maxZoom={20}
+                maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
