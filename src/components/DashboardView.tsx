@@ -111,7 +111,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className={clsx('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3', userRole === 'TEKNISI' ? 'xl:grid-cols-4' : 'xl:grid-cols-5')}>
         <StatCard 
           title="Total Tiket" 
           value={statusCounts.total} 
@@ -140,13 +140,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           trend="Perlu Tindakan"
           color="bg-red-50 dark:bg-red-900/20"
         />
-        <StatCard 
-          title="Isolir Aktif" 
-          value={isolationCount} 
-          icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
-          trend="Perlu Penanganan"
-          color="bg-orange-50 dark:bg-orange-900/20"
-        />
+        {userRole !== 'TEKNISI' && (
+          <StatCard 
+            title="Isolir Aktif" 
+            value={isolationCount} 
+            icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
+            trend="Perlu Penanganan"
+            color="bg-orange-50 dark:bg-orange-900/20"
+          />
+        )}
       </div>
 
       {/* Marketing Table */}

@@ -12,6 +12,10 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   // Restrict MARKETING from updating isolations
   if (session.user.role === 'MARKETING') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -44,6 +48,9 @@ export async function DELETE(
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   
   // Allow ADMIN, CS, NOC to delete

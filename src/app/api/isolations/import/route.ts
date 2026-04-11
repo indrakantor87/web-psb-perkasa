@@ -36,6 +36,9 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   // Allow only ADMIN, NOC, CS? Or anyone with access?
   // Let's allow those who can access Isolir page usually.

@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export default async function IsolirPage({ searchParams }: { searchParams?: { search?: string, marketing?: string, status?: string } }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (session.user.role === 'TEKNISI') redirect('/')
 
   return (
     <div className="container mx-auto px-4 py-8">

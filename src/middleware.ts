@@ -69,7 +69,7 @@ export async function middleware(request: NextRequest) {
 
     // Block TEKNISI from input and settings
     if (currentUser.role === 'TEKNISI') {
-      const restrictedPaths = ['/input', '/settings', '/marketing-activities']
+      const restrictedPaths = ['/input', '/settings', '/marketing-activities', '/isolir']
       if (restrictedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
         return NextResponse.redirect(new URL('/', request.url))
       }
