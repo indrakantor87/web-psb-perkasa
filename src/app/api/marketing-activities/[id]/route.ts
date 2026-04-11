@@ -11,6 +11,9 @@ export async function PUT(
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id } = await params
   const activityId = parseInt(id)
@@ -61,6 +64,9 @@ export async function DELETE(
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const allowedDeleteRoles = ['ADMIN', 'CS', 'NOC']

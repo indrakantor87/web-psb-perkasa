@@ -9,6 +9,9 @@ export async function GET(request: Request) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
@@ -66,6 +69,9 @@ export async function POST(request: Request) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.user.role === 'TEKNISI') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   try {

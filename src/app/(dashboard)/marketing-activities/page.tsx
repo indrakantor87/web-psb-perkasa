@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export default async function MarketingActivitiesPage() {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (session.user.role === 'TEKNISI') redirect('/')
 
   return (
     <div className="space-y-6">
