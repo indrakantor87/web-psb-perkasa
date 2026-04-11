@@ -9,11 +9,11 @@ import { LayoutDashboard, Ticket, CheckCircle2, Clock, AlertCircle, Calendar, Tr
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
-  marketingData: { name: string; count: number; open: number; pending: number; close: number; isolir?: number }[]
+  marketingData: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
   monthlyData: { name: string; count: number }[]
   yearTopPackages: { name: string; count: number }[]
   yearMarketingCounts: { name: string; count: number }[]
-  statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
+  statusCounts: { total: number; open: number; close: number; on_progress: number }
   initialPeriod: { month: number; year: number }
   userRole?: string
   isolationCount?: number
@@ -54,7 +54,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const years = [2024, 2025, 2026, 2027]
 
   const totalOpen = marketingData.reduce((acc, curr) => acc + curr.open, 0)
-  const totalPending = marketingData.reduce((acc, curr) => acc + curr.pending, 0)
+  const totalOnProgress = marketingData.reduce((acc, curr) => acc + curr.on_progress, 0)
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
   const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
@@ -63,7 +63,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     { name: 'Open', value: statusCounts.open, color: '#ef4444' }, // Red
     { name: 'Close', value: statusCounts.close, color: '#10b981' }, // Green
     { name: 'On Progress', value: statusCounts.on_progress, color: '#3b82f6' }, // Blue
-    { name: 'Pending', value: statusCounts.pending, color: '#f59e0b' }, // Yellow
   ].filter(item => item.value > 0)
 
   return (
@@ -135,8 +134,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           color="bg-indigo-50 dark:bg-indigo-900/20"
         />
         <StatCard 
-          title="Pending / Terbuka" 
-          value={statusCounts.open + statusCounts.pending} 
+          title="Terbuka" 
+          value={statusCounts.open} 
           icon={<AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
           trend="Perlu Tindakan"
           color="bg-red-50 dark:bg-red-900/20"
@@ -169,7 +168,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wider">Pending</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">On Progress</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
@@ -216,8 +215,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-                        {item.pending}
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400">
+                        {item.on_progress}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
@@ -253,8 +252,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   <td className="px-6 py-4 text-center whitespace-nowrap text-green-700 dark:text-green-400">
                     {totalClose}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-amber-700 dark:text-amber-400">
-                    {totalPending}
+                  <td className="px-6 py-4 text-center whitespace-nowrap text-indigo-700 dark:text-indigo-400">
+                    {totalOnProgress}
                   </td>
                   <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
                     {totalOpen}

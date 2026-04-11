@@ -45,7 +45,6 @@ interface TicketListProps {
     OPEN: number
     ON_PROGRESS: number
     CLOSE: number
-    PENDING: number
   }
   defaultTemplateContent?: string
 }
@@ -61,7 +60,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const fileInputId = 'ticket-import-input'
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
-  const [status, setStatus] = useState((initialStatus || 'ALL').toUpperCase())
+  const [status, setStatus] = useState(((initialStatus || 'ALL').toUpperCase() === 'PENDING' ? 'ON_PROGRESS' : (initialStatus || 'ALL').toUpperCase()))
   const [marketing, setMarketing] = useState(initialMarketing || '')
   const [search, setSearch] = useState(initialSearch || '')
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
@@ -289,7 +288,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
   const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
 
-  const normalizeStatus = (s: string) => s.toUpperCase().replace(/\s+/g, '_')
+  const normalizeStatus = (s: string) => {
+    const v = s.toUpperCase().replace(/\s+/g, '_')
+    return v === 'PENDING' ? 'ON_PROGRESS' : v
+  }
 
   const handleEditTicket = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
@@ -542,7 +544,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   return (
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
               Tiket Open : {counts?.OPEN ?? 0}
@@ -556,11 +558,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
           <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">
               Tiket Closed : {counts?.CLOSE ?? 0}
-            </span>
-          </div>
-          <div className="rounded-md bg-yellow-500 dark:bg-yellow-600 px-3 py-1 shadow-sm text-center">
-            <span className="text-xs font-bold text-white">
-              Tiket Pending : {counts?.PENDING ?? 0}
             </span>
           </div>
         </div>
@@ -603,7 +600,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <option value="OPEN">OPEN</option>
               <option value="ON_PROGRESS">ON PROGRESS</option>
               <option value="CLOSE">CLOSE</option>
-              <option value="PENDING">PENDING</option>
             </select>
           </div>
           {userRole !== 'MARKETING' && (
@@ -775,18 +771,16 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <td className="hidden md:table-cell px-3 py-3 text-xs">
                     <span className={clsx(
                       'inline-flex items-center justify-center text-center rounded-full px-2 py-0.5 font-semibold leading-tight',
-                      ticket.status === 'ON_PROGRESS' ? 'text-[9px] whitespace-normal max-w-[70px]' : 'text-[10px] whitespace-nowrap',
-                      ticket.status === 'OPEN' 
+                      (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING') ? 'text-[9px] whitespace-normal max-w-[70px]' : 'text-[10px] whitespace-nowrap',
+                      ticket.status === 'OPEN'
                         ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                        : ticket.status === 'ON_PROGRESS'
+                        : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
                           ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
                           : ticket.status === 'CLOSE' 
                             ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                            : ticket.status === 'PENDING'
-                              ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
-                              : 'bg-gray-200 text-gray-800'
+                            : 'bg-gray-200 text-gray-800'
                     )}>
-                      {ticket.status.replace(/_/g, ' ')}
+                      {(ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status).replace(/_/g, ' ')}
                     </span>
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
@@ -862,15 +856,13 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
                           ticket.status === 'OPEN' 
                             ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
-                            : ticket.status === 'ON_PROGRESS'
+                            : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
                               ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
                               : ticket.status === 'CLOSE' 
                                 ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                                : ticket.status === 'PENDING'
-                                  ? 'bg-yellow-500 text-gray-200 dark:bg-yellow-600'
-                                  : 'bg-gray-200 text-gray-800'
+                                : 'bg-gray-200 text-gray-800'
                         )}>
-                          {ticket.status}
+                          {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
                         </span>
                       </div>
                       <div className="text-gray-500 dark:text-gray-400">
@@ -995,7 +987,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
                                 <button
                                   onClick={(e) => handleOnProgressTicket(e, ticket.id)}
-                                  disabled={loadingId === ticket.id || !(['OPEN', 'PENDING'].includes(ticket.status) && canClose)}
+                                  disabled={loadingId === ticket.id || !(ticket.status === 'OPEN' && canClose)}
                                   className="rounded-md bg-blue-50 text-blue-600 px-3 py-2 text-xs font-semibold hover:bg-blue-100 disabled:opacity-50 border border-blue-200"
                                 >
                                   Process
@@ -1003,7 +995,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                 
                                 <button
                                   onClick={(e) => handleCloseTicket(e, ticket.id)}
-                                  disabled={loadingId === ticket.id || !(canClose && ['OPEN', 'ON_PROGRESS', 'PENDING'].includes(ticket.status))}
+                                  disabled={loadingId === ticket.id || !(canClose && ['OPEN', 'ON_PROGRESS'].includes(ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status))}
                                   className="rounded-md bg-green-50 text-green-600 px-3 py-2 text-xs font-semibold hover:bg-green-100 disabled:opacity-50 border border-green-200"
                                 >
                                   Close
@@ -1337,7 +1329,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <option value="OPEN">OPEN</option>
                       <option value="ON_PROGRESS">ON PROGRESS</option>
                       <option value="CLOSE">CLOSE</option>
-                      <option value="PENDING">PENDING</option>
                     </select>
                   </div>
                 )}

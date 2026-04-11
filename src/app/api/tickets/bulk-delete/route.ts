@@ -34,13 +34,14 @@ export async function POST(req: Request) {
   if (!Number.isFinite(year) || year < 2000 || year > 2100) return NextResponse.json({ error: 'Tahun tidak valid' }, { status: 400 })
 
   const statusRaw = String(body.status ?? 'ALL').toUpperCase()
+  const status = statusRaw === 'PENDING' ? 'ON_PROGRESS' : statusRaw
   const marketing = String(body.marketing ?? '').trim()
   const search = String(body.search ?? '').trim()
 
   const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
   const now = jakartaNow()
   const isSelectedCurrentMonth = now.getFullYear() === year && (now.getMonth() + 1) === month
-  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
+  const openStatuses = ['OPEN', 'ON_PROGRESS']
 
   const baseWhereOr: Prisma.TicketWhereInput[] = [
     { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },
@@ -64,8 +65,8 @@ export async function POST(req: Request) {
     if (isNum) where.OR.push({ id: searchInt })
   }
 
-  if (statusRaw && statusRaw !== 'ALL') {
-    where.status = statusRaw
+  if (status && status !== 'ALL') {
+    where.status = status
   }
 
   const deleted = await prisma.ticket.deleteMany({ where })

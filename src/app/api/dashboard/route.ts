@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   try {
     const isSelectedCurrentMonth = (now.getFullYear() === currentYear && (now.getMonth() + 1) === currentMonth)
-    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
+    const openStatuses = ['OPEN', 'ON_PROGRESS']
 
     const whereOr: Prisma.TicketWhereInput[] = [
       { AND: [{ installedDate: { not: null } }, { installedDate: { gte: startDate, lt: endDate } }] },

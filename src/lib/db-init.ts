@@ -40,6 +40,13 @@ export async function ensureDbOptimizations() {
         } catch {}
       }
 
+      try {
+        await prisma.ticket.updateMany({
+          where: { status: 'PENDING' },
+          data: { status: 'ON_PROGRESS', statusOrder: 1 },
+        })
+      } catch {}
+
       if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_ADMIN === '1') {
         try {
           const userCount = await prisma.user.count()

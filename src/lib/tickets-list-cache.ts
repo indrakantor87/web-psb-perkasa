@@ -28,7 +28,6 @@ export type TicketListCounts = {
   OPEN: number
   ON_PROGRESS: number
   CLOSE: number
-  PENDING: number
 }
 
 type Args = {
@@ -56,7 +55,7 @@ async function queryTicketsList(args: Args) {
       const now = jakartaNow()
       return now.getFullYear() === year && (now.getMonth() + 1) === month
     })()
-    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
+    const openStatuses = ['OPEN', 'ON_PROGRESS']
 
     const baseWhereOr: Prisma.TicketWhereInput[] = [
       {
@@ -95,7 +94,14 @@ async function queryTicketsList(args: Args) {
     }
 
     const where: Prisma.TicketWhereInput = { ...baseWhere }
-    if (status && status !== 'ALL') where.status = status
+    const statusNormalized = status === 'PENDING' ? 'ON_PROGRESS' : status
+    if (statusNormalized && statusNormalized !== 'ALL') {
+      if (statusNormalized === 'ON_PROGRESS') {
+        where.status = { in: ['ON_PROGRESS', 'PENDING'] }
+      } else {
+        where.status = statusNormalized
+      }
+    }
 
     const selectFull = {
       id: true,
@@ -226,15 +232,21 @@ async function queryTicketsList(args: Args) {
 
     let counts: TicketListCounts | null = null
     if (role !== 'MARKETING') {
-      counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0, PENDING: 0 }
+      counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0 }
       const grouped = groupedCountsRaw as Array<{ status: string; _count: { status: number } }>
       for (const item of grouped) {
         const s = item.status
-        if (s in counts) counts[s as keyof TicketListCounts] = item._count.status
+        if (s === 'PENDING') counts.ON_PROGRESS += item._count.status
+        else if (s in counts) counts[s as keyof TicketListCounts] = item._count.status
       }
     }
 
-    return { tickets, totalCount, counts }
+    const normalizedTickets = tickets.map((t) => ({
+      ...t,
+      status: t.status === 'PENDING' ? 'ON_PROGRESS' : t.status,
+    }))
+
+    return { tickets: normalizedTickets, totalCount, counts }
 }
 
 export async function getTicketsListData(args: Args) {

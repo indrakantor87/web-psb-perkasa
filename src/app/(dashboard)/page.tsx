@@ -34,11 +34,11 @@ export default async function DashboardPage({
   })}`
   const cached = cache.get<{
     packageData: { name: string; count: number }[]
-    marketingDataWithIsolir: { name: string; count: number; open: number; pending: number; close: number; isolir?: number }[]
+    marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
     monthlyData: { name: string; count: number }[]
     yearTopPackages: { name: string; count: number }[]
     yearMarketingCounts: { name: string; count: number }[]
-    statusCounts: { total: number; open: number; close: number; pending: number; on_progress: number }
+    statusCounts: { total: number; open: number; close: number; on_progress: number }
     isolationCount: number
   }>(cacheKey)
   if (cached) {
@@ -65,7 +65,7 @@ export default async function DashboardPage({
     const n = jakartaNow()
     return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
   })()
-  const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
+  const openStatuses = ['OPEN', 'ON_PROGRESS']
 
   const marketingRole = session.user.role === 'MARKETING'
   const marketingName = session.user.name || ''
@@ -110,12 +110,12 @@ export default async function DashboardPage({
       GROUP BY name
       ORDER BY COUNT(*) DESC
     `),
-    prisma.$queryRaw<Array<{ name: string; count: number; open: number; pending: number; close: number }>>(PrismaSql.sql`
+    prisma.$queryRaw<Array<{ name: string; count: number; open: number; on_progress: number; close: number }>>(PrismaSql.sql`
       SELECT
         COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
         COUNT(*)::int AS count,
         SUM(CASE WHEN "status" = 'OPEN' THEN 1 ELSE 0 END)::int AS open,
-        SUM(CASE WHEN "status" = 'PENDING' THEN 1 ELSE 0 END)::int AS pending,
+        SUM(CASE WHEN "status" IN ('ON_PROGRESS','PENDING') THEN 1 ELSE 0 END)::int AS on_progress,
         SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END)::int AS close
       FROM "Ticket"
       WHERE (
@@ -144,7 +144,7 @@ export default async function DashboardPage({
     name: r.name || 'Unknown',
     count: Number(r.count || 0),
     open: Number(r.open || 0),
-    pending: Number(r.pending || 0),
+    on_progress: Number(r.on_progress || 0),
     close: Number(r.close || 0),
   }))
 
@@ -224,12 +224,12 @@ export default async function DashboardPage({
   `
   const yearMarketingCounts = yearMarketingRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
+  const onProgressCount = (statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0) + (statusRows.find((r) => r.status === 'PENDING')?.count || 0)
   const statusCounts = {
     total: statusRows.reduce((acc, r) => acc + Number(r.count || 0), 0),
     open: statusRows.find((r) => r.status === 'OPEN')?.count || 0,
     close: statusRows.find((r) => r.status === 'CLOSE')?.count || 0,
-    pending: statusRows.find((r) => r.status === 'PENDING')?.count || 0,
-    on_progress: statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0,
+    on_progress: onProgressCount,
   }
 
   const isoRoleClause = marketingRole ? PrismaSql.sql`AND "marketing" = ${marketingName}` : PrismaSql.sql``

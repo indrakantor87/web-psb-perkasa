@@ -7,8 +7,7 @@ import { cache } from '@/lib/cache'
 function statusOrderFor(status: string) {
   const s = (status || '').toUpperCase()
   if (s === 'OPEN') return 0
-  if (s === 'ON_PROGRESS') return 1
-  if (s === 'PENDING') return 2
+  if (s === 'ON_PROGRESS' || s === 'PENDING') return 1
   if (s === 'CLOSE') return 3
   return 9
 }
@@ -16,7 +15,9 @@ function statusOrderFor(status: string) {
 function normalizeStatus(input: unknown) {
   const s = String(input ?? '').trim()
   if (!s) return undefined
-  return s.toUpperCase().replace(/\s+/g, '_')
+  const normalized = s.toUpperCase().replace(/\s+/g, '_')
+  if (normalized === 'PENDING') return 'ON_PROGRESS'
+  return normalized
 }
 
 export async function PUT(

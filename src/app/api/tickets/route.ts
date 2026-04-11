@@ -36,11 +36,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
   const year = searchParams.get('year')
-  const status = searchParams.get('status')
+  const statusRaw = searchParams.get('status')
   const search = searchParams.get('search')
   const all = searchParams.get('all') === '1'
   const page = parseInt(searchParams.get('page') || '1')
   const pageSize = parseInt(searchParams.get('limit') || '25')
+  const status = statusRaw === 'PENDING' ? 'ON_PROGRESS' : statusRaw
 
   const and: Prisma.TicketWhereInput[] = []
 
@@ -74,7 +75,7 @@ export async function GET(request: Request) {
     const { start: startDate, end: endDate } = jakartaMonthRange(y, m)
     const now = jakartaNow()
     const isSelectedCurrentMonth = now.getFullYear() === y && (now.getMonth() + 1) === m
-    const openStatuses = ['OPEN', 'ON_PROGRESS', 'PENDING']
+    const openStatuses = ['OPEN', 'ON_PROGRESS']
     
     // Aturan:
     // - Selalu tampilkan tiket terpasang (installedDate) sesuai bulan pemasangan
