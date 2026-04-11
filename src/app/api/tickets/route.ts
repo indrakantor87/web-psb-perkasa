@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { ticketCreateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const dynamic = 'force-dynamic'
