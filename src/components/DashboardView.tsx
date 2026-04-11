@@ -120,21 +120,21 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           color="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard 
-          title="Selesai" 
+          title="Close" 
           value={statusCounts.close} 
           icon={<CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />}
           trend={`${Math.round((statusCounts.close / (statusCounts.total || 1)) * 100)}% Tingkat`}
           color="bg-green-50 dark:bg-green-900/20"
         />
         <StatCard 
-          title="Sedang Proses" 
+          title="On Process" 
           value={statusCounts.on_progress} 
           icon={<Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
           trend="Aktif"
           color="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard 
-          title="Terbuka" 
+          title="Open" 
           value={statusCounts.open} 
           icon={<AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
           trend="Perlu Tindakan"
