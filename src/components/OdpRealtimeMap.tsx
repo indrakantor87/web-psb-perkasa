@@ -257,12 +257,19 @@ export default function OdpRealtimeMap({
         <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full">
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="OpenStreetMap">
-              <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <TileLayer
+                attribution="&copy; OpenStreetMap contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                detectRetina
+                maxZoom={20}
+              />
             </LayersControl.BaseLayer>
             <LayersControl.BaseLayer name="Satelit (Esri)">
               <TileLayer
                 attribution="Tiles &copy; Esri"
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                detectRetina
+                maxZoom={20}
               />
             </LayersControl.BaseLayer>
           </LayersControl>
