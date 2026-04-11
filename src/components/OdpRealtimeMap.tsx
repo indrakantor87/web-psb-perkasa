@@ -205,7 +205,7 @@ export default function OdpRealtimeMap({
 
   return (
     <div className="relative rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
-      <div className="absolute left-3 top-3 z-[1000] flex items-center gap-2 rounded-lg bg-white/90 px-2 py-1 text-xs text-gray-800 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/90 dark:text-gray-200 dark:ring-gray-800">
+      <div className="absolute left-3 top-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-lg bg-white/95 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800">
         <button
           type="button"
           onClick={() => setRouteEnabled((v) => !v)}
@@ -229,6 +229,14 @@ export default function OdpRealtimeMap({
         >
           Reset
         </button>
+        <div className="ml-1 rounded bg-blue-50 px-2 py-1 text-[12px] font-bold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:ring-blue-900/40">
+          Jarak: {routeDistance !== null ? `${Math.round(routeDistance)} m` : '-'}
+        </div>
+        {routeEnabled && !measured && (
+          <div className="text-[11px] font-medium text-gray-600 dark:text-gray-300">
+            Klik ODP untuk mulai ukur
+          </div>
+        )}
       </div>
       <div className="h-[420px] w-full">
         <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full">
