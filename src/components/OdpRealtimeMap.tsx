@@ -258,14 +258,14 @@ export default function OdpRealtimeMap({
         )}
       </div>
       <div className={`${heightClass} w-full`}>
-        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={22}>
+        <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full" maxZoom={19}>
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="OpenStreetMap">
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 detectRetina
-                maxZoom={23}
+                maxZoom={20}
                 maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
@@ -274,7 +274,7 @@ export default function OdpRealtimeMap({
                 attribution="Tiles &copy; Esri"
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                 detectRetina
-                maxZoom={23}
+                maxZoom={20}
                 maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
