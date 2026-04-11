@@ -7,7 +7,7 @@ import { loginSchema } from '@/lib/validations'
 export async function POST(request: Request) {
   try {
     if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEV_ADMIN === '1') {
-      const userCount = await prisma.user.count().catch(() => 1)
+      const userCount = await prisma.user.count().catch(() => 0)
       if (userCount === 0) {
         try {
           const hashed = await bcrypt.hash('123456', 10)
@@ -60,6 +60,15 @@ export async function POST(request: Request) {
     return NextResponse.json(sessionUser)
   } catch (error) {
     console.error('Login error:', error)
+    if (process.env.NODE_ENV !== 'production') {
+      const msg = String(error instanceof Error ? error.message : error)
+      if (msg.includes('PrismaClientInitializationError')) {
+        return NextResponse.json(
+          { message: 'Database connection failed. Periksa DATABASE_URL / DIRECT_URL di .env' },
+          { status: 500 }
+        )
+      }
+    }
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
