@@ -220,11 +220,11 @@ export default function OdpRealtimeMap({
 
   return (
     <div className="relative rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
-      <div className="absolute left-3 top-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-lg bg-white/95 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800">
+      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-3 rounded-xl bg-white/95 px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800 md:bottom-auto md:left-3 md:right-auto md:top-3 md:gap-2 md:rounded-lg md:px-2 md:py-1 md:text-xs">
         <button
           type="button"
           onClick={() => setRouteEnabled((v) => !v)}
-          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="rounded px-3 py-2 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 md:px-2 md:py-1"
         >
           {routeEnabled ? 'Mode Rute: ON' : 'Mode Rute: OFF'}
         </button>
@@ -232,7 +232,7 @@ export default function OdpRealtimeMap({
           type="button"
           disabled={!routeEnabled || routePoints.length === 0}
           onClick={() => setRoutePoints((prev) => prev.slice(0, -1))}
-          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800"
+          className="rounded px-3 py-2 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800 md:px-2 md:py-1"
         >
           Undo
         </button>
@@ -240,15 +240,15 @@ export default function OdpRealtimeMap({
           type="button"
           disabled={!routeEnabled || routePoints.length === 0}
           onClick={() => setRoutePoints([])}
-          className="rounded px-2 py-1 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800"
+          className="rounded px-3 py-2 font-semibold hover:bg-gray-50 disabled:opacity-50 dark:hover:bg-gray-800 md:px-2 md:py-1"
         >
           Reset
         </button>
-        <div className="ml-1 rounded bg-blue-50 px-2 py-1 text-[12px] font-bold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:ring-blue-900/40">
+        <div className="ml-1 rounded-lg bg-blue-50 px-3 py-2 text-[14px] font-bold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:ring-blue-900/40 md:rounded md:px-2 md:py-1 md:text-[12px]">
           Jarak: {routeDistance !== null ? `${Math.round(routeDistance)} m` : '-'}
         </div>
         {routeEnabled && !measured && (
-          <div className="text-[11px] font-medium text-gray-600 dark:text-gray-300">
+          <div className="text-[12px] font-medium text-gray-600 dark:text-gray-300 md:text-[11px]">
             Klik ODP untuk mulai ukur
           </div>
         )}
