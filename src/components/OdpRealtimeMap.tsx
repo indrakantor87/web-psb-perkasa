@@ -25,11 +25,13 @@ function MarkerWithRef({
   r,
   isFocused,
   searchPoint,
+  routeEnabled,
   onMeasure,
 }: {
   r: OdpRow
   isFocused: boolean
   searchPoint: { latitude: number; longitude: number } | null
+  routeEnabled: boolean
   onMeasure: (id: number) => void
 }) {
   const markerRef = useRef<L.CircleMarker>(null)
@@ -44,7 +46,7 @@ function MarkerWithRef({
   const used = Number(r.terpakai ?? 0) || 0
   const color = statusColor(cap, used)
   const d =
-    searchPoint && Number.isFinite(r.latitude) && Number.isFinite(r.longitude)
+    routeEnabled && searchPoint && Number.isFinite(r.latitude) && Number.isFinite(r.longitude)
       ? distanceM(Number(searchPoint.latitude), Number(searchPoint.longitude), Number(r.latitude), Number(r.longitude))
       : null
 
@@ -55,7 +57,9 @@ function MarkerWithRef({
       radius={isFocused ? 12 : 8}
       pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: isFocused ? 4 : 2 }}
       eventHandlers={{
-        click: () => onMeasure(r.id),
+        click: () => {
+          if (routeEnabled) onMeasure(r.id)
+        },
       }}
     >
       <Popup>
@@ -190,12 +194,12 @@ export default function OdpRealtimeMap({
   }, [measureId, rows])
 
   const routePositions = useMemo(() => {
-    if (!measured || !searchPoint) return null
+    if (!routeEnabled || !measured || !searchPoint) return null
     const start: [number, number] = [Number(measured.latitude), Number(measured.longitude)]
     const end: [number, number] = [Number(searchPoint.latitude), Number(searchPoint.longitude)]
     const mid = routePoints.map((p) => [Number(p.latitude), Number(p.longitude)] as [number, number])
     return [start, ...mid, end]
-  }, [measured, routePoints, searchPoint])
+  }, [measured, routeEnabled, routePoints, searchPoint])
 
   const routeDistance = useMemo(() => {
     if (!routePositions) return null
@@ -220,7 +224,7 @@ export default function OdpRealtimeMap({
 
   return (
     <div className="relative rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
-      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-3 rounded-xl bg-white/95 px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800 md:bottom-auto md:left-3 md:right-auto md:top-3 md:gap-2 md:rounded-lg md:px-2 md:py-1 md:text-xs">
+      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-3 rounded-xl bg-white/95 px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800 md:bottom-auto md:left-14 md:right-auto md:top-3 md:gap-2 md:rounded-lg md:px-2 md:py-1 md:text-xs">
         <button
           type="button"
           onClick={() => setRouteEnabled((v) => !v)}
@@ -334,6 +338,7 @@ export default function OdpRealtimeMap({
                 r={r}
                 isFocused={r.id === focusId}
                 searchPoint={searchPoint}
+                routeEnabled={routeEnabled}
                 onMeasure={(id) => {
                   setMeasureId(id)
                   if (routeEnabled) setRoutePoints([])
