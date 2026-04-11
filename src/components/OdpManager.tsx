@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
-import { Map, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { Map, Maximize2, Minimize2, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Komponen peta diload secara dinamis hanya di sisi klien untuk menghindari error 'window is not defined'
@@ -128,6 +128,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [mapKey, setMapKey] = useState(0)
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
   const [searchPoint, setSearchPoint] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [mapFullscreen, setMapFullscreen] = useState(false)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -208,6 +209,20 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       })
     return () => controller.abort()
   }, [fetchMap, mapKey, mapOpen])
+
+  useEffect(() => {
+    if (!mapFullscreen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMapFullscreen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [mapFullscreen])
 
   const openAdd = () => {
     setEditing(null)
@@ -570,33 +585,59 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         {importError && <div className="mt-3 rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{importError}</div>}
 
         {mapOpen && (
-          <div id="odp-map-container" className="mt-4 space-y-3">
-            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-              <span>Marker: {mapRows.length}</span>
-              <button
-                onClick={() => setMapKey((k) => k + 1)}
-                disabled={mapLoading}
-                className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50"
-              >
-                {mapLoading ? 'Memuat...' : 'Refresh Peta'}
-              </button>
-            </div>
-            {geoResolving && (
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-700 dark:text-blue-200 ring-1 ring-blue-200 dark:ring-blue-900/40">
-                Membaca link Google Maps...
+          <div
+            id="odp-map-container"
+            className={clsx(
+              'space-y-3',
+              mapFullscreen
+                ? 'fixed inset-0 z-[60] bg-black/70 p-3'
+                : 'mt-4'
+            )}
+          >
+            <div className={clsx(mapFullscreen && 'h-full overflow-hidden rounded-xl bg-white dark:bg-gray-900 p-3 ring-1 ring-gray-200 dark:ring-gray-800 flex flex-col')}>
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                <span>Marker: {mapRows.length}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setMapFullscreen((v) => !v)}
+                    className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900"
+                    title={mapFullscreen ? 'Keluar Fullscreen' : 'Fullscreen'}
+                    type="button"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      {mapFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                      {mapFullscreen ? 'Normal' : 'Fullscreen'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setMapKey((k) => k + 1)}
+                    disabled={mapLoading}
+                    className="rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-1.5 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-900 disabled:opacity-50"
+                    type="button"
+                  >
+                    {mapLoading ? 'Memuat...' : 'Refresh Peta'}
+                  </button>
+                </div>
               </div>
-            )}
-            {mapError && <div className="rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{mapError}</div>}
-            {mapLoading ? (
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
-            ) : (
-              <OdpRealtimeMap
-                key={`${searchPoint ? `${searchPoint.latitude}:${searchPoint.longitude}` : 'no-target'}`}
-                rows={mapRows}
-                focusId={focusedOdpId}
-                searchPoint={searchPoint}
-              />
-            )}
+              {geoResolving && (
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-700 dark:text-blue-200 ring-1 ring-blue-200 dark:ring-blue-900/40">
+                  Membaca link Google Maps...
+                </div>
+              )}
+              {mapError && <div className="rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{mapError}</div>}
+              {mapLoading ? (
+                <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
+              ) : (
+                <OdpRealtimeMap
+                  key={`${mapFullscreen ? 'fs' : 'normal'}:${searchPoint ? `${searchPoint.latitude}:${searchPoint.longitude}` : 'no-target'}`}
+                  rows={mapRows}
+                  focusId={focusedOdpId}
+                  searchPoint={searchPoint}
+                  heightClass={mapFullscreen ? 'h-[calc(100vh-140px)]' : 'h-[420px]'}
+                  invalidateKey={`${mapFullscreen}:${mapKey}:${searchPoint ? `${searchPoint.latitude}:${searchPoint.longitude}` : 'no-target'}`}
+                />
+              )}
+            </div>
           </div>
         )}
 

@@ -123,6 +123,17 @@ function MapController({
   return null
 }
 
+function SizeInvalidator({ invalidateKey }: { invalidateKey: string }) {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => {
+      map.invalidateSize()
+    }, 50)
+    return () => clearTimeout(t)
+  }, [invalidateKey, map])
+  return null
+}
+
 function RouteCollector({
   enabled,
   onAddPoint,
@@ -150,10 +161,14 @@ export default function OdpRealtimeMap({
   rows,
   focusId,
   searchPoint,
+  heightClass = 'h-[420px]',
+  invalidateKey = 'default',
 }: {
   rows: OdpRow[]
   focusId: number | null
   searchPoint: { latitude: number; longitude: number } | null
+  heightClass?: string
+  invalidateKey?: string
 }) {
   const [measureId, setMeasureId] = useState<number | null>(null)
   const [routeEnabled, setRouteEnabled] = useState(false)
@@ -238,7 +253,7 @@ export default function OdpRealtimeMap({
           </div>
         )}
       </div>
-      <div className="h-[420px] w-full">
+      <div className={`${heightClass} w-full`}>
         <MapContainer center={center} zoom={12} scrollWheelZoom className="h-full w-full">
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="OpenStreetMap">
@@ -252,6 +267,7 @@ export default function OdpRealtimeMap({
             </LayersControl.BaseLayer>
           </LayersControl>
           <MapController points={points} focusId={focusId} rows={rows} searchPoint={searchPoint} />
+          <SizeInvalidator invalidateKey={invalidateKey} />
           <RouteCollector
             enabled={canRouteMeasure}
             onAddPoint={(p) => {
