@@ -128,7 +128,6 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [mapKey, setMapKey] = useState(0)
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
   const [searchPoint, setSearchPoint] = useState<{ latitude: number; longitude: number } | null>(null)
-  const [nearest, setNearest] = useState<{ id: number; name: string; distanceM: number } | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -209,43 +208,6 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       })
     return () => controller.abort()
   }, [fetchMap, mapKey, mapOpen])
-
-  useEffect(() => {
-    if (!searchPoint) {
-      setNearest(null)
-      return
-    }
-    if (mapRows.length === 0) {
-      setNearest(null)
-      return
-    }
-    const lat = Number(searchPoint.latitude)
-    const lng = Number(searchPoint.longitude)
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setNearest(null)
-      return
-    }
-    const toRad = (v: number) => (v * Math.PI) / 180
-    const hav = (aLat: number, aLng: number, bLat: number, bLng: number) => {
-      const R = 6371000
-      const dLat = toRad(bLat - aLat)
-      const dLng = toRad(bLng - aLng)
-      const sa = Math.sin(dLat / 2)
-      const sb = Math.sin(dLng / 2)
-      const h = sa * sa + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * sb * sb
-      return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
-    }
-    let best: { id: number; name: string; distanceM: number } | null = null
-    for (const r of mapRows) {
-      if (!Number.isFinite(r.latitude) || !Number.isFinite(r.longitude)) continue
-      const d = hav(lat, lng, Number(r.latitude), Number(r.longitude))
-      if (!best || d < best.distanceM) {
-        best = { id: r.id, name: r.nama_odp, distanceM: d }
-      }
-    }
-    setNearest(best)
-    if (best) setFocusedOdpId(best.id)
-  }, [mapRows, searchPoint])
 
   const openAdd = () => {
     setEditing(null)
@@ -569,7 +531,6 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                     setGeoResolving(true)
                     setMapError(null)
                     setSearchPoint(null)
-                    setNearest(null)
                     setQQuery('')
                     setMapOpen(true)
                     setMapKey((k) => k + 1)
@@ -595,7 +556,6 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                   } else {
                     setGeoResolving(false)
                     setSearchPoint(null)
-                    setNearest(null)
                     setQQuery(v)
                   }
                 }
@@ -612,14 +572,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         {mapOpen && (
           <div id="odp-map-container" className="mt-4 space-y-3">
             <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-              <span>
-                Marker: {mapRows.length}
-                {nearest && (
-                  <span className="ml-2 text-gray-600 dark:text-gray-300">
-                    • Terdekat: {nearest.name} ({Math.round(nearest.distanceM)} m)
-                  </span>
-                )}
-              </span>
+              <span>Marker: {mapRows.length}</span>
               <button
                 onClick={() => setMapKey((k) => k + 1)}
                 disabled={mapLoading}

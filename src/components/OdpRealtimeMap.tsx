@@ -1,11 +1,35 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
-import { CircleMarker, LayersControl, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { CircleMarker, LayersControl, MapContainer, Polyline, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import * as L from 'leaflet'
 import type { OdpRow } from './OdpManager'
 
-function MarkerWithRef({ r, isFocused }: { r: OdpRow; isFocused: boolean }) {
+function toRad(v: number) {
+  return (v * Math.PI) / 180
+}
+
+function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371000
+  const dLat = toRad(bLat - aLat)
+  const dLng = toRad(bLng - aLng)
+  const sa = Math.sin(dLat / 2)
+  const sb = Math.sin(dLng / 2)
+  const h = sa * sa + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * sb * sb
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+function MarkerWithRef({
+  r,
+  isFocused,
+  searchPoint,
+  onMeasure,
+}: {
+  r: OdpRow
+  isFocused: boolean
+  searchPoint: { latitude: number; longitude: number } | null
+  onMeasure: (id: number) => void
+}) {
   const markerRef = useRef<L.CircleMarker>(null)
 
   useEffect(() => {
@@ -17,9 +41,21 @@ function MarkerWithRef({ r, isFocused }: { r: OdpRow; isFocused: boolean }) {
   const cap = Number(r.kapasitas ?? 8) || 8
   const used = Number(r.terpakai ?? 0) || 0
   const color = statusColor(cap, used)
+  const d =
+    searchPoint && Number.isFinite(r.latitude) && Number.isFinite(r.longitude)
+      ? distanceM(Number(searchPoint.latitude), Number(searchPoint.longitude), Number(r.latitude), Number(r.longitude))
+      : null
 
   return (
-    <CircleMarker ref={markerRef} center={[Number(r.latitude), Number(r.longitude)]} radius={isFocused ? 12 : 8} pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: isFocused ? 4 : 2 }}>
+    <CircleMarker
+      ref={markerRef}
+      center={[Number(r.latitude), Number(r.longitude)]}
+      radius={isFocused ? 12 : 8}
+      pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: isFocused ? 4 : 2 }}
+      eventHandlers={{
+        click: () => onMeasure(r.id),
+      }}
+    >
       <Popup>
         <div className="space-y-1 min-w-[150px]">
           <div className="text-sm font-bold">{r.nama_odp}</div>
@@ -27,6 +63,11 @@ function MarkerWithRef({ r, isFocused }: { r: OdpRow; isFocused: boolean }) {
           <div className="text-xs mt-2">
             <span className="font-semibold">Terpakai:</span> {used}/{cap}
           </div>
+          {d !== null && (
+            <div className="text-xs">
+              <span className="font-semibold">Jarak ke tujuan:</span> {Math.round(d)} m
+            </div>
+          )}
           <div className="text-xs break-words">{r.lokasi}</div>
           <div className="text-[10px] text-gray-400 mt-1">
             {r.latitude}, {r.longitude}
@@ -89,6 +130,7 @@ export default function OdpRealtimeMap({
   focusId: number | null
   searchPoint: { latitude: number; longitude: number } | null
 }) {
+  const [measureId, setMeasureId] = useState<number | null>(null)
   const points = useMemo(() => rows.filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude)).map((r) => [Number(r.latitude), Number(r.longitude)] as [number, number]), [rows])
   const center = useMemo<[number, number]>(() => {
     if (points.length === 0) return [-6.889, 110.905]
@@ -96,6 +138,19 @@ export default function OdpRealtimeMap({
     const lng = points.reduce((a, b) => a + b[1], 0) / points.length
     return [lat, lng]
   }, [points])
+
+  const measured = useMemo(() => {
+    if (!measureId) return null
+    const r = rows.find((x) => x.id === measureId) || null
+    if (!r) return null
+    if (!Number.isFinite(r.latitude) || !Number.isFinite(r.longitude)) return null
+    return r
+  }, [measureId, rows])
+
+  const measuredDistance = useMemo(() => {
+    if (!measured || !searchPoint) return null
+    return distanceM(Number(searchPoint.latitude), Number(searchPoint.longitude), Number(measured.latitude), Number(measured.longitude))
+  }, [measured, searchPoint])
 
   return (
     <div className="rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
@@ -129,10 +184,25 @@ export default function OdpRealtimeMap({
               </Popup>
             </CircleMarker>
           )}
+          {searchPoint && measured && (
+            <Polyline
+              positions={[
+                [Number(searchPoint.latitude), Number(searchPoint.longitude)],
+                [Number(measured.latitude), Number(measured.longitude)],
+              ]}
+              pathOptions={{ color: '#3b82f6', weight: 3, opacity: 0.9 }}
+            >
+              {measuredDistance !== null && (
+                <Tooltip direction="top" sticky opacity={0.95}>
+                  {Math.round(measuredDistance)} m
+                </Tooltip>
+              )}
+            </Polyline>
+          )}
           {rows
             .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude))
             .map((r) => (
-              <MarkerWithRef key={r.id} r={r} isFocused={r.id === focusId} />
+              <MarkerWithRef key={r.id} r={r} isFocused={r.id === focusId} searchPoint={searchPoint} onMeasure={setMeasureId} />
             ))}
         </MapContainer>
       </div>
