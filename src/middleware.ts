@@ -74,6 +74,22 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
+
+    if ((currentUser.role || '').toUpperCase() === 'TROUBLESHOOTS') {
+      if (request.nextUrl.pathname.startsWith('/api')) {
+        return NextResponse.next()
+      }
+
+      if (request.nextUrl.pathname === '/') {
+        return NextResponse.redirect(new URL('/trouble-ticket', request.url))
+      }
+
+      const allowedPaths = ['/trouble-ticket', '/profile']
+      const isAllowed = allowedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
+      if (!isAllowed) {
+        return NextResponse.redirect(new URL('/trouble-ticket', request.url))
+      }
+    }
   }
 
   const response = NextResponse.next()

@@ -141,3 +141,27 @@ model CoveredArea {
 
   @@index([name])
 }
+
+model TroubleTicket {
+  id           Int      @id @default(autoincrement())
+  ticketCode   String?  @unique
+  ticketPrefix String?
+  ticketNumber Int?
+  periodMonth  Int?
+  periodYear   Int?
+  customerName String
+  user         String?
+  waNumber     String
+  mapsUrl      String?
+  type         String
+  openedAt     DateTime @default(now())
+  closedAt     DateTime?
+  notes        String?
+  status       String   @default("OPEN")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([openedAt])
+}

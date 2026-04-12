@@ -295,6 +295,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <option value="CS">Customer Service (CS)</option>
                 <option value="NOC">NOC</option>
                 <option value="TEKNISI">Teknisi</option>
+                <option value="TROUBLESHOOTS">Troubleshoots</option>
               </select>
             </div>
 
@@ -340,7 +341,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                     <span className={clsx(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                       user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" :
-                      user.role === 'TEKNISI' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" :
+                      user.role === 'TEKNISI' || user.role === 'TROUBLESHOOTS' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" :
                       "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                     )}>
                       {user.role}

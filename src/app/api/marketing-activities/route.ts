@@ -4,6 +4,13 @@ import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 
+export const runtime = 'nodejs'
+
+type MarketingActivityDelegate = {
+  findMany: (args: Record<string, unknown>) => Promise<unknown>
+  create: (args: Record<string, unknown>) => Promise<unknown>
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -39,7 +46,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const activities = await prisma.marketingActivity.findMany({
+    const client = prisma as unknown as { marketingActivity: MarketingActivityDelegate }
+    const activities = await client.marketingActivity.findMany({
       where,
       include: {
         area: {
@@ -95,7 +103,8 @@ export async function POST(request: Request) {
       return firstIndex === idx ? val : null
     })
 
-    const newActivity = await prisma.marketingActivity.create({
+    const client = prisma as unknown as { marketingActivity: MarketingActivityDelegate }
+    const newActivity = await client.marketingActivity.create({
       data: {
         date: new Date(date),
         marketingName,

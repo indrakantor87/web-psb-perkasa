@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -20,6 +20,7 @@ export function Header({ user }: { user: SessionUser }) {
     return Number.isFinite(n) && n > 0 ? n : 100
   })
   const isMarketing = user?.role === 'MARKETING'
+  const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const dropdownRef = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
   const settingsRefMobile = useRef<HTMLDivElement>(null)
@@ -49,14 +50,17 @@ export function Header({ user }: { user: SessionUser }) {
     }
   }, [])
 
-  const links = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
-    { href: '/list', label: 'List Data', icon: List },
-    ...(user?.role !== 'TEKNISI' ? [{ href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
-    ...(user?.role !== 'TEKNISI' ? [{ href: '/isolir', label: 'Isolir', icon: Ban }] : []),
-    { href: '/odp', label: 'PORT ODP', icon: Wifi },
-  ]
+  const links = isTroubleshoots
+    ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
+    : [
+        { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+        ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
+        { href: '/list', label: 'List Data', icon: List },
+        ...(user?.role !== 'TEKNISI' ? [{ href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+        ...(user?.role !== 'TEKNISI' ? [{ href: '/isolir', label: 'Isolir', icon: Ban }] : []),
+        { href: '/odp', label: 'PORT ODP', icon: Wifi },
+        ...(user?.role !== 'MARKETING' ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }] : []),
+      ]
 
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
 
@@ -64,6 +68,7 @@ export function Header({ user }: { user: SessionUser }) {
     { href: '/settings/areas', label: 'Master Area' },
     { href: '/settings/users', label: 'Manajemen Pengguna' },
     { href: '/settings/templates', label: 'Template WA' },
+    { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
   ] : []
 
   const handleLogout = async () => {
@@ -83,11 +88,12 @@ export function Header({ user }: { user: SessionUser }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
-              alt="PERKASA NETWORKS" 
+              alt="Ticketing Perkasa Networls" 
               className="h-8 w-auto object-contain"
             />
           </div>
 
+          {!isTroubleshoots && (
           <nav className="hidden md:flex items-center space-x-1">
             {links.map((link) => {
               const Icon = link.icon
@@ -183,6 +189,7 @@ export function Header({ user }: { user: SessionUser }) {
               )}
             </div>
           </nav>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
@@ -229,6 +236,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
+      {!isTroubleshoots && (
       <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
         <nav className="flex items-center gap-1 overflow-x-auto px-2 py-2">
           {links.map((link) => {
@@ -321,6 +329,7 @@ export function Header({ user }: { user: SessionUser }) {
           </div>
         </nav>
       </div>
+      )}
     </header>
   )
 }
