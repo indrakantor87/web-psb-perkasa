@@ -38,6 +38,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "periodYear" INT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -100,6 +101,7 @@ export async function POST(
       photos.push(`data:${file.type};base64,${buffer.toString('base64')}`)
     }
 
+    const closeBy = String(session.user.name ?? session.user.username ?? '').trim() || null
     const closeNotesVal = closeNotes || null
     const closePhotosVal = photos.length ? photos : null
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
@@ -108,12 +110,14 @@ export async function POST(
            "closedAt" = NOW(),
            "closeNotes" = $2,
            "closePhotos" = $3,
+           "closeBy" = $4,
            "updatedAt" = NOW()
        WHERE "id" = $1
        RETURNING "id";`,
       targetId,
       closeNotesVal,
-      closePhotosVal
+      closePhotosVal,
+      closeBy
     )
     if (!rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })

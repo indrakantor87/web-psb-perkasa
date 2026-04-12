@@ -20,6 +20,7 @@ type TroubleTicketRow = {
   notes: string | null
   closeNotes?: string | null
   closePhotos?: string[] | null
+  closeBy?: string | null
   status: string
 }
 
@@ -116,6 +117,7 @@ function buildTicketDetailText(row: TroubleTicketRow) {
   const isClosed = status === 'close'
   const penanganan = (row.closeNotes || '').trim()
   const hasPhotos = Array.isArray(row.closePhotos) && row.closePhotos.length > 0
+  const closeBy = (row.closeBy || '').trim()
 
   const lines = [
     `ID TICKET : ${ticketId}`,
@@ -127,6 +129,7 @@ function buildTicketDetailText(row: TroubleTicketRow) {
     `Keterangan : ${(row.notes || '').trim() || '-'}`,
     ...(isClosed ? [`Penanganan : ${penanganan || '-'}`] : []),
     ...(isClosed ? [`View : ${hasPhotos ? 'Ada foto' : '-'}`] : []),
+    ...(isClosed ? [`Close By : ${closeBy || '-'}`] : []),
     `Status : ${status}`,
   ]
 
@@ -220,6 +223,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [detailRow, setDetailRow] = useState<TroubleTicketRow | null>(null)
   const [detailFetching, setDetailFetching] = useState(false)
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false)
+  const [closeByMap, setCloseByMap] = useState<Record<number, string | null>>({})
+  const [closeByLoadingId, setCloseByLoadingId] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -256,6 +261,10 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const fileInputId = 'trouble-ticket-import-input'
 
   useEffect(() => {
+    if (isTroubleshoots) setStatus('OPEN')
+  }, [isTroubleshoots])
+
+  useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(search), 300)
     return () => window.clearTimeout(t)
   }, [search])
@@ -279,7 +288,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         const msg = (data as { error?: string })?.error || 'Gagal memuat data'
         throw new Error(msg)
       }
-      setRows((Array.isArray(data) ? data : []) as TroubleTicketRow[])
+      const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
+      setRows(
+        isTroubleshoots
+          ? nextRows.filter((r) => ((r.status || '').toUpperCase() !== 'CLOSE' && !r.closedAt))
+          : nextRows
+      )
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
       setRows([])
@@ -350,7 +364,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const msg = (data as { error?: string })?.error || 'Gagal memuat data'
           throw new Error(msg)
         }
-        setRows((Array.isArray(data) ? data : []) as TroubleTicketRow[])
+        const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
+        setRows(
+          isTroubleshoots
+            ? nextRows.filter((r) => ((r.status || '').toUpperCase() !== 'CLOSE' && !r.closedAt))
+            : nextRows
+        )
       } catch (e: unknown) {
         if ((e as { name?: string })?.name === 'AbortError') return
         setError(e instanceof Error ? e.message : String(e))
@@ -500,7 +519,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setDetailRow(row)
     setCopied(false)
     const isClosed = (row.status || '').toUpperCase() === 'CLOSE' || !!row.closedAt
-    const hasCloseFields = typeof row.closeNotes !== 'undefined' || typeof row.closePhotos !== 'undefined'
+    const hasCloseFields = typeof row.closeNotes !== 'undefined' || typeof row.closePhotos !== 'undefined' || typeof row.closeBy !== 'undefined'
     if (!isClosed || hasCloseFields) return
 
     setDetailFetching(true)
@@ -510,18 +529,51 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!res.ok) return
       const closeNotes = (data as { closeNotes?: unknown })?.closeNotes
       const closePhotos = (data as { closePhotos?: unknown })?.closePhotos
+      const closeBy = (data as { closeBy?: unknown })?.closeBy
       setDetailRow((prev) => {
         if (!prev || prev.id !== row.id) return prev
         return {
           ...prev,
           closeNotes: typeof closeNotes === 'string' ? closeNotes : closeNotes === null ? null : prev.closeNotes,
           closePhotos: Array.isArray(closePhotos) ? (closePhotos as string[]) : closePhotos === null ? null : prev.closePhotos,
+          closeBy: typeof closeBy === 'string' ? closeBy : closeBy === null ? null : prev.closeBy,
         }
       })
     } finally {
       setDetailFetching(false)
     }
   }
+
+  useEffect(() => {
+    if (!expandedId) return
+    if (closeByMap[expandedId] !== undefined) return
+    if (closeByLoadingId) return
+    const row = rows.find((r) => r.id === expandedId)
+    if (!row) return
+    const isClosed = (row.status || '').toUpperCase() === 'CLOSE' || !!row.closedAt
+    if (!isClosed) return
+    if (typeof row.closeBy !== 'undefined') {
+      setCloseByMap((prev) => ({ ...prev, [expandedId]: (row.closeBy || '').trim() || null }))
+      return
+    }
+
+    const controller = new AbortController()
+    ;(async () => {
+      setCloseByLoadingId(expandedId)
+      try {
+        const res = await fetch(`/api/trouble-tickets/${expandedId}`, { signal: controller.signal })
+        const data = (await res.json().catch(() => ({}))) as { closeBy?: unknown }
+        if (!res.ok) return
+        const closeBy = typeof data.closeBy === 'string' ? data.closeBy.trim() : ''
+        setCloseByMap((prev) => ({ ...prev, [expandedId]: closeBy || null }))
+      } catch {}
+      finally {
+        setCloseByLoadingId(null)
+      }
+    })()
+
+    return () => controller.abort()
+  }, [closeByLoadingId, closeByMap, expandedId, rows])
 
   const handleDeleteTicket = async (id: number) => {
     if (!canDelete) return
@@ -704,17 +756,19 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">Ticket Open : {summary.open}</span>
+      {!isTroubleshoots && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">Ticket Open : {summary.open}</span>
+          </div>
+          <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">Ticket Close : {summary.close}</span>
+          </div>
+          <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
+            <span className="text-xs font-bold text-white">Ticket Overdue : {summary.overdue}</span>
+          </div>
         </div>
-        <div className="rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">Ticket Close : {summary.close}</span>
-        </div>
-        <div className="rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
-          <span className="text-xs font-bold text-white">Ticket Overdue : {summary.overdue}</span>
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2 md:flex-row md:items-end">
@@ -755,18 +809,20 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               placeholder="Nama / WA / Tipe / Keterangan"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE')}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-40"
-            >
-              <option value="ALL">Semua</option>
-              <option value="OPEN">OPEN</option>
-              <option value="CLOSE">CLOSE</option>
-            </select>
-          </div>
+          {!isTroubleshoots && (
+            <div className="flex flex-col">
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE')}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-40"
+              >
+                <option value="ALL">Semua</option>
+                <option value="OPEN">OPEN</option>
+                <option value="CLOSE">CLOSE</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {!isTroubleshoots && (
@@ -1044,7 +1100,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                             rel="noreferrer"
                             className="text-blue-600 dark:text-blue-400 hover:underline"
                           >
-                            Buka
+                            View
                           </a>
                         ) : (
                           <span className="text-gray-500 dark:text-gray-400">-</span>
@@ -1075,15 +1131,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                               <div className="text-sm text-gray-700 dark:text-gray-200">
                                 <div className="font-semibold">Action</div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {isClosed ? 'Ticket sudah CLOSE' : 'Ticket masih OPEN'}
+                                  {isClosed
+                                    ? `Ticket CLOSE by ${(closeByMap[r.id] ?? '').trim() || '-'}`
+                                    : 'Ticket masih OPEN'}
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setDetailRow(r)
-                                    setCopied(false)
+                                    void openDetail(r)
                                   }}
                                   className="inline-flex items-center gap-2 rounded-md bg-gray-50 text-gray-700 px-3 py-2 text-xs font-semibold hover:bg-gray-100 border border-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:border-gray-600"
                                 >

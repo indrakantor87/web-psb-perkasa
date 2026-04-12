@@ -37,6 +37,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketNumber" INT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -74,10 +75,11 @@ export async function GET(
         notes: string | null
         closeNotes: string | null
         closePhotos: string[] | null
+        closeBy: string | null
         status: string
       }>
     >(
-      `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`,
+      `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`,
       ticketId
     )
     const row =
@@ -93,10 +95,11 @@ export async function GET(
             notes: string | null
             closeNotes: string | null
             closePhotos: string[] | null
+            closeBy: string | null
             status: string
           }>
         >(
-          `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","status"
+          `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
