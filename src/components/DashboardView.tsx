@@ -28,6 +28,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const [year, setYear] = useState(initialPeriod.year)
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
+  const isNoc = userRole === 'NOC'
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -91,7 +92,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       <div
         className={clsx(
           'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
-          isTeknisi ? 'xl:grid-cols-3' : 'xl:grid-cols-5'
+          isTeknisi ? 'xl:grid-cols-3' : isNoc ? 'xl:grid-cols-4' : 'xl:grid-cols-5'
         )}
       >
         <StatCard 
@@ -101,7 +102,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           trend="Total"
           color="bg-blue-50 dark:bg-blue-900/20"
         />
-        {!isTeknisi && (
+        {!isTeknisi && !isNoc && (
           <StatCard 
             title="Total Aktivitas Marketing" 
             value={marketingActivityTotal} 
@@ -136,7 +137,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
 
       {/* Marketing Table */}
-      {!isTeknisi && (
+      {!isTeknisi && !isNoc && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -441,7 +442,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMarketing && !isTeknisi && (
+      {!isMarketing && !isTeknisi && !isNoc && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>

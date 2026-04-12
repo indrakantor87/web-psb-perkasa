@@ -64,7 +64,7 @@ export function Header({ user }: { user: SessionUser }) {
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
         ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
         { href: '/list', label: 'List Data', icon: List },
-        ...(user?.role !== 'TEKNISI' ? [{ href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+        ...(!['TEKNISI', 'NOC'].includes(user?.role || '') ? [{ href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
         ...(user?.role !== 'TEKNISI' ? [{ href: '/isolir', label: 'Isolir', icon: Ban }] : []),
         { href: '/odp', label: 'PORT ODP', icon: Wifi },
         ...(user?.role !== 'MARKETING' ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }] : []),
