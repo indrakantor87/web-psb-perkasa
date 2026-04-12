@@ -10,6 +10,7 @@ import type { SessionUser } from '@/lib/auth'
 
 export function Header({ user }: { user: SessionUser }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isNavOpen, setIsNavOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
@@ -22,8 +23,10 @@ export function Header({ user }: { user: SessionUser }) {
   const isMarketing = user?.role === 'MARKETING'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const navRefMobile = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
   const settingsRefMobile = useRef<HTMLDivElement>(null)
+  const navOverlayRef = useRef<HTMLDivElement>(null)
   const settingsOverlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -36,6 +39,11 @@ export function Header({ user }: { user: SessionUser }) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+      }
+      const inNavMobile = navRefMobile.current?.contains(event.target as Node) ?? false
+      const inNavOverlay = navOverlayRef.current?.contains(event.target as Node) ?? false
+      if (!inNavMobile && !inNavOverlay) {
+        setIsNavOpen(false)
       }
       const inDesktop = settingsRefDesktop.current?.contains(event.target as Node) ?? false
       const inMobile = settingsRefMobile.current?.contains(event.target as Node) ?? false
@@ -239,30 +247,57 @@ export function Header({ user }: { user: SessionUser }) {
       {!isTroubleshoots && (
       <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
         <nav className="flex items-center gap-1 overflow-x-auto px-2 py-2">
-          {links.map((link) => {
-            const Icon = link.icon
-            const isActive = pathname === link.href
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                prefetch={false}
-                className={clsx(
-                  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {link.label}
-              </Link>
-            )
-          })}
+          <div className="relative" ref={navRefMobile}>
+            <button
+              onClick={() => {
+                setIsNavOpen(!isNavOpen)
+                setIsSettingsOpen(false)
+              }}
+              className={clsx(
+                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
+                pathname === '/'
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                  : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+              )}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+              <ChevronDown className={clsx("h-3 w-3 transition-transform", isNavOpen && "rotate-180")} />
+            </button>
+
+            {isNavOpen && (
+              <div ref={navOverlayRef} className="fixed top-16 left-2 z-[60] w-72">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                  {links.map((link) => {
+                    const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        prefetch={false}
+                        onClick={() => setIsNavOpen(false)}
+                        className={clsx(
+                          'block px-3 py-2 text-sm transition-colors',
+                          isActive
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="relative" ref={settingsRefMobile}>
               <button
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                onClick={() => {
+                  setIsSettingsOpen(!isSettingsOpen)
+                  setIsNavOpen(false)
+                }}
                 className={clsx(
                   'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
                   pathname.startsWith('/settings')
