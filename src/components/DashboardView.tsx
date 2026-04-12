@@ -1,10 +1,9 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { clsx } from 'clsx'
-import { LayoutDashboard, Ticket, CheckCircle2, Clock, AlertCircle, Calendar, TrendingUp, User, WifiOff } from 'lucide-react'
+import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User } from 'lucide-react'
 
 
 interface DashboardViewProps {
@@ -14,37 +13,20 @@ interface DashboardViewProps {
   yearTopPackages: { name: string; count: number }[]
   yearMarketingCounts: { name: string; count: number }[]
   statusCounts: { total: number; open: number; close: number; on_progress: number }
+  marketingActivityTotal: number
+  odpTotal: number
+  ticketingTotal: number
+  ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
   initialPeriod: { month: number; year: number }
   userRole?: string
   isolationCount?: number
 }
 
-const ChartSection = dynamic(() => import('./charts/DashboardCharts'), { ssr: false })
-
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const isMarketing = userRole === 'MARKETING'
-  const [chartsVisible, setChartsVisible] = useState(false)
-  const chartsRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    if (chartsVisible) return
-    const el = chartsRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setChartsVisible(true)
-          obs.disconnect()
-        }
-      },
-      { rootMargin: '200px' }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [chartsVisible])
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -58,12 +40,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
   const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
-
-  const statusData = [
-    { name: 'Open', value: statusCounts.open, color: '#ef4444' }, // Red
-    { name: 'Close', value: statusCounts.close, color: '#10b981' }, // Green
-    { name: 'On Process', value: statusCounts.on_progress, color: '#3b82f6' }, // Blue
-  ].filter(item => item.value > 0)
 
   return (
     <div className="space-y-8 pb-10">
@@ -111,44 +87,42 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
 
       {/* Summary Cards */}
-      <div className={clsx('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3', userRole === 'TEKNISI' ? 'xl:grid-cols-4' : 'xl:grid-cols-5')}>
+      <div className={clsx('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5')}>
         <StatCard 
-          title="Total Tiket" 
+          title="Total PSB" 
           value={statusCounts.total} 
           icon={<Ticket className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
           trend="Total"
           color="bg-blue-50 dark:bg-blue-900/20"
         />
         <StatCard 
-          title="Close" 
-          value={statusCounts.close} 
-          icon={<CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />}
-          trend={`${Math.round((statusCounts.close / (statusCounts.total || 1)) * 100)}% Tingkat`}
-          color="bg-green-50 dark:bg-green-900/20"
+          title="Total Aktivitas Marketing" 
+          value={marketingActivityTotal} 
+          icon={<TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+          trend="Total"
+          color="bg-indigo-50 dark:bg-indigo-900/20"
         />
         <StatCard 
-          title="On Process" 
-          value={statusCounts.on_progress} 
-          icon={<Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
+          title="Total Isolir" 
+          value={isolationCount} 
+          icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
           trend="Aktif"
-          color="bg-blue-50 dark:bg-blue-900/20"
+          color="bg-orange-50 dark:bg-orange-900/20"
         />
         <StatCard 
-          title="Open" 
-          value={statusCounts.open} 
-          icon={<AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
-          trend="Perlu Tindakan"
-          color="bg-red-50 dark:bg-red-900/20"
+          title="Total port ODP" 
+          value={odpTotal} 
+          icon={<Wifi className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
+          trend="Total"
+          color="bg-emerald-50 dark:bg-emerald-900/20"
         />
-        {userRole !== 'TEKNISI' && (
-          <StatCard 
-            title="Isolir Aktif" 
-            value={isolationCount} 
-            icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
-            trend="Perlu Penanganan"
-            color="bg-orange-50 dark:bg-orange-900/20"
-          />
-        )}
+        <StatCard 
+          title="Total Ticketing" 
+          value={ticketingTotal} 
+          icon={<Wrench className="h-6 w-6 text-slate-700 dark:text-slate-200" />}
+          trend="Total"
+          color="bg-slate-100 dark:bg-slate-700/40"
+        />
       </div>
 
       {/* Marketing Table */}
@@ -280,20 +254,145 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       </div>
 
-      <div ref={chartsRef}>
-        {chartsVisible ? (
-          <ChartSection
-            packageData={packageData}
-            monthlyData={monthlyData}
-            statusData={statusData}
-            showMonthly={!isMarketing}
-            year={year}
-          />
-        ) : (
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="h-56 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700/40" />
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap PSB per Bulan</h3>
+            <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
           </div>
-        )}
+          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+          </div>
+        </div>
+
+        {(() => {
+          const series = monthlyData
+            .map((m) => ({ label: m.name, v: Number(m.count || 0) }))
+            .filter((x) => x.v > 0)
+          const max = Math.max(1, ...series.map((s) => s.v))
+          const w = 1200
+          const h = 260
+          const padX = 44
+          const padTop = 26
+          const padBottom = 44
+          const chartW = w - padX * 2
+          const chartH = h - padTop - padBottom
+          const stepX = chartW / Math.max(1, series.length - 1)
+
+          const pts = series.map((m, i) => {
+            const v = m.v
+            const x = padX + stepX * i
+            const y = padTop + chartH * (1 - v / max)
+            return { x, y, v, label: m.label }
+          })
+          const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
+          return (
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[760px]">
+                {pts.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                    Belum ada data PSB untuk tahun ini
+                  </div>
+                ) : (
+                <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-56">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const y = padTop + (chartH / 4) * i
+                    return (
+                      <line
+                        key={i}
+                        x1={padX}
+                        y1={y}
+                        x2={padX + chartW}
+                        y2={y}
+                        stroke="currentColor"
+                        className="text-gray-200 dark:text-gray-700"
+                        strokeWidth={1}
+                      />
+                    )
+                  })}
+
+                  {pts.length > 1 && (
+                    <polyline
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      points={pointsStr}
+                    />
+                  )}
+
+                  {pts.map((p, idx) => (
+                    <g key={idx}>
+                      <circle cx={p.x} cy={p.y} r={5} fill="#3b82f6" />
+                      <circle cx={p.x} cy={p.y} r={9} fill="rgba(59,130,246,0.12)" />
+                      <text
+                        x={p.x}
+                        y={p.y - 12}
+                        textAnchor="middle"
+                        className="fill-gray-700 dark:fill-gray-200"
+                        style={{ fontSize: 14, fontWeight: 600 }}
+                      >
+                        {p.v}
+                      </text>
+                      <text
+                        x={p.x}
+                        y={h - 14}
+                        textAnchor="middle"
+                        className="fill-gray-500 dark:fill-gray-300"
+                        style={{ fontSize: 14, fontWeight: 500 }}
+                      >
+                        {p.label}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Ticketing Tahunan (Tahun {year})</h3>
+            <p className="text-xs text-gray-500">Ringkasan ticketing berdasarkan kategori</p>
+          </div>
+          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <Wrench className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-700">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kategori</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              {ticketingYearRecap.map((r) => (
+                <tr key={r.type} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
+                  <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
+                  <td className="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">{r.close}</td>
+                  <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
+                </tr>
+              ))}
+              {ticketingYearRecap.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    Tidak ada data ticketing untuk tahun ini
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}

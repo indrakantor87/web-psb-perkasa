@@ -6,6 +6,7 @@ import { Prisma as PrismaSql } from '@prisma/client'
 import { ensureDbOptimizations } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
+import { ensureOdpTable } from '@/lib/odp-init'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,6 +41,10 @@ export default async function DashboardPage({
     yearMarketingCounts: { name: string; count: number }[]
     statusCounts: { total: number; open: number; close: number; on_progress: number }
     isolationCount: number
+    marketingActivityTotal: number
+    odpTotal: number
+    ticketingTotal: number
+    ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
   }>(cacheKey)
   if (cached) {
     return (
@@ -52,6 +57,10 @@ export default async function DashboardPage({
           yearTopPackages={cached.yearTopPackages}
           yearMarketingCounts={cached.yearMarketingCounts}
           statusCounts={cached.statusCounts}
+          marketingActivityTotal={cached.marketingActivityTotal}
+          odpTotal={cached.odpTotal}
+          ticketingTotal={cached.ticketingTotal}
+          ticketingYearRecap={cached.ticketingYearRecap}
           initialPeriod={{ month: currentMonth, year: currentYear }}
           userRole={session.user.role}
           isolationCount={cached.isolationCount}
@@ -243,6 +252,52 @@ export default async function DashboardPage({
   const isolirByMarketing = new Map<string, number>(isoRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)]))
   const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
+  const [marketingActivityTotal, odpTotal, ticketingTotal] = await Promise.all([
+    prisma.marketingActivity.count({
+      where: {
+        ...(marketingRole ? { marketingName } : {}),
+        date: { gte: startDate, lt: endDate },
+      },
+    }).catch(() => 0),
+    (async () => {
+      try {
+        await ensureOdpTable()
+        const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
+          SELECT COUNT(*)::int AS count
+          FROM psb_odp
+          WHERE is_active = TRUE
+        `)
+        return Number(rows[0]?.count || 0)
+      } catch {
+        return 0
+      }
+    })(),
+    prisma
+      .$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
+        SELECT COUNT(*)::int AS count
+        FROM "TroubleTicket"
+        WHERE "periodMonth" = ${currentMonth}
+          AND "periodYear" = ${currentYear}
+      `)
+      .then((rows) => Number(rows[0]?.count || 0))
+      .catch(() => 0),
+  ])
+
+  const ticketingYearRecap = await prisma
+    .$queryRaw<Array<{ type: string; total: number; open: number; close: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM(UPPER("type")), ''), 'UNKNOWN') AS type,
+        COUNT(*)::int AS total,
+        SUM(CASE WHEN "status" = 'OPEN' THEN 1 ELSE 0 END)::int AS open,
+        SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END)::int AS close
+      FROM "TroubleTicket"
+      WHERE "openedAt" >= ${yearStart}
+        AND "openedAt" < ${yearEnd}
+      GROUP BY 1
+      ORDER BY COUNT(*) DESC, type ASC
+    `)
+    .catch(() => [])
+
   // Merge isolir count into marketingData
   const marketingDataWithIsolir = marketingData.map((m) => ({
     ...m,
@@ -259,6 +314,10 @@ export default async function DashboardPage({
       yearMarketingCounts,
       statusCounts,
       isolationCount,
+      marketingActivityTotal,
+      odpTotal,
+      ticketingTotal,
+      ticketingYearRecap,
     },
     120_000
   )
@@ -273,6 +332,10 @@ export default async function DashboardPage({
         yearTopPackages={yearTopPackages}
         yearMarketingCounts={yearMarketingCounts}
         statusCounts={statusCounts}
+        marketingActivityTotal={marketingActivityTotal}
+        odpTotal={odpTotal}
+        ticketingTotal={ticketingTotal}
+        ticketingYearRecap={ticketingYearRecap}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
         isolationCount={isolationCount}

@@ -5,6 +5,11 @@ import { decrypt } from '@/lib/auth'
 const rateLimit = new Map<string, { count: number; lastReset: number }>()
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  if (/\.[^/]+$/.test(pathname)) {
+    return NextResponse.next()
+  }
+
   // Simple Rate Limiting (In-Memory)
   // Note: This is per-instance. For distributed environments (Vercel), 
   // this is not a strict global limit but helps mitigate spam.
@@ -48,13 +53,13 @@ export async function middleware(request: NextRequest) {
 
   // Define paths that don't require authentication
   const publicPaths = ['/login', '/api/auth/login']
-  const isPublicPath = publicPaths.includes(request.nextUrl.pathname)
+  const isPublicPath = publicPaths.includes(pathname)
 
-  if (!currentUser && !isPublicPath && !request.nextUrl.pathname.startsWith('/_next') && !request.nextUrl.pathname.startsWith('/api')) {
+  if (!currentUser && !isPublicPath && !pathname.startsWith('/_next') && !pathname.startsWith('/api')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (currentUser && request.nextUrl.pathname === '/login') {
+  if (currentUser && pathname === '/login') {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
@@ -62,7 +67,7 @@ export async function middleware(request: NextRequest) {
   if (currentUser) {
     // Block MARKETING from settings (all settings pages)
     if (currentUser.role === 'MARKETING') {
-      if (request.nextUrl.pathname.startsWith('/settings')) {
+      if (pathname.startsWith('/settings')) {
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
@@ -70,22 +75,22 @@ export async function middleware(request: NextRequest) {
     // Block TEKNISI from input and settings
     if (currentUser.role === 'TEKNISI') {
       const restrictedPaths = ['/input', '/settings', '/marketing-activities', '/isolir']
-      if (restrictedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
+      if (restrictedPaths.some(path => pathname.startsWith(path))) {
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
 
     if ((currentUser.role || '').toUpperCase() === 'TROUBLESHOOTS') {
-      if (request.nextUrl.pathname.startsWith('/api')) {
+      if (pathname.startsWith('/api')) {
         return NextResponse.next()
       }
 
-      if (request.nextUrl.pathname === '/') {
+      if (pathname === '/') {
         return NextResponse.redirect(new URL('/trouble-ticket', request.url))
       }
 
       const allowedPaths = ['/trouble-ticket', '/profile']
-      const isAllowed = allowedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
+      const isAllowed = allowedPaths.some((path) => pathname.startsWith(path))
       if (!isAllowed) {
         return NextResponse.redirect(new URL('/trouble-ticket', request.url))
       }
@@ -109,5 +114,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)'],
 }
