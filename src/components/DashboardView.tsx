@@ -27,6 +27,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
   const isMarketing = userRole === 'MARKETING'
+  const isTeknisi = userRole === 'TEKNISI'
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -87,7 +88,12 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
 
       {/* Summary Cards */}
-      <div className={clsx('grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5')}>
+      <div
+        className={clsx(
+          'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
+          isTeknisi ? 'xl:grid-cols-3' : 'xl:grid-cols-5'
+        )}
+      >
         <StatCard 
           title="Total PSB" 
           value={statusCounts.total} 
@@ -95,20 +101,24 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           trend="Total"
           color="bg-blue-50 dark:bg-blue-900/20"
         />
-        <StatCard 
-          title="Total Aktivitas Marketing" 
-          value={marketingActivityTotal} 
-          icon={<TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
-          trend="Total"
-          color="bg-indigo-50 dark:bg-indigo-900/20"
-        />
-        <StatCard 
-          title="Total Isolir" 
-          value={isolationCount} 
-          icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
-          trend="Aktif"
-          color="bg-orange-50 dark:bg-orange-900/20"
-        />
+        {!isTeknisi && (
+          <StatCard 
+            title="Total Aktivitas Marketing" 
+            value={marketingActivityTotal} 
+            icon={<TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+            trend="Total"
+            color="bg-indigo-50 dark:bg-indigo-900/20"
+          />
+        )}
+        {!isTeknisi && (
+          <StatCard 
+            title="Total Isolir" 
+            value={isolationCount} 
+            icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
+            trend="Aktif"
+            color="bg-orange-50 dark:bg-orange-900/20"
+          />
+        )}
         <StatCard 
           title="Total port ODP" 
           value={odpTotal} 
@@ -126,6 +136,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
 
       {/* Marketing Table */}
+      {!isTeknisi && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -253,6 +264,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           </table>
         </div>
       </div>
+      )}
 
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
@@ -396,7 +408,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMarketing && (
+      {!isMarketing && !isTeknisi && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -429,7 +441,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMarketing && (
+      {!isMarketing && !isTeknisi && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>

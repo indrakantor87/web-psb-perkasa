@@ -25,6 +25,7 @@ type TroubleTicketRow = {
 }
 
 type TroubleTicketCreatePayload = {
+  category: 'TT' | 'PV'
   ticketCode: string
   customerName: string
   user: string
@@ -44,7 +45,7 @@ type TroubleTicketEditPayload = {
   notes: string
 }
 
-const DEFAULT_SLA_DAYS: Record<string, number> = { EMERGENCY: 2, MAJOR: 3, MINOR: 5 }
+const DEFAULT_SLA_DAYS: Record<string, number> = { EMERGENCY: 2, MAJOR: 3, MINOR: 5, PREVENTIVE: 30 }
 
 function normalizeTypeKey(type: unknown) {
   return String(type ?? '')
@@ -141,6 +142,7 @@ function getTroubleshootsTypeMeta(type: string) {
   if (t === 'EMERGENCY') return { label: 'TT_EM', Icon: ArrowUp, iconClass: 'text-red-500' }
   if (t === 'MAJOR') return { label: 'TT_MA', Icon: AlertTriangle, iconClass: 'text-yellow-500' }
   if (t === 'MINOR') return { label: 'TT_MI', Icon: ArrowRight, iconClass: 'text-green-500' }
+  if (t === 'PREVENTIVE') return { label: 'PV', Icon: ArrowRight, iconClass: 'text-blue-500' }
   return { label: `TT_${t || 'NA'}`, Icon: AlertTriangle, iconClass: 'text-gray-400' }
 }
 
@@ -229,6 +231,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
   const [form, setForm] = useState<TroubleTicketCreatePayload>({
+    category: 'TT',
     ticketCode: '',
     customerName: '',
     user: '',
@@ -331,7 +334,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     ;(async () => {
       try {
         if (!canCreate) return
-        const res = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}`, { signal: controller.signal })
+        const res = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}&category=${form.category}`, { signal: controller.signal })
         const data = (await res.json().catch(() => ({}))) as { prefix?: unknown; nextNumber?: unknown }
         if (!res.ok) return
         const prefix = String(data.prefix ?? '').trim()
@@ -341,7 +344,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       } catch {}
     })()
     return () => controller.abort()
-  }, [canCreate, month, year])
+  }, [canCreate, form.category, month, year])
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.category === 'PV') {
+        if (normalizeTypeKey(prev.type) !== 'PREVENTIVE') return { ...prev, type: 'PREVENTIVE' }
+        return prev
+      }
+      if (normalizeTypeKey(prev.type) === 'PREVENTIVE') return { ...prev, type: '' }
+      return prev
+    })
+  }, [form.category])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -410,7 +424,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setIsSubmitting(true)
     setError(null)
     try {
+      const category = form.category
       const payload = {
+        category,
         ticketCode: form.ticketCode.trim(),
         customerName: form.customerName.trim(),
         user: form.user.trim(),
@@ -432,9 +448,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         throw new Error(msg)
       }
       setIsCreateOpen(false)
-      setForm({ ticketCode: '', customerName: '', user: '', waNumber: '', mapsUrl: '', type: '', notes: '' })
+      setForm({ category, ticketCode: '', customerName: '', user: '', waNumber: '', mapsUrl: '', type: '', notes: '' })
       try {
-        const res2 = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}`)
+        const res2 = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}&category=${category}`)
         const cfg = (await res2.json().catch(() => ({}))) as { prefix?: unknown; nextNumber?: unknown }
         if (res2.ok) {
           const prefix = String(cfg.prefix ?? '').trim()
@@ -1213,6 +1229,17 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Kategori</span>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value as 'TT' | 'PV' })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  >
+                    <option value="TT">Trouble Ticket (TT)</option>
+                    <option value="PV">Preventive (PV)</option>
+                  </select>
+                </div>
+                <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Nama Pelanggan</span>
                   <input
                     value={form.customerName}
@@ -1250,10 +1277,14 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
+                    disabled={form.category === 'PV'}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
                   >
                     <option value="">Pilih type...</option>
-                    {slaTypes.map((t) => (
+                    {(form.category === 'PV'
+                      ? ['PREVENTIVE']
+                      : slaTypes.filter((t) => normalizeTypeKey(t) !== 'PREVENTIVE')
+                    ).map((t) => (
                       <option key={t} value={t}>
                         {formatTypeLabel(t)}
                       </option>

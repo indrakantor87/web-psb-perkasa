@@ -3,11 +3,16 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle, Save } from 'lucide-react'
 
-type Config = { id: number; prefix: string; nextNumber: number }
+type TicketCategory = 'TT' | 'PV'
+type Config = { id: number; category: TicketCategory; prefix: string; nextNumber: number }
 
-function normalizePrefix(input: string) {
+function defaultPrefixForCategory(category: TicketCategory) {
+  return category === 'PV' ? 'PV/PKN/' : 'TT/PKN/'
+}
+
+function normalizePrefix(category: TicketCategory, input: string) {
   const raw = String(input || '').trim()
-  if (!raw) return 'TT/PKN/'
+  if (!raw) return defaultPrefixForCategory(category)
   return raw.endsWith('/') ? raw : `${raw}/`
 }
 
@@ -26,6 +31,7 @@ export function TroubleTicketIdManager() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [category, setCategory] = useState<TicketCategory>('TT')
   const [prefix, setPrefix] = useState('TT/PKN/')
   const [nextNumber, setNextNumber] = useState(1)
 
@@ -35,14 +41,14 @@ export function TroubleTicketIdManager() {
       setLoading(true)
       setError('')
       try {
-        const res = await fetch('/api/trouble-ticket-id', { signal: controller.signal })
+        const res = await fetch(`/api/trouble-ticket-id?category=${category}`, { signal: controller.signal })
         const data = (await res.json().catch(() => ({}))) as unknown
         if (!res.ok) {
           const msg = (data as { error?: string })?.error || 'Gagal memuat konfigurasi ID'
           throw new Error(msg)
         }
         const cfg = data as Config
-        setPrefix(normalizePrefix(String(cfg.prefix ?? 'TT/PKN/')))
+        setPrefix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category))))
         setNextNumber(normalizeNextNumber(cfg.nextNumber))
       } catch (e: unknown) {
         if ((e as { name?: string })?.name === 'AbortError') return
@@ -53,17 +59,17 @@ export function TroubleTicketIdManager() {
     })()
 
     return () => controller.abort()
-  }, [])
+  }, [category])
 
   const handleSave = async () => {
     setSaving(true)
     setError('')
     try {
-      const res = await fetch('/api/trouble-ticket-id', {
+      const res = await fetch(`/api/trouble-ticket-id?category=${category}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prefix: normalizePrefix(prefix),
+          prefix: normalizePrefix(category, prefix),
           nextNumber: normalizeNextNumber(nextNumber),
         }),
       })
@@ -73,7 +79,7 @@ export function TroubleTicketIdManager() {
         throw new Error(msg)
       }
       const cfg = data as Config
-      setPrefix(normalizePrefix(String(cfg.prefix ?? 'TT/PKN/')))
+      setPrefix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category))))
       setNextNumber(normalizeNextNumber(cfg.nextNumber))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
@@ -85,9 +91,9 @@ export function TroubleTicketIdManager() {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold dark:text-white">Format ID Trouble Ticket</h2>
+        <h2 className="text-xl font-semibold dark:text-white">Format ID Ticketing</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Atur prefix dan angka berikutnya. Contoh hasil: TT/PKN/01, TT/PKN/02, dan seterusnya.
+          Atur prefix dan angka berikutnya. Contoh: TT/PKN/01 atau PV/PKN/01.
         </p>
       </div>
 
@@ -98,7 +104,19 @@ export function TroubleTicketIdManager() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div className="flex flex-col">
+          <span className="mb-1 text-xs text-gray-500 dark:text-gray-400">Kategori</span>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as TicketCategory)}
+            disabled={loading || saving}
+            className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm sm:text-sm p-2 border"
+          >
+            <option value="TT">Trouble Ticket (TT)</option>
+            <option value="PV">Preventive (PV)</option>
+          </select>
+        </div>
         <div className="flex flex-col">
           <span className="mb-1 text-xs text-gray-500 dark:text-gray-400">Prefix</span>
           <input
@@ -124,7 +142,7 @@ export function TroubleTicketIdManager() {
         <div className="flex flex-col">
           <span className="mb-1 text-xs text-gray-500 dark:text-gray-400">Preview</span>
           <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 px-3 py-2 text-sm text-gray-800 dark:text-gray-200">
-            {normalizePrefix(prefix)}
+            {normalizePrefix(category, prefix)}
             {formatTicketNumber(nextNumber)}
           </div>
         </div>

@@ -147,6 +147,7 @@ model TroubleTicket {
   ticketCode   String?  @unique
   ticketPrefix String?
   ticketNumber Int?
+  category     String   @default("TT")
   periodMonth  Int?
   periodYear   Int?
   customerName String
@@ -157,6 +158,9 @@ model TroubleTicket {
   openedAt     DateTime @default(now())
   closedAt     DateTime?
   notes        String?
+  closeNotes   String?
+  closePhotos  String[]
+  closeBy      String?
   status       String   @default("OPEN")
 
   createdAt    DateTime @default(now())
@@ -164,4 +168,5 @@ model TroubleTicket {
 
   @@index([status])
   @@index([openedAt])
+  @@index([category])
 }

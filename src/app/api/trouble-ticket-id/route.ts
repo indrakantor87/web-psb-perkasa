@@ -2,24 +2,43 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 
-type ConfigRow = { id: number; prefix: string; nextNumber: number }
+type TicketCategory = 'TT' | 'PV'
+type ConfigRow = { id: number; category: TicketCategory; prefix: string; nextNumber: number }
 
 async function ensureConfigTable() {
   await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "TroubleTicketIdConfig" (
+    CREATE TABLE IF NOT EXISTS "TroubleTicketIdConfigV2" (
       "id" INT NOT NULL,
+      "category" TEXT NOT NULL,
       "prefix" TEXT NOT NULL,
       "nextNumber" INT NOT NULL,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "TroubleTicketIdConfig_pkey" PRIMARY KEY ("id")
+      CONSTRAINT "TroubleTicketIdConfigV2_pkey" PRIMARY KEY ("id","category")
     );
   `)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicketIdConfigV2_cat_idx" ON "TroubleTicketIdConfigV2"("category");`)
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber","createdAt","updatedAt")
+    SELECT "id",'TT',"prefix","nextNumber","createdAt","updatedAt"
+    FROM "TroubleTicketIdConfig"
+    ON CONFLICT ("id","category") DO NOTHING;
+  `).catch(() => {})
 }
 
-function normalizePrefix(input: unknown) {
+function normalizeCategory(input: unknown): TicketCategory {
+  const raw = String(input ?? '').trim().toUpperCase()
+  if (raw === 'PV') return 'PV'
+  return 'TT'
+}
+
+function defaultPrefixForCategory(category: TicketCategory) {
+  return category === 'PV' ? 'PV/PKN/' : 'TT/PKN/'
+}
+
+function normalizePrefix(category: TicketCategory, input: unknown) {
   const raw = String(input ?? '').trim()
-  if (!raw) return 'TT/PKN/'
+  if (!raw) return defaultPrefixForCategory(category)
   return raw.endsWith('/') ? raw : `${raw}/`
 }
 
@@ -38,26 +57,29 @@ function getPeriodFromRequest(request: Request) {
   const { searchParams } = new URL(request.url)
   const monthRaw = Math.trunc(Number(searchParams.get('month')))
   const yearRaw = Math.trunc(Number(searchParams.get('year')))
+  const category = normalizeCategory(searchParams.get('category'))
   const now = new Date()
   const month = Number.isFinite(monthRaw) && monthRaw >= 1 && monthRaw <= 12 ? monthRaw : (now.getMonth() + 1)
   const year = Number.isFinite(yearRaw) && yearRaw >= 2000 && yearRaw <= 2100 ? yearRaw : now.getFullYear()
-  return { month, year }
+  return { month, year, category }
 }
 
-async function getDefaultPrefix() {
+async function getDefaultPrefix(category: TicketCategory) {
   const rows = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
-    `SELECT "prefix" FROM "TroubleTicketIdConfig" ORDER BY "id" DESC LIMIT 1;`
+    `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+    category
   ).catch(() => [])
-  return normalizePrefix(rows[0]?.prefix ?? 'TT/PKN/')
+  return normalizePrefix(category, rows[0]?.prefix ?? defaultPrefixForCategory(category))
 }
 
-async function ensureDefaultRow(month: number, year: number) {
+async function ensureDefaultRow(month: number, year: number, category: TicketCategory) {
   await ensureConfigTable()
   const id = periodKey(month, year)
-  const prefix = await getDefaultPrefix()
+  const prefix = await getDefaultPrefix(category)
   await prisma.$executeRawUnsafe(
-    `INSERT INTO "TroubleTicketIdConfig" ("id","prefix","nextNumber") VALUES ($1,$2,$3) ON CONFLICT ("id") DO NOTHING;`,
+    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
     id,
+    category,
     prefix,
     1
   )
@@ -68,15 +90,16 @@ export async function GET(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const { month, year } = getPeriodFromRequest(request)
-    await ensureDefaultRow(month, year)
+    const { month, year, category } = getPeriodFromRequest(request)
+    await ensureDefaultRow(month, year, category)
     const id = periodKey(month, year)
     const rows = await prisma.$queryRawUnsafe<ConfigRow[]>(
-      `SELECT "id","prefix","nextNumber" FROM "TroubleTicketIdConfig" WHERE "id" = $1 LIMIT 1;`,
-      id
+      `SELECT "id","category","prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+      id,
+      category
     )
     const row = rows[0]
-    return NextResponse.json(row ?? { id, prefix: 'TT/PKN/', nextNumber: 1 }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json(row ?? { id, category, prefix: defaultPrefixForCategory(category), nextNumber: 1 }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to fetch ticket id config' }, { status: 500 })
@@ -93,23 +116,25 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { month, year } = getPeriodFromRequest(request)
-    await ensureDefaultRow(month, year)
+    const { month, year, category } = getPeriodFromRequest(request)
+    await ensureDefaultRow(month, year, category)
     const id = periodKey(month, year)
     const body = (await request.json().catch(() => ({}))) as { prefix?: unknown; nextNumber?: unknown }
-    const prefix = normalizePrefix(body.prefix)
+    const prefix = normalizePrefix(category, body.prefix)
     const nextNumber = normalizeNextNumber(body.nextNumber)
 
     await prisma.$executeRawUnsafe(
-      `UPDATE "TroubleTicketIdConfig" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3;`,
+      `UPDATE "TroubleTicketIdConfigV2" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3 AND "category" = $4;`,
       prefix,
       nextNumber,
-      id
+      id,
+      category
     )
 
     const rows = await prisma.$queryRawUnsafe<ConfigRow[]>(
-      `SELECT "id","prefix","nextNumber" FROM "TroubleTicketIdConfig" WHERE "id" = $1 LIMIT 1;`,
-      id
+      `SELECT "id","category","prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+      id,
+      category
     )
     return NextResponse.json(rows[0])
   } catch (e: unknown) {

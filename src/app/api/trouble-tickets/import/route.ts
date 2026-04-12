@@ -15,6 +15,7 @@ async function ensureTroubleTicketTable() {
       "ticketCode" TEXT,
       "ticketPrefix" TEXT,
       "ticketNumber" INT,
+      "category" TEXT NOT NULL DEFAULT 'TT',
       "periodMonth" INT,
       "periodYear" INT,
       "customerName" TEXT NOT NULL,
@@ -36,6 +37,8 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketCode" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketPrefix" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketNumber" INT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "category" TEXT;`)
+  await prisma.$executeRawUnsafe(`UPDATE "TroubleTicket" SET "category" = 'TT' WHERE "category" IS NULL;`).catch(() => {})
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "periodMonth" INT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "periodYear" INT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
@@ -44,30 +47,46 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
 }
 
+type TicketCategory = 'TT' | 'PV'
 type IdCfg = { prefix: string; nextNumber: number }
 
 async function ensureIdConfig() {
   await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "TroubleTicketIdConfig" (
+    CREATE TABLE IF NOT EXISTS "TroubleTicketIdConfigV2" (
       "id" INT NOT NULL,
+      "category" TEXT NOT NULL,
       "prefix" TEXT NOT NULL,
       "nextNumber" INT NOT NULL,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "TroubleTicketIdConfig_pkey" PRIMARY KEY ("id")
+      CONSTRAINT "TroubleTicketIdConfigV2_pkey" PRIMARY KEY ("id","category")
     );
   `)
-
-  await prisma.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicketIdConfig_id_key" ON "TroubleTicketIdConfig"("id");`
-  )
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicketIdConfigV2_cat_idx" ON "TroubleTicketIdConfigV2"("category");`)
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber","createdAt","updatedAt")
+    SELECT "id",'TT',"prefix","nextNumber","createdAt","updatedAt"
+    FROM "TroubleTicketIdConfig"
+    ON CONFLICT ("id","category") DO NOTHING;
+  `).catch(() => {})
 }
 
-function normalizePrefix(input: unknown) {
+function normalizeCategory(input: unknown): TicketCategory {
+  const raw = String(input ?? '').trim().toUpperCase()
+  if (raw === 'PV') return 'PV'
+  return 'TT'
+}
+
+function defaultPrefixForCategory(category: TicketCategory) {
+  return category === 'PV' ? 'PV/PKN/' : 'TT/PKN/'
+}
+
+function normalizePrefix(category: TicketCategory, input: unknown) {
   const raw = String(input ?? '').trim()
-  if (!raw) return 'TT/PKN/'
+  if (!raw) return defaultPrefixForCategory(category)
   return raw.endsWith('/') ? raw : `${raw}/`
 }
 
@@ -84,44 +103,50 @@ function parseTicketCode(input: unknown) {
   if (!raw) return null
   const m = raw.match(/^(.*\/)(\d+)\s*$/)
   if (!m) return null
-  const prefix = normalizePrefix(m[1])
+  const cat = String(m[1]).trim().toUpperCase().startsWith('PV/') ? 'PV' : 'TT'
+  const category = normalizeCategory(cat)
+  const prefix = normalizePrefix(category, m[1])
   const n = Math.trunc(Number(m[2]))
   if (!Number.isFinite(n) || n < 1) return null
-  return { ticketPrefix: prefix, ticketNumber: n, ticketCode: `${prefix}${formatTicketNumber(n)}` }
+  return { category, ticketPrefix: prefix, ticketNumber: n, ticketCode: `${prefix}${formatTicketNumber(n)}` }
 }
 
-async function ensurePeriodIdRow(month: number, year: number) {
+async function ensurePeriodIdRow(month: number, year: number, category: TicketCategory) {
   await ensureIdConfig()
   const id = periodKey(month, year)
   const last = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
-    `SELECT "prefix" FROM "TroubleTicketIdConfig" ORDER BY "id" DESC LIMIT 1;`
+    `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+    category
   ).catch(() => [])
-  const prefix = normalizePrefix(last[0]?.prefix ?? 'TT/PKN/')
+  const prefix = normalizePrefix(category, last[0]?.prefix ?? defaultPrefixForCategory(category))
   await prisma.$executeRawUnsafe(
-    `INSERT INTO "TroubleTicketIdConfig" ("id","prefix","nextNumber") VALUES ($1,$2,$3) ON CONFLICT ("id") DO NOTHING;`,
+    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
     id,
+    category,
     prefix,
     1
   )
 }
 
-async function allocateTicketCode(month: number, year: number) {
-  await ensurePeriodIdRow(month, year)
+async function allocateTicketCode(month: number, year: number, category: TicketCategory) {
+  await ensurePeriodIdRow(month, year, category)
   const id = periodKey(month, year)
   const rows = await prisma.$queryRawUnsafe<IdCfg[]>(
-    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfig" WHERE "id" = $1 LIMIT 1;`,
-    id
-  )
-  const current = rows[0] ?? { prefix: 'TT/PKN/', nextNumber: 1 }
-  const prefix = normalizePrefix(current.prefix)
-  const updated = await prisma.$queryRawUnsafe<IdCfg[]>(
-    `UPDATE "TroubleTicketIdConfig" SET "nextNumber" = "nextNumber" + 1, "updatedAt" = NOW(), "prefix" = $2 WHERE "id" = $1 RETURNING "prefix","nextNumber";`,
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
     id,
+    category
+  )
+  const current = rows[0] ?? { prefix: defaultPrefixForCategory(category), nextNumber: 1 }
+  const prefix = normalizePrefix(category, current.prefix)
+  const updated = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `UPDATE "TroubleTicketIdConfigV2" SET "nextNumber" = "nextNumber" + 1, "updatedAt" = NOW(), "prefix" = $3 WHERE "id" = $1 AND "category" = $2 RETURNING "prefix","nextNumber";`,
+    id,
+    category,
     prefix
   )
   const next = updated[0]?.nextNumber ?? (current.nextNumber + 1)
   const ticketNumber = Math.max(1, next - 1)
-  return { ticketPrefix: prefix, ticketNumber, ticketCode: `${prefix}${formatTicketNumber(ticketNumber)}` }
+  return { category, ticketPrefix: prefix, ticketNumber, ticketCode: `${prefix}${formatTicketNumber(ticketNumber)}` }
 }
 
 function parseDate(v: unknown) {
@@ -188,7 +213,8 @@ export async function POST(request: Request) {
       const periodMonth = Number.isFinite(month) && month >= 1 && month <= 12 ? month : (now.getMonth() + 1)
       const periodYear = Number.isFinite(year) && year >= 2000 && year <= 2100 ? year : now.getFullYear()
       const codeParsed = parseTicketCode(r.ticketCode)
-      const allocated = codeParsed ?? (await allocateTicketCode(periodMonth, periodYear))
+      const category = codeParsed?.category ?? 'TT'
+      const allocated = codeParsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
       const customerName = String(r.customerName ?? '').trim()
       const user = String(r.user ?? '').trim()
       const waNumber = String(r.waNumber ?? '').trim()
@@ -212,6 +238,7 @@ export async function POST(request: Request) {
           ticketCode: allocated.ticketCode,
           ticketPrefix: allocated.ticketPrefix,
           ticketNumber: allocated.ticketNumber,
+          category: allocated.category,
           periodMonth,
           periodYear,
           customerName,

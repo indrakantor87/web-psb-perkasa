@@ -16,6 +16,7 @@ async function ensureTroubleTicketTable() {
       "ticketCode" TEXT,
       "ticketPrefix" TEXT,
       "ticketNumber" INT,
+      "category" TEXT NOT NULL DEFAULT 'TT',
       "customerName" TEXT NOT NULL,
       "user" TEXT,
       "waNumber" TEXT NOT NULL,
@@ -35,12 +36,15 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketCode" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketPrefix" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ticketNumber" INT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "category" TEXT;`)
+  await prisma.$executeRawUnsafe(`UPDATE "TroubleTicket" SET "category" = 'TT' WHERE "category" IS NULL;`).catch(() => {})
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
 }
 
 function toInt(v: string) {
@@ -79,7 +83,7 @@ export async function GET(
         status: string
       }>
     >(
-      `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`,
+      `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`,
       ticketId
     )
     const row =
@@ -99,7 +103,7 @@ export async function GET(
             status: string
           }>
         >(
-          `SELECT "id","ticketCode","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status"
+          `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
