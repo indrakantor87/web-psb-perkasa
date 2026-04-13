@@ -181,12 +181,17 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   const wa = useMemo(() => (ticket ? normalizeWaNumber(ticket.waNumber) : ''), [ticket])
   const filteredResolutionOptions = useMemo(() => {
     const q = actionQuery.trim().toLowerCase()
-    if (!q) return resolutionOptions
-    return resolutionOptions.filter((x) => {
-      const raw = String(x ?? '').trim().toLowerCase()
-      const label = formatTypeLabel(x).trim().toLowerCase()
-      return raw.includes(q) || label.includes(q)
-    })
+    const isLainnya = (x: string) => String(x ?? '').trim().toUpperCase() === 'LAINNYA'
+    const base = q
+      ? resolutionOptions.filter((x) => {
+          const raw = String(x ?? '').trim().toLowerCase()
+          const label = formatTypeLabel(x).trim().toLowerCase()
+          return raw.includes(q) || label.includes(q)
+        })
+      : resolutionOptions
+    const others = base.filter(isLainnya)
+    const rest = base.filter((x) => !isLainnya(x))
+    return [...rest, ...others]
   }, [actionQuery, resolutionOptions])
 
   const handleFileChange = async (picked: FileList | null) => {
