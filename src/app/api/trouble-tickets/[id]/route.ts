@@ -86,8 +86,8 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const includePhotos = (searchParams.get('includePhotos') ?? '').trim() === '1'
     const selectPhotos = includePhotos ? `"closePhotos",` : ''
-    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
-    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status"
+    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
@@ -100,6 +100,7 @@ export async function GET(
         customerName: string
         waNumber: string
         mapsUrl: string | null
+        type: string
         notes: string | null
         closeNotes: string | null
         closePhotos?: string[] | null
@@ -122,6 +123,7 @@ export async function GET(
             customerName: string
             waNumber: string
             mapsUrl: string | null
+            type: string
             notes: string | null
             closeNotes: string | null
             closePhotos?: string[] | null

@@ -11,8 +11,21 @@ type TroubleTicketDetail = {
   customerName: string
   waNumber: string
   mapsUrl: string | null
+  type?: string | null
   notes: string | null
   status: string
+}
+
+function formatTypeLabel(type: unknown) {
+  const t = String(type ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_')
+  if (!t) return '-'
+  return t
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
 function normalizeWaNumber(input: string) {
@@ -239,8 +252,9 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
           )}
         </div>
         <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">In Maps</div>
-          <div className="break-words">{ticket.mapsUrl || '-'}</div>
+          <div className="text-xs text-gray-400">Keterangan Ticket</div>
+          <div className="break-words font-semibold">{formatTypeLabel(ticket.type)}</div>
+          <div className="mt-1 break-words text-sm text-gray-200">{(ticket.notes || '').trim() || '-'}</div>
         </div>
       </div>
 
