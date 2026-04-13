@@ -321,7 +321,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const limitMs = days * 24 * 60 * 60 * 1000
               return Number.isFinite(t) && nowMs - t > limitMs
             })
-          : nextRows
+          : status === 'OVERDUE'
+            ? nextRows.filter((r) => {
+                const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                if (isClosed) return false
+                const t = new Date(r.openedAt).getTime()
+                const days = slaDays[normalizeTypeKey(r.type)] ?? 1
+                const limitMs = days * 24 * 60 * 60 * 1000
+                return Number.isFinite(t) && nowMs - t > limitMs
+              })
+            : nextRows
       )
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
@@ -416,7 +425,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 const limitMs = days * 24 * 60 * 60 * 1000
                 return Number.isFinite(t) && Date.now() - t > limitMs
               })
-            : nextRows
+            : status === 'OVERDUE'
+              ? nextRows.filter((r) => {
+                  const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                  if (isClosed) return false
+                  const t = new Date(r.openedAt).getTime()
+                  const days = slaDays[normalizeTypeKey(r.type)] ?? 1
+                  const limitMs = days * 24 * 60 * 60 * 1000
+                  return Number.isFinite(t) && Date.now() - t > limitMs
+                })
+              : nextRows
         )
       } catch (e: unknown) {
         if ((e as { name?: string })?.name === 'AbortError') return
@@ -899,6 +917,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 <option value="ALL">Semua</option>
                 <option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
+                <option value="OVERDUE">OVERDUE</option>
               </select>
             </div>
           ) : (
