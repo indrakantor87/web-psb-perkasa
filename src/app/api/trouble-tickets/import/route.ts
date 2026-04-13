@@ -220,14 +220,15 @@ export async function POST(request: Request) {
       const allocated = codeParsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
       const customerName = String(r.customerName ?? '').trim()
       const user = String(r.user ?? '').trim()
-      const waNumber = String(r.waNumber ?? '').trim()
+      const waNumberRaw = String(r.waNumber ?? '').trim()
+      const waNumber = waNumberRaw || '-'
       const type = String(r.type ?? '').trim()
       const mapsUrl = String(r.mapsUrl ?? '').trim()
       const notes = String(r.notes ?? '').trim()
       const problemCategory = String(r.problemCategory ?? '').trim()
       const resolutionAction = String(r.resolutionAction ?? '').trim()
 
-      if (!customerName || !waNumber || !type) {
+      if (!customerName || !type) {
         failed += 1
         continue
       }

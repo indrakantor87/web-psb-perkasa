@@ -885,7 +885,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const ticketCode = String(get('ID TICKET', 'ID', 'TICKET', 'TICKET ID') ?? '').trim()
           const customerName = String(get('NAMA PELANGGAN', 'NAMA', 'CUSTOMER', 'CUSTOMER NAME') ?? '').trim()
           const user = String(get('USER', 'EMAIL', 'USER EMAIL', 'USERID') ?? '').trim()
-          const waNumber = String(get('NO WA', 'NOHP', 'NO HP', 'WA', 'WHATSAPP') ?? '').trim()
+          const waNumberRaw = String(get('NO WA', 'NOHP', 'NO HP', 'WA', 'WHATSAPP') ?? '').trim()
+          const waNumber = waNumberRaw || '-'
           const mapsUrl = String(get('IN MAPS', 'MAPS', 'GOOGLE MAPS', 'LINK MAPS') ?? '').trim()
           const typeRaw = String(get('TYPE', 'TIPE', 'JENIS') ?? '').trim()
           const problemCategory = String(get('GANGGUAN', 'JENIS GANGGUAN', 'KATEGORI', 'PROBLEM') ?? '').trim()
@@ -898,7 +899,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const typeKey = normalizeTypeKey(typeRaw)
           const type = slaDays[typeKey] ? typeKey : typeRaw
 
-          if (!customerName || !waNumber || !type) return null
+          if (!customerName || !type) return null
 
           return {
             ticketCode,
@@ -919,6 +920,10 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         })
         .filter(Boolean) as Array<Record<string, unknown>>
 
+      if (mapped.length === 0) {
+        throw new Error('No rows (pastikan kolom minimal: NAMA PELANGGAN dan TYPE).')
+      }
+
       const res = await fetch('/api/trouble-tickets/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -928,6 +933,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!res.ok) {
         throw new Error(data.error || 'Gagal import')
       }
+      alert(`Import selesai. Berhasil: ${Number(data.success ?? 0)} | Gagal: ${Number(data.failed ?? 0)}`)
       await refresh()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
