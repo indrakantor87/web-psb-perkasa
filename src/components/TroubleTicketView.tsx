@@ -86,6 +86,17 @@ function formatDurationMs(ms: number) {
   return `${days}D:${hours}H:${minutes}M`
 }
 
+function formatOverdueShort(ms: number) {
+  if (!Number.isFinite(ms) || ms <= 0) return ''
+  const totalMinutes = Math.floor(ms / 60_000)
+  const days = Math.floor(totalMinutes / (24 * 60))
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+  const minutes = totalMinutes % 60
+  if (days > 0) return `${days}H ${hours}J`
+  if (hours > 0) return `${hours}J ${minutes}M`
+  return `${minutes}M`
+}
+
 function formatTicketNumber(n: number) {
   return String(n).padStart(2, '0')
 }
@@ -216,7 +227,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE'>(
+  const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE'>(
     (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
   )
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -269,8 +280,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const fileInputId = 'trouble-ticket-import-input'
 
   useEffect(() => {
-    if (isTroubleshoots) setStatus('OPEN')
-  }, [isTroubleshoots])
+    if (!isTroubleshoots) return
+    if (status !== 'OPEN' && status !== 'OVERDUE') setStatus('OPEN')
+  }, [isTroubleshoots, status])
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(search), 300)
@@ -281,6 +293,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setLoading(true)
     setError(null)
     try {
+      const nowMs = Date.now()
       const params = new URLSearchParams()
       if (!isTroubleshoots) {
         params.set('month', String(month))
@@ -289,7 +302,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         params.set('limit', '200')
       }
       if (search.trim()) params.set('search', search.trim())
-      if (status !== 'ALL') params.set('status', status)
+      if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
       const res = await fetch(`/api/trouble-tickets?${params.toString()}`)
       const data = (await res.json().catch(() => ({}))) as unknown
       if (!res.ok) {
@@ -299,7 +312,15 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
       setRows(
         isTroubleshoots
-          ? nextRows.filter((r) => ((r.status || '').toUpperCase() !== 'CLOSE' && !r.closedAt))
+          ? nextRows.filter((r) => {
+              const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+              if (isClosed) return false
+              if (status !== 'OVERDUE') return true
+              const t = new Date(r.openedAt).getTime()
+              const days = slaDays[normalizeTypeKey(r.type)] ?? 1
+              const limitMs = days * 24 * 60 * 60 * 1000
+              return Number.isFinite(t) && nowMs - t > limitMs
+            })
           : nextRows
       )
     } catch (e: unknown) {
@@ -376,7 +397,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           params.set('limit', '200')
         }
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
-        if (status !== 'ALL') params.set('status', status)
+        if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
         const res = await fetch(`/api/trouble-tickets?${params.toString()}`, { signal: controller.signal })
         const data = (await res.json().catch(() => ({}))) as unknown
         if (!res.ok) {
@@ -385,8 +406,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         }
         const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
         setRows(
-          isTroubleshoots && status !== 'CLOSE'
-            ? nextRows.filter((r) => ((r.status || '').toUpperCase() !== 'CLOSE' && !r.closedAt))
+          isTroubleshoots
+            ? nextRows.filter((r) => {
+                const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                if (isClosed) return false
+                if (status !== 'OVERDUE') return true
+                const t = new Date(r.openedAt).getTime()
+                const days = slaDays[normalizeTypeKey(r.type)] ?? 1
+                const limitMs = days * 24 * 60 * 60 * 1000
+                return Number.isFinite(t) && Date.now() - t > limitMs
+              })
             : nextRows
         )
       } catch (e: unknown) {
@@ -399,7 +428,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     })()
 
     return () => controller.abort()
-  }, [debouncedSearch, isTroubleshoots, status, month, year])
+  }, [debouncedSearch, isTroubleshoots, status, month, year, slaDays])
 
   const now = Date.now()
 
@@ -859,17 +888,29 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               placeholder="Nama / WA / Tipe / Keterangan"
             />
           </div>
-          {!isTroubleshoots && (
+          {!isTroubleshoots ? (
             <div className="flex flex-col">
               <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE')}
+                onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE')}
                 className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-40"
               >
                 <option value="ALL">Semua</option>
                 <option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
+              </select>
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'OVERDUE')}
+                className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white md:w-40"
+              >
+                <option value="OPEN">OPEN</option>
+                <option value="OVERDUE">OVERDUE</option>
               </select>
             </div>
           )}
@@ -948,6 +989,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const wa = normalizeWaNumber(r.waNumber)
               const mapsHref = normalizeMapsLink(mapsLink)
               const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+              const typeKey = normalizeTypeKey(r.type)
+              const sla = slaDays[typeKey] ?? 1
+              const openedAtMs = new Date(r.openedAt).getTime()
+              const dueAtMs = openedAtMs + sla * 24 * 60 * 60 * 1000
+              const overdueMs = now - dueAtMs
+              const isOverdue = !isClosed && Number.isFinite(openedAtMs) && overdueMs > 0
 
               return (
                 <div key={r.id} className="rounded-lg bg-black text-white border border-gray-800">
@@ -959,8 +1006,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                     <div className="flex items-start gap-3">
                       <Icon className={clsx('h-6 w-6 mt-0.5', iconClass)} />
                       <div className="flex-1">
-                        <div className="text-sm font-bold tracking-wide">
-                          {label} - {dt} - {code} - {statusLabel}
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-wide">
+                          <span>{label} - {dt} - {code} - {statusLabel}</span>
+                          {isOverdue && (
+                            <span className="inline-flex items-center rounded-full bg-red-600/25 text-red-200 border border-red-600/40 px-2 py-0.5 text-[11px] font-extrabold tracking-wider">
+                              OVERDUE {formatOverdueShort(overdueMs)}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 text-sm text-gray-200">{r.customerName}</div>
                       </div>
