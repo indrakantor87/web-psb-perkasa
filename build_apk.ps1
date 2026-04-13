@@ -1,5 +1,9 @@
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 Write-Host "Setting JAVA_HOME to $env:JAVA_HOME"
+Write-Host "Installing Node dependencies (skip scripts)..."
+npm ci --ignore-scripts
+Write-Host "Syncing Capacitor Android project..."
+npx cap sync android
 Set-Location android
 Write-Host "Cleaning previous builds..."
 .\gradlew.bat clean
