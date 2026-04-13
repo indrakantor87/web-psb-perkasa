@@ -89,7 +89,7 @@ export function Header({ user }: { user: SessionUser }) {
   }
 
   return (
-    <header className={clsx("bg-white dark:bg-gray-800 shadow-sm relative z-20", !isMarketing && "transition-colors")}>
+    <header className={clsx("bg-white dark:bg-gray-800 shadow-sm relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center space-x-4 md:space-x-8">
           <div className="flex items-center gap-3">
@@ -273,7 +273,7 @@ export function Header({ user }: { user: SessionUser }) {
             </button>
 
             {isNavOpen && (
-              <div ref={navOverlayRef} className="fixed top-16 left-2 z-[60] w-72">
+              <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
                   {links.map((link) => {
                     const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
@@ -318,7 +318,7 @@ export function Header({ user }: { user: SessionUser }) {
               </button>
 
               {isSettingsOpen && (
-                <div ref={settingsOverlayRef} className="fixed top-16 right-2 z-[60] w-72">
+                <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
                     {settingsLinks.map((link) => (
                       <Link
