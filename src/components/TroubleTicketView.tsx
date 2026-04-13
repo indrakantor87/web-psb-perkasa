@@ -20,6 +20,7 @@ type TroubleTicketRow = {
   notes: string | null
   closeNotes?: string | null
   closePhotos?: string[] | null
+  closePhotosCount?: number | null
   closeBy?: string | null
   status: string
 }
@@ -117,7 +118,9 @@ function buildTicketDetailText(row: TroubleTicketRow) {
   const status = ((row.status || '').toLowerCase() === 'close' || row.closedAt) ? 'close' : 'open'
   const isClosed = status === 'close'
   const penanganan = (row.closeNotes || '').trim()
-  const hasPhotos = Array.isArray(row.closePhotos) && row.closePhotos.length > 0
+  const hasPhotos = Array.isArray(row.closePhotos)
+    ? row.closePhotos.length > 0
+    : Number(row.closePhotosCount || 0) > 0
   const closeBy = (row.closeBy || '').trim()
 
   const lines = [
@@ -213,7 +216,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE'>('ALL')
+  const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE'>(
+    (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
+  )
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -380,7 +385,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         }
         const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
         setRows(
-          isTroubleshoots
+          isTroubleshoots && status !== 'CLOSE'
             ? nextRows.filter((r) => ((r.status || '').toUpperCase() !== 'CLOSE' && !r.closedAt))
             : nextRows
         )
@@ -535,7 +540,11 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setDetailRow(row)
     setCopied(false)
     const isClosed = (row.status || '').toUpperCase() === 'CLOSE' || !!row.closedAt
-    const hasCloseFields = typeof row.closeNotes !== 'undefined' || typeof row.closePhotos !== 'undefined' || typeof row.closeBy !== 'undefined'
+    const hasCloseFields =
+      typeof row.closeNotes !== 'undefined' ||
+      typeof row.closePhotos !== 'undefined' ||
+      typeof row.closePhotosCount !== 'undefined' ||
+      typeof row.closeBy !== 'undefined'
     if (!isClosed || hasCloseFields) return
 
     setDetailFetching(true)
@@ -545,6 +554,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!res.ok) return
       const closeNotes = (data as { closeNotes?: unknown })?.closeNotes
       const closePhotos = (data as { closePhotos?: unknown })?.closePhotos
+      const closePhotosCount = (data as { closePhotosCount?: unknown })?.closePhotosCount
       const closeBy = (data as { closeBy?: unknown })?.closeBy
       setDetailRow((prev) => {
         if (!prev || prev.id !== row.id) return prev
@@ -552,7 +562,31 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           ...prev,
           closeNotes: typeof closeNotes === 'string' ? closeNotes : closeNotes === null ? null : prev.closeNotes,
           closePhotos: Array.isArray(closePhotos) ? (closePhotos as string[]) : closePhotos === null ? null : prev.closePhotos,
+          closePhotosCount:
+            Number.isFinite(Number(closePhotosCount)) ? Math.max(0, Math.trunc(Number(closePhotosCount))) : prev.closePhotosCount,
           closeBy: typeof closeBy === 'string' ? closeBy : closeBy === null ? null : prev.closeBy,
+        }
+      })
+    } finally {
+      setDetailFetching(false)
+    }
+  }
+
+  const ensureDetailPhotos = async (id: number) => {
+    setDetailFetching(true)
+    try {
+      const res = await fetch(`/api/trouble-tickets/${id}?includePhotos=1`)
+      const data = (await res.json().catch(() => ({}))) as unknown
+      if (!res.ok) return
+      const closePhotos = (data as { closePhotos?: unknown })?.closePhotos
+      const closePhotosCount = (data as { closePhotosCount?: unknown })?.closePhotosCount
+      setDetailRow((prev) => {
+        if (!prev || prev.id !== id) return prev
+        return {
+          ...prev,
+          closePhotos: Array.isArray(closePhotos) ? (closePhotos as string[]) : prev.closePhotos,
+          closePhotosCount:
+            Number.isFinite(Number(closePhotosCount)) ? Math.max(0, Math.trunc(Number(closePhotosCount))) : prev.closePhotosCount,
         }
       })
     } finally {
@@ -1439,10 +1473,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 className="w-full min-h-[220px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
               />
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
-                {(((detailRow.status || '').toUpperCase() === 'CLOSE' || !!detailRow.closedAt) && Array.isArray(detailRow.closePhotos) && detailRow.closePhotos.length > 0) && (
+                {(((detailRow.status || '').toUpperCase() === 'CLOSE' || !!detailRow.closedAt) &&
+                  (Number(detailRow.closePhotosCount || 0) > 0 ||
+                    (Array.isArray(detailRow.closePhotos) && detailRow.closePhotos.length > 0))) && (
                   <button
                     type="button"
-                    onClick={() => setIsPhotoViewerOpen(true)}
+                    onClick={async () => {
+                      if (!detailRow) return
+                      if (!Array.isArray(detailRow.closePhotos)) {
+                        await ensureDetailPhotos(detailRow.id)
+                      }
+                      setIsPhotoViewerOpen(true)
+                    }}
                     className="rounded-md bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium"
                     disabled={detailFetching}
                   >

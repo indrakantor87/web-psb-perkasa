@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
+let ensuredPromise: Promise<void> | null = null
+
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "TroubleTicket" (
@@ -45,7 +47,19 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_closedAt_idx" ON "TroubleTicket"("closedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_closedAt_idx" ON "TroubleTicket"("status","closedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
+}
+
+async function ensureTroubleTicketTableOnce() {
+  if (!ensuredPromise) {
+    ensuredPromise = ensureTroubleTicketTable().catch((e) => {
+      ensuredPromise = null
+      throw e
+    })
+  }
+  await ensuredPromise
 }
 
 function toInt(v: string) {
@@ -73,7 +87,7 @@ export async function POST(
   const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
   if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  await ensureTroubleTicketTable().catch(() => {})
+  await ensureTroubleTicketTableOnce().catch(() => {})
 
   const { id } = await params
   const ticketId = toInt(id)

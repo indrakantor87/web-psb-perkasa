@@ -9,6 +9,8 @@ type TroubleTicketDelegate = {
   delete: (args: { where: { id: number } }) => Promise<unknown>
 }
 
+let ensuredPromise: Promise<void> | null = null
+
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "TroubleTicket" (
@@ -44,7 +46,19 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_closedAt_idx" ON "TroubleTicket"("closedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_closedAt_idx" ON "TroubleTicket"("status","closedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
+}
+
+async function ensureTroubleTicketTableOnce() {
+  if (!ensuredPromise) {
+    ensuredPromise = ensureTroubleTicketTable().catch((e) => {
+      ensuredPromise = null
+      throw e
+    })
+  }
+  await ensuredPromise
 }
 
 function toInt(v: string) {
@@ -53,7 +67,7 @@ function toInt(v: string) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
@@ -62,28 +76,39 @@ export async function GET(
   const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
   if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  await ensureTroubleTicketTable().catch(() => {})
+  await ensureTroubleTicketTableOnce().catch(() => {})
 
   const { id } = await params
   const ticketId = toInt(id)
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
+    const { searchParams } = new URL(request.url)
+    const includePhotos = (searchParams.get('includePhotos') ?? '').trim() === '1'
+    const selectPhotos = includePhotos ? `"closePhotos",` : ''
+    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes",${selectPhotos}COALESCE(array_length("closePhotos",1),0)::int AS "closePhotosCount","closeBy","status"
+           FROM "TroubleTicket"
+           WHERE "ticketNumber" = $1
+           ORDER BY "openedAt" DESC
+           LIMIT 1;`
     const rows = await prisma.$queryRawUnsafe<
       Array<{
         id: number
         ticketCode: string | null
+        category: string | null
         customerName: string
         waNumber: string
         mapsUrl: string | null
         notes: string | null
         closeNotes: string | null
-        closePhotos: string[] | null
+        closePhotos?: string[] | null
+        closePhotosCount: number
         closeBy: string | null
         status: string
       }>
     >(
-      `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`,
+      sql,
       ticketId
     )
     const row =
@@ -93,25 +118,26 @@ export async function GET(
           Array<{
             id: number
             ticketCode: string | null
+            category: string | null
             customerName: string
             waNumber: string
             mapsUrl: string | null
             notes: string | null
             closeNotes: string | null
-            closePhotos: string[] | null
+            closePhotos?: string[] | null
+            closePhotosCount: number
             closeBy: string | null
             status: string
           }>
         >(
-          `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","notes","closeNotes","closePhotos","closeBy","status"
-           FROM "TroubleTicket"
-           WHERE "ticketNumber" = $1
-           ORDER BY "openedAt" DESC
-           LIMIT 1;`,
+          sqlFallback,
           ticketId
         )
       )[0]
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!includePhotos) {
+      delete (row as Record<string, unknown>).closePhotos
+    }
     return NextResponse.json(row)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -129,7 +155,7 @@ export async function PUT(
   const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
   if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  await ensureTroubleTicketTable().catch(() => {})
+  await ensureTroubleTicketTableOnce().catch(() => {})
 
   const { id } = await params
   const ticketId = toInt(id)
@@ -189,7 +215,7 @@ export async function DELETE(
   const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
   if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  await ensureTroubleTicketTable().catch(() => {})
+  await ensureTroubleTicketTableOnce().catch(() => {})
 
   const { id } = await params
   const ticketId = toInt(id)

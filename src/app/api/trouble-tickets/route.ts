@@ -51,6 +51,8 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_closedAt_idx" ON "TroubleTicket"("closedAt");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_closedAt_idx" ON "TroubleTicket"("status","closedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_period_idx" ON "TroubleTicket"("periodYear","periodMonth");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_ticketNumber_idx" ON "TroubleTicket"("ticketNumber");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
@@ -231,7 +233,8 @@ export async function GET(request: Request) {
   const where: Record<string, unknown> = {}
 
   if (roleUpper === 'TROUBLESHOOTS') {
-    where.status = 'OPEN'
+    if (status === 'OPEN' || status === 'CLOSE') where.status = status
+    else where.status = 'OPEN'
   } else if (status && status !== 'ALL') {
     where.status = status
   }
@@ -253,12 +256,38 @@ export async function GET(request: Request) {
   try {
     const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
     const limitParam = Math.trunc(Number(searchParams.get('limit')))
-    const take = roleUpper === 'TROUBLESHOOTS'
-      ? (Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500 ? limitParam : 200)
-      : undefined
+    const take =
+      roleUpper === 'TROUBLESHOOTS'
+        ? Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500
+          ? limitParam
+          : (where.status === 'CLOSE' ? 120 : 200)
+        : undefined
+    const orderBy =
+      roleUpper === 'TROUBLESHOOTS' && where.status === 'CLOSE'
+        ? ({ closedAt: 'desc' } as const)
+        : ({ openedAt: 'desc' } as const)
     const rows = await client.troubleTicket.findMany({
       where,
-      orderBy: { openedAt: 'desc' },
+      orderBy,
+      select: {
+        id: true,
+        ticketCode: true,
+        ticketPrefix: true,
+        ticketNumber: true,
+        category: true,
+        periodMonth: true,
+        periodYear: true,
+        customerName: true,
+        user: true,
+        waNumber: true,
+        mapsUrl: true,
+        type: true,
+        openedAt: true,
+        closedAt: true,
+        notes: true,
+        closeBy: true,
+        status: true,
+      },
       ...(take ? { take } : {}),
     })
     return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-store' } })
