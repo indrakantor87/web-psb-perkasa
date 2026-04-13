@@ -41,6 +41,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -91,8 +92,8 @@ export async function GET(
       COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
       + COALESCE(array_length("closePhotos",1), 0)
     )::int AS "closePhotosCount"`
-    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","closeNotes",${selectPhotos}${countExpr},"closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
-    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","closeNotes",${selectPhotos}${countExpr},"closeBy","status"
+    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
@@ -109,6 +110,7 @@ export async function GET(
         notes: string | null
         problemCategory: string | null
         resolutionAction: string | null
+        resolutionActions: string[] | null
         closeNotes: string | null
         closePhotos?: string[] | null
         closePhotosCount: number
@@ -134,6 +136,7 @@ export async function GET(
             notes: string | null
             problemCategory: string | null
             resolutionAction: string | null
+            resolutionActions: string[] | null
             closeNotes: string | null
             closePhotos?: string[] | null
             closePhotosCount: number

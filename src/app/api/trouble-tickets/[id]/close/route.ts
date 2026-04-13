@@ -47,6 +47,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -112,11 +113,20 @@ export async function POST(
 
     const formData = await request.formData()
     const closeNotes = String(formData.get('closeNotes') ?? '').trim()
-    const resolutionAction = String(formData.get('resolutionAction') ?? '').trim()
+    const rawActions = formData.getAll('resolutionActions')
+    const resolutionActions = rawActions
+      .map((x) => String(x ?? '').trim())
+      .filter(Boolean)
+      .slice(0, 10)
+    if (resolutionActions.length === 0) {
+      const single = String(formData.get('resolutionAction') ?? '').trim()
+      if (single) resolutionActions.push(single)
+    }
+    const joinedResolution = resolutionActions.join(' + ')
     const rawFiles = formData.getAll('photos')
     const files = rawFiles.filter((x): x is File => x instanceof File)
     const normalized = normalizePhotos(files)
-    if (!resolutionAction) return NextResponse.json({ error: 'Tindakan wajib dipilih' }, { status: 400 })
+    if (resolutionActions.length === 0) return NextResponse.json({ error: 'Tindakan wajib dipilih minimal 1' }, { status: 400 })
     if (!closeNotes) return NextResponse.json({ error: 'Penanganan wajib diisi' }, { status: 400 })
     if (normalized.length === 0) return NextResponse.json({ error: 'Upload minimal 1 foto penanganan' }, { status: 400 })
     await saveTicketPhotos(targetId, normalized)
@@ -130,14 +140,16 @@ export async function POST(
            "closeNotes" = $2,
            "closePhotos" = NULL,
            "closeBy" = $3,
-           "resolutionAction" = $4,
+           "resolutionActions" = $4,
+           "resolutionAction" = $5,
            "updatedAt" = NOW()
        WHERE "id" = $1
        RETURNING "id";`,
       targetId,
       closeNotesVal,
       closeBy,
-      resolutionAction || null
+      resolutionActions.length ? resolutionActions : null,
+      joinedResolution || null
     )
     if (!rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })

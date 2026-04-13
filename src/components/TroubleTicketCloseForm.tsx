@@ -15,6 +15,7 @@ type TroubleTicketDetail = {
   notes: string | null
   problemCategory?: string | null
   resolutionAction?: string | null
+  resolutionActions?: string[] | null
   status: string
 }
 
@@ -126,7 +127,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   const [error, setError] = useState('')
   const [ticket, setTicket] = useState<TroubleTicketDetail | null>(null)
   const [closeNotes, setCloseNotes] = useState('')
-  const [resolutionAction, setResolutionAction] = useState('')
+  const [resolutionActions, setResolutionActions] = useState<string[]>([])
   const [resolutionOptions, setResolutionOptions] = useState<string[]>([...DEFAULT_RESOLUTION_ACTIONS])
   const [files, setFiles] = useState<File[]>([])
 
@@ -145,7 +146,11 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         const row = data as TroubleTicketDetail
         setTicket(row)
         setCloseNotes('')
-        setResolutionAction(String(row.resolutionAction ?? '').trim())
+        const fromArray = Array.isArray(row.resolutionActions)
+          ? row.resolutionActions.map((x) => String(x ?? '').trim()).filter(Boolean)
+          : []
+        const fromSingle = String(row.resolutionAction ?? '').trim()
+        setResolutionActions(fromArray.length ? fromArray : (fromSingle ? [fromSingle] : []))
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
@@ -216,8 +221,9 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
 
   const handleSubmit = async () => {
     if (saving) return
-    if (!resolutionAction.trim()) {
-      setError('Tindakan wajib dipilih')
+    const pickedActions = resolutionActions.map((x) => String(x ?? '').trim()).filter(Boolean)
+    if (pickedActions.length === 0) {
+      setError('Tindakan wajib dipilih minimal 1')
       return
     }
     if (!closeNotes.trim()) {
@@ -233,7 +239,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
     try {
       const formData = new FormData()
       formData.set('closeNotes', closeNotes.trim())
-      formData.set('resolutionAction', resolutionAction.trim())
+      pickedActions.forEach((a) => formData.append('resolutionActions', a))
       files.forEach((f) => formData.append('photos', f))
 
       const res = await fetch(`/api/trouble-tickets/${ticketId}/close`, {
@@ -308,18 +314,22 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         <div className="space-y-1">
           <div className="text-sm font-semibold">Tindakan</div>
           <select
-            value={resolutionAction}
-            onChange={(e) => setResolutionAction(e.target.value)}
+            value={resolutionActions}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
+              setResolutionActions(selected)
+            }}
             disabled={saving}
+            multiple
             className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
           >
-            <option value="">Pilih...</option>
             {resolutionOptions.map((x) => (
               <option key={x} value={x}>
                 {formatTypeLabel(x)}
               </option>
             ))}
           </select>
+          <div className="text-[11px] text-gray-400">Tekan Ctrl (Windows) untuk pilih lebih dari 1.</div>
         </div>
       </div>
 
