@@ -25,6 +25,28 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync android
 
+      - name: Generate Android launcher icons from public/logo.png
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          if command -v magick >/dev/null 2>&1; then IM=magick; else IM=convert; fi
+          generate_icon () {
+            local size=$1
+            local dir=$2
+            local out1="android/app/src/main/res/${dir}/ic_launcher.png"
+            local out2="android/app/src/main/res/${dir}/ic_launcher_round.png"
+            local out3="android/app/src/main/res/${dir}/ic_launcher_foreground.png"
+            mkdir -p "android/app/src/main/res/${dir}"
+            $IM "public/logo.png" -resize "${size}x${size}^" -gravity center -background none -extent "${size}x${size}" "$out1"
+            $IM "public/logo.png" -resize "${size}x${size}^" -gravity center -background none -extent "${size}x${size}" "$out2"
+            $IM "public/logo.png" -resize "${size}x${size}^" -gravity center -background none -extent "${size}x${size}" "$out3"
+          }
+          generate_icon 48 mipmap-mdpi
+          generate_icon 72 mipmap-hdpi
+          generate_icon 96 mipmap-xhdpi
+          generate_icon 144 mipmap-xxhdpi
+          generate_icon 192 mipmap-xxxhdpi
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
