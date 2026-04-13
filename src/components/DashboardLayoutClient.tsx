@@ -1,6 +1,7 @@
 'use client'
 
 import { Header } from '@/components/Header'
+import { CapacitorBackHandler } from '@/components/CapacitorBackHandler'
 import type { SessionUser } from '@/lib/auth'
 
 interface DashboardLayoutClientProps {
@@ -11,6 +12,7 @@ interface DashboardLayoutClientProps {
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-gray-100 dark:bg-gray-900">
+      <CapacitorBackHandler userRole={user.role} />
       <Header user={user} />
       
       <div className="flex flex-1 overflow-hidden">
