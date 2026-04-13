@@ -279,8 +279,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         onChange={handleFileChange}
       />
       <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-        <div className="flex flex-1 gap-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
@@ -293,7 +293,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           <select
             value={radbooxFilter}
             onChange={(e) => setRadbooxFilter(e.target.value)}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white sm:w-56"
           >
             <option value="ALL">Semua Radboox</option>
             <option value="Radboox 24">Radboox 24</option>
@@ -302,12 +302,12 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           </select>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={handleExportExcel}
               disabled={isExporting}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-400 dark:border-green-800 disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-400 dark:border-green-800 disabled:opacity-60 sm:w-auto"
             >
               <Download className="h-4 w-4" />
               {isExporting ? 'Export...' : 'Export Excel'}
@@ -315,7 +315,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <button
               type="button"
               onClick={handleImportClick}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-500"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-500 sm:w-auto"
             >
               <Upload className="h-4 w-4" />
               Import Excel
@@ -342,7 +342,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                     setLoading(false)
                   }
                 }}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800 sm:w-auto"
                 title="Hapus Semua Data"
               >
                 <Trash2 className="h-4 w-4" />
@@ -364,7 +364,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                 })
                 setIsModalOpen(true)
               }}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Tambah Isolir

@@ -939,7 +939,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 overflow-x-hidden">
       {!isTroubleshoots && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
@@ -1219,8 +1219,147 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       )}
 
       {!isTroubleshoots && (
-      <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
-        <table className="w-full table-auto">
+      <div className="space-y-2">
+        <div className="md:hidden space-y-2">
+          {loading ? (
+            <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
+              Memuat...
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
+              Tidak ada data
+            </div>
+          ) : (
+            rows.map((r) => {
+              const wa = normalizeWaNumber(r.waNumber)
+              const mapsLink = (r.mapsUrl || '').trim()
+              const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+              const code = (() => {
+                const c = r.ticketCode || String(r.id)
+                const datePart = formatDateForTicketId(r.openedAt)
+                return datePart ? `${c}/${datePart}` : c
+              })()
+
+              return (
+                <div key={r.id} className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => void openDetail(r)}
+                        className="block text-left text-sm font-bold text-gray-900 dark:text-white hover:underline break-words"
+                      >
+                        {code}
+                      </button>
+                      <div className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white break-words">
+                        {r.customerName}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-300 break-words">
+                        {(r.user || '').trim() || '-'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(r.id)}
+                        onChange={() => toggleRowSelected(r.id)}
+                        aria-label="Pilih"
+                      />
+                      <span
+                        className={clsx(
+                          'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold',
+                          isClosed
+                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                            : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                        )}
+                      >
+                        {isClosed ? 'CLOSE' : 'OPEN'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-200">
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Type</div>
+                      <div className="font-semibold break-words">{formatTypeLabel(r.type)}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">No WA</div>
+                      {wa ? (
+                        <a
+                          href={`https://wa.me/${wa}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline break-words"
+                        >
+                          {r.waNumber}
+                        </a>
+                      ) : (
+                        <div className="font-semibold break-words">{r.waNumber || '-'}</div>
+                      )}
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Gangguan</div>
+                      <div className="font-semibold break-words">{(r.problemCategory || '').trim() || '-'}</div>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Tindakan</div>
+                      <div className="font-semibold break-words">{(r.resolutionAction || '').trim() || '-'}</div>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Keterangan</div>
+                      <div className="font-semibold break-words">{(r.notes || '').trim() || '-'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(r)}
+                      className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-800 px-3 py-2 text-xs font-semibold hover:bg-gray-200 border border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:border-gray-600"
+                    >
+                      <Info className="h-4 w-4" />
+                      Rincian
+                    </button>
+                    {mapsLink && (
+                      <a
+                        href={mapsLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/30 dark:border-blue-800"
+                      >
+                        View Maps
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openEdit(r)}
+                      className="inline-flex items-center gap-2 rounded-md bg-gray-100 text-gray-800 px-3 py-2 text-xs font-semibold hover:bg-gray-200 border border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:border-gray-600"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
+                    {!isClosed && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.location.href = `/trouble-ticket/close/${r.id}`
+                        }}
+                        className="inline-flex items-center gap-2 rounded-md bg-green-600 text-white px-3 py-2 text-xs font-semibold hover:bg-green-700"
+                      >
+                        Close
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="hidden md:block rounded-lg bg-white dark:bg-gray-800 shadow">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">
@@ -1424,7 +1563,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               })
             )}
           </tbody>
-        </table>
+            </table>
+          </div>
+        </div>
       </div>
       )}
 
