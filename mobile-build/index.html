@@ -14,6 +14,36 @@
             text-align: center;
             background: #0f172a;
             color: white;
+            padding: 16px;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 18px;
+        }
+        .muted {
+            opacity: 0.75;
+            font-size: 0.9em;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+        input {
+            width: 100%;
+            background: #0b1223;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: white;
+            border-radius: 10px;
+            padding: 12px 12px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
         }
         button {
             background: #2563eb;
@@ -28,15 +58,105 @@
         button:active {
             opacity: 0.8;
         }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .error {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            background: rgba(127, 29, 29, 0.3);
+            color: #fecaca;
+            text-align: left;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <div>
-        <img src="../public/logo.png" alt="Logo" style="max-width: 100px; margin-bottom: 20px;">
-        <h1>PSB Perkasa Mobile</h1>
-        <p>Aplikasi tidak dapat menghubungi server.</p>
-        <p style="opacity: 0.7; font-size: 0.9em;">Pastikan internet aktif atau konfigurasi server URL benar.</p>
-        <button onclick="window.location.reload()">Muat Ulang</button>
+    <div class="card">
+        <h1 style="margin: 0 0 6px 0;">PSB Perkasa Mobile</h1>
+        <div class="muted">Atur URL server web agar aplikasi bisa berjalan.</div>
+
+        <div id="error" class="error"></div>
+
+        <div class="row">
+            <input id="serverUrl" placeholder="https://alamat-web-anda.com" inputmode="url" autocapitalize="none" autocomplete="off" />
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-secondary" onclick="resetUrl()">Reset</button>
+            <button onclick="saveAndOpen()">Simpan & Buka</button>
+        </div>
+
+        <div style="margin-top: 14px;" class="muted">
+            Jika alamat web berubah lagi, buka halaman ini dan ganti URL.
+        </div>
     </div>
+
+    <script>
+        const KEY = 'psb_server_url'
+
+        function setError(message) {
+            const el = document.getElementById('error')
+            if (!message) {
+                el.style.display = 'none'
+                el.textContent = ''
+                return
+            }
+            el.style.display = 'block'
+            el.textContent = message
+        }
+
+        function normalizeUrl(input) {
+            const raw = String(input || '').trim()
+            if (!raw) return ''
+            try {
+                const u = new URL(raw)
+                if (u.protocol !== 'https:' && u.protocol !== 'http:') return ''
+                return u.origin
+            } catch {
+                return ''
+            }
+        }
+
+        function openUrl(url) {
+            window.location.href = url
+        }
+
+        function saveAndOpen() {
+            setError('')
+            const v = document.getElementById('serverUrl').value
+            const url = normalizeUrl(v)
+            if (!url) {
+                setError('URL tidak valid. Contoh: https://psb.domain.com')
+                return
+            }
+            localStorage.setItem(KEY, url)
+            openUrl(url)
+        }
+
+        function resetUrl() {
+            setError('')
+            localStorage.removeItem(KEY)
+            document.getElementById('serverUrl').value = ''
+        }
+
+        ;(function init() {
+            const saved = localStorage.getItem(KEY)
+            if (saved) {
+                document.getElementById('serverUrl').value = saved
+                setTimeout(() => openUrl(saved), 250)
+            }
+        })()
+    </script>
 </body>
 </html>
