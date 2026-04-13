@@ -4,12 +4,6 @@ import { getSession } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
-type TroubleTicketDelegate = {
-  updateMany: (args: Record<string, unknown>) => Promise<unknown>
-  findMany: (args: Record<string, unknown>) => Promise<unknown>
-  create: (args: Record<string, unknown>) => Promise<unknown>
-}
-
 let ensuredPromise: Promise<void> | null = null
 
 async function ensureTroubleTicketTable() {
@@ -214,82 +208,96 @@ export async function GET(request: Request) {
 
   if (roleUpper !== 'TROUBLESHOOTS') {
     try {
-      const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
-      await client.troubleTicket.updateMany({
-        where: {
-          status: 'OPEN',
-          OR: [
-            { periodYear: null },
-            { periodMonth: null },
-            { periodYear: { lt: year } },
-            { AND: [{ periodYear: year }, { periodMonth: { lt: month } }] },
-          ],
-        },
-        data: { periodMonth: month, periodYear: year },
-      })
+      await prisma.$executeRawUnsafe(
+        `UPDATE "TroubleTicket"
+         SET "periodMonth" = $1, "periodYear" = $2
+         WHERE "status" = 'OPEN'
+           AND (
+             "periodYear" IS NULL
+             OR "periodMonth" IS NULL
+             OR "periodYear" < $2
+             OR ("periodYear" = $2 AND "periodMonth" < $1)
+           );`,
+        month,
+        year
+      )
     } catch {}
   }
 
-  const where: Record<string, unknown> = {}
-
-  if (roleUpper === 'TROUBLESHOOTS') {
-    if (status === 'OPEN' || status === 'CLOSE') where.status = status
-    else where.status = 'OPEN'
-  } else if (status && status !== 'ALL') {
-    where.status = status
-  }
-  if (roleUpper !== 'TROUBLESHOOTS') {
-    where.periodMonth = month
-    where.periodYear = year
-  }
-
-  if (search) {
-    where.OR = [
-      { customerName: { contains: search, mode: 'insensitive' } },
-      { user: { contains: search, mode: 'insensitive' } },
-      { waNumber: { contains: search, mode: 'insensitive' } },
-      { type: { contains: search, mode: 'insensitive' } },
-      { notes: { contains: search, mode: 'insensitive' } },
-    ]
-  }
-
   try {
-    const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
     const limitParam = Math.trunc(Number(searchParams.get('limit')))
+
+    const statusFilter =
+      roleUpper === 'TROUBLESHOOTS'
+        ? (status === 'OPEN' || status === 'CLOSE') ? status : 'OPEN'
+        : (status && status !== 'ALL') ? status : null
+
+    const whereParts: string[] = []
+    const params: unknown[] = []
+
+    if (statusFilter) {
+      params.push(statusFilter)
+      whereParts.push(`"status" = $${params.length}`)
+    }
+
+    if (roleUpper !== 'TROUBLESHOOTS') {
+      params.push(month)
+      whereParts.push(`"periodMonth" = $${params.length}`)
+      params.push(year)
+      whereParts.push(`"periodYear" = $${params.length}`)
+    }
+
+    if (search) {
+      params.push(`%${search}%`)
+      const p = `$${params.length}`
+      whereParts.push(
+        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p})`
+      )
+    }
+
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
+
     const take =
       roleUpper === 'TROUBLESHOOTS'
         ? Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500
           ? limitParam
-          : (where.status === 'CLOSE' ? 120 : 200)
-        : undefined
-    const orderBy =
-      roleUpper === 'TROUBLESHOOTS' && where.status === 'CLOSE'
-        ? ({ closedAt: 'desc' } as const)
-        : ({ openedAt: 'desc' } as const)
-    const rows = await client.troubleTicket.findMany({
-      where,
-      orderBy,
-      select: {
-        id: true,
-        ticketCode: true,
-        ticketPrefix: true,
-        ticketNumber: true,
-        category: true,
-        periodMonth: true,
-        periodYear: true,
-        customerName: true,
-        user: true,
-        waNumber: true,
-        mapsUrl: true,
-        type: true,
-        openedAt: true,
-        closedAt: true,
-        notes: true,
-        closeBy: true,
-        status: true,
-      },
-      ...(take ? { take } : {}),
-    })
+          : (statusFilter === 'CLOSE' ? 120 : 200)
+        : null
+
+    const orderSql =
+      roleUpper === 'TROUBLESHOOTS' && statusFilter === 'CLOSE'
+        ? `"closedAt" DESC NULLS LAST, "openedAt" DESC`
+        : `"openedAt" DESC`
+
+    const limitSql = take ? `LIMIT ${take}` : ''
+
+    const sql = `
+      SELECT
+        "id",
+        "ticketCode",
+        "ticketPrefix",
+        "ticketNumber",
+        "category",
+        "periodMonth",
+        "periodYear",
+        "customerName",
+        "user",
+        "waNumber",
+        "mapsUrl",
+        "type",
+        "openedAt",
+        "closedAt",
+        "notes",
+        "closeBy",
+        COALESCE(array_length("closePhotos", 1), 0)::int AS "closePhotosCount",
+        "status"
+      FROM "TroubleTicket"
+      ${whereSql}
+      ORDER BY ${orderSql}
+      ${limitSql};
+    `
+
+    const rows = await prisma.$queryRawUnsafe<unknown[]>(sql, ...params)
     return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -338,25 +346,53 @@ export async function POST(request: Request) {
     const parsed = parseTicketCode(ticketCodeInput)
     const category = parsed?.category ?? requestedCategory
     const allocated = parsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
-    const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
-    const row = await client.troubleTicket.create({
-      data: {
-        ticketCode: allocated.ticketCode,
-        ticketPrefix: allocated.ticketPrefix,
-        ticketNumber: allocated.ticketNumber,
-        category: allocated.category,
-        periodMonth,
-        periodYear,
-        customerName,
-        user: user || null,
-        waNumber,
-        mapsUrl: mapsUrlRaw || null,
-        type,
-        notes: notes || null,
-        status: 'OPEN',
-        openedAt: new Date(),
-      },
-    })
+    const rows = await prisma.$queryRawUnsafe<
+      Array<{
+        id: number
+        ticketCode: string | null
+        ticketPrefix: string | null
+        ticketNumber: number | null
+        category: string
+        periodMonth: number | null
+        periodYear: number | null
+        customerName: string
+        user: string | null
+        waNumber: string
+        mapsUrl: string | null
+        type: string
+        openedAt: string
+        closedAt: string | null
+        notes: string | null
+        closeBy: string | null
+        status: string
+      }>
+    >(
+      `INSERT INTO "TroubleTicket" (
+         "ticketCode","ticketPrefix","ticketNumber","category",
+         "periodMonth","periodYear",
+         "customerName","user","waNumber","mapsUrl","type","notes",
+         "status","openedAt"
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'OPEN',NOW())
+       RETURNING
+         "id","ticketCode","ticketPrefix","ticketNumber","category",
+         "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
+         "type","openedAt","closedAt","notes","closeBy","status";`,
+      allocated.ticketCode,
+      allocated.ticketPrefix,
+      allocated.ticketNumber,
+      allocated.category,
+      periodMonth,
+      periodYear,
+      customerName,
+      user || null,
+      waNumber,
+      mapsUrlRaw || null,
+      type,
+      notes || null
+    )
+    const row = rows[0]
+    if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })
     return NextResponse.json(row)
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)

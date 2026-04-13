@@ -93,12 +93,12 @@ export function Header({ user }: { user: SessionUser }) {
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center space-x-4 md:space-x-8">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center bg-white rounded-lg p-1.5 shadow-sm border border-white">
+            <div className="flex items-center justify-center bg-white rounded-lg shadow-sm border border-white h-11 w-11 overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
               alt="Ticketing Perkasa Networls" 
-              className="h-8 w-auto object-contain"
+              className="h-full w-full object-contain"
             />
             </div>
             {isTroubleshoots && (
