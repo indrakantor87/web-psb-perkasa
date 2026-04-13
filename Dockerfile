@@ -10,6 +10,8 @@ RUN apk add --no-cache libc6-compat openssl ca-certificates
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build?schema=public
+ENV DIRECT_URL=postgresql://build:build@localhost:5432/build?schema=public
 RUN npm run build
 # RUN npm prune --omit=dev --ignore-scripts && npm cache clean --force
 
