@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 
 export const runtime = 'nodejs'
 
@@ -42,6 +43,8 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -50,6 +53,8 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_period_idx" ON "TroubleTicket"("periodYear","periodMonth");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_ticketNumber_idx" ON "TroubleTicket"("ticketNumber");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_problemCategory_idx" ON "TroubleTicket"("problemCategory");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_resolutionAction_idx" ON "TroubleTicket"("resolutionAction");`)
 }
 
 async function ensureTroubleTicketTableOnce() {
@@ -195,6 +200,7 @@ export async function GET(request: Request) {
 
   try {
     await ensureTroubleTicketTableOnce()
+    await ensurePhotoTableOnce()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'DB init failed' }, { status: 500 })
@@ -251,7 +257,7 @@ export async function GET(request: Request) {
       params.push(`%${search}%`)
       const p = `$${params.length}`
       whereParts.push(
-        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p})`
+        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p})`
       )
     }
 
@@ -289,7 +295,12 @@ export async function GET(request: Request) {
         "closedAt",
         "notes",
         "closeBy",
-        COALESCE(array_length("closePhotos", 1), 0)::int AS "closePhotosCount",
+        "problemCategory",
+        "resolutionAction",
+        (
+          COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
+          + COALESCE(array_length("closePhotos", 1), 0)
+        )::int AS "closePhotosCount",
         "status"
       FROM "TroubleTicket"
       ${whereSql}
@@ -333,18 +344,26 @@ export async function POST(request: Request) {
   const mapsUrlRaw = String(body.mapsUrl ?? '').trim()
   const type = String(body.type ?? '').trim()
   const notes = String(body.notes ?? '').trim()
+  const problemCategory = String(body.problemCategory ?? '').trim()
   const requestedCategory = normalizeCategory(body.category)
 
   if (!customerName || !waNumber || !type) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
-  if (requestedCategory === 'PV' && normalizeTypeKey(type) !== 'PREVENTIVE') {
-    return NextResponse.json({ error: 'Untuk kategori Preventive (PV), type wajib PREVENTIVE' }, { status: 400 })
-  }
 
   try {
     const parsed = parseTicketCode(ticketCodeInput)
     const category = parsed?.category ?? requestedCategory
+    const typeKey = normalizeTypeKey(type)
+    if (category === 'PV' && typeKey !== 'PREVENTIVE') {
+      return NextResponse.json({ error: 'Untuk kategori Preventive (PV), type wajib PREVENTIVE' }, { status: 400 })
+    }
+    if (category === 'TT' && typeKey === 'PREVENTIVE') {
+      return NextResponse.json({ error: 'Untuk kategori Trouble Ticket (TT), type tidak boleh PREVENTIVE' }, { status: 400 })
+    }
+    if (category === 'TT' && !problemCategory) {
+      return NextResponse.json({ error: 'Jenis gangguan wajib dipilih untuk Trouble Ticket (TT)' }, { status: 400 })
+    }
     const allocated = parsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
     const rows = await prisma.$queryRawUnsafe<
       Array<{
@@ -371,13 +390,14 @@ export async function POST(request: Request) {
          "ticketCode","ticketPrefix","ticketNumber","category",
          "periodMonth","periodYear",
          "customerName","user","waNumber","mapsUrl","type","notes",
+         "problemCategory","resolutionAction",
          "status","openedAt"
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'OPEN',NOW())
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'OPEN',NOW())
        RETURNING
          "id","ticketCode","ticketPrefix","ticketNumber","category",
          "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
-         "type","openedAt","closedAt","notes","closeBy","status";`,
+       "type","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
       allocated.ticketCode,
       allocated.ticketPrefix,
       allocated.ticketNumber,
@@ -388,8 +408,10 @@ export async function POST(request: Request) {
       user || null,
       waNumber,
       mapsUrlRaw || null,
-      type,
-      notes || null
+      typeKey,
+      notes || null,
+      problemCategory || null,
+      null
     )
     const row = rows[0]
     if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })

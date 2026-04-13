@@ -158,6 +158,8 @@ model TroubleTicket {
   openedAt     DateTime @default(now())
   closedAt     DateTime?
   notes        String?
+  problemCategory String?
+  resolutionAction String?
   closeNotes   String?
   closePhotos  String[]
   closeBy      String?
@@ -169,4 +171,6 @@ model TroubleTicket {
   @@index([status])
   @@index([openedAt])
   @@index([category])
+  @@index([problemCategory])
+  @@index([resolutionAction])
 }

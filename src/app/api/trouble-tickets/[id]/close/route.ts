@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { saveTicketPhotos } from '@/lib/trouble-ticket-photo-store'
 
 export const runtime = 'nodejs'
 
@@ -44,12 +45,16 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_closedAt_idx" ON "TroubleTicket"("closedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_closedAt_idx" ON "TroubleTicket"("status","closedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_problemCategory_idx" ON "TroubleTicket"("problemCategory");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_resolutionAction_idx" ON "TroubleTicket"("resolutionAction");`)
 }
 
 async function ensureTroubleTicketTableOnce() {
@@ -107,35 +112,32 @@ export async function POST(
 
     const formData = await request.formData()
     const closeNotes = String(formData.get('closeNotes') ?? '').trim()
+    const resolutionAction = String(formData.get('resolutionAction') ?? '').trim()
     const rawFiles = formData.getAll('photos')
     const files = rawFiles.filter((x): x is File => x instanceof File)
     const normalized = normalizePhotos(files)
+    if (!resolutionAction) return NextResponse.json({ error: 'Tindakan wajib dipilih' }, { status: 400 })
     if (!closeNotes) return NextResponse.json({ error: 'Penanganan wajib diisi' }, { status: 400 })
     if (normalized.length === 0) return NextResponse.json({ error: 'Upload minimal 1 foto penanganan' }, { status: 400 })
-
-    const photos: string[] = []
-    for (const file of normalized) {
-      const buffer = Buffer.from(await file.arrayBuffer())
-      photos.push(`data:${file.type};base64,${buffer.toString('base64')}`)
-    }
+    await saveTicketPhotos(targetId, normalized)
 
     const closeBy = String(session.user.name ?? session.user.username ?? '').trim() || null
     const closeNotesVal = closeNotes || null
-    const closePhotosVal = photos.length ? photos : null
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
       `UPDATE "TroubleTicket"
        SET "status" = 'CLOSE',
            "closedAt" = NOW(),
            "closeNotes" = $2,
-           "closePhotos" = $3,
-           "closeBy" = $4,
+           "closePhotos" = NULL,
+           "closeBy" = $3,
+           "resolutionAction" = $4,
            "updatedAt" = NOW()
        WHERE "id" = $1
        RETURNING "id";`,
       targetId,
       closeNotesVal,
-      closePhotosVal,
-      closeBy
+      closeBy,
+      resolutionAction || null
     )
     if (!rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })

@@ -13,8 +13,25 @@ type TroubleTicketDetail = {
   mapsUrl: string | null
   type?: string | null
   notes: string | null
+  problemCategory?: string | null
+  resolutionAction?: string | null
   status: string
 }
+
+const DEFAULT_RESOLUTION_ACTIONS = [
+  'GANTI ADAPTOR',
+  'GANTI MODEM/ONT',
+  'GANTI ROUTER',
+  'GESER PERANGKAT',
+  'RESET/REKONFIGURASI',
+  'RE-TERMINASI KABEL',
+  'GANTI PATCHCORD',
+  'CLEANING KONEKTOR',
+  'PINDAH PORT ODP',
+  'PERBAIKI DROPCORE',
+  'SPLICING ULANG',
+  'LAINNYA',
+] as const
 
 function formatTypeLabel(type: unknown) {
   const t = String(type ?? '')
@@ -109,6 +126,8 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   const [error, setError] = useState('')
   const [ticket, setTicket] = useState<TroubleTicketDetail | null>(null)
   const [closeNotes, setCloseNotes] = useState('')
+  const [resolutionAction, setResolutionAction] = useState('')
+  const [resolutionOptions, setResolutionOptions] = useState<string[]>([...DEFAULT_RESOLUTION_ACTIONS])
   const [files, setFiles] = useState<File[]>([])
 
   useEffect(() => {
@@ -126,6 +145,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         const row = data as TroubleTicketDetail
         setTicket(row)
         setCloseNotes('')
+        setResolutionAction(String(row.resolutionAction ?? '').trim())
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
@@ -134,6 +154,23 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
     })()
     return () => controller.abort()
   }, [ticketId])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/trouble-tickets/master?kind=RESOLUTION_ACTION', { signal: controller.signal })
+        const data = (await res.json().catch(() => ({}))) as unknown
+        if (!res.ok) return
+        const rows = Array.isArray(data) ? (data as Array<{ value?: unknown }>) : []
+        const values = rows
+          .map((r) => String(r?.value ?? '').trim())
+          .filter(Boolean)
+        if (values.length) setResolutionOptions(values)
+      } catch {}
+    })()
+    return () => controller.abort()
+  }, [])
 
   const wa = useMemo(() => (ticket ? normalizeWaNumber(ticket.waNumber) : ''), [ticket])
 
@@ -179,6 +216,10 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
 
   const handleSubmit = async () => {
     if (saving) return
+    if (!resolutionAction.trim()) {
+      setError('Tindakan wajib dipilih')
+      return
+    }
     if (!closeNotes.trim()) {
       setError('Penanganan wajib diisi')
       return
@@ -192,6 +233,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
     try {
       const formData = new FormData()
       formData.set('closeNotes', closeNotes.trim())
+      formData.set('resolutionAction', resolutionAction.trim())
       files.forEach((f) => formData.append('photos', f))
 
       const res = await fetch(`/api/trouble-tickets/${ticketId}/close`, {
@@ -255,6 +297,29 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
           <div className="text-xs text-gray-400">Keterangan Ticket</div>
           <div className="break-words font-semibold">{formatTypeLabel(ticket.type)}</div>
           <div className="mt-1 break-words text-sm text-gray-200">{(ticket.notes || '').trim() || '-'}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="text-xs text-gray-400">Jenis Gangguan</div>
+          <div className="break-words font-semibold">{(String(ticket.problemCategory ?? '').trim() || '-')}</div>
+        </div>
+        <div className="space-y-1">
+          <div className="text-sm font-semibold">Tindakan</div>
+          <select
+            value={resolutionAction}
+            onChange={(e) => setResolutionAction(e.target.value)}
+            disabled={saving}
+            className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+          >
+            <option value="">Pilih...</option>
+            {resolutionOptions.map((x) => (
+              <option key={x} value={x}>
+                {formatTypeLabel(x)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

@@ -10,6 +10,7 @@ type TroubleTicketRow = {
   ticketCode: string | null
   ticketPrefix: string | null
   ticketNumber: number | null
+  category?: 'TT' | 'PV' | string | null
   customerName: string
   user: string | null
   waNumber: string
@@ -18,8 +19,11 @@ type TroubleTicketRow = {
   openedAt: string
   closedAt: string | null
   notes: string | null
+  problemCategory?: string | null
+  resolutionAction?: string | null
   closeNotes?: string | null
   closePhotos?: string[] | null
+  closePhotoUrls?: string[] | null
   closePhotosCount?: number | null
   closeBy?: string | null
   status: string
@@ -34,6 +38,7 @@ type TroubleTicketCreatePayload = {
   mapsUrl: string
   type: string
   notes: string
+  problemCategory: string
 }
 
 type TroubleTicketEditPayload = {
@@ -42,11 +47,34 @@ type TroubleTicketEditPayload = {
   waNumber: string
   mapsUrl: string
   type: string
+  problemCategory: string
   status: 'OPEN' | 'CLOSE'
   notes: string
 }
 
+const DEFAULT_PROBLEM_CATEGORIES = [
+  'LOSS/LOS',
+  'NO INTERNET',
+  'PUTUS-NYAMBUNG',
+  'LEMOT',
+  'HIGH LATENCY',
+  'PACKET LOSS',
+  'MODEM/ONT',
+  'ROUTER/WIFI',
+  'ADAPTOR/POWER',
+  'KABEL/DROPCORE',
+  'ODP/PORT',
+  'KONFIGURASI/PPPOE',
+  'LAINNYA',
+] as const
+
 const DEFAULT_SLA_DAYS: Record<string, number> = { EMERGENCY: 2, MAJOR: 3, MINOR: 5, PREVENTIVE: 30 }
+
+function normalizeCategory(input: unknown) {
+  const c = String(input ?? '').trim().toUpperCase()
+  if (c === 'PV') return 'PV'
+  return 'TT'
+}
 
 function normalizeTypeKey(type: unknown) {
   return String(type ?? '')
@@ -141,6 +169,8 @@ function buildTicketDetailText(row: TroubleTicketRow) {
     `No WA : ${formatWaDisplay(row.waNumber)}`,
     `In Maps\t: ${maps ? `\`${maps}\`` : '-'}`,
     `Type : ${type}`,
+    `Gangguan : ${(row.problemCategory || '').trim() || '-'}`,
+    `Tindakan : ${(row.resolutionAction || '').trim() || '-'}`,
     `Keterangan : ${(row.notes || '').trim() || '-'}`,
     ...(isClosed ? [`Penanganan : ${penanganan || '-'}`] : []),
     ...(isClosed ? [`View : ${hasPhotos ? 'Ada foto' : '-'}`] : []),
@@ -255,19 +285,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     mapsUrl: '',
     type: '',
     notes: '',
+    problemCategory: '',
   })
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingCategory, setEditingCategory] = useState<'TT' | 'PV'>('TT')
   const [editForm, setEditForm] = useState<TroubleTicketEditPayload>({
     customerName: '',
     user: '',
     waNumber: '',
     mapsUrl: '',
     type: '',
+    problemCategory: '',
     status: 'OPEN',
     notes: '',
   })
   const [slaDays, setSlaDays] = useState<Record<string, number>>(DEFAULT_SLA_DAYS)
   const [slaTypes, setSlaTypes] = useState<string[]>(Object.keys(DEFAULT_SLA_DAYS))
+  const [problemOptions, setProblemOptions] = useState<string[]>([...DEFAULT_PROBLEM_CATEGORIES])
   const [idPrefix, setIdPrefix] = useState('TT/PKN/')
   const [nextNumber, setNextNumber] = useState(1)
 
@@ -288,6 +322,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     const t = window.setTimeout(() => setDebouncedSearch(search), 300)
     return () => window.clearTimeout(t)
   }, [search])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/trouble-tickets/master?kind=PROBLEM_CATEGORY', { signal: controller.signal })
+        const data = (await res.json().catch(() => ({}))) as unknown
+        if (!res.ok) return
+        const rows = Array.isArray(data) ? (data as Array<{ value?: unknown }>) : []
+        const values = rows
+          .map((r) => String(r?.value ?? '').trim())
+          .filter(Boolean)
+        if (values.length) setProblemOptions(values)
+      } catch {}
+    })()
+    return () => controller.abort()
+  }, [])
 
   const refresh = async () => {
     setLoading(true)
@@ -477,6 +528,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setError(null)
     try {
       const category = form.category
+      if (category === 'TT' && !form.problemCategory.trim()) {
+        throw new Error('Jenis gangguan wajib dipilih')
+      }
       const payload = {
         category,
         ticketCode: form.ticketCode.trim(),
@@ -486,6 +540,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         mapsUrl: form.mapsUrl.trim(),
         type: normalizeTypeKey(form.type),
         notes: form.notes.trim(),
+        problemCategory: form.problemCategory.trim(),
         month,
         year,
       }
@@ -500,7 +555,17 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         throw new Error(msg)
       }
       setIsCreateOpen(false)
-      setForm({ category, ticketCode: '', customerName: '', user: '', waNumber: '', mapsUrl: '', type: '', notes: '' })
+      setForm({
+        category,
+        ticketCode: '',
+        customerName: '',
+        user: '',
+        waNumber: '',
+        mapsUrl: '',
+        type: '',
+        notes: '',
+        problemCategory: '',
+      })
       try {
         const res2 = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}&category=${category}`)
         const cfg = (await res2.json().catch(() => ({}))) as { prefix?: unknown; nextNumber?: unknown }
@@ -521,12 +586,20 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
 
   const openEdit = (row: TroubleTicketRow) => {
     setEditingId(row.id)
+    const inferredCategory =
+      normalizeCategory(row.category) === 'PV' ||
+      (String(row.ticketCode ?? '').trim().toUpperCase().startsWith('PV/')) ||
+      normalizeTypeKey(row.type) === 'PREVENTIVE'
+        ? 'PV'
+        : 'TT'
+    setEditingCategory(inferredCategory)
     setEditForm({
       customerName: row.customerName || '',
       user: row.user || '',
       waNumber: row.waNumber || '',
       mapsUrl: row.mapsUrl || '',
-      type: normalizeTypeKey(row.type),
+      type: inferredCategory === 'PV' ? 'PREVENTIVE' : normalizeTypeKey(row.type),
+      problemCategory: String(row.problemCategory ?? '').trim(),
       status: ((row.status || '').toUpperCase() === 'CLOSE' || row.closedAt) ? 'CLOSE' : 'OPEN',
       notes: row.notes || '',
     })
@@ -538,13 +611,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setIsSubmitting(true)
     setError(null)
     try {
+      const typeKey = normalizeTypeKey(editForm.type)
+      const normalizedType =
+        editingCategory === 'PV'
+          ? 'PREVENTIVE'
+          : typeKey === 'PREVENTIVE'
+            ? (() => {
+                throw new Error('Kategori Trouble Ticket tidak bisa memilih type Preventive')
+              })()
+            : typeKey
       const payload = {
         customerName: editForm.customerName.trim(),
         user: editForm.user.trim(),
         waNumber: editForm.waNumber.trim(),
         mapsUrl: editForm.mapsUrl.trim(),
-        type: normalizeTypeKey(editForm.type),
+        type: normalizedType,
         notes: editForm.notes.trim(),
+        problemCategory: editForm.problemCategory.trim(),
         status: editForm.status,
       }
       const res = await fetch(`/api/trouble-tickets/${editingId}`, {
@@ -587,12 +670,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     setDetailRow(row)
     setCopied(false)
     const isClosed = (row.status || '').toUpperCase() === 'CLOSE' || !!row.closedAt
-    const hasCloseFields =
-      typeof row.closeNotes !== 'undefined' ||
-      typeof row.closePhotos !== 'undefined' ||
-      typeof row.closePhotosCount !== 'undefined' ||
-      typeof row.closeBy !== 'undefined'
-    if (!isClosed || hasCloseFields) return
+    const needsFetch = isClosed && (typeof row.closeNotes === 'undefined' || typeof row.closeBy === 'undefined')
+    if (!needsFetch) return
 
     setDetailFetching(true)
     try {
@@ -626,12 +705,14 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       const data = (await res.json().catch(() => ({}))) as unknown
       if (!res.ok) return
       const closePhotos = (data as { closePhotos?: unknown })?.closePhotos
+      const closePhotoUrls = (data as { closePhotoUrls?: unknown })?.closePhotoUrls
       const closePhotosCount = (data as { closePhotosCount?: unknown })?.closePhotosCount
       setDetailRow((prev) => {
         if (!prev || prev.id !== id) return prev
         return {
           ...prev,
           closePhotos: Array.isArray(closePhotos) ? (closePhotos as string[]) : prev.closePhotos,
+          closePhotoUrls: Array.isArray(closePhotoUrls) ? (closePhotoUrls as string[]) : prev.closePhotoUrls,
           closePhotosCount:
             Number.isFinite(Number(closePhotosCount)) ? Math.max(0, Math.trunc(Number(closePhotosCount))) : prev.closePhotosCount,
         }
@@ -754,6 +835,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         'NO WA': r.waNumber,
         'IN MAPS': r.mapsUrl || '',
         'TYPE': formatTypeLabel(r.type),
+        'GANGGUAN': (r.problemCategory || '').trim(),
+        'TINDAKAN': (r.resolutionAction || '').trim(),
         'OPEN': formatExcelDate(r.openedAt),
         'CLOSE': formatExcelDate(r.closedAt),
         'DURASI': (() => {
@@ -805,6 +888,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const waNumber = String(get('NO WA', 'NOHP', 'NO HP', 'WA', 'WHATSAPP') ?? '').trim()
           const mapsUrl = String(get('IN MAPS', 'MAPS', 'GOOGLE MAPS', 'LINK MAPS') ?? '').trim()
           const typeRaw = String(get('TYPE', 'TIPE', 'JENIS') ?? '').trim()
+          const problemCategory = String(get('GANGGUAN', 'JENIS GANGGUAN', 'KATEGORI', 'PROBLEM') ?? '').trim()
+          const resolutionAction = String(get('TINDAKAN', 'PENANGANAN', 'ACTION', 'RESOLUTION') ?? '').trim()
           const notes = String(get('KETERANGAN', 'NOTES', 'NOTE', 'KET') ?? '').trim()
           const openedAtRaw = get('OPEN', 'OPENED', 'OPEN DATE', 'TGL OPEN')
           const closedAtRaw = get('CLOSE', 'CLOSED', 'CLOSE DATE', 'TGL CLOSE')
@@ -822,6 +907,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             waNumber,
             mapsUrl,
             type,
+            problemCategory,
+            resolutionAction,
             notes,
             openedAt: openedAt ? openedAt.toISOString() : null,
             closedAt: closedAt ? closedAt.toISOString() : null,
@@ -1034,6 +1121,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                           )}
                         </div>
                         <div className="mt-1 text-sm text-gray-200">{r.customerName}</div>
+                        {(String(r.problemCategory ?? '').trim() || String(r.resolutionAction ?? '').trim()) && (
+                          <div className="mt-1 text-xs text-gray-400">
+                            {(String(r.problemCategory ?? '').trim() || '-')}
+                            {' • '}
+                            {(String(r.resolutionAction ?? '').trim() || '-')}
+                          </div>
+                        )}
                       </div>
                       <div className="pt-0.5 text-gray-300">
                         {expandedId === r.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -1066,6 +1160,14 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                           ) : (
                             <div className="break-words">{r.waNumber || '-'}</div>
                           )}
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">Jenis Gangguan</div>
+                          <div className="whitespace-pre-wrap break-words">{(String(r.problemCategory ?? '').trim() || '-')}</div>
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">Tindakan</div>
+                          <div className="whitespace-pre-wrap break-words">{(String(r.resolutionAction ?? '').trim() || '-')}</div>
                         </div>
                         <div className="rounded-md bg-gray-900 px-3 py-2">
                           <div className="text-xs text-gray-400">Keterangan</div>
@@ -1134,6 +1236,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">No WA</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">In Maps</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Type</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Gangguan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Tindakan</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Open</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Close</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Durasi</th>
@@ -1143,13 +1247,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={13} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={13} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Tidak ada data
                 </td>
               </tr>
@@ -1228,6 +1332,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                         )}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{formatTypeLabel(r.type)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.problemCategory || '').trim() || '-'}</td>
+                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.resolutionAction || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDateTime(r.openedAt)}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDateTime(r.closedAt)}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDurationMs(durationMs)}</td>
@@ -1246,7 +1352,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                     </tr>
                     {expandedId === r.id && (
                       <tr>
-                        <td colSpan={11} className="px-3 pb-4">
+                        <td colSpan={13} className="px-3 pb-4">
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
@@ -1396,6 +1502,21 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                     ))}
                   </select>
                 </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
+                  <select
+                    value={form.problemCategory}
+                    onChange={(e) => setForm({ ...form, problemCategory: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  >
+                    <option value="">Pilih...</option>
+                    {problemOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {formatTypeLabel(x)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="flex flex-col">
                 <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Keterangan</span>
@@ -1475,9 +1596,27 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
                   >
                     <option value="">Pilih type...</option>
-                    {slaTypes.map((t) => (
+                    {(editingCategory === 'PV'
+                      ? ['PREVENTIVE']
+                      : slaTypes.filter((t) => normalizeTypeKey(t) !== 'PREVENTIVE')
+                    ).map((t) => (
                       <option key={t} value={t}>
                         {formatTypeLabel(t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
+                  <select
+                    value={editForm.problemCategory}
+                    onChange={(e) => setEditForm({ ...editForm, problemCategory: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  >
+                    <option value="">Pilih...</option>
+                    {problemOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {formatTypeLabel(x)}
                       </option>
                     ))}
                   </select>
@@ -1546,12 +1685,15 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
                 {(((detailRow.status || '').toUpperCase() === 'CLOSE' || !!detailRow.closedAt) &&
                   (Number(detailRow.closePhotosCount || 0) > 0 ||
+                    (Array.isArray(detailRow.closePhotoUrls) && detailRow.closePhotoUrls.length > 0) ||
                     (Array.isArray(detailRow.closePhotos) && detailRow.closePhotos.length > 0))) && (
                   <button
                     type="button"
                     onClick={async () => {
                       if (!detailRow) return
-                      if (!Array.isArray(detailRow.closePhotos)) {
+                      const hasUrls = Array.isArray(detailRow.closePhotoUrls)
+                      const hasLegacy = Array.isArray(detailRow.closePhotos)
+                      if (!hasUrls && !hasLegacy) {
                         await ensureDetailPhotos(detailRow.id)
                       }
                       setIsPhotoViewerOpen(true)
@@ -1585,7 +1727,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         </div>
       )}
 
-      {detailRow && isPhotoViewerOpen && Array.isArray(detailRow.closePhotos) && (
+      {detailRow && isPhotoViewerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div className="w-full max-w-4xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
@@ -1600,23 +1742,36 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               </button>
             </div>
             <div className="px-5 py-4">
-              {detailRow.closePhotos.length === 0 ? (
-                <div className="text-sm text-gray-600 dark:text-gray-300">Tidak ada foto</div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {detailRow.closePhotos.map((src, idx) => (
-                    <a
-                      key={idx}
-                      href={src}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block overflow-hidden rounded-md border border-gray-200 dark:border-gray-700"
-                    >
-                      <NextImage src={src} alt={`foto-${idx + 1}`} width={800} height={600} unoptimized className="h-32 w-full object-cover" />
-                    </a>
-                  ))}
-                </div>
-              )}
+              {(() => {
+                const sources = (Array.isArray(detailRow.closePhotoUrls) ? detailRow.closePhotoUrls : null) ??
+                  (Array.isArray(detailRow.closePhotos) ? detailRow.closePhotos : null) ??
+                  []
+                if (sources.length === 0) {
+                  return <div className="text-sm text-gray-600 dark:text-gray-300">Tidak ada foto</div>
+                }
+                return (
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {sources.map((src, idx) => (
+                      <a
+                        key={idx}
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block overflow-hidden rounded-md border border-gray-200 dark:border-gray-700"
+                      >
+                        <NextImage
+                          src={src}
+                          alt={`foto-${idx + 1}`}
+                          width={800}
+                          height={600}
+                          unoptimized
+                          className="h-32 w-full object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>

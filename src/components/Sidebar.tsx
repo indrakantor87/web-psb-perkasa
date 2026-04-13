@@ -39,6 +39,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     { href: '/settings/areas', label: 'Master Area' },
     { href: '/settings/users', label: 'Manajemen Pengguna' },
     { href: '/settings/templates', label: 'Template WA' },
+    { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
   ] : []
 
   const handleLinkClick = () => {

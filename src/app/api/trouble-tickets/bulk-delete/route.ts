@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { deletePhotosForTicket, ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 
 export const runtime = 'nodejs'
-
-type TroubleTicketDelegate = {
-  deleteMany: (args: Record<string, unknown>) => Promise<{ count: number }>
-}
 
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
@@ -39,6 +36,7 @@ export async function POST(req: Request) {
   if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTable().catch(() => {})
+  await ensurePhotoTableOnce().catch(() => {})
 
   const body = (await req.json().catch(() => ({}))) as { ids?: unknown }
   const idsRaw = Array.isArray(body.ids) ? body.ids : []
@@ -54,9 +52,17 @@ export async function POST(req: Request) {
   if (ids.length > 500) return NextResponse.json({ error: 'Terlalu banyak id' }, { status: 400 })
 
   try {
-    const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
-    const deleted = await client.troubleTicket.deleteMany({ where: { id: { in: ids } } })
-    return NextResponse.json({ ok: true, deleted: deleted.count })
+    await Promise.all(ids.map((id) => deletePhotosForTicket(id).catch(() => {})))
+    const rows = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
+      `WITH d AS (
+         DELETE FROM "TroubleTicket"
+         WHERE "id" = ANY($1::int[])
+         RETURNING 1
+       )
+       SELECT COUNT(*)::int AS count FROM d;`,
+      ids
+    )
+    return NextResponse.json({ ok: true, deleted: rows[0]?.count ?? 0 })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to delete tickets' }, { status: 500 })

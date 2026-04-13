@@ -4,10 +4,6 @@ import { getSession } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
-type TroubleTicketDelegate = {
-  create: (args: Record<string, unknown>) => Promise<unknown>
-}
-
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "TroubleTicket" (
@@ -44,10 +40,14 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeNotes" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "closeBy" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_category_idx" ON "TroubleTicket"("category");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_problemCategory_idx" ON "TroubleTicket"("problemCategory");`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_resolutionAction_idx" ON "TroubleTicket"("resolutionAction");`)
 }
 
 type TicketCategory = 'TT' | 'PV'
@@ -195,6 +195,8 @@ export async function POST(request: Request) {
       openedAt?: unknown
       closedAt?: unknown
       notes?: unknown
+      problemCategory?: unknown
+      resolutionAction?: unknown
       status?: unknown
     }>
   }
@@ -221,6 +223,8 @@ export async function POST(request: Request) {
       const type = String(r.type ?? '').trim()
       const mapsUrl = String(r.mapsUrl ?? '').trim()
       const notes = String(r.notes ?? '').trim()
+      const problemCategory = String(r.problemCategory ?? '').trim()
+      const resolutionAction = String(r.resolutionAction ?? '').trim()
 
       if (!customerName || !waNumber || !type) {
         failed += 1
@@ -232,26 +236,33 @@ export async function POST(request: Request) {
       const statusRaw = String(r.status ?? '').trim().toUpperCase()
       const status = closedAt ? 'CLOSE' : statusRaw === 'CLOSE' ? 'CLOSE' : 'OPEN'
 
-      const client = prisma as unknown as { troubleTicket: TroubleTicketDelegate }
-      await client.troubleTicket.create({
-        data: {
-          ticketCode: allocated.ticketCode,
-          ticketPrefix: allocated.ticketPrefix,
-          ticketNumber: allocated.ticketNumber,
-          category: allocated.category,
-          periodMonth,
-          periodYear,
-          customerName,
-          user: user || null,
-          waNumber,
-          type,
-          mapsUrl: mapsUrl || null,
-          notes: notes || null,
-          openedAt,
-          closedAt: status === 'CLOSE' ? (closedAt ?? new Date()) : null,
-          status,
-        },
-      })
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "TroubleTicket" (
+           "ticketCode","ticketPrefix","ticketNumber","category",
+           "periodMonth","periodYear",
+           "customerName","user","waNumber","mapsUrl","type","notes",
+           "problemCategory","resolutionAction",
+           "openedAt","closedAt","status"
+         )
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17);`,
+        allocated.ticketCode,
+        allocated.ticketPrefix,
+        allocated.ticketNumber,
+        allocated.category,
+        periodMonth,
+        periodYear,
+        customerName,
+        user || null,
+        waNumber,
+        mapsUrl || null,
+        type,
+        notes || null,
+        problemCategory || null,
+        resolutionAction || null,
+        openedAt,
+        status === 'CLOSE' ? (closedAt ?? new Date()) : null,
+        status
+      )
       success += 1
     } catch {
       failed += 1
