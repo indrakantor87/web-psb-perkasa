@@ -129,6 +129,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   const [closeNotes, setCloseNotes] = useState('')
   const [resolutionActions, setResolutionActions] = useState<string[]>([])
   const [resolutionOptions, setResolutionOptions] = useState<string[]>([...DEFAULT_RESOLUTION_ACTIONS])
+  const [actionQuery, setActionQuery] = useState('')
   const [files, setFiles] = useState<File[]>([])
 
   useEffect(() => {
@@ -178,6 +179,15 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   }, [])
 
   const wa = useMemo(() => (ticket ? normalizeWaNumber(ticket.waNumber) : ''), [ticket])
+  const filteredResolutionOptions = useMemo(() => {
+    const q = actionQuery.trim().toLowerCase()
+    if (!q) return resolutionOptions
+    return resolutionOptions.filter((x) => {
+      const raw = String(x ?? '').trim().toLowerCase()
+      const label = formatTypeLabel(x).trim().toLowerCase()
+      return raw.includes(q) || label.includes(q)
+    })
+  }, [actionQuery, resolutionOptions])
 
   const handleFileChange = async (picked: FileList | null) => {
     if (!picked) return
@@ -313,23 +323,43 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         </div>
         <div className="space-y-1">
           <div className="text-sm font-semibold">Tindakan</div>
-          <select
-            value={resolutionActions}
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
-              setResolutionActions(selected)
-            }}
+          <input
+            value={actionQuery}
+            onChange={(e) => setActionQuery(e.target.value)}
             disabled={saving}
-            multiple
+            placeholder="Cari tindakan..."
             className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
-          >
-            {resolutionOptions.map((x) => (
-              <option key={x} value={x}>
-                {formatTypeLabel(x)}
-              </option>
-            ))}
-          </select>
-          <div className="text-[11px] text-gray-400">Tekan Ctrl (Windows) untuk pilih lebih dari 1.</div>
+          />
+          <div className="max-h-56 overflow-y-auto rounded-md border border-gray-700 bg-gray-900 px-3 py-2">
+            {filteredResolutionOptions.length === 0 ? (
+              <div className="py-2 text-sm text-gray-400">Tidak ada data</div>
+            ) : (
+              <div className="space-y-2">
+                {filteredResolutionOptions.map((x) => {
+                  const checked = resolutionActions.includes(x)
+                  return (
+                    <label key={x} className="flex items-center gap-2 text-sm text-white">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={saving}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? Array.from(new Set([...resolutionActions, x]))
+                            : resolutionActions.filter((v) => v !== x)
+                          setResolutionActions(next)
+                        }}
+                      />
+                      <span>{formatTypeLabel(x)}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <div className="text-[11px] text-gray-400">
+            {resolutionActions.length ? `Dipilih: ${resolutionActions.map((x) => formatTypeLabel(x)).join(', ')}` : 'Belum ada tindakan dipilih'}
+          </div>
         </div>
       </div>
 
