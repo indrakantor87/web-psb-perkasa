@@ -6,6 +6,7 @@ import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 export const runtime = 'nodejs'
 
 let ensuredPromise: Promise<void> | null = null
+let ensuredSlaPromise: Promise<void> | null = null
 
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
@@ -66,6 +67,30 @@ async function ensureTroubleTicketTableOnce() {
     })
   }
   await ensuredPromise
+}
+
+async function ensureSlaTable() {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "TroubleTicketSla" (
+      "id" SERIAL NOT NULL,
+      "type" TEXT NOT NULL,
+      "durationDays" INT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "TroubleTicketSla_pkey" PRIMARY KEY ("id")
+    );
+  `)
+  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicketSla_type_key" ON "TroubleTicketSla"("type");`)
+}
+
+async function ensureSlaTableOnce() {
+  if (!ensuredSlaPromise) {
+    ensuredSlaPromise = ensureSlaTable().catch((e) => {
+      ensuredSlaPromise = null
+      throw e
+    })
+  }
+  await ensuredSlaPromise
 }
 
 type TicketCategory = 'TT' | 'PV'
@@ -202,6 +227,7 @@ export async function GET(request: Request) {
   try {
     await ensureTroubleTicketTableOnce()
     await ensurePhotoTableOnce()
+    await ensureSlaTableOnce()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'DB init failed' }, { status: 500 })
@@ -210,6 +236,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const search = (searchParams.get('search') ?? '').trim()
   const status = (searchParams.get('status') ?? 'ALL').trim().toUpperCase()
+  const overdueOnly = (searchParams.get('overdue') ?? '') === '1'
   const { month, year } = parseMonthYear(searchParams)
   const roleUpper = (session.user.role || '').toUpperCase()
 
@@ -233,52 +260,114 @@ export async function GET(request: Request) {
 
   try {
     const limitParam = Math.trunc(Number(searchParams.get('limit')))
+    const pageParam = Math.trunc(Number(searchParams.get('page')))
 
     const statusFilter =
       roleUpper === 'TROUBLESHOOTS'
         ? (status === 'OPEN' || status === 'CLOSE') ? status : 'OPEN'
         : (status && status !== 'ALL') ? status : null
 
-    const whereParts: string[] = []
-    const params: unknown[] = []
+    const baseParts: string[] = []
+    const baseParams: unknown[] = []
+
+    if (roleUpper !== 'TROUBLESHOOTS') {
+      baseParams.push(month)
+      baseParts.push(`"periodMonth" = $${baseParams.length}`)
+      baseParams.push(year)
+      baseParts.push(`"periodYear" = $${baseParams.length}`)
+    }
+
+    if (search) {
+      baseParams.push(`%${search}%`)
+      const p = `$${baseParams.length}`
+      baseParts.push(
+        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p})`
+      )
+    }
+
+    const whereParts: string[] = [...baseParts]
+    const params: unknown[] = [...baseParams]
 
     if (statusFilter) {
       params.push(statusFilter)
       whereParts.push(`"status" = $${params.length}`)
     }
 
-    if (roleUpper !== 'TROUBLESHOOTS') {
-      params.push(month)
-      whereParts.push(`"periodMonth" = $${params.length}`)
-      params.push(year)
-      whereParts.push(`"periodYear" = $${params.length}`)
-    }
-
-    if (search) {
-      params.push(`%${search}%`)
-      const p = `$${params.length}`
-      whereParts.push(
-        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p})`
-      )
+    const useSlaJoin = roleUpper !== 'TROUBLESHOOTS' && overdueOnly
+    if (useSlaJoin) {
+      whereParts.push(`NOW() - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')`)
     }
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
+    const summaryWhereSql = baseParts.length ? `WHERE ${baseParts.join(' AND ')}` : ''
 
-    const take =
+    const allowedPageSizes = new Set([25, 50, 100])
+    const pageSize =
       roleUpper === 'TROUBLESHOOTS'
-        ? Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500
-          ? limitParam
-          : (statusFilter === 'CLOSE' ? 120 : 200)
-        : null
+        ? (Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500
+            ? limitParam
+            : (statusFilter === 'CLOSE' ? 120 : 200))
+        : (allowedPageSizes.has(limitParam) ? limitParam : 25)
+
+    const page =
+      roleUpper === 'TROUBLESHOOTS'
+        ? 1
+        : (Number.isFinite(pageParam) && pageParam >= 1 && pageParam <= 100000 ? pageParam : 1)
+
+    const offset = roleUpper === 'TROUBLESHOOTS' ? 0 : (page - 1) * pageSize
 
     const orderSql =
       roleUpper === 'TROUBLESHOOTS' && statusFilter === 'CLOSE'
         ? `"closedAt" DESC NULLS LAST, "openedAt" DESC`
         : `"openedAt" DESC`
 
-    const limitSql = take ? `LIMIT ${take}` : ''
+    if (roleUpper === 'TROUBLESHOOTS') {
+      const sql = `
+        SELECT
+          "id",
+          "ticketCode",
+          "ticketPrefix",
+          "ticketNumber",
+          "category",
+          "periodMonth",
+          "periodYear",
+          "customerName",
+          "user",
+          "waNumber",
+          "mapsUrl",
+          "type",
+          "openedAt",
+          "closedAt",
+          "notes",
+          "closeBy",
+          "problemCategory",
+          "resolutionAction",
+          (
+            COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
+            + COALESCE(array_length("closePhotos", 1), 0)
+          )::int AS "closePhotosCount",
+          "status"
+        FROM "TroubleTicket"
+        ${whereSql}
+        ORDER BY ${orderSql}
+        LIMIT ${pageSize};
+      `
 
-    const sql = `
+      const rows = await prisma.$queryRawUnsafe<unknown[]>(sql, ...params)
+      return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-store' } })
+    }
+
+    const take = pageSize
+    params.push(take)
+    const limitToken = `$${params.length}`
+    params.push(offset)
+    const offsetToken = `$${params.length}`
+
+    const fromSql = useSlaJoin
+      ? `FROM "TroubleTicket" LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"`
+      : `FROM "TroubleTicket"`
+
+    const sqlPaged = `
       SELECT
         "id",
         "ticketCode",
@@ -302,15 +391,41 @@ export async function GET(request: Request) {
           COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
           + COALESCE(array_length("closePhotos", 1), 0)
         )::int AS "closePhotosCount",
-        "status"
-      FROM "TroubleTicket"
+        "status",
+        COUNT(*) OVER()::int AS "totalCount"
+      ${fromSql}
       ${whereSql}
       ORDER BY ${orderSql}
-      ${limitSql};
+      LIMIT ${limitToken} OFFSET ${offsetToken};
     `
 
-    const rows = await prisma.$queryRawUnsafe<unknown[]>(sql, ...params)
-    return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-store' } })
+    const raw = await prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(sqlPaged, ...params)
+    const total = raw[0]?.totalCount ? Math.trunc(Number(raw[0]?.totalCount)) : 0
+    const items = raw.map((r) => {
+      const { totalCount, ...rest } = r
+      void totalCount
+      return rest
+    })
+
+    const summarySql = `
+      SELECT
+        COUNT(*) FILTER (WHERE "status" = 'OPEN')::int AS "open",
+        COUNT(*) FILTER (WHERE "status" = 'CLOSE')::int AS "close",
+        COUNT(*) FILTER (
+          WHERE "status" = 'OPEN'
+            AND NOW() - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
+        )::int AS "overdue"
+      FROM "TroubleTicket"
+      LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"
+      ${summaryWhereSql};
+    `
+    const summaryRows = await prisma.$queryRawUnsafe<Array<{ open: number; close: number; overdue: number }>>(summarySql, ...baseParams).catch(() => [])
+    const summary = summaryRows[0] ?? { open: 0, close: 0, overdue: 0 }
+
+    return NextResponse.json(
+      { items, total, page, limit: pageSize, summary },
+      { headers: { 'Cache-Control': 'no-store' } }
+    )
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to fetch trouble tickets' }, { status: 500 })

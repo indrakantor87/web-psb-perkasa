@@ -260,6 +260,10 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE'>(
     (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
   )
+  const [pageSize, setPageSize] = useState(25)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [summaryRemote, setSummaryRemote] = useState<{ open: number; close: number; overdue: number }>({ open: 0, close: 0, overdue: 0 })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -319,6 +323,11 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   }, [isTroubleshoots, status])
 
   useEffect(() => {
+    if (isTroubleshoots) return
+    setPage(1)
+  }, [isTroubleshoots, month, year, status, debouncedSearch, pageSize])
+
+  useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(search), 300)
     return () => window.clearTimeout(t)
   }, [search])
@@ -349,10 +358,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!isTroubleshoots) {
         params.set('month', String(month))
         params.set('year', String(year))
+        params.set('limit', String(pageSize))
+        params.set('page', String(page))
       } else {
         params.set('limit', status === 'CLOSE' ? '120' : '200')
       }
       if (search.trim()) params.set('search', search.trim())
+      if (!isTroubleshoots && status === 'OVERDUE') params.set('overdue', '1')
       if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
       const res = await fetch(`/api/trouble-tickets?${params.toString()}`)
       const data = (await res.json().catch(() => ({}))) as unknown
@@ -360,7 +372,19 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         const msg = (data as { error?: string })?.error || 'Gagal memuat data'
         throw new Error(msg)
       }
-      const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
+      const nextRows = (isTroubleshoots
+        ? (Array.isArray(data) ? data : [])
+        : (Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : [])) as TroubleTicketRow[]
+      if (!isTroubleshoots) {
+        const t = Math.trunc(Number((data as { total?: unknown }).total))
+        setTotal(Number.isFinite(t) && t >= 0 ? t : 0)
+        const s = (data as { summary?: { open?: unknown; close?: unknown; overdue?: unknown } }).summary
+        setSummaryRemote({
+          open: Math.trunc(Number(s?.open ?? 0)) || 0,
+          close: Math.trunc(Number(s?.close ?? 0)) || 0,
+          overdue: Math.trunc(Number(s?.overdue ?? 0)) || 0,
+        })
+      }
       setRows(
         isTroubleshoots
           ? nextRows.filter((r) => {
@@ -374,14 +398,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               return Number.isFinite(t) && nowMs - t > limitMs
             })
           : status === 'OVERDUE'
-            ? nextRows.filter((r) => {
-                const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
-                if (isClosed) return false
-                const t = new Date(r.openedAt).getTime()
-                const days = slaDays[normalizeTypeKey(r.type)] ?? 1
-                const limitMs = days * 24 * 60 * 60 * 1000
-                return Number.isFinite(t) && nowMs - t > limitMs
-              })
+            ? nextRows
             : nextRows
       )
     } catch (e: unknown) {
@@ -450,14 +467,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       setLoading(true)
       setError(null)
       try {
+        const nowMs = Date.now()
         const params = new URLSearchParams()
         if (!isTroubleshoots) {
           params.set('month', String(month))
           params.set('year', String(year))
+          params.set('limit', String(pageSize))
+          params.set('page', String(page))
         } else {
-          params.set('limit', '200')
+          params.set('limit', status === 'CLOSE' ? '120' : '200')
         }
         if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
+        if (!isTroubleshoots && status === 'OVERDUE') params.set('overdue', '1')
         if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
         const res = await fetch(`/api/trouble-tickets?${params.toString()}`, { signal: controller.signal })
         const data = (await res.json().catch(() => ({}))) as unknown
@@ -465,27 +486,33 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const msg = (data as { error?: string })?.error || 'Gagal memuat data'
           throw new Error(msg)
         }
-        const nextRows = (Array.isArray(data) ? data : []) as TroubleTicketRow[]
+        const nextRows = (isTroubleshoots
+          ? (Array.isArray(data) ? data : [])
+          : (Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : [])) as TroubleTicketRow[]
+        if (!isTroubleshoots) {
+          const t = Math.trunc(Number((data as { total?: unknown }).total))
+          setTotal(Number.isFinite(t) && t >= 0 ? t : 0)
+          const s = (data as { summary?: { open?: unknown; close?: unknown; overdue?: unknown } }).summary
+          setSummaryRemote({
+            open: Math.trunc(Number(s?.open ?? 0)) || 0,
+            close: Math.trunc(Number(s?.close ?? 0)) || 0,
+            overdue: Math.trunc(Number(s?.overdue ?? 0)) || 0,
+          })
+        }
         setRows(
           isTroubleshoots
             ? nextRows.filter((r) => {
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                if (status === 'CLOSE') return isClosed
                 if (isClosed) return false
                 if (status !== 'OVERDUE') return true
                 const t = new Date(r.openedAt).getTime()
                 const days = slaDays[normalizeTypeKey(r.type)] ?? 1
                 const limitMs = days * 24 * 60 * 60 * 1000
-                return Number.isFinite(t) && Date.now() - t > limitMs
+                return Number.isFinite(t) && nowMs - t > limitMs
               })
             : status === 'OVERDUE'
-              ? nextRows.filter((r) => {
-                  const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
-                  if (isClosed) return false
-                  const t = new Date(r.openedAt).getTime()
-                  const days = slaDays[normalizeTypeKey(r.type)] ?? 1
-                  const limitMs = days * 24 * 60 * 60 * 1000
-                  return Number.isFinite(t) && Date.now() - t > limitMs
-                })
+              ? nextRows
               : nextRows
         )
       } catch (e: unknown) {
@@ -498,11 +525,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     })()
 
     return () => controller.abort()
-  }, [debouncedSearch, isTroubleshoots, status, month, year, slaDays])
+  }, [debouncedSearch, isTroubleshoots, status, month, year, slaDays, page, pageSize])
 
   const now = Date.now()
 
   const summary = useMemo(() => {
+    if (!isTroubleshoots) return summaryRemote
     let open = 0
     let close = 0
     let overdue = 0
@@ -521,7 +549,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       }
     }
     return { open, close, overdue }
-  }, [rows, now, slaDays])
+  }, [isTroubleshoots, rows, now, slaDays, summaryRemote])
+
+  const pageStart = !isTroubleshoots && total > 0 ? (page - 1) * pageSize + 1 : 0
+  const pageEnd = !isTroubleshoots && total > 0 ? Math.min((page - 1) * pageSize + rows.length, total) : 0
+  const canPrevPage = !isTroubleshoots && page > 1
+  const canNextPage = !isTroubleshoots && pageEnd < total
 
   const handleCreate = async () => {
     if (!canCreate) return
@@ -1571,6 +1604,45 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             )}
           </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-gray-700 dark:text-gray-200">
+              {total > 0 ? `Menampilkan ${pageStart}–${pageEnd} dari ${total} data` : 'Tidak ada data'}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Tampil</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                >
+                  {[25, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={!canPrevPage}
+                className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 disabled:opacity-50"
+              >
+                Sebelumnya
+              </button>
+              <div className="text-sm text-gray-700 dark:text-gray-200">Halaman {page}</div>
+              <button
+                type="button"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={!canNextPage}
+                className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 disabled:opacity-50"
+              >
+                Berikutnya
+              </button>
+            </div>
           </div>
         </div>
       </div>
