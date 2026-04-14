@@ -20,7 +20,6 @@ interface UsersClientProps {
 }
 
 export function UsersClient({ currentUser }: UsersClientProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -120,7 +119,6 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         role: 'MARKETING'
       })
       fetchUsers()
-      router.refresh()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -168,6 +166,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       setSuccess('Password berhasil direset!')
       handleCloseResetModal()
+      fetchUsers()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -208,7 +207,6 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       setSuccess('User berhasil dihapus!')
       handleCloseDeleteModal()
       fetchUsers()
-      router.refresh()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

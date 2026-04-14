@@ -258,8 +258,6 @@ export async function DELETE(
     })
     cache.invalidateByPrefix('tickets-list:')
     cache.invalidateByPrefix('tickets:')
-    cache.invalidateByPrefix('tickets-list:')
-    cache.invalidateByPrefix('tickets:')
     return NextResponse.json({ message: 'Ticket deleted' })
   } catch {
     return NextResponse.json({ error: 'Failed to delete ticket' }, { status: 500 })
