@@ -315,7 +315,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
 
   useEffect(() => {
     if (!isTroubleshoots) return
-    if (status !== 'OPEN' && status !== 'OVERDUE') setStatus('OPEN')
+    if (status !== 'OPEN' && status !== 'CLOSE') setStatus('OPEN')
   }, [isTroubleshoots, status])
 
   useEffect(() => {
@@ -350,7 +350,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         params.set('month', String(month))
         params.set('year', String(year))
       } else {
-        params.set('limit', '200')
+        params.set('limit', status === 'CLOSE' ? '120' : '200')
       }
       if (search.trim()) params.set('search', search.trim())
       if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
@@ -365,6 +365,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         isTroubleshoots
           ? nextRows.filter((r) => {
               const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+              if (status === 'CLOSE') return isClosed
               if (isClosed) return false
               if (status !== 'OVERDUE') return true
               const t = new Date(r.openedAt).getTime()
@@ -1018,11 +1019,11 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'OVERDUE')}
+                onChange={(e) => setStatus(e.target.value as 'OPEN' | 'CLOSE')}
                 className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white md:w-40"
               >
                 <option value="OPEN">OPEN</option>
-                <option value="OVERDUE">OVERDUE</option>
+                <option value="CLOSE">CLOSE</option>
               </select>
             </div>
           )}
