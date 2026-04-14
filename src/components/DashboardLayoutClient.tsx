@@ -14,7 +14,7 @@ interface DashboardLayoutClientProps {
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
   const router = useRouter()
-  const mainRef = useRef<HTMLElement | null>(null)
+  const [mainElement, setMainElement] = useState<HTMLElement | null>(null)
   const [isNative, setIsNative] = useState(false)
 
   useEffect(() => {
@@ -67,12 +67,11 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
       
       <div className="flex flex-1 overflow-hidden">
         <main
-          ref={(el) => {
-            mainRef.current = el
-          }}
+          ref={setMainElement}
           className="relative flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+          style={{ overscrollBehaviorY: isNative ? 'contain' : 'auto' }}
         >
-          <PullToRefresh scrollEl={mainRef.current} enabled={isNative} onRefresh={onRefresh} />
+          <PullToRefresh scrollEl={mainElement} enabled={isNative} onRefresh={onRefresh} />
           {children}
         </main>
       </div>

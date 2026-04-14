@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
 type PullToRefreshProps = {
   scrollEl: HTMLElement | null
@@ -16,6 +17,7 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
   const activeRef = useRef(false)
   const startScrollTopRef = useRef(0)
   const pullRef = useRef(0)
+  const refreshingRef = useRef(false)
 
   const threshold = 80
   const maxPull = 140
@@ -27,56 +29,65 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
   }, [pull, refreshing])
 
   useEffect(() => {
+    refreshingRef.current = refreshing
+  }, [refreshing])
+
+  useEffect(() => {
     if (!enabled) return
     if (!scrollEl) return
 
     let disposed = false
 
     const onTouchStart = (e: TouchEvent) => {
-      if (disposed) return
-      if (refreshing) return
+      if (disposed || refreshingRef.current) return
       if (e.touches.length !== 1) return
+      
       startScrollTopRef.current = scrollEl.scrollTop
       startYRef.current = e.touches[0]?.clientY ?? null
       activeRef.current = false
+      pullRef.current = 0
       setPull(0)
     }
 
     const onTouchMove = (e: TouchEvent) => {
-      if (disposed) return
-      if (refreshing) return
-      if (startYRef.current == null) return
+      if (disposed || refreshingRef.current || startYRef.current == null) return
+      if (startScrollTopRef.current > 0) return
+
       const currentY = e.touches[0]?.clientY ?? 0
       const delta = currentY - startYRef.current
-      if (startScrollTopRef.current > 0) return
+      
       if (delta <= 0) return
 
       activeRef.current = true
-      const next = Math.min(maxPull, Math.max(0, delta))
+      // Apply rubber band effect
+      const next = Math.min(maxPull, Math.pow(delta, 0.85) * 2)
       pullRef.current = next
       setPull(next)
-      e.preventDefault()
+      
+      if (e.cancelable) {
+        e.preventDefault()
+      }
     }
 
     const end = async () => {
-      if (disposed) return
-      if (!activeRef.current) {
-        startYRef.current = null
-        pullRef.current = 0
-        setPull(0)
-        return
-      }
-      const shouldRefresh = pullRef.current >= threshold
+      if (disposed || refreshingRef.current) return
+      
+      const isRefreshing = activeRef.current && pullRef.current >= threshold
+      
       startYRef.current = null
       activeRef.current = false
       pullRef.current = 0
       setPull(0)
-      if (!shouldRefresh) return
-      setRefreshing(true)
-      try {
-        await onRefresh()
-      } finally {
-        if (!disposed) setRefreshing(false)
+
+      if (isRefreshing) {
+        setRefreshing(true)
+        try {
+          await onRefresh()
+        } catch (err) {
+          console.error('Refresh failed:', err)
+        } finally {
+          if (!disposed) setRefreshing(false)
+        }
       }
     }
 
@@ -95,20 +106,31 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
       scrollEl.removeEventListener('touchend', onTouchEnd as unknown as EventListener)
       scrollEl.removeEventListener('touchcancel', onTouchCancel as unknown as EventListener)
     }
-  }, [enabled, onRefresh, refreshing, scrollEl])
+  }, [enabled, onRefresh, scrollEl]) // Removed refreshing from dependencies
 
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-center"
+      className="pointer-events-none absolute left-0 right-0 top-0 z-[60] flex items-center justify-center overflow-hidden"
       style={{
-        height: 44,
-        transform: `translateY(${Math.min(44, Math.max(0, pull)) - 44}px)`,
-        transition: pull === 0 ? 'transform 160ms ease' : undefined,
+        height: maxPull,
+        transform: `translateY(${Math.min(maxPull, Math.max(0, refreshing ? 60 : pull)) - maxPull}px)`,
+        transition: (pull === 0 || refreshing) ? 'transform 300ms cubic-bezier(0.23, 1, 0.32, 1)' : undefined,
       }}
     >
-      <div className="rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white">
-        {label}
+      <div className="flex items-center gap-2 rounded-full bg-white/90 dark:bg-gray-800/90 px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 shadow-lg border border-gray-200 dark:border-gray-700">
+        {refreshing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <div 
+            className="h-2 w-2 rounded-full bg-blue-500" 
+            style={{ 
+              transform: `scale(${Math.min(1.5, pull / threshold)})`,
+              opacity: Math.min(1, pull / (threshold / 2))
+            }} 
+          />
+        )}
+        <span>{label}</span>
       </div>
     </div>
   )
