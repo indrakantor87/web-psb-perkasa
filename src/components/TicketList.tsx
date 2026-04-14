@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
+import { isPlatform } from '@ionic/react'
+import { PullToRefresh } from '@capacitor/app'
 
 interface Ticket {
   id: number
@@ -81,6 +83,24 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   useEffect(() => {
     setTicketsState(tickets)
   }, [tickets])
+
+  // Pull to refresh for Capacitor
+  useEffect(() => {
+    if (isPlatform('capacitor')) {
+      PullToRefresh.setEnabled(true)
+      PullToRefresh.addListener('refresh', async () => {
+        router.refresh()
+        await PullToRefresh.complete()
+      })
+    }
+
+    return () => {
+      if (isPlatform('capacitor')) {
+        PullToRefresh.removeAllListeners()
+        PullToRefresh.setEnabled(false)
+      }
+    }
+  }, [router])
   
   // Pagination from props (Server Side)
   const currentPage = pagination?.currentPage || 1
