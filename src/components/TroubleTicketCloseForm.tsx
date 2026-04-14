@@ -281,162 +281,169 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   }
 
   return (
-    <div className="rounded-lg bg-black text-white border border-gray-800 p-4 space-y-4">
-      <div className="text-lg font-bold">Close Ticket</div>
+    <div className="relative rounded-lg bg-black text-white border border-gray-800 p-4">
+      <div className="space-y-4 pb-28">
+        <div className="text-lg font-bold">Close Ticket</div>
 
-      {error && (
-        <div className="rounded-md border border-red-900/40 bg-red-900/20 px-3 py-2 text-sm text-red-200">
-          {error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">Nama Pelanggan</div>
-          <div className="font-semibold">{ticket.customerName}</div>
-        </div>
-        <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">No Ticket</div>
-          <div className="font-semibold">{ticket.ticketCode || ticket.id}</div>
-        </div>
-        <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">No WA</div>
-          {wa ? (
-            <a
-              href={`https://wa.me/${wa}`}
-              target="_blank"
-              rel="noreferrer"
-              className="break-words font-semibold text-blue-300 hover:underline"
-            >
-              {ticket.waNumber}
-            </a>
-          ) : (
-            <div className="break-words font-semibold">{ticket.waNumber || '-'}</div>
-          )}
-        </div>
-        <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">Keterangan Ticket</div>
-          <div className="break-words font-semibold">{formatTypeLabel(ticket.type)}</div>
-          <div className="mt-1 break-words text-sm text-gray-200">{(ticket.notes || '').trim() || '-'}</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-md bg-gray-900 px-3 py-2">
-          <div className="text-xs text-gray-400">Jenis Gangguan</div>
-          <div className="break-words font-semibold">{(String(ticket.problemCategory ?? '').trim() || '-')}</div>
-        </div>
-        <div className="space-y-1">
-          <div className="text-sm font-semibold">Tindakan</div>
-          <input
-            value={actionQuery}
-            onChange={(e) => setActionQuery(e.target.value)}
-            disabled={saving}
-            placeholder="Cari tindakan..."
-            className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
-          />
-          <div className="max-h-56 overflow-y-auto rounded-md border border-gray-700 bg-gray-900 px-3 py-2">
-            {filteredResolutionOptions.length === 0 ? (
-              <div className="py-2 text-sm text-gray-400">Tidak ada data</div>
-            ) : (
-              <div className="space-y-2">
-                {filteredResolutionOptions.map((x) => {
-                  const checked = resolutionActions.includes(x)
-                  return (
-                    <label key={x} className="flex items-center gap-2 text-sm text-white">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={saving}
-                        onChange={(e) => {
-                          const next = e.target.checked
-                            ? Array.from(new Set([...resolutionActions, x]))
-                            : resolutionActions.filter((v) => v !== x)
-                          setResolutionActions(next)
-                        }}
-                      />
-                      <span>{formatTypeLabel(x)}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-          <div className="text-[11px] text-gray-400">
-            {resolutionActions.length ? `Dipilih: ${resolutionActions.map((x) => formatTypeLabel(x)).join(', ')}` : 'Belum ada tindakan dipilih'}
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Penanganan</div>
-        <textarea
-          value={closeNotes}
-          onChange={(e) => setCloseNotes(e.target.value)}
-          className="w-full min-h-[120px] rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
-          placeholder="Isi penanganan yang dilakukan di lokasi..."
-        />
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Upload Foto (maks 10, max 10MB / foto)</div>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => handleFileChange(e.target.files)}
-          disabled={saving}
-          className="block w-full text-sm text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-900"
-        />
-        {files.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            {files.map((f, idx) => {
-              const url = URL.createObjectURL(f)
-              return (
-                <div key={`${f.name}-${idx}`} className="rounded-md bg-gray-900 border border-gray-800 overflow-hidden">
-                  <NextImage
-                    src={url}
-                    alt={f.name}
-                    width={400}
-                    height={200}
-                    unoptimized
-                    className="h-24 w-full object-cover"
-                    onLoad={() => URL.revokeObjectURL(url)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFileAt(idx)}
-                    className="w-full px-2 py-2 text-xs font-semibold text-red-200 hover:bg-red-900/20"
-                  >
-                    Hapus
-                  </button>
-                </div>
-              )
-            })}
+        {error && (
+          <div className="rounded-md border border-red-900/40 bg-red-900/20 px-3 py-2 text-sm text-red-200">
+            {error}
           </div>
         )}
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-md bg-gray-900 px-3 py-2">
+            <div className="text-xs text-gray-400">Nama Pelanggan</div>
+            <div className="font-semibold">{ticket.customerName}</div>
+          </div>
+          <div className="rounded-md bg-gray-900 px-3 py-2">
+            <div className="text-xs text-gray-400">No Ticket</div>
+            <div className="font-semibold">{ticket.ticketCode || ticket.id}</div>
+          </div>
+          <div className="rounded-md bg-gray-900 px-3 py-2">
+            <div className="text-xs text-gray-400">No WA</div>
+            {wa ? (
+              <a
+                href={`https://wa.me/${wa}`}
+                target="_blank"
+                rel="noreferrer"
+                className="break-words font-semibold text-blue-300 hover:underline"
+              >
+                {ticket.waNumber}
+              </a>
+            ) : (
+              <div className="break-words font-semibold">{ticket.waNumber || '-'}</div>
+            )}
+          </div>
+          <div className="rounded-md bg-gray-900 px-3 py-2">
+            <div className="text-xs text-gray-400">Keterangan Ticket</div>
+            <div className="break-words font-semibold">{formatTypeLabel(ticket.type)}</div>
+            <div className="mt-1 break-words text-sm text-gray-200">{(ticket.notes || '').trim() || '-'}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-md bg-gray-900 px-3 py-2">
+            <div className="text-xs text-gray-400">Jenis Gangguan</div>
+            <div className="break-words font-semibold">{(String(ticket.problemCategory ?? '').trim() || '-')}</div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm font-semibold">Tindakan</div>
+            <input
+              value={actionQuery}
+              onChange={(e) => setActionQuery(e.target.value)}
+              disabled={saving}
+              placeholder="Cari tindakan..."
+              className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+            />
+            <div className="max-h-56 overflow-y-auto rounded-md border border-gray-700 bg-gray-900 px-3 py-2">
+              {filteredResolutionOptions.length === 0 ? (
+                <div className="py-2 text-sm text-gray-400">Tidak ada data</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredResolutionOptions.map((x) => {
+                    const checked = resolutionActions.includes(x)
+                    return (
+                      <label key={x} className="flex items-center gap-2 text-sm text-white">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={saving}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? Array.from(new Set([...resolutionActions, x]))
+                              : resolutionActions.filter((v) => v !== x)
+                            setResolutionActions(next)
+                          }}
+                        />
+                        <span>{formatTypeLabel(x)}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="text-[11px] text-gray-400">
+              {resolutionActions.length ? `Dipilih: ${resolutionActions.map((x) => formatTypeLabel(x)).join(', ')}` : 'Belum ada tindakan dipilih'}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold">Penanganan</div>
+          <textarea
+            value={closeNotes}
+            onChange={(e) => setCloseNotes(e.target.value)}
+            className="w-full min-h-[120px] rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+            placeholder="Isi penanganan yang dilakukan di lokasi..."
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold">Upload Foto (maks 10, max 10MB / foto)</div>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => handleFileChange(e.target.files)}
+            disabled={saving}
+            className="block w-full text-sm text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-900"
+          />
+          {files.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {files.map((f, idx) => {
+                const url = URL.createObjectURL(f)
+                return (
+                  <div key={`${f.name}-${idx}`} className="rounded-md bg-gray-900 border border-gray-800 overflow-hidden">
+                    <NextImage
+                      src={url}
+                      alt={f.name}
+                      width={400}
+                      height={200}
+                      unoptimized
+                      className="h-24 w-full object-cover"
+                      onLoad={() => URL.revokeObjectURL(url)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFileAt(idx)}
+                      className="w-full px-2 py-2 text-xs font-semibold text-red-200 hover:bg-red-900/20"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2 md:flex-row md:justify-end">
-        <button
-          type="button"
-          onClick={() => router.push('/trouble-ticket')}
-          disabled={saving}
-          className="rounded-md border border-gray-600 bg-gray-200 text-gray-900 px-4 py-2 text-sm font-semibold disabled:opacity-50"
-        >
-          Batal
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={saving}
-          className={clsx(
-            'rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50',
-            saving ? 'bg-gray-500' : 'bg-green-600 hover:bg-green-700'
-          )}
-        >
-          {saving ? 'Menyimpan...' : 'Simpan Close'}
-        </button>
+      <div
+        className="sticky bottom-0 -mx-4 mt-4 border-t border-gray-800 bg-black/95 px-4 py-3"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex flex-col gap-2 md:flex-row md:justify-end">
+          <button
+            type="button"
+            onClick={() => router.push('/trouble-ticket')}
+            disabled={saving}
+            className="rounded-md border border-gray-600 bg-gray-200 text-gray-900 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className={clsx(
+              'rounded-md px-4 py-2 text-sm font-semibold text-white disabled:opacity-50',
+              saving ? 'bg-gray-500' : 'bg-green-600 hover:bg-green-700'
+            )}
+          >
+            {saving ? 'Menyimpan...' : 'Simpan Close'}
+          </button>
+        </div>
       </div>
     </div>
   )
