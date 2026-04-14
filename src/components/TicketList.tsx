@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
 import { isPlatform } from '@ionic/react'
-import { PullToRefresh } from '@capacitor/app'
+import { PullToRefresh } from '@capacitor/core'
 
 interface Ticket {
   id: number
