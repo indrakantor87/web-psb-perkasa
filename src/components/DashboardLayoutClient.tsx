@@ -4,7 +4,7 @@ import { Header } from '@/components/Header'
 import { CapacitorBackHandler } from '@/components/CapacitorBackHandler'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import type { SessionUser } from '@/lib/auth'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface DashboardLayoutClientProps {

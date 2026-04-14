@@ -422,23 +422,6 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     const controller = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch('/api/trouble-tickets/master?kind=PROBLEM_CATEGORY', { signal: controller.signal })
-        const data = (await res.json().catch(() => ({}))) as unknown
-        if (!res.ok) return
-        const rows = Array.isArray(data) ? (data as Array<{ value?: unknown }>) : []
-        const values = rows
-          .map((r) => String(r?.value ?? '').trim())
-          .filter(Boolean)
-        if (values.length) setProblemOptions(values)
-      } catch {}
-    })()
-    return () => controller.abort()
-  }, [])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    ;(async () => {
-      try {
         const res = await fetch('/api/trouble-ticket-sla', { signal: controller.signal })
         const data = (await res.json().catch(() => ({}))) as unknown
         if (!res.ok) return
@@ -586,7 +569,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           if (Number.isFinite(n) && n > 0) setNextNumber(n)
         }
       } catch {}
-      await refresh()
+      await fetchRows()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -649,7 +632,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!res.ok) throw new Error(data.error || 'Gagal update ticket')
       setIsEditOpen(false)
       setEditingId(null)
-      await refresh()
+      await fetchRows()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -774,7 +757,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus ticket')
       setSelectedIds((prev) => prev.filter((x) => x !== id))
       if (expandedId === id) setExpandedId(null)
-      await refresh()
+      await fetchRows()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -825,7 +808,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) throw new Error(data.error || 'Gagal menghapus')
       setSelectedIds([])
-      await refresh()
+      await fetchRows()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -944,7 +927,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         throw new Error(data.error || 'Gagal import')
       }
       alert(`Import selesai. Berhasil: ${Number(data.success ?? 0)} | Gagal: ${Number(data.failed ?? 0)}`)
-      await refresh()
+      await fetchRows()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
