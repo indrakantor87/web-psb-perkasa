@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
-import { isPlatform } from '@ionic/react'
-import { PullToRefresh } from '@capacitor/core'
 
 interface Ticket {
   id: number
@@ -84,21 +82,21 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     setTicketsState(tickets)
   }, [tickets])
 
-  // Pull to refresh for Capacitor
+  // Listen for app:refresh event from custom PullToRefresh component
   useEffect(() => {
-    if (isPlatform('capacitor')) {
-      PullToRefresh.setEnabled(true)
-      PullToRefresh.addListener('refresh', async () => {
+    const handleRefresh = (event: Event) => {
+      const customEvent = event as CustomEvent
+      if (customEvent.detail && customEvent.detail.register) {
+        customEvent.detail.register(router.refresh())
+      } else {
         router.refresh()
-        await PullToRefresh.complete()
-      })
+      }
     }
 
+    window.addEventListener('app:refresh', handleRefresh)
+
     return () => {
-      if (isPlatform('capacitor')) {
-        PullToRefresh.removeAllListeners()
-        PullToRefresh.setEnabled(false)
-      }
+      window.removeEventListener('app:refresh', handleRefresh)
     }
   }, [router])
   

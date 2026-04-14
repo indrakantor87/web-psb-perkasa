@@ -118,6 +118,15 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   }, [search])
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ register?: (p: Promise<unknown> | void) => void }>
+      ce.detail?.register?.(fetchIsolations())
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchIsolations])
+
+  useEffect(() => {
     setPage(1)
   }, [debouncedSearch, limit, radbooxFilter, marketingFilter])
 

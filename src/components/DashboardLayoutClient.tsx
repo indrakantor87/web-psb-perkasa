@@ -2,7 +2,9 @@
 
 import { Header } from '@/components/Header'
 import { CapacitorBackHandler } from '@/components/CapacitorBackHandler'
+import { PullToRefresh } from '@/components/PullToRefresh'
 import type { SessionUser } from '@/lib/auth'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
@@ -10,13 +12,58 @@ interface DashboardLayoutClientProps {
 }
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
+  const mainRef = useRef<HTMLElement | null>(null)
+  const [isNative, setIsNative] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core')
+        if (!mounted) return
+        setIsNative(Capacitor.isNativePlatform())
+      } catch {
+        if (!mounted) return
+        setIsNative(false)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const onRefresh = useMemo(() => {
+    return async () => {
+      const promises: Promise<unknown>[] = []
+      const ev = new CustomEvent('app:refresh', {
+        detail: {
+          register: (p: Promise<unknown> | void) => {
+            if (p && typeof (p as Promise<unknown>).then === 'function') promises.push(p as Promise<unknown>)
+          },
+        },
+      })
+      window.dispatchEvent(ev)
+      if (promises.length === 0) return
+      await Promise.race([
+        Promise.allSettled(promises),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
+      ])
+    }
+  }, [])
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-gray-100 dark:bg-gray-900">
       <CapacitorBackHandler userRole={user.role} />
       <Header user={user} />
       
       <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <main
+          ref={(el) => {
+            mainRef.current = el
+          }}
+          className="relative flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+        >
+          <PullToRefresh scrollEl={mainRef.current} enabled={isNative} onRefresh={onRefresh} />
           {children}
         </main>
       </div>
