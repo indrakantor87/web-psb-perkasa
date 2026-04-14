@@ -307,8 +307,7 @@ export async function POST(request: Request) {
 
     cache.invalidateByPrefix('tickets-list:')
     cache.invalidateByPrefix('tickets:')
-
-    return NextResponse.json(ticket)
+    return NextResponse.json(ticket, { status: 201 })
   } catch (error: unknown) {
     console.error(error)
     const message = error instanceof Error ? error.message : String(error)

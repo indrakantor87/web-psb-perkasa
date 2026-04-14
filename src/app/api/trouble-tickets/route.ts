@@ -531,8 +531,10 @@ export async function POST(request: Request) {
     )
     const row = rows[0]
     if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })
-    return NextResponse.json(row)
-  } catch (e: unknown) {
+    cache.invalidateByPrefix('trouble-tickets-list:')
+    cache.invalidateByPrefix('trouble-tickets:')
+    return NextResponse.json(ticket, { status: 201 })
+  } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to create trouble ticket' }, { status: 500 })
   }

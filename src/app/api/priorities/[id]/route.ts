@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { cache } from '@/lib/cache'
 
 export async function DELETE(
   request: Request,
@@ -12,6 +13,7 @@ export async function DELETE(
     await prisma.priority.delete({
       where: { id },
     })
+    cache.invalidateByPrefix('priorities:')
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json(

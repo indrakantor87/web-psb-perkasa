@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 
 export async function GET() {
   const session = await getSession()
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
         isDefault: isDefault || false,
       },
     })
-
+    cache.invalidateByPrefix('templates:')
     return NextResponse.json(template)
   } catch (error) {
     console.error('Error creating template:', error)

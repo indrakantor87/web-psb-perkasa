@@ -212,5 +212,5 @@ export async function POST(req: Request) {
   `)
 
   cache.invalidateByPrefix('odp:')
-  return NextResponse.json({ ok: true }, { status: 201 })
+  return NextResponse.json({ message: 'ODP created' }, { status: 201 })
 }

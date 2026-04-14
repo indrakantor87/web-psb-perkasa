@@ -41,7 +41,7 @@ export async function PUT(
         isDefault,
       },
     })
-
+    cache.invalidateByPrefix('templates:')
     return NextResponse.json(template)
   } catch {
     return NextResponse.json(
@@ -71,7 +71,7 @@ export async function DELETE(
     await prisma.whatsappTemplate.delete({
       where: { id: parseInt(id) },
     })
-
+    cache.invalidateByPrefix('templates:')
     return NextResponse.json({ message: 'Template deleted' })
   } catch {
     return NextResponse.json(

@@ -71,7 +71,7 @@ export function TemplateManager() {
 
       if (!res.ok) throw new Error('Failed to delete template')
 
-      setTemplates(templates.filter(t => t.id !== id))
+      await fetchTemplates()
     } catch {
       setError('Failed to delete template')
     }

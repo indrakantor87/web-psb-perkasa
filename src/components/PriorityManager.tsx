@@ -67,7 +67,7 @@ export function PriorityManager() {
 
       if (!res.ok) throw new Error('Failed to delete priority')
 
-      setPriorities(priorities.filter(p => p.id !== id))
+      await fetchPriorities()
     } catch {
       setError('Failed to delete priority')
     }

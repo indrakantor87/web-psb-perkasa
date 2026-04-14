@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { cache } from '@/lib/cache'
 import { getSession } from '@/lib/auth'
 
 export async function GET() {
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
         color,
       },
     })
-
+    cache.invalidateByPrefix('priorities:')
     return NextResponse.json(priority)
   } catch {
     return NextResponse.json(

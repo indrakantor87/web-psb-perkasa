@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
+import { cache } from '@/lib/cache'
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
       })
     }
     const safeUser = { id: newUser.id, name: newUser.name, username: newUser.username, role: newUser.role, createdAt: newUser.createdAt }
+    cache.invalidateByPrefix('users:')
     return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Create user error:', error)
@@ -151,6 +153,7 @@ export async function PUT(request: Request) {
       data: { password: hashedPassword },
     })
     const safeUser = { id: updatedUser.id, name: updatedUser.name, username: updatedUser.username, role: updatedUser.role, createdAt: updatedUser.createdAt }
+    cache.invalidateByPrefix('users:')
     return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Reset password error:', error)
@@ -180,7 +183,7 @@ export async function DELETE(request: Request) {
     await prisma.user.delete({
       where: { id: Number(id) },
     })
-
+    cache.invalidateByPrefix('users:')
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (error) {
     console.error('Delete user error:', error)
