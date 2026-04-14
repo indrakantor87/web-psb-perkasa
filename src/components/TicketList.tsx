@@ -86,8 +86,13 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   useEffect(() => {
     const handleRefresh = (event: Event) => {
       const customEvent = event as CustomEvent
-      if (customEvent.detail && customEvent.detail.register) {
-        customEvent.detail.register(router.refresh())
+      if (customEvent.detail && typeof customEvent.detail.register === 'function') {
+        // router.refresh() returns void, so we wrap it in a promise if we want the spinner to show
+        const refreshPromise = (async () => {
+          router.refresh()
+          await new Promise(resolve => setTimeout(resolve, 800))
+        })()
+        customEvent.detail.register(refreshPromise)
       } else {
         router.refresh()
       }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User } from 'lucide-react'
 
@@ -26,6 +26,15 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
+
+  // Pull to refresh support
+  useEffect(() => {
+    const handler = () => {
+      router.refresh()
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [router])
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'

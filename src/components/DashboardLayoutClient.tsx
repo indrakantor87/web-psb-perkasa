@@ -5,6 +5,7 @@ import { CapacitorBackHandler } from '@/components/CapacitorBackHandler'
 import { PullToRefresh } from '@/components/PullToRefresh'
 import type { SessionUser } from '@/lib/auth'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
@@ -12,6 +13,7 @@ interface DashboardLayoutClientProps {
 }
 
 export function DashboardLayoutClient({ children, user }: DashboardLayoutClientProps) {
+  const router = useRouter()
   const mainRef = useRef<HTMLElement | null>(null)
   const [isNative, setIsNative] = useState(false)
 
@@ -43,13 +45,20 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
         },
       })
       window.dispatchEvent(ev)
-      if (promises.length === 0) return
+      
+      if (promises.length === 0) {
+        // Fallback: refresh router if nothing else is registered
+        router.refresh()
+        await new Promise(resolve => setTimeout(resolve, 800))
+        return
+      }
+
       await Promise.race([
         Promise.allSettled(promises),
         new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
       ])
     }
-  }, [])
+  }, [router])
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-gray-100 dark:bg-gray-900">

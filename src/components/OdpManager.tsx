@@ -174,6 +174,20 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     return () => controller.abort()
   }, [fetchRows])
 
+  // Pull to refresh support
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const customEv = ev as CustomEvent
+      if (customEv.detail && typeof customEv.detail.register === 'function') {
+        customEv.detail.register(fetchRows(undefined, true))
+      } else {
+        fetchRows(undefined, true)
+      }
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchRows])
+
   useEffect(() => {
     setPage(1)
   }, [q, pageSize, wilayah])

@@ -1,9 +1,10 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, useCallback } from 'react'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
+import { useRouter } from 'next/navigation'
 
 type TroubleTicketRow = {
   id: number
@@ -243,6 +244,7 @@ function normalizeHeader(s: unknown) {
 }
 
 export function TroubleTicketView({ userRole }: { userRole: string }) {
+  const router = useRouter()
   const nowDate = new Date()
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -349,7 +351,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     return () => controller.abort()
   }, [])
 
-  const refresh = async () => {
+  const fetchRows = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
@@ -363,10 +365,10 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       } else {
         params.set('limit', status === 'CLOSE' ? '120' : '200')
       }
-      if (search.trim()) params.set('search', search.trim())
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
       if (!isTroubleshoots && status === 'OVERDUE') params.set('overdue', '1')
       if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
-      const res = await fetch(`/api/trouble-tickets?${params.toString()}`)
+      const res = await fetch(`/api/trouble-tickets?${params.toString()}`, { signal })
       const data = (await res.json().catch(() => ({}))) as unknown
       if (!res.ok) {
         const msg = (data as { error?: string })?.error || 'Gagal memuat data'
@@ -402,12 +404,36 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             : nextRows
       )
     } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'AbortError') return
       setError(e instanceof Error ? e.message : String(e))
       setRows([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedSearch, isTroubleshoots, month, page, pageSize, slaDays, status, year])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchRows(controller.signal)
+    return () => controller.abort()
+  }, [fetchRows])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/trouble-tickets/master?kind=PROBLEM_CATEGORY', { signal: controller.signal })
+        const data = (await res.json().catch(() => ({}))) as unknown
+        if (!res.ok) return
+        const rows = Array.isArray(data) ? (data as Array<{ value?: unknown }>) : []
+        const values = rows
+          .map((r) => String(r?.value ?? '').trim())
+          .filter(Boolean)
+        if (values.length) setProblemOptions(values)
+      } catch {}
+    })()
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -461,71 +487,21 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     })
   }, [form.category])
 
+  // Pull to refresh support
   useEffect(() => {
-    const controller = new AbortController()
-    ;(async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const nowMs = Date.now()
-        const params = new URLSearchParams()
-        if (!isTroubleshoots) {
-          params.set('month', String(month))
-          params.set('year', String(year))
-          params.set('limit', String(pageSize))
-          params.set('page', String(page))
-        } else {
-          params.set('limit', status === 'CLOSE' ? '120' : '200')
-        }
-        if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
-        if (!isTroubleshoots && status === 'OVERDUE') params.set('overdue', '1')
-        if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
-        const res = await fetch(`/api/trouble-tickets?${params.toString()}`, { signal: controller.signal })
-        const data = (await res.json().catch(() => ({}))) as unknown
-        if (!res.ok) {
-          const msg = (data as { error?: string })?.error || 'Gagal memuat data'
-          throw new Error(msg)
-        }
-        const nextRows = (isTroubleshoots
-          ? (Array.isArray(data) ? data : [])
-          : (Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : [])) as TroubleTicketRow[]
-        if (!isTroubleshoots) {
-          const t = Math.trunc(Number((data as { total?: unknown }).total))
-          setTotal(Number.isFinite(t) && t >= 0 ? t : 0)
-          const s = (data as { summary?: { open?: unknown; close?: unknown; overdue?: unknown } }).summary
-          setSummaryRemote({
-            open: Math.trunc(Number(s?.open ?? 0)) || 0,
-            close: Math.trunc(Number(s?.close ?? 0)) || 0,
-            overdue: Math.trunc(Number(s?.overdue ?? 0)) || 0,
-          })
-        }
-        setRows(
-          isTroubleshoots
-            ? nextRows.filter((r) => {
-                const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
-                if (status === 'CLOSE') return isClosed
-                if (isClosed) return false
-                if (status !== 'OVERDUE') return true
-                const t = new Date(r.openedAt).getTime()
-                const days = slaDays[normalizeTypeKey(r.type)] ?? 1
-                const limitMs = days * 24 * 60 * 60 * 1000
-                return Number.isFinite(t) && nowMs - t > limitMs
-              })
-            : status === 'OVERDUE'
-              ? nextRows
-              : nextRows
-        )
-      } catch (e: unknown) {
-        if ((e as { name?: string })?.name === 'AbortError') return
-        setError(e instanceof Error ? e.message : String(e))
-        setRows([])
-      } finally {
-        setLoading(false)
+    const handler = (ev: Event) => {
+      const customEv = ev as CustomEvent
+      const promise = (async () => {
+        router.refresh()
+        await fetchRows()
+      })()
+      if (customEv.detail && typeof customEv.detail.register === 'function') {
+        customEv.detail.register(promise)
       }
-    })()
-
-    return () => controller.abort()
-  }, [debouncedSearch, isTroubleshoots, status, month, year, slaDays, page, pageSize])
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchRows, router])
 
   const now = Date.now()
 

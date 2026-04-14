@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, KeyRound, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -55,7 +55,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/users')
       if (res.ok) {
@@ -65,11 +65,25 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     } catch (err) {
       console.error('Failed to fetch users', err)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [fetchUsers])
+
+  // Pull to refresh support
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const customEv = ev as CustomEvent
+      if (customEv.detail && typeof customEv.detail.register === 'function') {
+        customEv.detail.register(fetchUsers())
+      } else {
+        fetchUsers()
+      }
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchUsers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

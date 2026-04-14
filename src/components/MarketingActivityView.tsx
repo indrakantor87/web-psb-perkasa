@@ -97,6 +97,20 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
     fetchActivities()
   }, [fetchActivities])
 
+  // Pull to refresh support
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const customEv = ev as CustomEvent
+      if (customEv.detail && typeof customEv.detail.register === 'function') {
+        customEv.detail.register(fetchActivities())
+      } else {
+        fetchActivities()
+      }
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchActivities])
+
   const handleOpenModal = (activity: MarketingActivity | null = null) => {
     if (activity) {
       setEditingActivity(activity)

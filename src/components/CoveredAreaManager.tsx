@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit2, Trash2, X, MapPin, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
 import { clsx } from 'clsx'
 
@@ -28,7 +28,7 @@ export function CoveredAreaManager() {
     description: '',
   })
 
-  const fetchAreas = async () => {
+  const fetchAreas = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/covered-areas')
@@ -41,11 +41,25 @@ export function CoveredAreaManager() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchAreas()
-  }, [])
+  }, [fetchAreas])
+
+  // Pull to refresh support
+  useEffect(() => {
+    const handler = (ev: Event) => {
+      const customEv = ev as CustomEvent
+      if (customEv.detail && typeof customEv.detail.register === 'function') {
+        customEv.detail.register(fetchAreas())
+      } else {
+        fetchAreas()
+      }
+    }
+    window.addEventListener('app:refresh', handler)
+    return () => window.removeEventListener('app:refresh', handler)
+  }, [fetchAreas])
 
   const handleOpenModal = (area: CoveredArea | null = null) => {
     if (area) {
