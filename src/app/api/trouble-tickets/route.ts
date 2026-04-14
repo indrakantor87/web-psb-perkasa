@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
+import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
@@ -533,7 +534,7 @@ export async function POST(request: Request) {
     if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })
     cache.invalidateByPrefix('trouble-tickets-list:')
     cache.invalidateByPrefix('trouble-tickets:')
-    return NextResponse.json(ticket, { status: 201 })
+    return NextResponse.json(row, { status: 201 })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to create trouble ticket' }, { status: 500 })
