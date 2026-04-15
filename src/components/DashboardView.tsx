@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useEffect } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
 
@@ -35,6 +35,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const [year, setYear] = useState(initialPeriod.year)
   const psbChartWrapRef = useRef<HTMLDivElement | null>(null)
   const [psbChartWidth, setPsbChartWidth] = useState(0)
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
   // Pull to refresh support
   useEffect(() => {
@@ -61,9 +62,43 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
     window.addEventListener('resize', setWidth)
     return () => window.removeEventListener('resize', setWidth)
   }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
+    const update = () => setIsMobilePortrait(mq.matches)
+    update()
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }
+
+    mq.addListener(update)
+    return () => mq.removeListener(update)
+  }, [])
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
+
+  const defaultMonthShort = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], [])
+
+  const troubleMonths = troubleTicketProblemMonthly?.months ?? defaultMonthShort
+  const troubleVisibleMonthIdx = useMemo(() => {
+    const idxAll = troubleMonths.map((_, i) => i)
+    if (!isMobilePortrait) return idxAll
+    const rows = troubleTicketProblemMonthly?.rows ?? []
+    const idx = idxAll.filter((i) => rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0) > 0)
+    return idx.length ? idx : idxAll
+  }, [isMobilePortrait, troubleMonths, troubleTicketProblemMonthly])
+
+  const marketingMonths = yearMarketingMonthly?.months ?? defaultMonthShort
+  const marketingVisibleMonthIdx = useMemo(() => {
+    const idxAll = marketingMonths.map((_, i) => i)
+    if (!isMobilePortrait) return idxAll
+    const rows = yearMarketingMonthly?.rows ?? []
+    const idx = idxAll.filter((i) => rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0) > 0)
+    return idx.length ? idx : idxAll
+  }, [isMobilePortrait, marketingMonths, yearMarketingMonthly])
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -184,21 +219,21 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
         <div ref={psbChartWrapRef} className="w-full">
           {(() => {
             const seriesAll = monthlyData.map((m) => ({ label: m.name, v: Number(m.count || 0) }))
-            const isMobilePortrait = psbChartWidth > 0 && psbChartWidth < 640
-            const series = isMobilePortrait ? seriesAll : seriesAll.filter((x) => x.v > 0)
+            const isChartMobilePortrait = isMobilePortrait || (psbChartWidth > 0 && psbChartWidth < 640)
+            const series = isChartMobilePortrait ? seriesAll.filter((x) => x.v > 0) : seriesAll.filter((x) => x.v > 0)
             const max = Math.max(1, ...series.map((s) => s.v))
-            const w = isMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
-            const h = isMobilePortrait ? 240 : 260
-            const padX = isMobilePortrait ? 28 : 44
-            const padTop = isMobilePortrait ? 22 : 26
-            const padBottom = isMobilePortrait ? 40 : 44
+            const w = isChartMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
+            const h = isChartMobilePortrait ? 240 : 260
+            const padX = isChartMobilePortrait ? 28 : 44
+            const padTop = isChartMobilePortrait ? 22 : 26
+            const padBottom = isChartMobilePortrait ? 40 : 44
             const chartW = w - padX * 2
             const chartH = h - padTop - padBottom
             const stepX = chartW / Math.max(1, series.length - 1)
-            const labelFont = isMobilePortrait ? 11 : 14
-            const valueFont = isMobilePortrait ? 12 : 14
-            const dotR = isMobilePortrait ? 4 : 5
-            const haloR = isMobilePortrait ? 7 : 9
+            const labelFont = isChartMobilePortrait ? 11 : 14
+            const valueFont = isChartMobilePortrait ? 12 : 14
+            const dotR = isChartMobilePortrait ? 4 : 5
+            const haloR = isChartMobilePortrait ? 7 : 9
 
             const pts = series.map((m, i) => {
               const v = m.v
@@ -209,14 +244,14 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
 
             return (
-              <div className={clsx('w-full', isMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
-                <div className={clsx(!isMobilePortrait && 'min-w-[760px]')}>
+              <div className={clsx('w-full', isChartMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
+                <div className={clsx(!isChartMobilePortrait && 'min-w-[760px]')}>
                   {pts.length === 0 ? (
                     <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
                       Belum ada data PSB untuk tahun ini
                     </div>
                   ) : (
-                    <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isMobilePortrait ? 'h-[240px]' : 'h-56')}>
+                    <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isChartMobilePortrait ? 'h-[240px]' : 'h-56')}>
                       {Array.from({ length: 5 }).map((_, i) => {
                         const y = padTop + (chartH / 4) * i
                         return (
@@ -237,7 +272,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                         <polyline
                           fill="none"
                           stroke="#3b82f6"
-                          strokeWidth={isMobilePortrait ? 2.5 : 3}
+                          strokeWidth={isChartMobilePortrait ? 2.5 : 3}
                           strokeLinejoin="round"
                           strokeLinecap="round"
                           points={pointsStr}
@@ -250,7 +285,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                           <circle cx={p.x} cy={p.y} r={haloR} fill="rgba(59,130,246,0.12)" />
                           <text
                             x={p.x}
-                            y={p.y - (isMobilePortrait ? 10 : 12)}
+                            y={p.y - (isChartMobilePortrait ? 10 : 12)}
                             textAnchor="middle"
                             className="fill-gray-700 dark:fill-gray-200"
                             style={{ fontSize: valueFont, fontWeight: 600 }}
@@ -259,7 +294,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                           </text>
                           <text
                             x={p.x}
-                            y={h - (isMobilePortrait ? 12 : 14)}
+                            y={h - (isChartMobilePortrait ? 12 : 14)}
                             textAnchor="middle"
                             className="fill-gray-500 dark:fill-gray-300"
                             style={{ fontSize: labelFont, fontWeight: 500 }}
@@ -457,13 +492,13 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className={clsx('w-full', isMobilePortrait ? 'min-w-[520px]' : 'min-w-[900px]')}>
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
                 <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Gangguan</th>
-                {(troubleTicketProblemMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
-                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    {m}
+                {troubleVisibleMonthIdx.map((i) => (
+                  <th key={troubleMonths[i]} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {troubleMonths[i]}
                   </th>
                 ))}
                 <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
@@ -473,17 +508,22 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               {(troubleTicketProblemMonthly?.rows ?? []).map((r) => (
                 <tr key={r.problemCategory} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
                   <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.problemCategory}</td>
-                  {Array.from({ length: 12 }, (_, i) => (
-                    <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
-                      {r.byMonth?.[i] ?? 0}
-                    </td>
-                  ))}
-                  <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
+                  {troubleVisibleMonthIdx.map((i) => {
+                    const v = Number(r.byMonth?.[i] ?? 0)
+                    return (
+                      <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                        {isMobilePortrait && v === 0 ? '' : v}
+                      </td>
+                    )
+                  })}
+                  <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                    {isMobilePortrait && Number(r.total ?? 0) === 0 ? '' : r.total}
+                  </td>
                 </tr>
               ))}
               {(troubleTicketProblemMonthly?.rows?.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={troubleVisibleMonthIdx.length + 2} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                     Tidak ada data gangguan trouble ticket untuk tahun ini
                   </td>
                 </tr>
@@ -493,16 +533,19 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               <tfoot>
                 <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
                   <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
-                  {Array.from({ length: 12 }, (_, i) => {
+                  {troubleVisibleMonthIdx.map((i) => {
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                     return (
                       <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
-                        {v}
+                        {isMobilePortrait && v === 0 ? '' : v}
                       </td>
                     )
                   })}
                   <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
-                    {(troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
+                    {(() => {
+                      const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)
+                      return isMobilePortrait && v === 0 ? '' : v
+                    })()}
                   </td>
                 </tr>
               </tfoot>
@@ -557,13 +600,13 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className={clsx('w-full', isMobilePortrait ? 'min-w-[520px]' : 'min-w-[900px]')}>
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
                   <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Marketing</th>
-                  {(yearMarketingMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
-                    <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {m}
+                  {marketingVisibleMonthIdx.map((i) => (
+                    <th key={marketingMonths[i]} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {marketingMonths[i]}
                     </th>
                   ))}
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
@@ -573,17 +616,22 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 {(yearMarketingMonthly?.rows ?? []).map((r) => (
                   <tr key={r.name} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
                     <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.name}</td>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
-                        {r.byMonth?.[i] ?? 0}
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
+                    {marketingVisibleMonthIdx.map((i) => {
+                      const v = Number(r.byMonth?.[i] ?? 0)
+                      return (
+                        <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                          {isMobilePortrait && v === 0 ? '' : v}
+                        </td>
+                      )
+                    })}
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                      {isMobilePortrait && Number(r.total ?? 0) === 0 ? '' : r.total}
+                    </td>
                   </tr>
                 ))}
                 {(yearMarketingMonthly?.rows?.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    <td colSpan={marketingVisibleMonthIdx.length + 2} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                       Tidak ada data untuk tahun ini
                     </td>
                   </tr>
@@ -593,16 +641,19 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 <tfoot>
                   <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
                     <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
-                    {Array.from({ length: 12 }, (_, i) => {
+                    {marketingVisibleMonthIdx.map((i) => {
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                       return (
                         <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
-                          {v}
+                          {isMobilePortrait && v === 0 ? '' : v}
                         </td>
                       )
                     })}
                     <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
-                      {(yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
+                      {(() => {
+                        const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)
+                        return isMobilePortrait && v === 0 ? '' : v
+                      })()}
                     </td>
                   </tr>
                 </tfoot>
