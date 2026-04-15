@@ -111,6 +111,16 @@ async function markSent(id: number) {
   `)
 }
 
+async function markManual(id: number) {
+  await prisma.$executeRaw(PrismaSql.sql`
+    UPDATE trouble_ticket_wa_reminders
+    SET status = 'MANUAL',
+        updated_at = NOW(),
+        last_error = NULL
+    WHERE id = ${id}
+  `)
+}
+
 async function markFailed(id: number, err: string) {
   await prisma.$executeRaw(PrismaSql.sql`
     UPDATE trouble_ticket_wa_reminders
@@ -119,6 +129,12 @@ async function markFailed(id: number, err: string) {
         last_error = ${err}
     WHERE id = ${id}
   `)
+}
+
+function createWaLink(toNumber: string, message: string) {
+  const to = normalizeWaNumber(toNumber)
+  const text = encodeURIComponent(message)
+  return `https://wa.me/${to}?text=${text}`
 }
 
 async function sendWa(toNumber: string, message: string) {
@@ -196,9 +212,11 @@ export async function POST(req: Request) {
 
   let considered = 0
   let queued = 0
+  let manual = 0
   let sent = 0
   let failed = 0
-  const results: Array<{ ticketId: number; stage: string; to: string; status: 'SENT' | 'FAILED' | 'SKIPPED'; error?: string }> = []
+  const results: Array<{ ticketId: number; stage: string; to: string; status: 'SENT' | 'FAILED' | 'SKIPPED' | 'MANUAL'; error?: string; waLink?: string }> = []
+  const hasGateway = Boolean(process.env.WA_GATEWAY_URL)
 
   for (const t of openTickets) {
     const typeKey = normalizeTypeKey(t.type)
@@ -260,10 +278,16 @@ export async function POST(req: Request) {
         queued += 1
         await markAttempt(id)
         try {
-          await sendWa(to, msg)
-          await markSent(id)
-          results.push({ ticketId: t.id, stage: stage.key, to, status: 'SENT' })
-          sent += 1
+          if (!hasGateway) {
+            await markManual(id)
+            results.push({ ticketId: t.id, stage: stage.key, to, status: 'MANUAL', waLink: createWaLink(to, msg) })
+            manual += 1
+          } else {
+            await sendWa(to, msg)
+            await markSent(id)
+            results.push({ ticketId: t.id, stage: stage.key, to, status: 'SENT' })
+            sent += 1
+          }
         } catch (e: unknown) {
           const err = e instanceof Error ? e.message : String(e)
           await markFailed(id, err)
@@ -277,13 +301,14 @@ export async function POST(req: Request) {
   return NextResponse.json({
     now: now.toISOString(),
     intervalMinutes,
+    mode: hasGateway ? 'AUTO' : 'MANUAL',
     recipients: recipients.length,
     openTickets: openTickets.length,
     considered,
     queued,
+    manual,
     sent,
     failed,
     results: results.slice(-200),
   })
 }
-
