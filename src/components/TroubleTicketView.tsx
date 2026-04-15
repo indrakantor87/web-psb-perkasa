@@ -1372,7 +1372,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         </div>
 
         <div className={clsx('rounded-lg bg-white dark:bg-gray-800 shadow', isMobilePortrait ? 'block' : 'hidden md:block')}>
-          <div className="overflow-x-auto">
+          <div className="mp-freeze overflow-x-auto">
             <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>
@@ -1383,7 +1383,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   onChange={toggleSelectAllCurrent}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">ID Ticket</th>
+              <th className="mp-sticky-1 px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">ID Ticket</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Nama Pelanggan</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">User</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">No WA</th>
@@ -1429,7 +1429,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                           onChange={() => toggleRowSelected(r.id)}
                         />
                       </td>
-                      <td className="px-3 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <td className="mp-sticky-1 px-3 py-3 text-sm font-semibold text-gray-900 dark:text-white">
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"

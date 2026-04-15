@@ -45,4 +45,45 @@ body {
   .mp-desktop-table table {
     min-width: 1100px;
   }
+
+  .mp-freeze .mp-sticky-1,
+  .mp-freeze .mp-sticky-2 {
+    position: sticky;
+    background-color: rgb(255 255 255);
+  }
+
+  .dark .mp-freeze .mp-sticky-1,
+  .dark .mp-freeze .mp-sticky-2 {
+    background-color: rgb(31 41 55);
+  }
+
+  .mp-freeze thead .mp-sticky-1,
+  .mp-freeze thead .mp-sticky-2 {
+    z-index: 50;
+  }
+
+  .mp-freeze tbody .mp-sticky-1,
+  .mp-freeze tbody .mp-sticky-2,
+  .mp-freeze tfoot .mp-sticky-1,
+  .mp-freeze tfoot .mp-sticky-2 {
+    z-index: 40;
+  }
+
+  .mp-freeze .mp-sticky-1 {
+    left: 0;
+    border-right: 1px solid rgb(229 231 235);
+  }
+
+  .dark .mp-freeze .mp-sticky-1 {
+    border-right-color: rgb(55 65 81);
+  }
+
+  .mp-freeze .mp-sticky-2 {
+    left: var(--mp-sticky-left-2, 72px);
+    border-right: 1px solid rgb(229 231 235);
+  }
+
+  .dark .mp-freeze .mp-sticky-2 {
+    border-right-color: rgb(55 65 81);
+  }
 }

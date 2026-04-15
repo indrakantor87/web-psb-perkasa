@@ -384,11 +384,11 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="mp-desktop-table overflow-x-auto">
+        <div className="mp-desktop-table mp-freeze overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
+                <th className="mp-sticky-1 px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Maps</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">No. HP</th>
@@ -414,7 +414,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
               ) : (
                 isolations.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white">
+                    <td className="mp-sticky-1 hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white">
                       {item.customerName}
                     </td>
                     <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">

@@ -656,7 +656,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         )}
 
         <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-          <div className="overflow-x-auto">
+          <div className="mp-freeze overflow-x-auto" style={{ ['--mp-sticky-left-2' as unknown as string]: '72px' }}>
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
@@ -670,8 +670,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                     />
                   </th>
                 )}
-                <th className="py-3 pr-4 pl-3">#</th>
-                <th className="py-3 pr-4">Nama ODP</th>
+                <th className="mp-sticky-1 py-3 pr-4 pl-3 w-[72px]">#</th>
+                <th className="mp-sticky-2 py-3 pr-4">Nama ODP</th>
                 <th className="py-3 pr-4">POP</th>
                 <th className="py-3 pr-4">Lokasi</th>
                 <th className="py-3 pr-4">Kapasitas</th>
@@ -712,8 +712,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                           />
                         </td>
                       )}
-                      <td className="py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
-                      <td className="py-3 pr-4 font-semibold">{row.nama_odp}</td>
+                      <td className="mp-sticky-1 py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400 w-[72px]">{(page - 1) * pageSize + idx + 1}</td>
+                      <td className="mp-sticky-2 py-3 pr-4 font-semibold">{row.nama_odp}</td>
                       <td className="py-3 pr-4">{row.wilayah || 'Pati'}</td>
                       <td className="py-3 pr-4">
                         {(() => {
