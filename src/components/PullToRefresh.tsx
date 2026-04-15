@@ -63,10 +63,6 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
       const next = Math.min(maxPull, Math.pow(delta, 0.85) * 2)
       pullRef.current = next
       setPull(next)
-      
-      if (e.cancelable) {
-        e.preventDefault()
-      }
     }
 
     const end = async () => {
@@ -95,7 +91,7 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
     const onTouchCancel = () => void end()
 
     scrollEl.addEventListener('touchstart', onTouchStart, { passive: true })
-    scrollEl.addEventListener('touchmove', onTouchMove, { passive: false })
+    scrollEl.addEventListener('touchmove', onTouchMove, { passive: true })
     scrollEl.addEventListener('touchend', onTouchEnd, { passive: true })
     scrollEl.addEventListener('touchcancel', onTouchCancel, { passive: true })
 
