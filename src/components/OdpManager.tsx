@@ -655,8 +655,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
 
-        <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
-          <div className="mp-freeze overflow-x-auto" style={{ ['--mp-sticky-left-2' as unknown as string]: '72px' }}>
+        <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+          <div className="mp-freeze overflow-x-auto" style={{ ['--mp-sticky-left-2' as unknown as string]: '72px', ['--mp-sticky-bg-dark' as unknown as string]: 'rgb(31 41 55)' }}>
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">

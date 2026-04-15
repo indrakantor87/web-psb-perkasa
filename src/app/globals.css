@@ -49,24 +49,31 @@ body {
   .mp-freeze .mp-sticky-1,
   .mp-freeze .mp-sticky-2 {
     position: sticky;
-    background-color: rgb(255 255 255);
+    background-color: var(--mp-sticky-bg, rgb(255 255 255));
+    background-clip: padding-box;
   }
 
   .dark .mp-freeze .mp-sticky-1,
   .dark .mp-freeze .mp-sticky-2 {
-    background-color: rgb(31 41 55);
+    background-color: var(--mp-sticky-bg-dark, rgb(31 41 55));
   }
 
-  .mp-freeze thead .mp-sticky-1,
+  .mp-freeze thead .mp-sticky-1 {
+    z-index: 60;
+  }
+
   .mp-freeze thead .mp-sticky-2 {
-    z-index: 50;
+    z-index: 59;
   }
 
   .mp-freeze tbody .mp-sticky-1,
+  .mp-freeze tfoot .mp-sticky-1 {
+    z-index: 50;
+  }
+
   .mp-freeze tbody .mp-sticky-2,
-  .mp-freeze tfoot .mp-sticky-1,
   .mp-freeze tfoot .mp-sticky-2 {
-    z-index: 40;
+    z-index: 49;
   }
 
   .mp-freeze .mp-sticky-1 {
