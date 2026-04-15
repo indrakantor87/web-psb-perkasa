@@ -165,13 +165,13 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">On Process</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
+                <th className="px-4 py-2 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">On Process</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
@@ -181,27 +181,23 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 
                 return (
                   <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-3 shadow-sm">
-                          {item.name.charAt(0).toUpperCase()}
-                        </div>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 align-middle">
-                      <div className="w-full max-w-[120px] mx-auto">
-                        <div className="flex justify-between text-[10px] mb-1 text-gray-500">
-                          <span>Capaian</span>
-                          <span>{Math.round(progress)}%</span>
+                    <td className="px-4 py-2 align-middle">
+                      <div className="w-full max-w-[110px] mx-auto">
+                        <div className="mb-1 text-right text-[10px] leading-none text-gray-500">
+                          {Math.round(progress)}%
                         </div>
-                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                           {(() => {
                             const pct = Math.round(progress)
                             const colorClass = pct < 50 ? 'bg-red-500' : pct < 75 ? 'bg-amber-500' : 'bg-green-500'
                             return (
                               <div
-                                className={`${colorClass} h-1.5 rounded-full`}
+                                className={`${colorClass} h-1 rounded-full`}
                                 style={{ width: `${Math.min(pct, 100)}%` }}
                               />
                             )
@@ -209,30 +205,30 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
                         {item.close}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
                         {item.on_progress}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
                         {item.open}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <span className="text-sm font-bold text-gray-800 dark:text-white">
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
+                      <span className="text-sm font-bold text-gray-800 dark:text-white leading-none">
                         {item.count}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
+                    <td className="px-4 py-2 text-center whitespace-nowrap">
                       <button
                         onClick={() => router.push(`/isolir?marketing=${encodeURIComponent(item.name)}&status=OPEN`)}
-                        className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 hover:underline"
+                        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 hover:underline"
                         title={`Lihat isolir untuk ${item.name}`}
                       >
                         {item.isolir ?? 0}
@@ -243,32 +239,32 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               })}
               {marketingData.length > 0 && (
                 <tr className="bg-yellow-100 dark:bg-yellow-900/40 font-bold border-t-2 border-yellow-200 dark:border-yellow-800">
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-800 dark:text-white">
+                  <td className="px-4 py-2 whitespace-nowrap text-gray-800 dark:text-white">
                     TOTAL
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-2 text-center">
                     {/* Empty for progress column */}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-green-700 dark:text-green-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap text-green-700 dark:text-green-400">
                     {totalClose}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-blue-700 dark:text-blue-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap text-blue-700 dark:text-blue-400">
                     {totalOnProgress}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-red-700 dark:text-red-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap text-red-700 dark:text-red-400">
                     {totalOpen}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-gray-900 dark:text-white text-lg">
+                  <td className="px-4 py-2 text-center whitespace-nowrap text-gray-900 dark:text-white">
                     {totalCount}
                   </td>
-                  <td className="px-6 py-4 text-center whitespace-nowrap text-orange-700 dark:text-orange-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap text-orange-700 dark:text-orange-400">
                     {totalIsolir}
                   </td>
                 </tr>
               )}
               {marketingData.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                     Tidak ada data marketing untuk periode ini
                   </td>
                 </tr>
