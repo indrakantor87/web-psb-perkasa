@@ -344,7 +344,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Bulan</label>
               <select
@@ -370,7 +370,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
               </select>
             </div>
             {userRole !== 'MARKETING' && (
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Cari Marketing</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />

@@ -955,7 +955,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   return (
     <div className="space-y-4 overflow-x-hidden">
       {!isTroubleshoots && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
           <div className="rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
             <span className="text-xs font-bold text-white">Ticket Open : {summary.open}</span>
           </div>
@@ -969,7 +969,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       )}
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end">
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-end">
           {!isTroubleshoots && (
             <>
               <div className="flex flex-col">
@@ -977,7 +977,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 <select
                   value={month}
                   onChange={(e) => setMonth(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-44"
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-44 md:py-2"
                 >
                   {months.map((m, idx) => (
                     <option key={m} value={idx + 1}>{m}</option>
@@ -989,7 +989,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 <select
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-32"
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-32 md:py-2"
                 >
                   {years.map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -998,12 +998,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               </div>
             </>
           )}
-          <div className="flex flex-col">
+          <div className="col-span-2 flex flex-col md:col-span-1">
             <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Cari</span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-72"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-72 md:py-2"
               placeholder="Nama / WA / Tipe / Keterangan"
             />
           </div>
@@ -1013,7 +1013,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE')}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white md:w-40"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-40 md:py-2"
               >
                 <option value="ALL">Semua</option>
                 <option value="OPEN">OPEN</option>
@@ -1027,7 +1027,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'OPEN' | 'CLOSE')}
-                className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white md:w-40"
+                className="w-full rounded-md border border-gray-600 bg-black px-3 py-1.5 text-sm text-white md:w-40 md:py-2"
               >
                 <option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
@@ -1037,7 +1037,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         </div>
 
         {!isTroubleshoots && (
-          <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-center">
             <input
               id={fileInputId}
               type="file"
@@ -1048,7 +1048,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             <button
               onClick={handleExport}
               disabled={isExporting || rows.length === 0}
-              className="rounded-md bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+              className="w-full rounded-md bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
             >
               Export Excel
             </button>
@@ -1056,7 +1056,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <label
                 htmlFor={fileInputId}
                 className={clsx(
-                  'rounded-md px-3 py-2 text-sm font-medium text-white cursor-pointer text-center',
+                  'w-full rounded-md px-3 py-2 text-sm font-medium text-white cursor-pointer text-center md:w-auto',
                   isImporting ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
                 )}
               >
@@ -1066,7 +1066,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             {canCreate && (
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm font-medium"
+                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm font-medium md:w-auto"
               >
                 Create Ticket
               </button>
@@ -1075,7 +1075,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <button
                 onClick={deleteSelected}
                 disabled={isDeleting || selectedIds.length === 0}
-                className="rounded-md bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50"
+                className="w-full rounded-md bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
               >
                 Hapus Terpilih
               </button>

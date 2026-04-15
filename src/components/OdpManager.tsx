@@ -467,17 +467,17 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">PORT ODP</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">1 ODP berisi 8 port. Merah (penuh), Kuning (&gt; 50%), Hijau (&lt; 50%).</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <button
             onClick={() => setMapOpen((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
             title="Tampilan peta realtime"
           >
             <Map className="h-4 w-4" />
             {mapOpen ? 'Tutup Peta' : 'Lihat Peta'}
           </button>
           {canEdit && (
-            <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            <button onClick={openAdd} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">
               <Plus className="h-4 w-4" />
               Tambah ODP
             </button>
@@ -486,7 +486,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
             <button
               onClick={deleteSelected}
               disabled={bulkDeleting}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:w-auto"
               title="Hapus ODP yang dipilih"
             >
               <Trash2 className="h-4 w-4" />
@@ -496,7 +496,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <button
             onClick={handleExportExcel}
             disabled={isExporting}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
           >
             {isExporting ? 'Export...' : 'Export Excel'}
           </button>
@@ -506,7 +506,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               <button
                 onClick={handleImportClick}
                 disabled={isImporting}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 sm:w-auto"
                 title="Import Excel (Admin/CS/NOC/TEKNISI)"
               >
                 <Upload className="h-4 w-4" />
@@ -519,8 +519,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
       <div className="rounded-2xl bg-white dark:bg-gray-900 p-3 sm:p-5 ring-1 ring-gray-200 dark:ring-gray-800">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <select className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <select className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
               {[10, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>
                   Show {n}
@@ -528,7 +528,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               ))}
             </select>
               <select
-                className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto"
                 value={wilayah}
                 onChange={(e) => setWilayah(e.target.value)}
               >
