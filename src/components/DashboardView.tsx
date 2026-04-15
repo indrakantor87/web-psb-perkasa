@@ -368,7 +368,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               })}
               {marketingData.length > 0 && (
                 <tr className="bg-yellow-100 dark:bg-yellow-900/40 font-bold border-t-2 border-yellow-200 dark:border-yellow-800">
-                  <td className="sticky left-0 z-10 border-r border-yellow-200 bg-yellow-100 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-yellow-800 dark:bg-yellow-900/40 dark:text-white sm:static sm:border-r-0">
+                  <td className="sticky left-0 z-10 border-r border-yellow-200 bg-yellow-100 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-yellow-800 dark:bg-yellow-900 dark:text-white sm:static sm:border-r-0">
                     TOTAL
                   </td>
                   <td className="px-4 py-2 text-center">
@@ -492,7 +492,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             {(troubleTicketProblemMonthly?.rows?.length ?? 0) > 0 && (
               <tfoot>
                 <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
+                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                   {Array.from({ length: 12 }, (_, i) => {
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                     return (
@@ -592,7 +592,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               {(yearMarketingMonthly?.rows?.length ?? 0) > 0 && (
                 <tfoot>
                   <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
+                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                     {Array.from({ length: 12 }, (_, i) => {
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                       return (
