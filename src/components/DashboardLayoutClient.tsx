@@ -61,7 +61,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
   }, [router])
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-900">
       <CapacitorBackHandler userRole={user.role} />
       <Header user={user} />
       
