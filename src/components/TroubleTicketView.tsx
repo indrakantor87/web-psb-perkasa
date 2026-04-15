@@ -958,20 +958,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
           <div className="flex items-center justify-center rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center">Ticket Open</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap">: {summary.open}</span>
+              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Open</span>
+              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.open}</span>
+              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Open : {summary.open}</span>
             </div>
           </div>
           <div className="flex items-center justify-center rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center">Ticket Close</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap">: {summary.close}</span>
+              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Close</span>
+              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.close}</span>
+              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Close : {summary.close}</span>
             </div>
           </div>
           <div className="flex items-center justify-center rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center">Ticket Overdue</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap">: {summary.overdue}</span>
+              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Overdue</span>
+              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.overdue}</span>
+              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Overdue : {summary.overdue}</span>
             </div>
           </div>
         </div>
