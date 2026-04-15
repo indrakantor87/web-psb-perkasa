@@ -47,14 +47,16 @@ body {
   }
 
   .mp-freeze .mp-sticky-1,
-  .mp-freeze .mp-sticky-2 {
+  .mp-freeze .mp-sticky-2,
+  .mp-freeze .mp-sticky-3 {
     position: sticky;
     background-color: var(--mp-sticky-bg, rgb(255 255 255));
     background-clip: padding-box;
   }
 
   .dark .mp-freeze .mp-sticky-1,
-  .dark .mp-freeze .mp-sticky-2 {
+  .dark .mp-freeze .mp-sticky-2,
+  .dark .mp-freeze .mp-sticky-3 {
     background-color: var(--mp-sticky-bg-dark, rgb(31 41 55));
   }
 
@@ -66,6 +68,10 @@ body {
     z-index: 59;
   }
 
+  .mp-freeze thead .mp-sticky-3 {
+    z-index: 58;
+  }
+
   .mp-freeze tbody .mp-sticky-1,
   .mp-freeze tfoot .mp-sticky-1 {
     z-index: 50;
@@ -74,6 +80,11 @@ body {
   .mp-freeze tbody .mp-sticky-2,
   .mp-freeze tfoot .mp-sticky-2 {
     z-index: 49;
+  }
+
+  .mp-freeze tbody .mp-sticky-3,
+  .mp-freeze tfoot .mp-sticky-3 {
+    z-index: 48;
   }
 
   .mp-freeze .mp-sticky-1 {
@@ -91,6 +102,15 @@ body {
   }
 
   .dark .mp-freeze .mp-sticky-2 {
+    border-right-color: rgb(55 65 81);
+  }
+
+  .mp-freeze .mp-sticky-3 {
+    left: var(--mp-sticky-left-3, 144px);
+    border-right: 1px solid rgb(229 231 235);
+  }
+
+  .dark .mp-freeze .mp-sticky-3 {
     border-right-color: rgb(55 65 81);
   }
 }
