@@ -61,8 +61,8 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
         </div>
         
-        <div className="flex flex-col space-y-2 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-sm border border-gray-100 dark:border-gray-700 md:flex-row md:items-center md:space-y-0 md:space-x-2">
-          <div className="flex items-center px-2 space-x-2">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-sm border border-gray-100 dark:border-gray-700 md:flex md:items-center md:gap-2">
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
             <Calendar className="h-4 w-4 text-gray-400" />
             <select
               value={month}
@@ -71,15 +71,14 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 setMonth(newMonth)
                 router.push(`/?month=${newMonth}&year=${year}`)
               }}
-              className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {months.map((m, i) => (
                 <option key={i} value={i + 1}>{m}</option>
               ))}
             </select>
           </div>
-          <div className="h-4 w-px bg-gray-200 dark:bg-gray-600 hidden md:block"></div>
-          <div className="flex items-center px-2">
+          <div className="flex items-center rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
             <select
               value={year}
               onChange={(e) => {
@@ -87,7 +86,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 setYear(newYear)
                 router.push(`/?month=${month}&year=${newYear}`)
               }}
-              className="bg-transparent text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+              className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -100,14 +99,14 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       {/* Summary Cards */}
       <div
         className={clsx(
-          'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3',
+          'grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3',
           isTeknisi ? 'xl:grid-cols-3' : isNoc ? 'xl:grid-cols-4' : 'xl:grid-cols-5'
         )}
       >
         <StatCard 
           title="Total PSB" 
           value={statusCounts.total} 
-          icon={<Ticket className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
+          icon={<Ticket className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />}
           trend="Total"
           color="bg-blue-50 dark:bg-blue-900/20"
         />
@@ -115,7 +114,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <StatCard 
             title="Total Aktivitas Marketing" 
             value={marketingActivityTotal} 
-            icon={<TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />}
+            icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400" />}
             trend="Total"
             color="bg-indigo-50 dark:bg-indigo-900/20"
           />
@@ -124,7 +123,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <StatCard 
             title="Total Isolir" 
             value={isolationCount} 
-            icon={<WifiOff className="h-6 w-6 text-orange-600 dark:text-orange-400" />}
+            icon={<WifiOff className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />}
             trend="Aktif"
             color="bg-orange-50 dark:bg-orange-900/20"
           />
@@ -132,14 +131,14 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
         <StatCard 
           title="Total port ODP" 
           value={odpTotal} 
-          icon={<Wifi className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
+          icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />}
           trend="Total"
           color="bg-emerald-50 dark:bg-emerald-900/20"
         />
         <StatCard 
           title="Total Ticketing" 
           value={ticketingTotal} 
-          icon={<Wrench className="h-6 w-6 text-slate-700 dark:text-slate-200" />}
+          icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
           trend="Total"
           color="bg-slate-100 dark:bg-slate-700/40"
         />
@@ -489,19 +488,19 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
 
 function StatCard({ title, value, icon, trend, color }: { title: string, value: number, icon: React.ReactNode, trend: string, color: string }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+    <div className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-3 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-          <h3 className="mt-2 text-3xl font-bold text-gray-800 dark:text-white">{value}</h3>
+          <p className="text-[11px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 leading-snug">{title}</p>
+          <h3 className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-none">{value}</h3>
         </div>
-        <div className={clsx("rounded-xl p-3", color)}>
+        <div className={clsx("rounded-lg sm:rounded-xl p-2 sm:p-3", color)}>
           {icon}
         </div>
       </div>
-      <div className="mt-4 flex items-center text-sm">
-        <span className="font-medium text-gray-600 dark:text-gray-300">{trend}</span>
-        <span className="ml-2 text-gray-400 text-xs">pada periode ini</span>
+      <div className="mt-2 sm:mt-4 flex items-center">
+        <span className="font-medium text-gray-600 dark:text-gray-300 text-[11px] sm:text-sm">{trend}</span>
+        <span className="ml-2 text-gray-400 text-[10px] sm:text-xs">pada periode ini</span>
       </div>
     </div>
   )
