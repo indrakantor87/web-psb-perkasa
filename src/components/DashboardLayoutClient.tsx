@@ -69,13 +69,8 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
         <main
           ref={setMainElement}
           className="relative min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-          style={{
-            overscrollBehaviorY: isNative ? 'contain' : 'auto',
-            WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-y',
-          }}
         >
-          <PullToRefresh scrollEl={mainElement} enabled={isNative} onRefresh={onRefresh} />
+          <PullToRefresh scrollEl={mainElement} enabled={!isNative} onRefresh={onRefresh} />
           {children}
         </main>
       </div>
