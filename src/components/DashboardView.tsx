@@ -11,7 +11,10 @@ interface DashboardViewProps {
   marketingData: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
   monthlyData: { name: string; count: number }[]
   yearTopPackages: { name: string; count: number }[]
-  yearMarketingCounts: { name: string; count: number }[]
+  yearMarketingMonthly?: {
+    months: string[]
+    rows: Array<{ name: string; total: number; byMonth: number[] }>
+  }
   statusCounts: { total: number; open: number; close: number; on_progress: number }
   marketingActivityTotal: number
   odpTotal: number
@@ -26,7 +29,7 @@ interface DashboardViewProps {
   isolationCount?: number
 }
 
-export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -554,36 +557,52 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px]">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">No</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Marketing</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider w-24">Total</th>
+                  {(yearMarketingMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
+                    <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {m}
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                {yearMarketingCounts.map((m, idx) => (
-                  <tr key={m.name + idx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{m.name}</td>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{m.count}</td>
+                {(yearMarketingMonthly?.rows ?? []).map((r) => (
+                  <tr key={r.name} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.name}</td>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                        {r.byMonth?.[i] ?? 0}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
                   </tr>
                 ))}
-                {yearMarketingCounts.length === 0 && (
+                {(yearMarketingMonthly?.rows?.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                       Tidak ada data untuk tahun ini
                     </td>
                   </tr>
                 )}
               </tbody>
-              {yearMarketingCounts.length > 0 && (
+              {(yearMarketingMonthly?.rows?.length ?? 0) > 0 && (
                 <tfoot>
                   <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200" colSpan={2}>Total</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
+                      return (
+                        <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
+                          {v}
+                        </td>
+                      )
+                    })}
                     <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
-                      {yearMarketingCounts.reduce((acc, r) => acc + Number(r.count || 0), 0)}
+                      {(yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
                     </td>
                   </tr>
                 </tfoot>

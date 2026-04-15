@@ -38,7 +38,10 @@ export default async function DashboardPage({
     marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
     monthlyData: { name: string; count: number }[]
     yearTopPackages: { name: string; count: number }[]
-    yearMarketingCounts: { name: string; count: number }[]
+    yearMarketingMonthly: {
+      months: string[]
+      rows: Array<{ name: string; total: number; byMonth: number[] }>
+    }
     statusCounts: { total: number; open: number; close: number; on_progress: number }
     isolationCount: number
     marketingActivityTotal: number
@@ -59,7 +62,7 @@ export default async function DashboardPage({
           marketingData={cached.marketingDataWithIsolir}
           monthlyData={cached.monthlyData}
           yearTopPackages={cached.yearTopPackages}
-          yearMarketingCounts={cached.yearMarketingCounts}
+          yearMarketingMonthly={cached.yearMarketingMonthly}
           statusCounts={cached.statusCounts}
           marketingActivityTotal={cached.marketingActivityTotal}
           odpTotal={cached.odpTotal}
@@ -212,31 +215,69 @@ export default async function DashboardPage({
   `
   const yearTopPackages = yearTopPackagesRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
-  // 2d. Jumlah pelanggan per marketing per tahun
-  const yearMarketingRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
-    WITH raw AS (
-      SELECT COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS raw_name
-      FROM "Ticket"
-      WHERE "installedDate" >= ${yearStart}
-        AND "installedDate" < ${yearEnd}
-    ),
-    norm AS (
-      SELECT
-        CASE
-          WHEN raw_name ILIKE 'marketing %' THEN TRIM(SUBSTRING(raw_name FROM 11))  -- remove 'marketing ' (10 chars + space)
-          WHEN raw_name ILIKE 'marketing:%' THEN TRIM(SUBSTRING(raw_name FROM 12)) -- remove 'marketing:' (10 chars + :)
-          WHEN raw_name ILIKE 'marketing-%' THEN TRIM(SUBSTRING(raw_name FROM 12)) -- remove 'marketing-' (10 chars + -)
-          ELSE raw_name
-        END AS name
-      FROM raw
-    )
-    SELECT COALESCE(NULLIF(name, ''), 'Unknown') AS name, COUNT(*)::int AS count
-    FROM norm
-    GROUP BY COALESCE(NULLIF(name, ''), 'Unknown')
-    ORDER BY COUNT(*) DESC
-    LIMIT 15
-  `
-  const yearMarketingCounts = yearMarketingRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
+  const yearMarketingMonthlyRows = await prisma
+    .$queryRaw<Array<{ month: number; name: string; count: number }>>(PrismaSql.sql`
+      WITH raw AS (
+        SELECT
+          EXTRACT(MONTH FROM date_trunc('month', "installedDate"))::int AS month,
+          COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS raw_name
+        FROM "Ticket"
+        WHERE "installedDate" >= ${yearStart}
+          AND "installedDate" < ${yearEnd}
+      ),
+      norm AS (
+        SELECT
+          month,
+          CASE
+            WHEN raw_name ILIKE 'marketing %' THEN TRIM(SUBSTRING(raw_name FROM 11))
+            WHEN raw_name ILIKE 'marketing:%' THEN TRIM(SUBSTRING(raw_name FROM 12))
+            WHEN raw_name ILIKE 'marketing-%' THEN TRIM(SUBSTRING(raw_name FROM 12))
+            ELSE raw_name
+          END AS name
+        FROM raw
+      ),
+      agg AS (
+        SELECT
+          month,
+          COALESCE(NULLIF(name, ''), 'Unknown') AS name,
+          COUNT(*)::int AS count
+        FROM norm
+        GROUP BY 1, 2
+      ),
+      topn AS (
+        SELECT name, SUM(count)::int AS total
+        FROM agg
+        GROUP BY 1
+        ORDER BY SUM(count) DESC, name ASC
+        LIMIT 15
+      )
+      SELECT agg.month, agg.name, agg.count
+      FROM agg
+      JOIN topn ON topn.name = agg.name
+      ORDER BY topn.total DESC, agg.name ASC, agg.month ASC
+    `)
+    .catch(() => [])
+
+  const yearMarketingMonthly = (() => {
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    const byName = new Map<string, { total: number; byMonth: number[] }>()
+    for (const row of yearMarketingMonthlyRows) {
+      const month = Math.max(1, Math.min(12, Number(row.month || 0)))
+      const idx = month - 1
+      const name = String(row.name || 'Unknown').trim() || 'Unknown'
+      const count = Number(row.count || 0)
+      const existing = byName.get(name) ?? { total: 0, byMonth: Array.from({ length: 12 }, () => 0) }
+      existing.byMonth[idx] = (existing.byMonth[idx] || 0) + count
+      existing.total += count
+      byName.set(name, existing)
+    }
+
+    const rows = Array.from(byName.entries())
+      .map(([name, v]) => ({ name, total: v.total, byMonth: v.byMonth }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+
+    return { months, rows }
+  })()
 
   const onProgressCount = (statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0) + (statusRows.find((r) => r.status === 'PENDING')?.count || 0)
   const statusCounts = {
@@ -353,13 +394,13 @@ export default async function DashboardPage({
       marketingDataWithIsolir,
       monthlyData,
       yearTopPackages,
-      yearMarketingCounts,
       statusCounts,
       isolationCount,
       marketingActivityTotal,
       odpTotal,
       ticketingTotal,
       ticketingYearRecap,
+      yearMarketingMonthly,
       troubleTicketProblemMonthly,
     },
     120_000
@@ -373,7 +414,7 @@ export default async function DashboardPage({
         marketingData={marketingDataWithIsolir}
         monthlyData={monthlyData}
         yearTopPackages={yearTopPackages}
-        yearMarketingCounts={yearMarketingCounts}
+        yearMarketingMonthly={yearMarketingMonthly}
         statusCounts={statusCounts}
         marketingActivityTotal={marketingActivityTotal}
         odpTotal={odpTotal}
