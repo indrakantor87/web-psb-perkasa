@@ -656,19 +656,12 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         )}
 
         <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
-          <div
-            className="mp-freeze overflow-x-auto"
-            style={{
-              ['--mp-sticky-bg-dark' as unknown as string]: 'rgb(31 41 55)',
-              ['--mp-sticky-left-2' as unknown as string]: canEdit ? '44px' : '84px',
-              ['--mp-sticky-left-3' as unknown as string]: canEdit ? '128px' : '0px',
-            }}
-          >
+          <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
                 {canEdit && (
-                  <th className="mp-sticky-1 py-3 pr-3 pl-3 w-[44px]">
+                  <th className="py-3 pr-4 pl-3 w-10">
                     <input
                       type="checkbox"
                       checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
@@ -677,8 +670,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                     />
                   </th>
                 )}
-                <th className={clsx('py-3 pr-4 pl-3', canEdit ? 'mp-sticky-2 w-[84px]' : 'mp-sticky-1 w-[84px]')}>#</th>
-                <th className={clsx('py-3 pr-4', canEdit ? 'mp-sticky-3' : 'mp-sticky-2')}>Nama ODP</th>
+                <th className="py-3 pr-4 pl-3">#</th>
+                <th className="py-3 pr-4">Nama ODP</th>
                 <th className="py-3 pr-4">POP</th>
                 <th className="py-3 pr-4">Lokasi</th>
                 <th className="py-3 pr-4">Kapasitas</th>
@@ -710,7 +703,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                   return (
                     <tr key={row.id} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
                       {canEdit && (
-                        <td className="mp-sticky-1 py-3 pr-3 pl-3 w-[44px]">
+                        <td className="py-3 pr-4 pl-3">
                           <input
                             type="checkbox"
                             checked={selectedSet.has(row.id)}
@@ -719,8 +712,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                           />
                         </td>
                       )}
-                      <td className={clsx('py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400 w-[84px]', canEdit ? 'mp-sticky-2' : 'mp-sticky-1')}>{(page - 1) * pageSize + idx + 1}</td>
-                      <td className={clsx('py-3 pr-4 font-semibold', canEdit ? 'mp-sticky-3' : 'mp-sticky-2')}>{row.nama_odp}</td>
+                      <td className="py-3 pr-4 pl-3 text-center text-xs text-gray-500 dark:text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
+                      <td className="py-3 pr-4 font-semibold">{row.nama_odp}</td>
                       <td className="py-3 pr-4">{row.wilayah || 'Pati'}</td>
                       <td className="py-3 pr-4">
                         {(() => {

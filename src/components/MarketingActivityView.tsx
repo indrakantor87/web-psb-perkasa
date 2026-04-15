@@ -427,12 +427,12 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
 
       {viewMode === 'marketing' ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-          <div className="mp-freeze overflow-x-auto" style={{ ['--mp-sticky-left-2' as unknown as string]: '44px' }}>
+          <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="mp-sticky-1 w-[44px] px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
-                  <th className="mp-sticky-2 px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Marketing</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Marketing</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ada Aktivitas</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tidak Ada</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hari</th>
@@ -457,10 +457,10 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                           className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                           onClick={() => setExpandedMarketing(isExpanded ? null : name)}
                         >
-                          <td className="mp-sticky-1 w-[44px] px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                           </td>
-                          <td className="mp-sticky-2 px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-bold">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-bold">
                             {name}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">

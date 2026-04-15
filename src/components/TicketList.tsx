@@ -697,15 +697,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         </div>
       )}
 
-      <div
-        className="mp-desktop-table mp-freeze overflow-x-auto overflow-y-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700"
-        style={{ ['--mp-sticky-left-2' as unknown as string]: '104px' }}
-      >
-        <table className="min-w-full border-separate border-spacing-0 border border-gray-200 dark:border-gray-700">
+      <div className="mp-desktop-table overflow-x-auto overflow-y-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+        <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
           <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="mp-sticky-1 hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200" style={{ width: 104, minWidth: 104, maxWidth: 104 }}>No</th>
-              <th className="mp-sticky-2 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
+              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No</th>
+              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Nama Pelanggan</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Lahir</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Lokasi Maps</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Request</th>
@@ -728,7 +725,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             {currentTickets.map((ticket, index) => (
               <Fragment key={ticket.id}>
                 <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
-                  <td className="mp-sticky-1 hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400" style={{ width: 104, minWidth: 104, maxWidth: 104 }}>
+                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
@@ -739,7 +736,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span>{startingNumber - index}</span>
                     </div>
                   </td>
-                  <td className="mp-sticky-2 hidden md:table-cell px-3 py-3 text-left text-xs text-gray-900 dark:text-white max-w-[200px]">
+                  <td className="hidden md:table-cell px-3 py-3 text-left text-xs text-gray-900 dark:text-white max-w-[200px]">
                     <button 
                       type="button"
                       onClick={(e) => {
