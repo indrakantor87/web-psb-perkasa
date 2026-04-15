@@ -90,7 +90,7 @@ export function Header({ user }: { user: SessionUser }) {
 
   return (
     <header className={clsx("bg-white dark:bg-gray-800 shadow-sm relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="mx-auto w-full max-w-7xl md:max-w-none">
         <div className="flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
           <div className="flex items-center space-x-3 md:space-x-8">
             <div className="flex items-center gap-3">

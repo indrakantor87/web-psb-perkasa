@@ -78,7 +78,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           )}
         >
           <PullToRefresh scrollEl={mainElement} enabled={!isNative} onRefresh={onRefresh} />
-          <div className={clsx('mx-auto w-full', !isTroubleshoots && 'max-w-7xl')}>
+          <div className={clsx('mx-auto w-full', !isTroubleshoots && 'max-w-7xl md:max-w-none')}>
             {children}
           </div>
         </main>
