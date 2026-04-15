@@ -47,7 +47,7 @@ export default async function DashboardPage({
     marketingActivityTotal: number
     odpTotal: number
     ticketingTotal: number
-    ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
+    ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
     troubleTicketProblemMonthly: {
       months: string[]
       rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
@@ -67,7 +67,7 @@ export default async function DashboardPage({
           marketingActivityTotal={cached.marketingActivityTotal}
           odpTotal={cached.odpTotal}
           ticketingTotal={cached.ticketingTotal}
-          ticketingYearRecap={cached.ticketingYearRecap}
+          ticketingMonthRecap={cached.ticketingMonthRecap}
           troubleTicketProblemMonthly={cached.troubleTicketProblemMonthly}
           initialPeriod={{ month: currentMonth, year: currentYear }}
           userRole={session.user.role}
@@ -329,7 +329,7 @@ export default async function DashboardPage({
       .catch(() => 0),
   ])
 
-  const ticketingYearRecap = await prisma
+  const ticketingMonthRecap = await prisma
     .$queryRaw<Array<{ type: string; total: number; open: number; close: number }>>(PrismaSql.sql`
       SELECT
         COALESCE(NULLIF(TRIM(UPPER("type")), ''), 'UNKNOWN') AS type,
@@ -337,8 +337,8 @@ export default async function DashboardPage({
         SUM(CASE WHEN "status" = 'OPEN' THEN 1 ELSE 0 END)::int AS open,
         SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END)::int AS close
       FROM "TroubleTicket"
-      WHERE "openedAt" >= ${yearStart}
-        AND "openedAt" < ${yearEnd}
+      WHERE "periodMonth" = ${currentMonth}
+        AND "periodYear" = ${currentYear}
       GROUP BY 1
       ORDER BY COUNT(*) DESC, type ASC
     `)
@@ -399,7 +399,7 @@ export default async function DashboardPage({
       marketingActivityTotal,
       odpTotal,
       ticketingTotal,
-      ticketingYearRecap,
+      ticketingMonthRecap,
       yearMarketingMonthly,
       troubleTicketProblemMonthly,
     },
@@ -419,7 +419,7 @@ export default async function DashboardPage({
         marketingActivityTotal={marketingActivityTotal}
         odpTotal={odpTotal}
         ticketingTotal={ticketingTotal}
-        ticketingYearRecap={ticketingYearRecap}
+        ticketingMonthRecap={ticketingMonthRecap}
         troubleTicketProblemMonthly={troubleTicketProblemMonthly}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}

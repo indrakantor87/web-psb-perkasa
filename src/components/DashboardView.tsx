@@ -19,7 +19,7 @@ interface DashboardViewProps {
   marketingActivityTotal: number
   odpTotal: number
   ticketingTotal: number
-  ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
+  ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
   troubleTicketProblemMonthly?: {
     months: string[]
     rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
@@ -29,7 +29,7 @@ interface DashboardViewProps {
   isolationCount?: number
 }
 
-export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -442,7 +442,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Ticketing Tahunan (Tahun {year})</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Ticketing Bulan {months[month - 1]} {year}</h3>
             <p className="text-xs text-gray-500">Ringkasan ticketing berdasarkan kategori</p>
           </div>
           <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -460,7 +460,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {ticketingYearRecap.map((r) => (
+              {ticketingMonthRecap.map((r) => (
                 <tr key={r.type} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
                   <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
                   <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
@@ -468,10 +468,10 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                   <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
                 </tr>
               ))}
-              {ticketingYearRecap.length === 0 && (
+              {ticketingMonthRecap.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400 italic">
-                    Tidak ada data ticketing untuk tahun ini
+                    Tidak ada data ticketing untuk bulan ini
                   </td>
                 </tr>
               )}
