@@ -187,7 +187,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="px-4 py-2 text-left text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nama Marketing</th>
+                <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Nama Marketing</th>
                 <th className="px-4 py-2 text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
                 <th className="px-4 py-2 text-center text-[11px] font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
                 <th className="px-4 py-2 text-center text-[11px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">On Process</th>
@@ -203,7 +203,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 
                 return (
                   <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-2 whitespace-nowrap">
+                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-2 whitespace-nowrap dark:border-gray-700 dark:bg-gray-800 sm:static sm:border-r-0 sm:bg-transparent">
                       <div className="flex items-center">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
                       </div>
@@ -261,7 +261,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               })}
               {marketingData.length > 0 && (
                 <tr className="bg-yellow-100 dark:bg-yellow-900/40 font-bold border-t-2 border-yellow-200 dark:border-yellow-800">
-                  <td className="px-4 py-2 whitespace-nowrap text-gray-800 dark:text-white">
+                  <td className="sticky left-0 z-10 border-r border-yellow-200 bg-yellow-100 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-yellow-800 dark:bg-yellow-900/40 dark:text-white sm:static sm:border-r-0">
                     TOTAL
                   </td>
                   <td className="px-4 py-2 text-center">
@@ -460,7 +460,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gangguan</th>
+                <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Gangguan</th>
                 {(troubleTicketProblemMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
                   <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {m}
@@ -472,7 +472,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {(troubleTicketProblemMonthly?.rows ?? []).map((r) => (
                 <tr key={r.problemCategory} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.problemCategory}</td>
+                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.problemCategory}</td>
                   {Array.from({ length: 12 }, (_, i) => (
                     <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
                       {r.byMonth?.[i] ?? 0}
@@ -492,7 +492,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             {(troubleTicketProblemMonthly?.rows?.length ?? 0) > 0 && (
               <tfoot>
                 <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
+                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                   {Array.from({ length: 12 }, (_, i) => {
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                     return (
@@ -560,7 +560,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Marketing</th>
+                  <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Marketing</th>
                   {(yearMarketingMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
                     <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       {m}
@@ -572,7 +572,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {(yearMarketingMonthly?.rows ?? []).map((r) => (
                   <tr key={r.name} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.name}</td>
+                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.name}</td>
                     {Array.from({ length: 12 }, (_, i) => (
                       <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
                         {r.byMonth?.[i] ?? 0}
@@ -592,7 +592,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
               {(yearMarketingMonthly?.rows?.length ?? 0) > 0 && (
                 <tfoot>
                   <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
+                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50/50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                     {Array.from({ length: 12 }, (_, i) => {
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                       return (
