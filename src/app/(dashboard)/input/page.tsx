@@ -5,8 +5,8 @@ export default async function InputPage() {
   const session = await getSession()
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold text-gray-800 dark:text-white">Input Data PSB</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Input Data PSB</h1>
       <InputForm user={session?.user} />
     </div>
   )

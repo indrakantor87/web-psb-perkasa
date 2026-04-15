@@ -63,8 +63,8 @@ export default function ChangePasswordForm() {
   }
 
   return (
-    <div id="change-password-form" className="bg-white dark:bg-gray-800 shadow sm:rounded-lg max-w-2xl mt-6">
-      <div className="px-4 py-5 sm:px-6">
+    <div id="change-password-form" className="mt-4 sm:mt-6 max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="px-4 py-4 sm:px-6 sm:py-5">
         <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white flex items-center">
           <Lock className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
           Ganti Password
@@ -73,7 +73,7 @@ export default function ChangePasswordForm() {
           Amankan akun anda dengan mengganti password secara berkala.
         </p>
       </div>
-      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-5 sm:px-6">
+      <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-200 p-3 rounded-md text-sm">

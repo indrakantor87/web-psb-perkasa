@@ -10,10 +10,10 @@ export default async function IsolirPage({ searchParams }: { searchParams?: { se
   if (session.user.role === 'TEKNISI') redirect('/')
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Monitoring Isolir Pelanggan</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Monitoring Isolir Pelanggan</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Daftar pelanggan yang status layanannya sedang diisolir.
         </p>
       </div>

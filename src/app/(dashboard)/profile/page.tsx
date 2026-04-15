@@ -9,10 +9,10 @@ export default async function ProfilePage() {
   const user = session.user
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-      <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg max-w-2xl">
-        <div className="px-4 py-5 sm:px-6">
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+      <div className="max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="px-4 py-4 sm:px-6 sm:py-5">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">User Information</h3>
           <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Your account details.</p>
         </div>

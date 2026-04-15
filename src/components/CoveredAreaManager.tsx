@@ -186,7 +186,7 @@ export function CoveredAreaManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 gap-4">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
           <MapPin className="h-5 w-5 text-blue-600" />
           Master Data Area Tercover
@@ -225,38 +225,39 @@ export function CoveredAreaManager() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Aksi</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
+              <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
+              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
+                <td colSpan={4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
               </tr>
             ) : currentItems.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
+                <td colSpan={4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
               </tr>
             ) : (
               currentItems.map((area, index) => (
                 <tr key={area.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {indexOfFirstItem + index + 1}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100 uppercase">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100 uppercase">
                     {area.name}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-3 sm:px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {area.description || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleOpenModal(area)}
@@ -280,10 +281,11 @@ export function CoveredAreaManager() {
           </tbody>
         </table>
       </div>
+      </div>
 
       {/* Pagination Controls */}
       {!loading && areas.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="text-sm text-gray-500 dark:text-gray-400">
             Menampilkan <span className="font-medium">{indexOfFirstItem + 1}</span> sampai{' '}
             <span className="font-medium">{Math.min(indexOfLastItem, areas.length)}</span> dari{' '}

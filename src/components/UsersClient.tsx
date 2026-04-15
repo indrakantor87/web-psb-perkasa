@@ -215,27 +215,27 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manajemen User</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Manajemen User</h1>
       </div>
 
       {/* Create User Form - Only for ADMIN */}
       {canCreate && (
-        <div className="max-w-xl rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+        <div className="max-w-xl rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
             Buat User Baru
           </h2>
           
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/30 p-4 text-sm text-red-700 dark:text-red-200">
+            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
           
           {success && (
-            <div className="mb-4 rounded-md bg-green-50 dark:bg-green-900/30 p-4 text-sm text-green-700 dark:text-green-200">
+            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-900/30 p-3 sm:p-4 text-sm text-green-700 dark:text-green-200">
               {success}
             </div>
           )}
@@ -314,7 +314,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Create User'}
               </button>
@@ -324,7 +324,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       )}
 
       {/* User List */}
-      <div className="rounded-lg bg-white dark:bg-gray-800 p-6 shadow">
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
           <Shield className="h-5 w-5" />
           Daftar User
@@ -384,7 +384,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={isAdmin ? 5 : 4} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     No users found.
                   </td>
                 </tr>
@@ -396,7 +396,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
           {users.map((user) => (
-            <div key={user.id} className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-600">
+            <div key={user.id} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-white">{user.name}</h3>
@@ -413,7 +413,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               </div>
               
               {isAdmin && (
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
                   <button
                     onClick={() => handleOpenResetModal(user.id)}
                     className="flex items-center text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400"
@@ -443,7 +443,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       {/* Reset Password Modal */}
       {isResetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
             <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Reset Password</h3>
             <form onSubmit={handleResetPassword}>
               <div className="mb-4">
@@ -470,18 +470,18 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   </button>
                 </div>
               </div>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleCloseResetModal}
-                  className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="w-full sm:w-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                 >
                   {loading ? 'Saving...' : 'Save Password'}
                 </button>
@@ -494,16 +494,16 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
             <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Delete User Confirmation</h3>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
               Are you sure you want to delete this user? This action cannot be undone.
             </p>
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={handleCloseDeleteModal}
-                className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="w-full sm:w-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Cancel
               </button>
@@ -511,7 +511,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 type="button"
                 onClick={handleDeleteUser}
                 disabled={loading}
-                className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
               >
                 {loading ? 'Deleting...' : 'Delete User'}
               </button>

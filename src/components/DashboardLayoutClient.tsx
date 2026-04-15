@@ -6,6 +6,7 @@ import { PullToRefresh } from '@/components/PullToRefresh'
 import type { SessionUser } from '@/lib/auth'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { clsx } from 'clsx'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
   const router = useRouter()
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null)
   const [isNative, setIsNative] = useState(false)
+  const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
 
   useEffect(() => {
     let mounted = true
@@ -68,10 +70,17 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <main
           ref={setMainElement}
-          className="relative min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+          className={clsx(
+            'relative min-h-0 flex-1 overflow-y-auto md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]',
+            isTroubleshoots
+              ? 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'
+              : 'p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
+          )}
         >
           <PullToRefresh scrollEl={mainElement} enabled={!isNative} onRefresh={onRefresh} />
-          {children}
+          <div className={clsx('mx-auto w-full', !isTroubleshoots && 'max-w-7xl')}>
+            {children}
+          </div>
         </main>
       </div>
     </div>

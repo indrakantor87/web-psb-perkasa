@@ -692,12 +692,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       </div>
 
       {importError && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 border border-red-200">
           {importError}
         </div>
       )}
 
-      <div className="overflow-x-auto overflow-y-hidden rounded-lg bg-white dark:bg-gray-800 shadow-sm">
+      <div className="overflow-x-auto overflow-y-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
         <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
           <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
             <tr>
@@ -1124,7 +1124,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       {summaryTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all duration-300">
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 transform transition-all">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ticket Summary</h3>
               <button
                 onClick={() => setSummaryTicket(null)}
@@ -1136,7 +1136,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                 </svg>
               </button>
             </div>
-            <div className="px-6 py-5 text-sm font-sans text-gray-600 dark:text-gray-300">
+            <div className="px-4 py-4 sm:px-6 sm:py-5 text-sm font-sans text-gray-600 dark:text-gray-300">
                   <div className="space-y-2 leading-relaxed">
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">Name</span>{'\t'}
@@ -1164,7 +1164,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     </div>
                   </div>
                 </div>
-            <div className="bg-gray-50/50 dark:bg-gray-900/50 px-6 py-4 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
+            <div className="bg-gray-50/50 dark:bg-gray-900/50 px-4 py-3 sm:px-6 sm:py-4 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
               <button
                 type="button"
                 className="inline-flex w-full justify-center rounded-lg bg-white dark:bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-all sm:w-auto"
@@ -1181,7 +1181,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       {editTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 flex flex-col">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Ticket</h3>
               <button
                 onClick={() => setEditTicket(null)}
@@ -1195,7 +1195,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             </div>
             
             <form onSubmit={handleUpdateTicket} className="flex-1 min-h-0 flex flex-col">
-              <div className="p-6 space-y-4 overflow-y-auto min-h-0">
+              <div className="p-4 sm:p-6 space-y-4 overflow-y-auto min-h-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Customer Name</label>

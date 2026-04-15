@@ -10,8 +10,7 @@ export default async function PrioritiesPage() {
   // Only ADMIN can manage priorities
   if (session.user.role !== 'ADMIN') {
     return (
-      <div className="p-6">
-        <div className="rounded-md bg-red-50 p-4">
+      <div className="rounded-2xl bg-red-50 p-4 sm:p-6 border border-red-100">
           <div className="flex">
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">Access Denied</h3>
@@ -20,15 +19,14 @@ export default async function PrioritiesPage() {
               </div>
             </div>
           </div>
-        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Priority Settings</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Priority Settings</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Manage ticket priority levels and their colors.
         </p>

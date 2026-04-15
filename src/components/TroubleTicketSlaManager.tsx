@@ -108,9 +108,9 @@ export function TroubleTicketSlaManager() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold dark:text-white">Trouble Ticket Durasi (SLA)</h2>
+        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Trouble Ticket Durasi (SLA)</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Atur durasi per tipe untuk menentukan Overdue. Contoh: Emergency 2 hari → tiket OPEN lebih dari 2 hari akan dihitung overdue.
         </p>

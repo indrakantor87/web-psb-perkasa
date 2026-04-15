@@ -97,7 +97,7 @@ function Section({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="text-lg font-bold text-gray-900 dark:text-white">{title}</div>
@@ -238,4 +238,3 @@ export function TroubleTicketMasterManager() {
     </div>
   )
 }
-

@@ -16,19 +16,17 @@ export default async function TroubleTicketSettingsPage() {
   if (!isAuthorized) redirect('/')
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pengaturan Trouble Ticket</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Kelola format ID, SLA, dan master data Jenis Gangguan/Tindakan untuk Trouble Ticket.
-          </p>
-        </header>
-        <div className="space-y-4">
-          <TroubleTicketIdManager />
-          <TroubleTicketSlaManager />
-          <TroubleTicketMasterManager />
-        </div>
+    <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Pengaturan Trouble Ticket</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Kelola format ID, SLA, dan master data Jenis Gangguan/Tindakan untuk Trouble Ticket.
+        </p>
+      </header>
+      <div className="space-y-4">
+        <TroubleTicketIdManager />
+        <TroubleTicketSlaManager />
+        <TroubleTicketMasterManager />
       </div>
     </div>
   )

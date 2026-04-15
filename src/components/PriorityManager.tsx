@@ -84,8 +84,8 @@ export function PriorityManager() {
   ]
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-6 dark:text-white">Priority Management</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 dark:text-white">Priority Management</h2>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md flex items-center">
@@ -95,9 +95,9 @@ export function PriorityManager() {
       )}
 
       {/* Add New Form */}
-      <form onSubmit={handleAdd} className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleAdd} className="mb-6 sm:mb-8 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Add New Priority</h3>
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
           <div className="flex-1 w-full">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Prioritas</label>
             <input
@@ -133,7 +133,7 @@ export function PriorityManager() {
       </form>
 
       {/* List */}
-      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg w-full">
+      <div className="overflow-x-auto shadow-sm ring-1 ring-black/5 dark:ring-gray-700 rounded-2xl w-full">
         <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>

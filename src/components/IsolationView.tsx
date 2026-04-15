@@ -279,7 +279,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <input
         ref={fileInputRef}
         type="file"
@@ -287,7 +287,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         className="hidden"
         onChange={handleFileChange}
       />
-      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="relative w-full sm:flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -383,44 +383,44 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Maps</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">No. HP</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Active Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Keterangan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Marketing</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Radboox</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nama Pelanggan</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Maps</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">No. HP</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Active Date</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Keterangan</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Marketing</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Radboox</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 {showActions && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
                 )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={showActions ? 10 : 9} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                  <td colSpan={showActions ? 10 : 9} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={showActions ? 10 : 9} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={showActions ? 10 : 9} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
                 </tr>
               ) : (
                 isolations.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-900 dark:text-white">
+                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white">
                       {item.customerName}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.userEmail || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm">
+                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm">
                       {item.customerAddress ? (
                         <a
                           href={item.customerAddress}

@@ -90,10 +90,14 @@ export function Header({ user }: { user: SessionUser }) {
 
   return (
     <header className={clsx("bg-white dark:bg-gray-800 shadow-sm relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
-      <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center space-x-4 md:space-x-8">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center bg-white rounded-lg shadow-sm border border-white h-11 w-11 overflow-hidden">
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
+          <div className="flex items-center space-x-3 md:space-x-8">
+            <div className="flex items-center gap-3">
+              <div className={clsx(
+                "flex items-center justify-center bg-white rounded-lg shadow-sm border border-white overflow-hidden",
+                isTroubleshoots ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
+              )}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
@@ -207,7 +211,7 @@ export function Header({ user }: { user: SessionUser }) {
           )}
         </div>
         
-        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
           <h2 className="hidden md:block text-sm font-medium text-gray-500 dark:text-gray-400">
             Welcome, {user?.name}
           </h2>
@@ -251,9 +255,9 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      {!isTroubleshoots && (
-      <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
-        <nav className="flex items-center gap-1 overflow-x-auto px-2 py-2">
+        {!isTroubleshoots && (
+        <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
+          <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>
             <button
               onClick={() => {
@@ -372,6 +376,7 @@ export function Header({ user }: { user: SessionUser }) {
         </nav>
       </div>
       )}
+      </div>
     </header>
   )
 }

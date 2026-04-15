@@ -71,12 +71,12 @@ export default async function ListPage({
   }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PSB Ticket List</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">PSB Ticket List</h1>
       </div>
 
-      <div className="rounded-lg bg-white dark:bg-gray-800 shadow">
+      <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="p-4 sm:p-6 lg:p-8">
           <TicketList 
             tickets={formattedTickets} 

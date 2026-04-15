@@ -109,8 +109,8 @@ export function TemplateManager() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-6 dark:text-white">WhatsApp Template Management</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 dark:text-white">WhatsApp Template Management</h2>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md flex items-center">
@@ -120,7 +120,7 @@ export function TemplateManager() {
       )}
 
       {/* Add New Form */}
-      <form onSubmit={handleAdd} className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleAdd} className="mb-6 sm:mb-8 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Add New Template</h3>
         <div className="space-y-4">
           <div>
@@ -168,7 +168,7 @@ export function TemplateManager() {
           <button
             type="submit"
             disabled={adding || !newTemplate.name || !newTemplate.content}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex w-full sm:w-auto items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
           >
             <Plus className="h-4 w-4 mr-1" />
             Add Template
@@ -177,7 +177,7 @@ export function TemplateManager() {
       </form>
 
       {/* List */}
-      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+      <div className="overflow-x-auto shadow-sm ring-1 ring-black/5 dark:ring-gray-700 rounded-2xl">
         <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>

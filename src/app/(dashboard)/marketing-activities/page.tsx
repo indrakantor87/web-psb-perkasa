@@ -10,9 +10,9 @@ export default async function MarketingActivitiesPage() {
   if (session.user.role === 'TEKNISI') redirect('/')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Aktivitas Marketing</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Aktivitas Marketing</h1>
       </div>
 
       <MarketingActivityView 

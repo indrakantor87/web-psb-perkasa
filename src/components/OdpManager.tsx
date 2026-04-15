@@ -83,16 +83,16 @@ function Modal({
 }) {
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-xl bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+      <div className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-2xl bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
           <button onClick={onClose} className="rounded-lg px-2 py-1 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
             Tutup
           </button>
         </div>
-        <div className="p-6 overflow-y-auto">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto">{children}</div>
       </div>
     </div>
   )
@@ -461,10 +461,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PORT ODP</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">PORT ODP</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">1 ODP berisi 8 port. Merah (penuh), Kuning (&gt; 50%), Hijau (&lt; 50%).</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -517,7 +517,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-white dark:bg-gray-900 p-5 ring-1 ring-gray-200 dark:ring-gray-800">
+      <div className="rounded-2xl bg-white dark:bg-gray-900 p-3 sm:p-5 ring-1 ring-gray-200 dark:ring-gray-800">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <select className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>

@@ -22,7 +22,7 @@ export default function DashboardCharts({ packageData, monthlyData, statusData, 
     <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Package Chart */}
-        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-gray-800 dark:text-white">Distribusi Paket</h3>
@@ -71,12 +71,12 @@ export default function DashboardCharts({ packageData, monthlyData, statusData, 
         </div>
 
         {/* Status Pie Chart */}
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col relative">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col relative">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-gray-800 dark:text-white">Ringkasan Status</h3>
             <p className="text-xs text-gray-500">Rasio status tiket saat ini</p>
           </div>
-          <div className="flex-1 min-h-[250px] relative">
+          <div className="flex-1 min-h-[220px] sm:min-h-[250px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -114,7 +114,7 @@ export default function DashboardCharts({ packageData, monthlyData, statusData, 
 
       {/* Rekap PSB 12 Bulan */}
       {showMonthly && (
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap PSB per Bulan</h3>

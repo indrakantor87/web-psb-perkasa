@@ -215,14 +215,14 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-white dark:bg-gray-800 p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
       {error && (
-        <div className="rounded-md bg-red-50 dark:bg-red-900/30 p-4 text-sm text-red-700 dark:text-red-200">
+        <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
           {error}
         </div>
       )}
       
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Nama Pelanggan

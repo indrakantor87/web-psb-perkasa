@@ -89,9 +89,9 @@ export function TroubleTicketIdManager() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
       <div className="mb-4">
-        <h2 className="text-xl font-semibold dark:text-white">Format ID Ticketing</h2>
+        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Format ID Ticketing</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Atur prefix dan angka berikutnya. Contoh: TT/PKN/01 atau PV/PKN/01.
         </p>
