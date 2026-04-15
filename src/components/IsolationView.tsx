@@ -384,7 +384,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="mp-desktop-table overflow-x-auto">
+        <div className="mp-desktop-table mp-table-enhanced overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>

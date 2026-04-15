@@ -697,7 +697,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         </div>
       )}
 
-      <div className="mp-desktop-table overflow-x-auto overflow-y-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="mp-desktop-table mp-table-enhanced overflow-x-auto overflow-y-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
         <table className="min-w-full border-collapse border border-gray-200 dark:border-gray-700">
           <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
             <tr>

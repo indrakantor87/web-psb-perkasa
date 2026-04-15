@@ -45,4 +45,19 @@ body {
   .mp-desktop-table table {
     min-width: 1100px;
   }
+
+  .mp-table-enhanced {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mp-table-enhanced thead th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: rgb(249 250 251);
+  }
+
+  .dark .mp-table-enhanced thead th {
+    background-color: rgb(55 65 81);
+  }
 }

@@ -1372,7 +1372,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         </div>
 
         <div className={clsx('rounded-lg bg-white dark:bg-gray-800 shadow', isMobilePortrait ? 'block' : 'hidden md:block')}>
-          <div className="overflow-x-auto">
+          <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>

@@ -656,8 +656,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         )}
 
         <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
-          <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <div className="mp-table-enhanced overflow-x-auto">
+          <table className="min-w-[980px]">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
                 {canEdit && (
