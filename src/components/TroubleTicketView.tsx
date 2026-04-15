@@ -1127,9 +1127,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const dueAtMs = openedAtMs + sla * 24 * 60 * 60 * 1000
               const overdueMs = now - dueAtMs
               const isOverdue = !isClosed && Number.isFinite(openedAtMs) && overdueMs > 0
+              const remainingMs = dueAtMs - now
+              const isNearOverdue = !isClosed && Number.isFinite(openedAtMs) && remainingMs > 0 && remainingMs <= 6 * 60 * 60 * 1000
+              const isVeryNearOverdue = !isClosed && Number.isFinite(openedAtMs) && remainingMs > 0 && remainingMs <= 60 * 60 * 1000
 
               return (
-                <div key={r.id} className="rounded-lg bg-black text-white border border-gray-800">
+                <div key={r.id} className={clsx("rounded-lg bg-black text-white border border-gray-800", isVeryNearOverdue ? "tt-near-overdue tt-near-overdue-blink" : isNearOverdue ? "tt-near-overdue" : undefined)}>
                   <button
                     type="button"
                     onClick={() => setExpandedId((prev) => (prev === r.id ? null : r.id))}
@@ -1430,10 +1433,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                const typeKey = normalizeTypeKey(r.type)
+                const sla = slaDays[typeKey] ?? 1
+                const dueAtMs = Number.isFinite(openedAtMs) ? openedAtMs + sla * 24 * 60 * 60 * 1000 : NaN
+                const remainingMs = dueAtMs - now
+                const isNearOverdue = !isClosed && Number.isFinite(dueAtMs) && remainingMs > 0 && remainingMs <= 6 * 60 * 60 * 1000
+                const isVeryNearOverdue = !isClosed && Number.isFinite(dueAtMs) && remainingMs > 0 && remainingMs <= 60 * 60 * 1000
 
                 return (
                   <Fragment key={r.id}>
-                    <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <tr className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700/30", isVeryNearOverdue ? "tt-near-overdue tt-near-overdue-blink" : isNearOverdue ? "tt-near-overdue" : undefined)}>
                       <td className="px-3 py-3 text-sm">
                         <input
                           type="checkbox"
