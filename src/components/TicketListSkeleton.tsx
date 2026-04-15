@@ -9,7 +9,7 @@ export function TicketListSkeleton() {
       </div>
 
       {/* Filters Skeleton */}
-      <div className="inline-flex flex-col space-y-1 rounded-lg bg-white dark:bg-gray-800 p-1.5 shadow-sm md:flex-row md:items-center md:space-y-0 md:space-x-4">
+      <div className="flex w-full flex-col space-y-1 rounded-lg bg-white dark:bg-gray-800 p-1.5 shadow-sm md:flex-row md:items-center md:justify-between md:space-y-0 md:gap-4">
         <div className="flex w-full flex-col space-y-1 md:w-auto md:flex-row md:items-center md:space-y-0 md:space-x-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex flex-col space-y-1">

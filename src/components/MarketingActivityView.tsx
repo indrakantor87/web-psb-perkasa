@@ -428,7 +428,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
       {viewMode === 'marketing' ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
           <div className="mp-table-enhanced overflow-x-auto">
-            <table className="min-w-[720px] divide-y divide-gray-200 dark:divide-gray-700">
+            <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-gray-700 md:min-w-full">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>

@@ -589,7 +589,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         </div>
       )}
 
-      <div className="inline-flex flex-col rounded-lg bg-white dark:bg-gray-800 p-2 shadow-sm md:flex-row md:items-center md:space-x-4">
+      <div className="flex w-full flex-col rounded-lg bg-white dark:bg-gray-800 p-2 shadow-sm md:flex-row md:items-center md:justify-between md:gap-4">
         <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:flex md:flex-row md:items-center md:gap-4">
           <div className="flex flex-col min-w-0">
             <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Bulan</span>
@@ -650,7 +650,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               placeholder="Nama, No Tiket..."
             />
           </div>
-          <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:flex md:items-end md:pt-3 md:space-x-2">
+          <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:flex md:items-end md:pt-3 md:space-x-2 md:justify-end">
             {userRole !== 'MARKETING' && (
               <>
                 <input
