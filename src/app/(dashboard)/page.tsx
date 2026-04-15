@@ -45,6 +45,10 @@ export default async function DashboardPage({
     odpTotal: number
     ticketingTotal: number
     ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
+    troubleTicketProblemMonthly: {
+      months: string[]
+      rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
+    }
   }>(cacheKey)
   if (cached) {
     return (
@@ -61,6 +65,7 @@ export default async function DashboardPage({
           odpTotal={cached.odpTotal}
           ticketingTotal={cached.ticketingTotal}
           ticketingYearRecap={cached.ticketingYearRecap}
+          troubleTicketProblemMonthly={cached.troubleTicketProblemMonthly}
           initialPeriod={{ month: currentMonth, year: currentYear }}
           userRole={session.user.role}
           isolationCount={cached.isolationCount}
@@ -298,6 +303,43 @@ export default async function DashboardPage({
     `)
     .catch(() => [])
 
+  const troubleTicketProblemMonthlyRows = await prisma
+    .$queryRaw<Array<{ month: number; problemCategory: string; count: number }>>(PrismaSql.sql`
+      SELECT
+        EXTRACT(MONTH FROM date_trunc('month', "openedAt"))::int AS month,
+        COALESCE(NULLIF(TRIM(UPPER("problemCategory")), ''), 'UNKNOWN') AS "problemCategory",
+        COUNT(*)::int AS count
+      FROM "TroubleTicket"
+      WHERE "openedAt" >= ${yearStart}
+        AND "openedAt" < ${yearEnd}
+        AND COALESCE(NULLIF(TRIM("category"), ''), 'TT') = 'TT'
+      GROUP BY 1, 2
+      ORDER BY 1 ASC
+    `)
+    .catch(() => [])
+
+  const troubleTicketProblemMonthly = (() => {
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    const byCategory = new Map<string, { total: number; byMonth: number[] }>()
+    for (const row of troubleTicketProblemMonthlyRows) {
+      const month = Math.max(1, Math.min(12, Number(row.month || 0)))
+      const idx = month - 1
+      const key = String(row.problemCategory || 'UNKNOWN').trim() || 'UNKNOWN'
+      const count = Number(row.count || 0)
+      const existing = byCategory.get(key) ?? { total: 0, byMonth: Array.from({ length: 12 }, () => 0) }
+      existing.byMonth[idx] = (existing.byMonth[idx] || 0) + count
+      existing.total += count
+      byCategory.set(key, existing)
+    }
+
+    const rows = Array.from(byCategory.entries())
+      .map(([problemCategory, v]) => ({ problemCategory, total: v.total, byMonth: v.byMonth }))
+      .sort((a, b) => b.total - a.total || a.problemCategory.localeCompare(b.problemCategory))
+      .slice(0, 5)
+
+    return { months, rows }
+  })()
+
   // Merge isolir count into marketingData
   const marketingDataWithIsolir = marketingData.map((m) => ({
     ...m,
@@ -318,6 +360,7 @@ export default async function DashboardPage({
       odpTotal,
       ticketingTotal,
       ticketingYearRecap,
+      troubleTicketProblemMonthly,
     },
     120_000
   )
@@ -336,6 +379,7 @@ export default async function DashboardPage({
         odpTotal={odpTotal}
         ticketingTotal={ticketingTotal}
         ticketingYearRecap={ticketingYearRecap}
+        troubleTicketProblemMonthly={troubleTicketProblemMonthly}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
         isolationCount={isolationCount}

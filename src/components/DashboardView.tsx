@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User } from 'lucide-react'
+import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
 
 
 interface DashboardViewProps {
@@ -17,12 +17,16 @@ interface DashboardViewProps {
   odpTotal: number
   ticketingTotal: number
   ticketingYearRecap: Array<{ type: string; total: number; open: number; close: number }>
+  troubleTicketProblemMonthly?: {
+    months: string[]
+    rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
+  }
   initialPeriod: { month: number; year: number }
   userRole?: string
   isolationCount?: number
 }
 
-export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingCounts, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingYearRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -412,6 +416,72 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                 </tr>
               )}
             </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Gangguan Trouble Ticket Bulanan (Tahun {year})</h3>
+            <p className="text-xs text-gray-500">Top 5 gangguan berdasarkan total 1 tahun</p>
+          </div>
+          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-700">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gangguan</th>
+                {(troubleTicketProblemMonthly?.months ?? ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']).map((m) => (
+                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {m}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              {(troubleTicketProblemMonthly?.rows ?? []).map((r) => (
+                <tr key={r.problemCategory} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.problemCategory}</td>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                      {r.byMonth?.[i] ?? 0}
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">{r.total}</td>
+                </tr>
+              ))}
+              {(troubleTicketProblemMonthly?.rows?.length ?? 0) === 0 && (
+                <tr>
+                  <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    Tidak ada data gangguan trouble ticket untuk tahun ini
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {(troubleTicketProblemMonthly?.rows?.length ?? 0) > 0 && (
+              <tfoot>
+                <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
+                    return (
+                      <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        {v}
+                      </td>
+                    )
+                  })}
+                  <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
+                    {(troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
