@@ -84,21 +84,13 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
 
   const troubleMonths = troubleTicketProblemMonthly?.months ?? defaultMonthShort
   const troubleVisibleMonthIdx = useMemo(() => {
-    const idxAll = troubleMonths.map((_, i) => i)
-    if (!isMobilePortrait) return idxAll
-    const rows = troubleTicketProblemMonthly?.rows ?? []
-    const idx = idxAll.filter((i) => rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0) > 0)
-    return idx.length ? idx : idxAll
-  }, [isMobilePortrait, troubleMonths, troubleTicketProblemMonthly])
+    return troubleMonths.map((_, i) => i)
+  }, [troubleMonths])
 
   const marketingMonths = yearMarketingMonthly?.months ?? defaultMonthShort
   const marketingVisibleMonthIdx = useMemo(() => {
-    const idxAll = marketingMonths.map((_, i) => i)
-    if (!isMobilePortrait) return idxAll
-    const rows = yearMarketingMonthly?.rows ?? []
-    const idx = idxAll.filter((i) => rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0) > 0)
-    return idx.length ? idx : idxAll
-  }, [isMobilePortrait, marketingMonths, yearMarketingMonthly])
+    return marketingMonths.map((_, i) => i)
+  }, [marketingMonths])
 
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -492,7 +484,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
         </div>
 
         <div className="overflow-x-auto">
-          <table className={clsx('w-full', isMobilePortrait ? 'min-w-[520px]' : 'min-w-[900px]')}>
+          <table className="w-full min-w-[900px]">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
                 <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Gangguan</th>
@@ -512,18 +504,18 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                     const v = Number(r.byMonth?.[i] ?? 0)
                     return (
                       <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
-                        {isMobilePortrait && v === 0 ? '' : v}
+                        {v}
                       </td>
                     )
                   })}
                   <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
-                    {isMobilePortrait && Number(r.total ?? 0) === 0 ? '' : r.total}
+                    {r.total}
                   </td>
                 </tr>
               ))}
               {(troubleTicketProblemMonthly?.rows?.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={troubleVisibleMonthIdx.length + 2} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                     Tidak ada data gangguan trouble ticket untuk tahun ini
                   </td>
                 </tr>
@@ -537,15 +529,12 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                     return (
                       <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
-                        {isMobilePortrait && v === 0 ? '' : v}
+                        {v}
                       </td>
                     )
                   })}
                   <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
-                    {(() => {
-                      const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)
-                      return isMobilePortrait && v === 0 ? '' : v
-                    })()}
+                    {(troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
                   </td>
                 </tr>
               </tfoot>
@@ -600,7 +589,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className={clsx('w-full', isMobilePortrait ? 'min-w-[520px]' : 'min-w-[900px]')}>
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700">
                   <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Marketing</th>
@@ -620,18 +609,18 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                       const v = Number(r.byMonth?.[i] ?? 0)
                       return (
                         <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
-                          {isMobilePortrait && v === 0 ? '' : v}
+                          {v}
                         </td>
                       )
                     })}
                     <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
-                      {isMobilePortrait && Number(r.total ?? 0) === 0 ? '' : r.total}
+                      {r.total}
                     </td>
                   </tr>
                 ))}
                 {(yearMarketingMonthly?.rows?.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={marketingVisibleMonthIdx.length + 2} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
                       Tidak ada data untuk tahun ini
                     </td>
                   </tr>
@@ -645,15 +634,12 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                       return (
                         <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
-                          {isMobilePortrait && v === 0 ? '' : v}
+                          {v}
                         </td>
                       )
                     })}
                     <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
-                      {(() => {
-                        const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)
-                        return isMobilePortrait && v === 0 ? '' : v
-                      })()}
+                      {(yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
                     </td>
                   </tr>
                 </tfoot>
