@@ -310,6 +310,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [problemOptions, setProblemOptions] = useState<string[]>([...DEFAULT_PROBLEM_CATEGORIES])
   const [idPrefix, setIdPrefix] = useState('TT/PKN/')
   const [nextNumber, setNextNumber] = useState(1)
+  const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
   const roleUpper = (userRole || '').toUpperCase()
   const isTroubleshoots = roleUpper === 'TROUBLESHOOTS'
@@ -318,6 +319,20 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const isPrivileged = useMemo(() => ['ADMIN', 'CS', 'NOC'].includes(roleUpper), [roleUpper])
 
   const fileInputId = 'trouble-ticket-import-input'
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
+    const update = () => setIsMobilePortrait(mq.matches)
+    update()
+
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', update)
+      return () => mq.removeEventListener('change', update)
+    }
+
+    mq.addListener(update)
+    return () => mq.removeListener(update)
+  }, [])
 
   useEffect(() => {
     if (!isTroubleshoots) return
@@ -1219,7 +1234,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
 
       {!isTroubleshoots && (
       <div className="space-y-2">
-        <div className="md:hidden space-y-2">
+        <div className={clsx('space-y-2', isMobilePortrait ? 'hidden' : 'md:hidden')}>
           {loading ? (
             <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
               Memuat...
@@ -1356,7 +1371,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           )}
         </div>
 
-        <div className="hidden md:block rounded-lg bg-white dark:bg-gray-800 shadow">
+        <div className={clsx('rounded-lg bg-white dark:bg-gray-800 shadow', isMobilePortrait ? 'block' : 'hidden md:block')}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">

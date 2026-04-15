@@ -26,3 +26,23 @@ body {
   overscroll-behavior-y: none;
   -webkit-text-size-adjust: 100%;
 }
+
+@media (max-width: 639px) and (orientation: portrait) {
+  .mp-desktop-table thead.hidden.md\:table-header-group {
+    display: table-header-group !important;
+  }
+
+  .mp-desktop-table th.hidden.md\:table-cell,
+  .mp-desktop-table td.hidden.md\:table-cell {
+    display: table-cell !important;
+  }
+
+  .mp-desktop-table th.md\:hidden,
+  .mp-desktop-table td.md\:hidden {
+    display: none !important;
+  }
+
+  .mp-desktop-table table {
+    min-width: 1100px;
+  }
+}

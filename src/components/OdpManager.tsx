@@ -655,7 +655,8 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           </div>
         )}
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-200 dark:ring-gray-800">
+          <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
@@ -756,6 +757,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
