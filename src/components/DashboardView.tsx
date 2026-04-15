@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
 
@@ -30,6 +30,8 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
+  const psbChartWrapRef = useRef<HTMLDivElement | null>(null)
+  const [psbChartWidth, setPsbChartWidth] = useState(0)
 
   // Pull to refresh support
   useEffect(() => {
@@ -39,6 +41,23 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
     window.addEventListener('app:refresh', handler)
     return () => window.removeEventListener('app:refresh', handler)
   }, [router])
+
+  useEffect(() => {
+    const el = psbChartWrapRef.current
+    if (!el) return
+
+    const setWidth = () => setPsbChartWidth(Math.round(el.getBoundingClientRect().width))
+    setWidth()
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => setWidth())
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+
+    window.addEventListener('resize', setWidth)
+    return () => window.removeEventListener('resize', setWidth)
+  }, [])
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
@@ -286,93 +305,100 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           </div>
         </div>
 
-        {(() => {
-          const series = monthlyData
-            .map((m) => ({ label: m.name, v: Number(m.count || 0) }))
-            .filter((x) => x.v > 0)
-          const max = Math.max(1, ...series.map((s) => s.v))
-          const w = 1200
-          const h = 260
-          const padX = 44
-          const padTop = 26
-          const padBottom = 44
-          const chartW = w - padX * 2
-          const chartH = h - padTop - padBottom
-          const stepX = chartW / Math.max(1, series.length - 1)
+        <div ref={psbChartWrapRef} className="w-full">
+          {(() => {
+            const seriesAll = monthlyData.map((m) => ({ label: m.name, v: Number(m.count || 0) }))
+            const isMobilePortrait = psbChartWidth > 0 && psbChartWidth < 640
+            const series = isMobilePortrait ? seriesAll : seriesAll.filter((x) => x.v > 0)
+            const max = Math.max(1, ...series.map((s) => s.v))
+            const w = isMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
+            const h = isMobilePortrait ? 240 : 260
+            const padX = isMobilePortrait ? 28 : 44
+            const padTop = isMobilePortrait ? 22 : 26
+            const padBottom = isMobilePortrait ? 40 : 44
+            const chartW = w - padX * 2
+            const chartH = h - padTop - padBottom
+            const stepX = chartW / Math.max(1, series.length - 1)
+            const labelFont = isMobilePortrait ? 11 : 14
+            const valueFont = isMobilePortrait ? 12 : 14
+            const dotR = isMobilePortrait ? 4 : 5
+            const haloR = isMobilePortrait ? 7 : 9
 
-          const pts = series.map((m, i) => {
-            const v = m.v
-            const x = padX + stepX * i
-            const y = padTop + chartH * (1 - v / max)
-            return { x, y, v, label: m.label }
-          })
-          const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
-          return (
-            <div className="w-full overflow-x-auto">
-              <div className="min-w-[760px]">
-                {pts.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                    Belum ada data PSB untuk tahun ini
-                  </div>
-                ) : (
-                <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-56">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const y = padTop + (chartH / 4) * i
-                    return (
-                      <line
-                        key={i}
-                        x1={padX}
-                        y1={y}
-                        x2={padX + chartW}
-                        y2={y}
-                        stroke="currentColor"
-                        className="text-gray-200 dark:text-gray-700"
-                        strokeWidth={1}
-                      />
-                    )
-                  })}
+            const pts = series.map((m, i) => {
+              const v = m.v
+              const x = padX + stepX * i
+              const y = padTop + chartH * (1 - v / max)
+              return { x, y, v, label: m.label }
+            })
+            const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
 
-                  {pts.length > 1 && (
-                    <polyline
-                      fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                      points={pointsStr}
-                    />
+            return (
+              <div className={clsx('w-full', isMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
+                <div className={clsx(!isMobilePortrait && 'min-w-[760px]')}>
+                  {pts.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                      Belum ada data PSB untuk tahun ini
+                    </div>
+                  ) : (
+                    <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isMobilePortrait ? 'h-[240px]' : 'h-56')}>
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const y = padTop + (chartH / 4) * i
+                        return (
+                          <line
+                            key={i}
+                            x1={padX}
+                            y1={y}
+                            x2={padX + chartW}
+                            y2={y}
+                            stroke="currentColor"
+                            className="text-gray-200 dark:text-gray-700"
+                            strokeWidth={1}
+                          />
+                        )
+                      })}
+
+                      {pts.length > 1 && (
+                        <polyline
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth={isMobilePortrait ? 2.5 : 3}
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          points={pointsStr}
+                        />
+                      )}
+
+                      {pts.map((p, idx) => (
+                        <g key={idx}>
+                          <circle cx={p.x} cy={p.y} r={dotR} fill="#3b82f6" />
+                          <circle cx={p.x} cy={p.y} r={haloR} fill="rgba(59,130,246,0.12)" />
+                          <text
+                            x={p.x}
+                            y={p.y - (isMobilePortrait ? 10 : 12)}
+                            textAnchor="middle"
+                            className="fill-gray-700 dark:fill-gray-200"
+                            style={{ fontSize: valueFont, fontWeight: 600 }}
+                          >
+                            {p.v}
+                          </text>
+                          <text
+                            x={p.x}
+                            y={h - (isMobilePortrait ? 12 : 14)}
+                            textAnchor="middle"
+                            className="fill-gray-500 dark:fill-gray-300"
+                            style={{ fontSize: labelFont, fontWeight: 500 }}
+                          >
+                            {p.label}
+                          </text>
+                        </g>
+                      ))}
+                    </svg>
                   )}
-
-                  {pts.map((p, idx) => (
-                    <g key={idx}>
-                      <circle cx={p.x} cy={p.y} r={5} fill="#3b82f6" />
-                      <circle cx={p.x} cy={p.y} r={9} fill="rgba(59,130,246,0.12)" />
-                      <text
-                        x={p.x}
-                        y={p.y - 12}
-                        textAnchor="middle"
-                        className="fill-gray-700 dark:fill-gray-200"
-                        style={{ fontSize: 14, fontWeight: 600 }}
-                      >
-                        {p.v}
-                      </text>
-                      <text
-                        x={p.x}
-                        y={h - 14}
-                        textAnchor="middle"
-                        className="fill-gray-500 dark:fill-gray-300"
-                        style={{ fontSize: 14, fontWeight: 500 }}
-                      >
-                        {p.label}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-                )}
+                </div>
               </div>
-            </div>
-          )
-        })()}
+            )
+          })()}
+        </div>
       </div>
 
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
