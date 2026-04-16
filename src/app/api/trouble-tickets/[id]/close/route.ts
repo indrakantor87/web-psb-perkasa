@@ -100,15 +100,25 @@ export async function POST(
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
-    const targetRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+    const idMatch = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
       `SELECT "id"
        FROM "TroubleTicket"
-       WHERE "id" = $1 OR "ticketNumber" = $1
-       ORDER BY "openedAt" DESC
+       WHERE "id" = $1
        LIMIT 1;`,
       ticketId
     )
-    const targetId = targetRows[0]?.id
+    const targetId =
+      idMatch[0]?.id ??
+      (
+        await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+          `SELECT "id"
+           FROM "TroubleTicket"
+           WHERE "ticketNumber" = $1
+           ORDER BY "openedAt" DESC
+           LIMIT 1;`,
+          ticketId
+        )
+      )[0]?.id
     if (!targetId) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const formData = await request.formData()
