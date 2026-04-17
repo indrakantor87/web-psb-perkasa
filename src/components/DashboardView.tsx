@@ -154,11 +154,20 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       {/* Header & Filter */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
-          {isMobilePortrait && (
-            <h1 className="mb-2 text-xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+          {isMobilePortrait ? (
+            <div className="flex items-start gap-3">
+              <h1 className="text-xl font-bold leading-tight text-gray-800 dark:text-white">Dashboard</h1>
+              <div className="min-w-0">
+                <h2 className="text-lg font-medium leading-tight text-gray-500 dark:text-gray-400">Ringkasan</h2>
+                <p className="text-sm leading-tight text-gray-400">Pantau kinerja dan status tiket</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-lg font-medium text-gray-500 dark:text-gray-400">Ringkasan</h2>
+              <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
+            </>
           )}
-          <h2 className="text-lg font-medium text-gray-500 dark:text-gray-400">Ringkasan</h2>
-          <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
         </div>
         
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-sm border border-gray-100 dark:border-gray-700 md:flex md:items-center md:gap-2">
