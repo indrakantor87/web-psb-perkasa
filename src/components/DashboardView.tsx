@@ -228,6 +228,113 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         />
       </div>
 
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
+            <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
+          </div>
+          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+          </div>
+        </div>
+
+        <div ref={psbChartWrapRef} className="w-full">
+          {(() => {
+            const seriesAll = monthlyData.map((m) => ({ label: m.name, v: Number(m.count || 0) }))
+            const isChartMobilePortrait = isMobilePortrait || (psbChartWidth > 0 && psbChartWidth < 640)
+            const series = isChartMobilePortrait ? seriesAll.filter((x) => x.v > 0) : seriesAll.filter((x) => x.v > 0)
+            const max = Math.max(1, ...series.map((s) => s.v))
+            const w = isChartMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
+            const h = isChartMobilePortrait ? 240 : 260
+            const padX = isChartMobilePortrait ? 28 : 44
+            const padTop = isChartMobilePortrait ? 22 : 26
+            const padBottom = isChartMobilePortrait ? 40 : 44
+            const chartW = w - padX * 2
+            const chartH = h - padTop - padBottom
+            const stepX = chartW / Math.max(1, series.length - 1)
+            const labelFont = isChartMobilePortrait ? 11 : 14
+            const valueFont = isChartMobilePortrait ? 12 : 14
+            const dotR = isChartMobilePortrait ? 4 : 5
+            const haloR = isChartMobilePortrait ? 7 : 9
+
+            const pts = series.map((m, i) => {
+              const v = m.v
+              const x = padX + stepX * i
+              const y = padTop + chartH * (1 - v / max)
+              return { x, y, v, label: m.label }
+            })
+            const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
+
+            return (
+              <div className={clsx('w-full', isChartMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
+                <div className={clsx(!isChartMobilePortrait && 'min-w-[760px]')}>
+                  {pts.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
+                      Belum ada data PSB untuk tahun ini
+                    </div>
+                  ) : (
+                    <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isChartMobilePortrait ? 'h-[240px]' : 'h-56')}>
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const y = padTop + (chartH / 4) * i
+                        return (
+                          <line
+                            key={i}
+                            x1={padX}
+                            y1={y}
+                            x2={padX + chartW}
+                            y2={y}
+                            stroke="currentColor"
+                            className="text-gray-200 dark:text-gray-700"
+                            strokeWidth={1}
+                          />
+                        )
+                      })}
+
+                      {pts.length > 1 && (
+                        <polyline
+                          fill="none"
+                          stroke="#3b82f6"
+                          strokeWidth={isChartMobilePortrait ? 2.5 : 3}
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                          points={pointsStr}
+                        />
+                      )}
+
+                      {pts.map((p, idx) => (
+                        <g key={idx}>
+                          <circle cx={p.x} cy={p.y} r={dotR} fill="#3b82f6" />
+                          <circle cx={p.x} cy={p.y} r={haloR} fill="rgba(59,130,246,0.12)" />
+                          <text
+                            x={p.x}
+                            y={p.y - (isChartMobilePortrait ? 10 : 12)}
+                            textAnchor="middle"
+                            className="fill-gray-700 dark:fill-gray-200"
+                            style={{ fontSize: valueFont, fontWeight: 600 }}
+                          >
+                            {p.v}
+                          </text>
+                          <text
+                            x={p.x}
+                            y={h - (isChartMobilePortrait ? 12 : 14)}
+                            textAnchor="middle"
+                            className="fill-gray-500 dark:fill-gray-300"
+                            style={{ fontSize: labelFont, fontWeight: 500 }}
+                          >
+                            {p.label}
+                          </text>
+                        </g>
+                      ))}
+                    </svg>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+      </div>
+
       {isMobilePortrait && (
         <div className="space-y-4">
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -345,113 +452,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           </div>
         </div>
       )}
-
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
-            <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
-          </div>
-          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <TrendingUp className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-          </div>
-        </div>
-
-        <div ref={psbChartWrapRef} className="w-full">
-          {(() => {
-            const seriesAll = monthlyData.map((m) => ({ label: m.name, v: Number(m.count || 0) }))
-            const isChartMobilePortrait = isMobilePortrait || (psbChartWidth > 0 && psbChartWidth < 640)
-            const series = isChartMobilePortrait ? seriesAll.filter((x) => x.v > 0) : seriesAll.filter((x) => x.v > 0)
-            const max = Math.max(1, ...series.map((s) => s.v))
-            const w = isChartMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
-            const h = isChartMobilePortrait ? 240 : 260
-            const padX = isChartMobilePortrait ? 28 : 44
-            const padTop = isChartMobilePortrait ? 22 : 26
-            const padBottom = isChartMobilePortrait ? 40 : 44
-            const chartW = w - padX * 2
-            const chartH = h - padTop - padBottom
-            const stepX = chartW / Math.max(1, series.length - 1)
-            const labelFont = isChartMobilePortrait ? 11 : 14
-            const valueFont = isChartMobilePortrait ? 12 : 14
-            const dotR = isChartMobilePortrait ? 4 : 5
-            const haloR = isChartMobilePortrait ? 7 : 9
-
-            const pts = series.map((m, i) => {
-              const v = m.v
-              const x = padX + stepX * i
-              const y = padTop + chartH * (1 - v / max)
-              return { x, y, v, label: m.label }
-            })
-            const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
-
-            return (
-              <div className={clsx('w-full', isChartMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
-                <div className={clsx(!isChartMobilePortrait && 'min-w-[760px]')}>
-                  {pts.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                      Belum ada data PSB untuk tahun ini
-                    </div>
-                  ) : (
-                    <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isChartMobilePortrait ? 'h-[240px]' : 'h-56')}>
-                      {Array.from({ length: 5 }).map((_, i) => {
-                        const y = padTop + (chartH / 4) * i
-                        return (
-                          <line
-                            key={i}
-                            x1={padX}
-                            y1={y}
-                            x2={padX + chartW}
-                            y2={y}
-                            stroke="currentColor"
-                            className="text-gray-200 dark:text-gray-700"
-                            strokeWidth={1}
-                          />
-                        )
-                      })}
-
-                      {pts.length > 1 && (
-                        <polyline
-                          fill="none"
-                          stroke="#3b82f6"
-                          strokeWidth={isChartMobilePortrait ? 2.5 : 3}
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                          points={pointsStr}
-                        />
-                      )}
-
-                      {pts.map((p, idx) => (
-                        <g key={idx}>
-                          <circle cx={p.x} cy={p.y} r={dotR} fill="#3b82f6" />
-                          <circle cx={p.x} cy={p.y} r={haloR} fill="rgba(59,130,246,0.12)" />
-                          <text
-                            x={p.x}
-                            y={p.y - (isChartMobilePortrait ? 10 : 12)}
-                            textAnchor="middle"
-                            className="fill-gray-700 dark:fill-gray-200"
-                            style={{ fontSize: valueFont, fontWeight: 600 }}
-                          >
-                            {p.v}
-                          </text>
-                          <text
-                            x={p.x}
-                            y={h - (isChartMobilePortrait ? 12 : 14)}
-                            textAnchor="middle"
-                            className="fill-gray-500 dark:fill-gray-300"
-                            style={{ fontSize: labelFont, fontWeight: 500 }}
-                          >
-                            {p.label}
-                          </text>
-                        </g>
-                      ))}
-                    </svg>
-                  )}
-                </div>
-              </div>
-            )
-          })()}
-        </div>
-      </div>
 
       {/* Marketing Table */}
       {!isMobilePortrait && !isTeknisi && !isNoc && (
