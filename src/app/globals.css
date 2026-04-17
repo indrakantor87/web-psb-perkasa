@@ -27,6 +27,10 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+.mp-only-mobile-portrait {
+  display: none !important;
+}
+
 @keyframes ttPulseRed {
   0%, 100% {
     background-color: rgba(220, 38, 38, 0.08);
@@ -59,6 +63,14 @@ body {
 }
 
 @media (max-width: 639px) and (orientation: portrait) {
+  .mp-hide-mobile-portrait {
+    display: none !important;
+  }
+
+  .mp-only-mobile-portrait {
+    display: block !important;
+  }
+
   .mp-desktop-table thead.hidden.md\:table-header-group {
     display: table-header-group !important;
   }

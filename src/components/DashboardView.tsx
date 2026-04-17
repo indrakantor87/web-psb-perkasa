@@ -141,6 +141,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       {/* Header & Filter */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
+          {isMobilePortrait && (
+            <h1 className="mb-2 text-xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+          )}
           <h2 className="text-lg font-medium text-gray-500 dark:text-gray-400">Ringkasan</h2>
           <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
         </div>

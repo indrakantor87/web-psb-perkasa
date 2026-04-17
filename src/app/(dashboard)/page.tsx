@@ -56,7 +56,7 @@ export default async function DashboardPage({
   if (cached) {
     return (
       <div>
-        <h1 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+        <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
         <DashboardView
           packageData={cached.packageData}
           marketingData={cached.marketingDataWithIsolir}
@@ -408,7 +408,7 @@ export default async function DashboardPage({
 
   return (
     <div>
-      <h1 className="mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+      <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
       <DashboardView 
         packageData={packageData} 
         marketingData={marketingDataWithIsolir}
