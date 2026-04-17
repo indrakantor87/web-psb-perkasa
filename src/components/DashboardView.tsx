@@ -155,9 +155,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           {isMobilePortrait ? (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start justify-between gap-3">
               <h1 className="text-xl font-bold leading-tight text-gray-800 dark:text-white">Dashboard</h1>
-              <div className="min-w-0">
+              <div className="min-w-0 text-right">
                 <h2 className="text-lg font-medium leading-tight text-gray-500 dark:text-gray-400">Ringkasan</h2>
                 <p className="text-sm leading-tight text-gray-400">Pantau kinerja dan status tiket</p>
               </div>
