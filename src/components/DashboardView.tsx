@@ -136,6 +136,19 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     return rows.slice(0, 7)
   }, [troubleTicketProblemMonthly?.rows])
 
+  const packageChartWidth = useMemo(() => Math.max(360, packageBarData.length * 90), [packageBarData.length])
+  const ticketingChartWidth = useMemo(() => Math.max(360, ticketingBarData.length * 110), [ticketingBarData.length])
+  const troubleChartWidth = useMemo(() => Math.max(360, troubleTopData.length * 120), [troubleTopData.length])
+
+  const shortLabel = useMemo(() => {
+    return (value: unknown, max = 10) => {
+      const s = String(value ?? '').trim()
+      if (!s) return '-'
+      if (s.length <= max) return s
+      return `${s.slice(0, Math.max(1, max - 1))}…`
+    }
+  }, [])
+
   return (
     <div className="space-y-8 pb-10">
       {/* Header & Filter */}
@@ -396,18 +409,29 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <p className="text-xs text-gray-500">Top paket pada periode terpilih</p>
               </div>
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={packageBarData.length ? packageBarData : [{ name: '-', count: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+            <div className="w-full overflow-x-auto -mx-4 px-4">
+              <div style={{ width: packageChartWidth, height: 256 }}>
+                <BarChart width={packageChartWidth} height={256} data={packageBarData.length ? packageBarData : [{ name: '-', count: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={42} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    height={64}
+                    angle={-25}
+                    textAnchor="end"
+                    tickMargin={10}
+                    tickFormatter={(v) => shortLabel(v, 12)}
+                  />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="count" name="Jumlah" radius={[8, 8, 0, 0]} barSize={26} fill="#3b82f6">
+                  <Bar dataKey="count" name="Jumlah" radius={[8, 8, 0, 0]} barSize={28} fill="#3b82f6">
                     <LabelList dataKey="count" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
@@ -418,17 +442,28 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <p className="text-xs text-gray-500">Open vs Close per kategori bulan ini</p>
               </div>
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ticketingBarData.length ? ticketingBarData : [{ name: '-', open: 0, close: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+            <div className="w-full overflow-x-auto -mx-4 px-4">
+              <div style={{ width: ticketingChartWidth, height: 256 }}>
+                <BarChart width={ticketingChartWidth} height={256} data={ticketingBarData.length ? ticketingBarData : [{ name: '-', open: 0, close: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={42} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    height={64}
+                    angle={-25}
+                    textAnchor="end"
+                    tickMargin={10}
+                    tickFormatter={(v) => shortLabel(v, 14)}
+                  />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="open" name="Open" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={26} />
-                  <Bar dataKey="close" name="Close" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={26} />
+                  <Bar dataKey="open" name="Open" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={28} />
+                  <Bar dataKey="close" name="Close" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={28} />
                 </BarChart>
-              </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
@@ -439,18 +474,29 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <p className="text-xs text-gray-500">Ringkasan 1 tahun (top 7)</p>
               </div>
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={troubleTopData.length ? troubleTopData : [{ name: '-', total: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+            <div className="w-full overflow-x-auto -mx-4 px-4">
+              <div style={{ width: troubleChartWidth, height: 256 }}>
+                <BarChart width={troubleChartWidth} height={256} data={troubleTopData.length ? troubleTopData : [{ name: '-', total: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={56} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    height={72}
+                    angle={-25}
+                    textAnchor="end"
+                    tickMargin={10}
+                    tickFormatter={(v) => shortLabel(v, 12)}
+                  />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} barSize={26} fill="#f59e0b">
+                  <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} barSize={28} fill="#f59e0b">
                     <LabelList dataKey="total" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>
