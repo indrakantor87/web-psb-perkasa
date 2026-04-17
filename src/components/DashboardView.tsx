@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 
 interface DashboardViewProps {
@@ -29,7 +30,7 @@ interface DashboardViewProps {
   isolationCount?: number
 }
 
-export function DashboardView({ marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -104,6 +105,36 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
   const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
+
+  const statusPieData = useMemo(() => ([
+    { name: 'OPEN', value: Number(statusCounts.open || 0), color: '#ef4444' },
+    { name: 'ON PROGRESS', value: Number(statusCounts.on_progress || 0), color: '#3b82f6' },
+    { name: 'CLOSE', value: Number(statusCounts.close || 0), color: '#10b981' },
+  ]).filter((x) => x.value > 0), [statusCounts.close, statusCounts.on_progress, statusCounts.open])
+
+  const packageBarData = useMemo(() => {
+    const rows = (packageData ?? [])
+      .map((r) => ({ name: String(r.name || 'Unknown'), count: Number(r.count || 0) }))
+      .filter((r) => r.count > 0)
+    rows.sort((a, b) => b.count - a.count)
+    return rows.slice(0, 7)
+  }, [packageData])
+
+  const ticketingBarData = useMemo(() => {
+    return (ticketingMonthRecap ?? []).map((r) => ({
+      name: String(r.type || '-'),
+      open: Number(r.open || 0),
+      close: Number(r.close || 0),
+    }))
+  }, [ticketingMonthRecap])
+
+  const troubleTopData = useMemo(() => {
+    const rows = (troubleTicketProblemMonthly?.rows ?? [])
+      .map((r) => ({ name: String(r.problemCategory || '-'), total: Number(r.total || 0) }))
+      .filter((r) => r.total > 0)
+    rows.sort((a, b) => b.total - a.total)
+    return rows.slice(0, 7)
+  }, [troubleTicketProblemMonthly?.rows])
 
   return (
     <div className="space-y-8 pb-10">
@@ -196,6 +227,124 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           color="bg-slate-100 dark:bg-slate-700/40"
         />
       </div>
+
+      {isMobilePortrait && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-800 dark:text-white">Status PSB</h3>
+                <p className="text-xs text-gray-500">Ringkasan status pada periode terpilih</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+                Total: {statusCounts.total}
+              </div>
+            </div>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusPieData.length ? statusPieData : [{ name: 'EMPTY', value: 1, color: '#9ca3af' }]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={58}
+                    outerRadius={82}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {(statusPieData.length ? statusPieData : [{ name: 'EMPTY', value: 1, color: '#9ca3af' }]).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={(entry as { color: string }).color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: unknown, name: unknown) => [Number(value ?? 0), String(name ?? '')]}
+                    contentStyle={{ borderRadius: '10px', border: 'none' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-red-50 dark:bg-red-900/20 px-3 py-2 text-center">
+                <div className="text-[11px] font-semibold text-red-700 dark:text-red-200">OPEN</div>
+                <div className="text-sm font-bold text-red-800 dark:text-red-100">{statusCounts.open}</div>
+              </div>
+              <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-center">
+                <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-200">ON PROGRESS</div>
+                <div className="text-sm font-bold text-blue-800 dark:text-blue-100">{statusCounts.on_progress}</div>
+              </div>
+              <div className="rounded-xl bg-green-50 dark:bg-green-900/20 px-3 py-2 text-center">
+                <div className="text-[11px] font-semibold text-green-700 dark:text-green-200">CLOSE</div>
+                <div className="text-sm font-bold text-green-800 dark:text-green-100">{statusCounts.close}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-800 dark:text-white">Paket Terlaris</h3>
+                <p className="text-xs text-gray-500">Top paket pada periode terpilih</p>
+              </div>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={packageBarData.length ? packageBarData : [{ name: '-', count: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={42} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <Bar dataKey="count" name="Jumlah" radius={[8, 8, 0, 0]} barSize={26} fill="#3b82f6">
+                    <LabelList dataKey="count" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-800 dark:text-white">Ticketing</h3>
+                <p className="text-xs text-gray-500">Open vs Close per kategori bulan ini</p>
+              </div>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ticketingBarData.length ? ticketingBarData : [{ name: '-', open: 0, close: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={42} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <Bar dataKey="open" name="Open" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={26} />
+                  <Bar dataKey="close" name="Close" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={26} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-gray-800 dark:text-white">Top Gangguan TT</h3>
+                <p className="text-xs text-gray-500">Ringkasan 1 tahun (top 7)</p>
+              </div>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={troubleTopData.length ? troubleTopData : [{ name: '-', total: 0 }]} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} height={56} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} barSize={26} fill="#f59e0b">
+                    <LabelList dataKey="total" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
@@ -305,7 +454,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
 
       {/* Marketing Table */}
-      {!isTeknisi && !isNoc && (
+      {!isMobilePortrait && !isTeknisi && !isNoc && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -431,6 +580,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       </div>
       )}
 
+      {!isMobilePortrait && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -482,7 +632,9 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           </table>
         </div>
       </div>
+      )}
 
+      {!isMobilePortrait && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -553,9 +705,10 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
           </table>
         </div>
       </div>
+      )}
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMarketing && !isTeknisi && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -588,7 +741,7 @@ export function DashboardView({ marketingData, monthlyData, yearTopPackages, yea
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMarketing && !isTeknisi && !isNoc && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
