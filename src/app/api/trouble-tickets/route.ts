@@ -186,18 +186,55 @@ function parseTicketCode(input: unknown) {
 async function ensurePeriodIdRow(month: number, year: number, category: TicketCategory) {
   await ensureIdConfigOnce()
   const id = periodKey(month, year)
-  const last = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
-    `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+  const existing = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+    id,
     category
   ).catch(() => [])
-  const prefix = normalizePrefix(category, last[0]?.prefix ?? defaultPrefixForCategory(category))
-  await prisma.$executeRawUnsafe(
-    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
+
+  if (!existing[0]) {
+    const last = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
+      `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+      category
+    ).catch(() => [])
+    const prefix = normalizePrefix(category, last[0]?.prefix ?? defaultPrefixForCategory(category))
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
+      id,
+      category,
+      prefix,
+      1
+    )
+  }
+
+  const rowsAfter = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
     id,
+    category
+  ).catch(() => [])
+  const current = rowsAfter[0]
+  if (!current) return
+  const prefix = normalizePrefix(category, current.prefix)
+  const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
+    `SELECT MAX("ticketNumber")::int AS "max"
+     FROM "TroubleTicket"
+     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
+    month,
+    year,
     category,
-    prefix,
-    1
-  )
+    prefix
+  ).catch(() => [])
+  const maxTicketNumber = Math.trunc(Number(maxRows[0]?.max ?? 0))
+  const desiredNext = Math.max(1, current.nextNumber, Number.isFinite(maxTicketNumber) ? maxTicketNumber + 1 : 1)
+  if (desiredNext !== current.nextNumber || prefix !== current.prefix) {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "TroubleTicketIdConfigV2" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3 AND "category" = $4;`,
+      prefix,
+      desiredNext,
+      id,
+      category
+    )
+  }
 }
 
 async function allocateTicketCode(month: number, year: number, category: TicketCategory) {

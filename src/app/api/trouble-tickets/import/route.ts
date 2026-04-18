@@ -54,6 +54,13 @@ async function ensureTroubleTicketTable() {
 type TicketCategory = 'TT' | 'PV'
 type IdCfg = { prefix: string; nextNumber: number }
 
+function normalizeTypeKey(type: unknown) {
+  return String(type ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_')
+}
+
 async function ensureIdConfig() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "TroubleTicketIdConfigV2" (
@@ -115,18 +122,58 @@ function parseTicketCode(input: unknown) {
 async function ensurePeriodIdRow(month: number, year: number, category: TicketCategory) {
   await ensureIdConfig()
   const id = periodKey(month, year)
-  const last = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
-    `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+  const existing = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+    id,
     category
   ).catch(() => [])
-  const prefix = normalizePrefix(category, last[0]?.prefix ?? defaultPrefixForCategory(category))
-  await prisma.$executeRawUnsafe(
-    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
+  const basePrefix = (() => {
+    const p = existing[0]?.prefix
+    if (p) return normalizePrefix(category, p)
+    return defaultPrefixForCategory(category)
+  })()
+  if (!existing[0]) {
+    const last = await prisma.$queryRawUnsafe<Array<{ prefix: string }>>(
+      `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
+      category
+    ).catch(() => [])
+    const prefix = normalizePrefix(category, last[0]?.prefix ?? basePrefix)
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
+      id,
+      category,
+      prefix,
+      1
+    )
+  }
+
+  const rowsAfter = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
     id,
+    category
+  ).catch(() => [])
+  const current = rowsAfter[0] ?? { prefix: basePrefix, nextNumber: 1 }
+  const prefix = normalizePrefix(category, current.prefix)
+  const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
+    `SELECT MAX("ticketNumber")::int AS "max"
+     FROM "TroubleTicket"
+     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
+    month,
+    year,
     category,
-    prefix,
-    1
-  )
+    prefix
+  ).catch(() => [])
+  const maxTicketNumber = Math.trunc(Number(maxRows[0]?.max ?? 0))
+  const desiredNext = Math.max(1, current.nextNumber, Number.isFinite(maxTicketNumber) ? maxTicketNumber + 1 : 1)
+  if (desiredNext !== current.nextNumber || prefix !== current.prefix) {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "TroubleTicketIdConfigV2" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3 AND "category" = $4;`,
+      prefix,
+      desiredNext,
+      id,
+      category
+    )
+  }
 }
 
 async function allocateTicketCode(month: number, year: number, category: TicketCategory) {
@@ -148,6 +195,30 @@ async function allocateTicketCode(month: number, year: number, category: TicketC
   const next = updated[0]?.nextNumber ?? (current.nextNumber + 1)
   const ticketNumber = Math.max(1, next - 1)
   return { category, ticketPrefix: prefix, ticketNumber, ticketCode: `${prefix}${formatTicketNumber(ticketNumber)}` }
+}
+
+async function bumpNextNumberIfNeeded(month: number, year: number, parsed: { category: TicketCategory; ticketPrefix: string; ticketNumber: number }) {
+  await ensurePeriodIdRow(month, year, parsed.category)
+  const id = periodKey(month, year)
+  const rows = await prisma.$queryRawUnsafe<IdCfg[]>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+    id,
+    parsed.category
+  ).catch(() => [])
+  const current = rows[0]
+  if (!current) return
+  const currentPrefix = normalizePrefix(parsed.category, current.prefix)
+  const parsedPrefix = normalizePrefix(parsed.category, parsed.ticketPrefix)
+  if (currentPrefix !== parsedPrefix) return
+  const desiredNext = Math.max(1, current.nextNumber, parsed.ticketNumber + 1)
+  if (desiredNext !== current.nextNumber) {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "TroubleTicketIdConfigV2" SET "nextNumber" = $1, "updatedAt" = NOW() WHERE "id" = $2 AND "category" = $3;`,
+      desiredNext,
+      id,
+      parsed.category
+    )
+  }
 }
 
 function parseDate(v: unknown) {
@@ -217,12 +288,16 @@ export async function POST(request: Request) {
       const periodYear = Number.isFinite(year) && year >= 2000 && year <= 2100 ? year : now.getFullYear()
       const codeParsed = parseTicketCode(r.ticketCode)
       const category = codeParsed?.category ?? 'TT'
+      if (codeParsed) {
+        await bumpNextNumberIfNeeded(periodMonth, periodYear, codeParsed)
+      }
       const allocated = codeParsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
       const customerName = String(r.customerName ?? '').trim()
       const user = String(r.user ?? '').trim()
       const waNumberRaw = String(r.waNumber ?? '').trim()
       const waNumber = waNumberRaw || '-'
-      const type = String(r.type ?? '').trim()
+      const typeKey = normalizeTypeKey(r.type)
+      const type = category === 'PV' ? 'PREVENTIVE' : typeKey
       const mapsUrl = String(r.mapsUrl ?? '').trim()
       const notes = String(r.notes ?? '').trim()
       const problemCategory = String(r.problemCategory ?? '').trim()
@@ -232,39 +307,60 @@ export async function POST(request: Request) {
         failed += 1
         continue
       }
+      if (category === 'TT' && typeKey === 'PREVENTIVE') {
+        failed += 1
+        continue
+      }
 
-      const openedAt = parseDate(r.openedAt) ?? new Date()
+      const openedAtParsed = parseDate(r.openedAt)
       const closedAt = parseDate(r.closedAt)
       const statusRaw = String(r.status ?? '').trim().toUpperCase()
       const status = closedAt ? 'CLOSE' : statusRaw === 'CLOSE' ? 'CLOSE' : 'OPEN'
 
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "TroubleTicket" (
-           "ticketCode","ticketPrefix","ticketNumber","category",
-           "periodMonth","periodYear",
-           "customerName","user","waNumber","mapsUrl","type","notes",
-           "problemCategory","resolutionAction",
-           "openedAt","closedAt","status"
-         )
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17);`,
-        allocated.ticketCode,
-        allocated.ticketPrefix,
-        allocated.ticketNumber,
-        allocated.category,
+      const updateData: Record<string, unknown> = {
+        ticketPrefix: allocated.ticketPrefix,
+        ticketNumber: allocated.ticketNumber,
+        category: allocated.category,
         periodMonth,
         periodYear,
         customerName,
-        user || null,
+        user: user || null,
         waNumber,
-        mapsUrl || null,
+        mapsUrl: mapsUrl || null,
         type,
-        notes || null,
-        problemCategory || null,
-        resolutionAction || null,
-        openedAt,
-        status === 'CLOSE' ? (closedAt ?? new Date()) : null,
-        status
-      )
+        notes: notes || null,
+        problemCategory: problemCategory || null,
+        resolutionAction: resolutionAction || null,
+      }
+      if (openedAtParsed) updateData.openedAt = openedAtParsed
+      if (status === 'CLOSE') {
+        updateData.status = 'CLOSE'
+        updateData.closedAt = closedAt ?? new Date()
+      }
+
+      await prisma.troubleTicket.upsert({
+        where: { ticketCode: allocated.ticketCode },
+        create: {
+          ticketCode: allocated.ticketCode,
+          ticketPrefix: allocated.ticketPrefix,
+          ticketNumber: allocated.ticketNumber,
+          category: allocated.category,
+          periodMonth,
+          periodYear,
+          customerName,
+          user: user || null,
+          waNumber,
+          mapsUrl: mapsUrl || null,
+          type,
+          notes: notes || null,
+          problemCategory: problemCategory || null,
+          resolutionAction: resolutionAction || null,
+          openedAt: openedAtParsed ?? new Date(),
+          closedAt: status === 'CLOSE' ? (closedAt ?? new Date()) : null,
+          status,
+        },
+        update: updateData as never,
+      })
       success += 1
     } catch {
       failed += 1

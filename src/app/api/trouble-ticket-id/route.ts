@@ -83,6 +83,35 @@ async function ensureDefaultRow(month: number, year: number, category: TicketCat
     prefix,
     1
   )
+
+  const rows = await prisma.$queryRawUnsafe<Array<{ prefix: string; nextNumber: number }>>(
+    `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
+    id,
+    category
+  ).catch(() => [])
+  const current = rows[0]
+  if (!current) return
+  const currentPrefix = normalizePrefix(category, current.prefix)
+  const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
+    `SELECT MAX("ticketNumber")::int AS "max"
+     FROM "TroubleTicket"
+     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
+    month,
+    year,
+    category,
+    currentPrefix
+  ).catch(() => [])
+  const maxTicketNumber = Math.trunc(Number(maxRows[0]?.max ?? 0))
+  const desiredNext = Math.max(1, current.nextNumber, Number.isFinite(maxTicketNumber) ? maxTicketNumber + 1 : 1)
+  if (desiredNext !== current.nextNumber || currentPrefix !== current.prefix) {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "TroubleTicketIdConfigV2" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3 AND "category" = $4;`,
+      currentPrefix,
+      desiredNext,
+      id,
+      category
+    )
+  }
 }
 
 export async function GET(request: Request) {
