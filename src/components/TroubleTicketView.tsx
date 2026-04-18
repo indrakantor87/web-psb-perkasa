@@ -137,6 +137,43 @@ function stripPeriodSegment(codeOrPrefix: string) {
   return parts.length ? `${parts.join('/')}/` : ''
 }
 
+function splitTicketCode(code: string) {
+  const raw = String(code ?? '').trim()
+  if (!raw) return null
+  const m = raw.match(/^(.*\/)(\d+)\s*$/)
+  if (!m) return null
+  const prefix = stripPeriodSegment(m[1])
+  const number = Math.trunc(Number(m[2]))
+  if (!Number.isFinite(number) || number < 1) return null
+  return { prefix, number }
+}
+
+function getDisplayTicketCode(row: TroubleTicketRow) {
+  const number =
+    row.ticketNumber ??
+    (() => {
+      const parsed = row.ticketCode ? splitTicketCode(row.ticketCode) : null
+      return parsed?.number ?? null
+    })()
+
+  const prefix =
+    stripPeriodSegment(row.ticketPrefix || '') ||
+    (() => {
+      const parsed = row.ticketCode ? splitTicketCode(row.ticketCode) : null
+      return parsed?.prefix || ''
+    })()
+
+  if (prefix && number) return `${prefix}${formatTicketNumber(number)}`
+  if (row.ticketCode) return stripPeriodSegment(row.ticketCode).replace(/\/$/, '')
+  return String(row.id)
+}
+
+function getDisplayTicketId(row: TroubleTicketRow) {
+  const code = getDisplayTicketCode(row)
+  const datePart = formatDateForTicketId(row.openedAt)
+  return datePart ? `${code}/${datePart}` : code
+}
+
 function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
@@ -157,14 +194,7 @@ function formatWaDisplay(value: string) {
 }
 
 function buildTicketDetailText(row: TroubleTicketRow) {
-  const basePrefix = stripPeriodSegment(row.ticketPrefix || row.ticketCode || '')
-  const number = row.ticketNumber ?? (() => {
-    const m = String(row.ticketCode ?? '').trim().match(/(\d+)\s*$/)
-    return m ? Math.trunc(Number(m[1])) : null
-  })()
-  const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (row.ticketCode ? stripPeriodSegment(row.ticketCode).replace(/\/$/, '') : String(row.id))
-  const datePart = formatDateForTicketId(row.openedAt)
-  const ticketId = datePart ? `${code}/${datePart}` : code
+  const ticketId = getDisplayTicketId(row)
   const maps = (row.mapsUrl || '').trim()
   const type = formatTypeLabel(row.type)
   const status = ((row.status || '').toLowerCase() === 'close' || row.closedAt) ? 'close' : 'open'
@@ -1127,12 +1157,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const dt = Number.isNaN(d.getTime())
                 ? '-'
                 : `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
-              const basePrefix = stripPeriodSegment(r.ticketPrefix || r.ticketCode || '')
-              const number = r.ticketNumber ?? (() => {
-                const m = String(r.ticketCode ?? '').trim().match(/(\d+)\s*$/)
-                return m ? Math.trunc(Number(m[1])) : null
-              })()
-              const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (r.ticketCode ? stripPeriodSegment(r.ticketCode).replace(/\/$/, '') : String(r.id))
+              const code = getDisplayTicketCode(r)
               const statusLabel = ((r.status || '').toUpperCase() === 'CLOSE' || r.closedAt) ? 'Close' : 'New'
               const mapsLink = (r.mapsUrl || '').trim()
               const wa = normalizeWaNumber(r.waNumber)
@@ -1292,11 +1317,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const wa = normalizeWaNumber(r.waNumber)
               const mapsLink = (r.mapsUrl || '').trim()
               const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
-              const code = (() => {
-                const c = r.ticketCode || String(r.id)
-                const datePart = formatDateForTicketId(r.openedAt)
-                return datePart ? `${c}/${datePart}` : c
-              })()
+              const code = getDisplayTicketId(r)
 
               return (
                 <div key={r.id} className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 shadow-sm">
@@ -1509,14 +1530,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                             className="text-left hover:underline"
                           >
                             {(() => {
-                              const basePrefix = stripPeriodSegment(r.ticketPrefix || r.ticketCode || '')
-                              const number = r.ticketNumber ?? (() => {
-                                const m = String(r.ticketCode ?? '').trim().match(/(\d+)\s*$/)
-                                return m ? Math.trunc(Number(m[1])) : null
-                              })()
-                              const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (r.ticketCode ? stripPeriodSegment(r.ticketCode).replace(/\/$/, '') : String(r.id))
-                              const datePart = formatDateForTicketId(r.openedAt)
-                              return datePart ? `${code}/${datePart}` : code
+                              return getDisplayTicketId(r)
                             })()}
                           </button>
                         </div>
