@@ -106,6 +106,21 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
   const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
 
+  const ticketingTotals = useMemo(() => {
+    const open = (ticketingMonthRecap ?? []).reduce((acc, r) => acc + Number(r.open ?? 0), 0)
+    const close = (ticketingMonthRecap ?? []).reduce((acc, r) => acc + Number(r.close ?? 0), 0)
+    return { open, close, total: open + close }
+  }, [ticketingMonthRecap])
+
+  const ticketingPieData = useMemo(
+    () =>
+      [
+        { name: 'OPEN', value: Number(ticketingTotals.open || 0), color: '#ef4444' },
+        { name: 'CLOSE', value: Number(ticketingTotals.close || 0), color: '#10b981' },
+      ].filter((x) => x.value > 0),
+    [ticketingTotals.close, ticketingTotals.open]
+  )
+
   const statusPieData = useMemo(() => ([
     { name: 'OPEN', value: Number(statusCounts.open || 0), color: '#ef4444' },
     { name: 'ON PROGRESS', value: Number(statusCounts.on_progress || 0), color: '#3b82f6' },
@@ -709,45 +724,84 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             <Wrench className="h-5 w-5 text-gray-600 dark:text-gray-200" />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kategori</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {ticketingMonthRecap.map((r) => (
-                <tr key={r.type} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
-                  <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
-                  <td className="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">{r.close}</td>
-                </tr>
-              ))}
-              {ticketingMonthRecap.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-400 italic">
-                    Tidak ada data ticketing untuk bulan ini
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            {ticketingMonthRecap.length > 0 && (
-              <tfoot>
-                <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
-                  <td className="px-4 py-3 text-center text-sm font-semibold text-red-700 dark:text-red-300">
-                    {ticketingMonthRecap.reduce((acc, r) => acc + Number(r.open ?? 0), 0)}
-                  </td>
-                  <td className="px-4 py-3 text-center text-sm font-semibold text-green-700 dark:text-green-300">
-                    {ticketingMonthRecap.reduce((acc, r) => acc + Number(r.close ?? 0), 0)}
-                  </td>
-                </tr>
-              </tfoot>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="lg:w-72 lg:shrink-0">
+            {ticketingPieData.length === 0 ? (
+              <div className="h-60 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-900/20 text-sm text-gray-500 dark:text-gray-400 italic">
+                Tidak ada data
+              </div>
+            ) : (
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-900/20 p-4">
+                <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Komposisi Open vs Close</div>
+                <div className="h-44 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={ticketingPieData} dataKey="value" nameKey="name" innerRadius={46} outerRadius={68} paddingAngle={4}>
+                        {ticketingPieData.map((entry, index) => (
+                          <Cell key={`cell-ticketing-${index}`} fill={(entry as { color: string }).color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: unknown, name: unknown) => [Number(value ?? 0), String(name ?? '')]}
+                        contentStyle={{ borderRadius: '10px', border: 'none' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-center">
+                    <div className="text-[11px] font-semibold text-red-700 dark:text-red-200">OPEN</div>
+                    <div className="text-sm font-bold text-red-800 dark:text-red-100">{ticketingTotals.open}</div>
+                  </div>
+                  <div className="rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-center">
+                    <div className="text-[11px] font-semibold text-green-700 dark:text-green-200">CLOSE</div>
+                    <div className="text-sm font-bold text-green-800 dark:text-green-100">{ticketingTotals.close}</div>
+                  </div>
+                </div>
+              </div>
             )}
-          </table>
+          </div>
+
+          <div className="min-w-0 flex-1 overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kategori</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {ticketingMonthRecap.map((r) => (
+                  <tr key={r.type} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
+                    <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
+                    <td className="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">{r.close}</td>
+                  </tr>
+                ))}
+                {ticketingMonthRecap.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                      Tidak ada data ticketing untuk bulan ini
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+              {ticketingMonthRecap.length > 0 && (
+                <tfoot>
+                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-red-700 dark:text-red-300">
+                      {ticketingTotals.open}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold text-green-700 dark:text-green-300">
+                      {ticketingTotals.close}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
         </div>
       </div>
       )}
