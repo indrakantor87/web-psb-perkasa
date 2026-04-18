@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 
 interface DashboardViewProps {
@@ -389,23 +389,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                <BarChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name="Total"
-                    stroke="#f59e0b"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
-                    activeDot={{ r: 6 }}
-                  >
+                  <Bar dataKey="total" name="Total" fill="#f59e0b" barSize={28} radius={[8, 8, 0, 0]}>
                     <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
-                  </Line>
-                </LineChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}
