@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 
 interface DashboardViewProps {
@@ -119,6 +119,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     rows.sort((a, b) => b.count - a.count)
     return rows.slice(0, 7)
   }, [packageData])
+
+  const yearTopPackageBarData = useMemo(() => {
+    const rows = (yearTopPackages ?? [])
+      .map((r) => ({ name: String(r.name || 'Unknown'), count: Number(r.count || 0) }))
+      .filter((r) => r.count > 0)
+    rows.sort((a, b) => b.count - a.count)
+    return rows.slice(0, 5)
+  }, [yearTopPackages])
 
   const ticketingBarData = useMemo(() => {
     return (ticketingMonthRecap ?? []).map((r) => ({
@@ -389,15 +397,23 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           ) : (
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="total" name="Total" fill="#f59e0b" barSize={28} radius={[8, 8, 0, 0]}>
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="Total"
+                    stroke="#f59e0b"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
+                    activeDot={{ r: 6 }}
+                  >
                     <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
-                  </Bar>
-                </BarChart>
+                  </Line>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           )}
@@ -821,24 +837,36 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {yearTopPackages.map((p, idx) => (
-              <div key={idx} className="flex items-center justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
-                    {idx + 1}
-                  </span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{p.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{p.count}</span>
-              </div>
-            ))}
-            {yearTopPackages.length === 0 && (
-              <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
-                Tidak ada data paket untuk tahun ini
-              </div>
-            )}
-          </div>
+          {yearTopPackageBarData.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+              Tidak ada data paket untuk tahun ini
+            </div>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={yearTopPackageBarData} margin={{ top: 18, right: 16, left: 6, bottom: 14 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={0}
+                    height={56}
+                    angle={-20}
+                    textAnchor="end"
+                    tickMargin={10}
+                    tickFormatter={(v) => shortLabel(v, 14)}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <Bar dataKey="count" name="Jumlah" fill="#3b82f6" barSize={34} radius={[10, 10, 0, 0]}>
+                    <LabelList dataKey="count" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 
