@@ -907,14 +907,18 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                     tickLine={false}
                     interval={0}
                     height={56}
-                    angle={-20}
-                    textAnchor="end"
-                    tickMargin={10}
+                    angle={0}
+                    textAnchor="middle"
+                    tickMargin={8}
                     tickFormatter={(v) => shortLabel(v, 14)}
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="count" name="Jumlah" fill="#3b82f6" barSize={34} radius={[10, 10, 0, 0]}>
+                  <Bar dataKey="count" name="Jumlah" barSize={34} radius={[10, 10, 0, 0]}>
+                    {yearTopPackageBarData.map((_, index) => {
+                      const palette = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444']
+                      return <Cell key={`cell-year-top-${index}`} fill={palette[index % palette.length]} />
+                    })}
                     <LabelList dataKey="count" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
                   </Bar>
                 </BarChart>
