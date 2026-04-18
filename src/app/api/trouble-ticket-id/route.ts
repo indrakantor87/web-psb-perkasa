@@ -42,6 +42,19 @@ function normalizePrefix(category: TicketCategory, input: unknown) {
   return raw.endsWith('/') ? raw : `${raw}/`
 }
 
+function stripPeriodSuffix(prefix: string) {
+  return String(prefix ?? '').replace(/\/\d{2}\.\d{4}\/$/, '/')
+}
+
+function formatMonth2(month: number) {
+  return String(month).padStart(2, '0')
+}
+
+function ensurePeriodPrefix(category: TicketCategory, input: unknown, month: number, year: number) {
+  const base = stripPeriodSuffix(normalizePrefix(category, input))
+  return `${base}${formatMonth2(month)}.${year}/`
+}
+
 function normalizeNextNumber(input: unknown) {
   const n = Math.trunc(Number(input))
   if (!Number.isFinite(n) || n < 1) return 1
@@ -69,21 +82,11 @@ async function getDefaultPrefix(category: TicketCategory) {
     `SELECT "prefix" FROM "TroubleTicketIdConfigV2" WHERE "category" = $1 ORDER BY "updatedAt" DESC LIMIT 1;`,
     category
   ).catch(() => [])
-  return normalizePrefix(category, rows[0]?.prefix ?? defaultPrefixForCategory(category))
+  return stripPeriodSuffix(normalizePrefix(category, rows[0]?.prefix ?? defaultPrefixForCategory(category)))
 }
 
-async function ensureDefaultRow(month: number, year: number, category: TicketCategory) {
-  await ensureConfigTable()
+async function syncNextNumberToMax(month: number, year: number, category: TicketCategory) {
   const id = periodKey(month, year)
-  const prefix = await getDefaultPrefix(category)
-  await prisma.$executeRawUnsafe(
-    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
-    id,
-    category,
-    prefix,
-    1
-  )
-
   const rows = await prisma.$queryRawUnsafe<Array<{ prefix: string; nextNumber: number }>>(
     `SELECT "prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
     id,
@@ -91,25 +94,42 @@ async function ensureDefaultRow(month: number, year: number, category: TicketCat
   ).catch(() => [])
   const current = rows[0]
   if (!current) return
-  const currentPrefix = normalizePrefix(category, current.prefix)
+  const prefix = ensurePeriodPrefix(category, current.prefix, month, year)
   const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
     `SELECT MAX("ticketNumber")::int AS "max"
      FROM "TroubleTicket"
-     WHERE "category" = $1 AND "ticketPrefix" = $2;`,
+     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
+    month,
+    year,
     category,
-    currentPrefix
+    prefix
   ).catch(() => [])
   const maxTicketNumber = Math.trunc(Number(maxRows[0]?.max ?? 0))
   const desiredNext = Math.max(1, current.nextNumber, Number.isFinite(maxTicketNumber) ? maxTicketNumber + 1 : 1)
-  if (desiredNext !== current.nextNumber || currentPrefix !== current.prefix) {
+  if (desiredNext !== current.nextNumber || prefix !== current.prefix) {
     await prisma.$executeRawUnsafe(
       `UPDATE "TroubleTicketIdConfigV2" SET "prefix" = $1, "nextNumber" = $2, "updatedAt" = NOW() WHERE "id" = $3 AND "category" = $4;`,
-      currentPrefix,
+      prefix,
       desiredNext,
       id,
       category
     )
   }
+}
+
+async function ensureDefaultRow(month: number, year: number, category: TicketCategory) {
+  await ensureConfigTable()
+  const id = periodKey(month, year)
+  const basePrefix = await getDefaultPrefix(category)
+  const prefix = ensurePeriodPrefix(category, basePrefix, month, year)
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "TroubleTicketIdConfigV2" ("id","category","prefix","nextNumber") VALUES ($1,$2,$3,$4) ON CONFLICT ("id","category") DO NOTHING;`,
+    id,
+    category,
+    prefix,
+    1
+  )
+  await syncNextNumberToMax(month, year, category).catch(() => {})
 }
 
 export async function GET(request: Request) {
@@ -119,6 +139,7 @@ export async function GET(request: Request) {
   try {
     const { month, year, category } = getPeriodFromRequest(request)
     await ensureDefaultRow(month, year, category)
+    await syncNextNumberToMax(month, year, category).catch(() => {})
     const id = periodKey(month, year)
     const rows = await prisma.$queryRawUnsafe<ConfigRow[]>(
       `SELECT "id","category","prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
@@ -147,7 +168,7 @@ export async function PUT(request: Request) {
     await ensureDefaultRow(month, year, category)
     const id = periodKey(month, year)
     const body = (await request.json().catch(() => ({}))) as { prefix?: unknown; nextNumber?: unknown }
-    const prefix = normalizePrefix(category, body.prefix)
+    const prefix = ensurePeriodPrefix(category, body.prefix, month, year)
     const nextNumber = normalizeNextNumber(body.nextNumber)
 
     await prisma.$executeRawUnsafe(
@@ -157,6 +178,8 @@ export async function PUT(request: Request) {
       id,
       category
     )
+
+    await syncNextNumberToMax(month, year, category).catch(() => {})
 
     const rows = await prisma.$queryRawUnsafe<ConfigRow[]>(
       `SELECT "id","category","prefix","nextNumber" FROM "TroubleTicketIdConfigV2" WHERE "id" = $1 AND "category" = $2 LIMIT 1;`,
