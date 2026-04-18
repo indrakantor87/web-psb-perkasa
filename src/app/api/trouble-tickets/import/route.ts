@@ -157,9 +157,7 @@ async function ensurePeriodIdRow(month: number, year: number, category: TicketCa
   const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
     `SELECT MAX("ticketNumber")::int AS "max"
      FROM "TroubleTicket"
-     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
-    month,
-    year,
+     WHERE "category" = $1 AND "ticketPrefix" = $2;`,
     category,
     prefix
   ).catch(() => [])

@@ -218,9 +218,7 @@ async function ensurePeriodIdRow(month: number, year: number, category: TicketCa
   const maxRows = await prisma.$queryRawUnsafe<Array<{ max: number | null }>>(
     `SELECT MAX("ticketNumber")::int AS "max"
      FROM "TroubleTicket"
-     WHERE "periodMonth" = $1 AND "periodYear" = $2 AND "category" = $3 AND "ticketPrefix" = $4;`,
-    month,
-    year,
+     WHERE "category" = $1 AND "ticketPrefix" = $2;`,
     category,
     prefix
   ).catch(() => [])
@@ -518,56 +516,88 @@ export async function POST(request: Request) {
     if (category === 'TT' && !problemCategory) {
       return NextResponse.json({ error: 'Jenis gangguan wajib dipilih untuk Trouble Ticket (TT)' }, { status: 400 })
     }
-    const allocated = parsed ?? (await allocateTicketCode(periodMonth, periodYear, category))
-    const rows = await prisma.$queryRawUnsafe<
-      Array<{
-        id: number
-        ticketCode: string | null
-        ticketPrefix: string | null
-        ticketNumber: number | null
-        category: string
-        periodMonth: number | null
-        periodYear: number | null
-        customerName: string
-        user: string | null
-        waNumber: string
-        mapsUrl: string | null
-        type: string
-        openedAt: string
-        closedAt: string | null
-        notes: string | null
-        closeBy: string | null
-        status: string
-      }>
-    >(
-      `INSERT INTO "TroubleTicket" (
-         "ticketCode","ticketPrefix","ticketNumber","category",
-         "periodMonth","periodYear",
-         "customerName","user","waNumber","mapsUrl","type","notes",
-         "problemCategory","resolutionAction",
-         "status","openedAt"
-       )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'OPEN',NOW())
-       RETURNING
-         "id","ticketCode","ticketPrefix","ticketNumber","category",
-         "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
-       "type","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
-      allocated.ticketCode,
-      allocated.ticketPrefix,
-      allocated.ticketNumber,
-      allocated.category,
-      periodMonth,
-      periodYear,
-      customerName,
-      user || null,
-      waNumber,
-      mapsUrlRaw || null,
-      typeKey,
-      notes || null,
-      problemCategory || null,
-      null
-    )
-    const row = rows[0]
+    const isUniqueViolation = (e: unknown) => {
+      const code = (e as { code?: unknown })?.code
+      const msg = e instanceof Error ? e.message : String(e)
+      return String(code ?? '').includes('23505') || msg.includes('23505') || msg.toLowerCase().includes('duplicate key')
+    }
+
+    const insertOnce = async (allocated: { ticketCode: string; ticketPrefix: string; ticketNumber: number; category: string }) => {
+      const rows = await prisma.$queryRawUnsafe<
+        Array<{
+          id: number
+          ticketCode: string | null
+          ticketPrefix: string | null
+          ticketNumber: number | null
+          category: string
+          periodMonth: number | null
+          periodYear: number | null
+          customerName: string
+          user: string | null
+          waNumber: string
+          mapsUrl: string | null
+          type: string
+          openedAt: string
+          closedAt: string | null
+          notes: string | null
+          closeBy: string | null
+          status: string
+        }>
+      >(
+        `INSERT INTO "TroubleTicket" (
+           "ticketCode","ticketPrefix","ticketNumber","category",
+           "periodMonth","periodYear",
+           "customerName","user","waNumber","mapsUrl","type","notes",
+           "problemCategory","resolutionAction",
+           "status","openedAt"
+         )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'OPEN',NOW())
+         RETURNING
+           "id","ticketCode","ticketPrefix","ticketNumber","category",
+           "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
+         "type","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
+        allocated.ticketCode,
+        allocated.ticketPrefix,
+        allocated.ticketNumber,
+        allocated.category,
+        periodMonth,
+        periodYear,
+        customerName,
+        user || null,
+        waNumber,
+        mapsUrlRaw || null,
+        typeKey,
+        notes || null,
+        problemCategory || null,
+        null
+      )
+      return rows[0] ?? null
+    }
+
+    let row: { id: number } | null = null
+    if (parsed) {
+      try {
+        row = await insertOnce(parsed)
+      } catch (e: unknown) {
+        if (isUniqueViolation(e)) {
+          return NextResponse.json({ error: 'ID Ticket sudah digunakan. Silakan refresh lalu coba lagi.' }, { status: 409 })
+        }
+        throw e
+      }
+    } else {
+      for (let i = 0; i < 5; i += 1) {
+        const allocated = await allocateTicketCode(periodMonth, periodYear, category)
+        try {
+          row = await insertOnce(allocated)
+          if (row) break
+        } catch (e: unknown) {
+          if (isUniqueViolation(e)) {
+            continue
+          }
+          throw e
+        }
+      }
+    }
     if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })
     cache.invalidateByPrefix('trouble-tickets-list:')
     cache.invalidateByPrefix('trouble-tickets:')
