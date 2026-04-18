@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -34,8 +34,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
-  const psbChartWrapRef = useRef<HTMLDivElement | null>(null)
-  const [psbChartWidth, setPsbChartWidth] = useState(0)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
   // Pull to refresh support
@@ -46,23 +44,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     window.addEventListener('app:refresh', handler)
     return () => window.removeEventListener('app:refresh', handler)
   }, [router])
-
-  useEffect(() => {
-    const el = psbChartWrapRef.current
-    if (!el) return
-
-    const setWidth = () => setPsbChartWidth(Math.round(el.getBoundingClientRect().width))
-    setWidth()
-
-    if (typeof ResizeObserver !== 'undefined') {
-      const ro = new ResizeObserver(() => setWidth())
-      ro.observe(el)
-      return () => ro.disconnect()
-    }
-
-    window.addEventListener('resize', setWidth)
-    return () => window.removeEventListener('resize', setWidth)
-  }, [])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
@@ -105,6 +86,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const totalClose = marketingData.reduce((acc, curr) => acc + curr.close, 0)
   const totalCount = marketingData.reduce((acc, curr) => acc + curr.count, 0)
   const totalIsolir = marketingData.reduce((acc, curr) => acc + (curr.isolir || 0), 0)
+
+  const psbYearSeries = useMemo(() => {
+    const rows = (monthlyData ?? []).map((m) => ({ label: String(m.name ?? '').trim() || '-', total: Number(m.count || 0) }))
+    return rows.filter((x) => x.total > 0)
+  }, [monthlyData])
+
+  const psbYearTotal = useMemo(() => psbYearSeries.reduce((acc, x) => acc + x.total, 0), [psbYearSeries])
 
   const ticketingTotals = useMemo(() => {
     const open = (ticketingMonthRecap ?? []).reduce((acc, r) => acc + Number(r.open ?? 0), 0)
@@ -295,105 +283,36 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
               <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
             </div>
-            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-gray-500 dark:text-gray-300" />
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+              Total: {psbYearTotal}
             </div>
           </div>
 
-          <div ref={psbChartWrapRef} className="w-full">
-            {(() => {
-              const seriesAll = monthlyData.map((m) => ({ label: m.name, v: Number(m.count || 0) }))
-              const isChartMobilePortrait = isMobilePortrait || (psbChartWidth > 0 && psbChartWidth < 640)
-              const series = isChartMobilePortrait ? seriesAll.filter((x) => x.v > 0) : seriesAll.filter((x) => x.v > 0)
-              const max = Math.max(1, ...series.map((s) => s.v))
-              const w = isChartMobilePortrait ? Math.max(320, Math.round(psbChartWidth || 0)) : 1200
-              const h = isChartMobilePortrait ? 240 : 260
-              const padX = isChartMobilePortrait ? 28 : 44
-              const padTop = isChartMobilePortrait ? 22 : 26
-              const padBottom = isChartMobilePortrait ? 40 : 44
-              const chartW = w - padX * 2
-              const chartH = h - padTop - padBottom
-              const stepX = chartW / Math.max(1, series.length - 1)
-              const labelFont = isChartMobilePortrait ? 11 : 14
-              const valueFont = isChartMobilePortrait ? 12 : 14
-              const dotR = isChartMobilePortrait ? 4 : 5
-              const haloR = isChartMobilePortrait ? 7 : 9
-
-              const pts = series.map((m, i) => {
-                const v = m.v
-                const x = padX + stepX * i
-                const y = padTop + chartH * (1 - v / max)
-                return { x, y, v, label: m.label }
-              })
-              const pointsStr = pts.map((p) => `${p.x},${p.y}`).join(' ')
-
-              return (
-                <div className={clsx('w-full', isChartMobilePortrait ? 'overflow-hidden' : 'overflow-x-auto')}>
-                  <div className={clsx(!isChartMobilePortrait && 'min-w-[760px]')}>
-                    {pts.length === 0 ? (
-                      <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                        Belum ada data PSB untuk tahun ini
-                      </div>
-                    ) : (
-                      <svg viewBox={`0 0 ${w} ${h}`} className={clsx('w-full', isChartMobilePortrait ? 'h-[240px]' : 'h-56')}>
-                        {Array.from({ length: 5 }).map((_, i) => {
-                          const y = padTop + (chartH / 4) * i
-                          return (
-                            <line
-                              key={i}
-                              x1={padX}
-                              y1={y}
-                              x2={padX + chartW}
-                              y2={y}
-                              stroke="currentColor"
-                              className="text-gray-200 dark:text-gray-700"
-                              strokeWidth={1}
-                            />
-                          )
-                        })}
-
-                        {pts.length > 1 && (
-                          <polyline
-                            fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth={isChartMobilePortrait ? 2.5 : 3}
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                            points={pointsStr}
-                          />
-                        )}
-
-                        {pts.map((p, idx) => (
-                          <g key={idx}>
-                            <circle cx={p.x} cy={p.y} r={dotR} fill="#3b82f6" />
-                            <circle cx={p.x} cy={p.y} r={haloR} fill="rgba(59,130,246,0.12)" />
-                            <text
-                              x={p.x}
-                              y={p.y - (isChartMobilePortrait ? 10 : 12)}
-                              textAnchor="middle"
-                              className="fill-gray-700 dark:fill-gray-200"
-                              style={{ fontSize: valueFont, fontWeight: 600 }}
-                            >
-                              {p.v}
-                            </text>
-                            <text
-                              x={p.x}
-                              y={h - (isChartMobilePortrait ? 12 : 14)}
-                              textAnchor="middle"
-                              className="fill-gray-500 dark:fill-gray-300"
-                              style={{ fontSize: labelFont, fontWeight: 500 }}
-                            >
-                              {p.label}
-                            </text>
-                          </g>
-                        ))}
-                      </svg>
-                    )}
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
+          {psbYearSeries.length === 0 ? (
+            <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data PSB untuk tahun ini</div>
+          ) : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={psbYearSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="Total"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6' }}
+                    activeDot={{ r: 6 }}
+                  >
+                    <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                  </Line>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
