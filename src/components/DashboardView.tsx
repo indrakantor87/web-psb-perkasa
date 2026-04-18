@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 
 interface DashboardViewProps {
@@ -135,6 +135,18 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     rows.sort((a, b) => b.total - a.total)
     return rows.slice(0, 7)
   }, [troubleTicketProblemMonthly?.rows])
+
+  const troubleYearTotalSeries = useMemo(() => {
+    const months = (troubleTicketProblemMonthly?.months ?? defaultMonthShort).map((m) => String(m ?? '').trim() || '-')
+    const rows = troubleTicketProblemMonthly?.rows ?? []
+    const totals = months.map((label, i) => {
+      const total = rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
+      return { label, total }
+    })
+    return totals.filter((x) => x.total > 0)
+  }, [defaultMonthShort, troubleTicketProblemMonthly?.months, troubleTicketProblemMonthly?.rows])
+
+  const troubleYearTotal = useMemo(() => troubleYearTotalSeries.reduce((acc, x) => acc + x.total, 0), [troubleYearTotalSeries])
 
   const packageChartWidth = useMemo(() => Math.max(360, packageBarData.length * 90), [packageBarData.length])
   const ticketingChartWidth = useMemo(() => Math.max(360, ticketingBarData.length * 110), [ticketingBarData.length])
@@ -358,6 +370,44 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             )
           })()}
         </div>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
+            <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
+          </div>
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+            Total: {troubleYearTotal}
+          </div>
+        </div>
+
+        {troubleYearTotalSeries.length === 0 ? (
+          <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
+        ) : (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  name="Total"
+                  stroke="#f59e0b"
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
+                  activeDot={{ r: 6 }}
+                >
+                  <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                </Line>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {isMobilePortrait && (
