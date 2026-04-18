@@ -16,6 +16,10 @@ function normalizePrefix(category: TicketCategory, input: string) {
   return raw.endsWith('/') ? raw : `${raw}/`
 }
 
+function stripPeriodSuffix(prefix: string) {
+  return String(prefix ?? '').replace(/\/\d{2}\.\d{4}\/$/, '/')
+}
+
 function normalizeNextNumber(input: unknown) {
   const n = Math.trunc(Number(input))
   if (!Number.isFinite(n) || n < 1) return 1
@@ -48,7 +52,7 @@ export function TroubleTicketIdManager() {
           throw new Error(msg)
         }
         const cfg = data as Config
-        setPrefix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category))))
+        setPrefix(stripPeriodSuffix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category)))))
         setNextNumber(normalizeNextNumber(cfg.nextNumber))
       } catch (e: unknown) {
         if ((e as { name?: string })?.name === 'AbortError') return
@@ -79,7 +83,7 @@ export function TroubleTicketIdManager() {
         throw new Error(msg)
       }
       const cfg = data as Config
-      setPrefix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category))))
+      setPrefix(stripPeriodSuffix(normalizePrefix(category, String(cfg.prefix ?? defaultPrefixForCategory(category)))))
       setNextNumber(normalizeNextNumber(cfg.nextNumber))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))

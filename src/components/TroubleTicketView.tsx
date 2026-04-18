@@ -130,6 +130,13 @@ function formatTicketNumber(n: number) {
   return String(n).padStart(2, '0')
 }
 
+function stripPeriodSegment(codeOrPrefix: string) {
+  const raw = String(codeOrPrefix ?? '').trim()
+  if (!raw) return ''
+  const parts = raw.split('/').filter(Boolean).filter((p) => !/^\d{2}\.\d{4}$/.test(p))
+  return parts.length ? `${parts.join('/')}/` : ''
+}
+
 function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
@@ -150,7 +157,12 @@ function formatWaDisplay(value: string) {
 }
 
 function buildTicketDetailText(row: TroubleTicketRow) {
-  const code = row.ticketCode || String(row.id)
+  const basePrefix = stripPeriodSegment(row.ticketPrefix || row.ticketCode || '')
+  const number = row.ticketNumber ?? (() => {
+    const m = String(row.ticketCode ?? '').trim().match(/(\d+)\s*$/)
+    return m ? Math.trunc(Number(m[1])) : null
+  })()
+  const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (row.ticketCode ? stripPeriodSegment(row.ticketCode).replace(/\/$/, '') : String(row.id))
   const datePart = formatDateForTicketId(row.openedAt)
   const ticketId = datePart ? `${code}/${datePart}` : code
   const maps = (row.mapsUrl || '').trim()
@@ -467,7 +479,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         if (!res.ok) return
         const prefix = String(data.prefix ?? '').trim()
         const n = Math.trunc(Number(data.nextNumber))
-        if (prefix) setIdPrefix(prefix.endsWith('/') ? prefix : `${prefix}/`)
+        if (prefix) setIdPrefix(stripPeriodSegment(prefix))
         if (Number.isFinite(n) && n > 0) setNextNumber(n)
       } catch {}
     })()
@@ -580,7 +592,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         if (res2.ok) {
           const prefix = String(cfg.prefix ?? '').trim()
           const n = Math.trunc(Number(cfg.nextNumber))
-          if (prefix) setIdPrefix(prefix.endsWith('/') ? prefix : `${prefix}/`)
+          if (prefix) setIdPrefix(stripPeriodSegment(prefix))
           if (Number.isFinite(n) && n > 0) setNextNumber(n)
         }
       } catch {}
@@ -1115,7 +1127,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               const dt = Number.isNaN(d.getTime())
                 ? '-'
                 : `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
-              const code = r.ticketCode || String(r.id)
+              const basePrefix = stripPeriodSegment(r.ticketPrefix || r.ticketCode || '')
+              const number = r.ticketNumber ?? (() => {
+                const m = String(r.ticketCode ?? '').trim().match(/(\d+)\s*$/)
+                return m ? Math.trunc(Number(m[1])) : null
+              })()
+              const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (r.ticketCode ? stripPeriodSegment(r.ticketCode).replace(/\/$/, '') : String(r.id))
               const statusLabel = ((r.status || '').toUpperCase() === 'CLOSE' || r.closedAt) ? 'Close' : 'New'
               const mapsLink = (r.mapsUrl || '').trim()
               const wa = normalizeWaNumber(r.waNumber)
@@ -1492,7 +1509,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                             className="text-left hover:underline"
                           >
                             {(() => {
-                              const code = r.ticketCode || String(r.id)
+                              const basePrefix = stripPeriodSegment(r.ticketPrefix || r.ticketCode || '')
+                              const number = r.ticketNumber ?? (() => {
+                                const m = String(r.ticketCode ?? '').trim().match(/(\d+)\s*$/)
+                                return m ? Math.trunc(Number(m[1])) : null
+                              })()
+                              const code = basePrefix && number ? `${basePrefix}${formatTicketNumber(number)}` : (r.ticketCode ? stripPeriodSegment(r.ticketCode).replace(/\/$/, '') : String(r.id))
                               const datePart = formatDateForTicketId(r.openedAt)
                               return datePart ? `${code}/${datePart}` : code
                             })()}
