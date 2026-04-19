@@ -75,7 +75,16 @@ function toInt(v: string) {
 
 function normalizePhotos(files: File[]) {
   const limited = files.slice(0, 10)
-  const validTypes = new Set(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
+  const validTypes = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/jpg',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'image/heic-sequence',
+    'image/heif-sequence',
+  ])
   for (const f of limited) {
     if (!validTypes.has(f.type)) throw new Error(`Format file tidak didukung: ${f.type}`)
     if (f.size > 10 * 1024 * 1024) throw new Error('Ukuran file maksimal 10MB')
@@ -134,7 +143,21 @@ export async function POST(
     }
     const joinedResolution = resolutionActions.join(' + ')
     const rawFiles = formData.getAll('photos')
-    const files = rawFiles.filter((x): x is File => x instanceof File)
+    const files: File[] = []
+    for (const entry of rawFiles) {
+      if (typeof entry === 'string') continue
+      const maybe = entry as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; name?: unknown; type?: unknown; size?: unknown }
+      if (typeof maybe.arrayBuffer !== 'function') continue
+      const buf = await maybe.arrayBuffer()
+      const name = typeof maybe.name === 'string' && maybe.name.trim() ? maybe.name.trim() : 'photo.jpg'
+      const type = typeof maybe.type === 'string' && maybe.type.trim() ? maybe.type.trim() : 'application/octet-stream'
+      const f = new File([buf], name, { type })
+      const size = Number(maybe.size ?? f.size)
+      if (Number.isFinite(size) && size !== f.size) {
+        Object.defineProperty(f, 'size', { value: size })
+      }
+      files.push(f)
+    }
     const normalized = normalizePhotos(files)
     if (resolutionActions.length === 0) return NextResponse.json({ error: 'Tindakan wajib dipilih minimal 1' }, { status: 400 })
     if (!closeNotes) return NextResponse.json({ error: 'Penanganan wajib diisi' }, { status: 400 })

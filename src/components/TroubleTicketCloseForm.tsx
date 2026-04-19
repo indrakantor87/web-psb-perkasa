@@ -92,7 +92,7 @@ function compressImage(file: File) {
           canvas.toBlob(
             (blob) => {
               if (!blob) {
-                reject(new Error('Canvas to Blob failed'))
+                resolve(file)
                 return
               }
 
@@ -114,9 +114,9 @@ function compressImage(file: File) {
 
         tryQuality(0.8)
       }
-      img.onerror = (error: unknown) => reject(error)
+      img.onerror = () => resolve(file)
     }
-    reader.onerror = (error: unknown) => reject(error)
+    reader.onerror = () => resolve(file)
   })
 }
 
@@ -206,10 +206,6 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
     }
 
     for (const f of incoming) {
-      if (!['image/jpeg', 'image/png', 'image/jpg', 'image/webp'].includes(f.type)) {
-        setError('Format foto harus .jpg, .jpeg, .png, atau .webp')
-        return
-      }
       if (f.size > 10 * 1024 * 1024) {
         setError('Ukuran foto maksimal 10MB')
         return
