@@ -267,13 +267,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           trend="Total"
           color="bg-emerald-50 dark:bg-emerald-900/20"
         />
-        <StatCard 
-          title="Total Ticketing" 
-          value={ticketingTotal} 
-          icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
-          trend="Total"
-          color="bg-slate-100 dark:bg-slate-700/40"
-        />
+        {!isMarketing && (
+          <StatCard 
+            title="Total Ticketing" 
+            value={ticketingTotal} 
+            icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
+            trend="Total"
+            color="bg-slate-100 dark:bg-slate-700/40"
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -315,43 +317,45 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           )}
         </div>
 
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
-              <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
+        {!isMarketing && (
+          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
+                <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+                Total: {troubleYearTotal}
+              </div>
             </div>
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
-              Total: {troubleYearTotal}
-            </div>
-          </div>
 
-          {troubleYearTotalSeries.length === 0 ? (
-            <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
-          ) : (
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name="Total"
-                    stroke="#f59e0b"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
-                    activeDot={{ r: 6 }}
-                  >
-                    <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
-                  </Line>
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
+            {troubleYearTotalSeries.length === 0 ? (
+              <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
+            ) : (
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                    <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      name="Total"
+                      stroke="#f59e0b"
+                      strokeWidth={3}
+                      dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
+                      activeDot={{ r: 6 }}
+                    >
+                      <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {isMobilePortrait && (
@@ -438,70 +442,74 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </div>
           </div>
 
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-800 dark:text-white">Ticketing</h3>
-                <p className="text-xs text-gray-500">Open vs Close per kategori bulan ini</p>
+          {!isMarketing && (
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-gray-800 dark:text-white">Ticketing</h3>
+                  <p className="text-xs text-gray-500">Open vs Close per kategori bulan ini</p>
+                </div>
+              </div>
+              <div className="w-full overflow-x-auto -mx-4 px-4">
+                <div style={{ width: ticketingChartWidth, height: 256 }}>
+                  <BarChart width={ticketingChartWidth} height={256} data={ticketingBarData.length ? ticketingBarData : [{ name: '-', open: 0, close: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={0}
+                      height={64}
+                      angle={-25}
+                      textAnchor="end"
+                      tickMargin={10}
+                      tickFormatter={(v) => shortLabel(v, 14)}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                    <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                    <Bar dataKey="open" name="Open" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={28} />
+                    <Bar dataKey="close" name="Close" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={28} />
+                  </BarChart>
+                </div>
               </div>
             </div>
-            <div className="w-full overflow-x-auto -mx-4 px-4">
-              <div style={{ width: ticketingChartWidth, height: 256 }}>
-                <BarChart width={ticketingChartWidth} height={256} data={ticketingBarData.length ? ticketingBarData : [{ name: '-', open: 0, close: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={64}
-                    angle={-25}
-                    textAnchor="end"
-                    tickMargin={10}
-                    tickFormatter={(v) => shortLabel(v, 14)}
-                  />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="open" name="Open" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} barSize={28} />
-                  <Bar dataKey="close" name="Close" stackId="a" fill="#10b981" radius={[8, 8, 0, 0]} barSize={28} />
-                </BarChart>
-              </div>
-            </div>
-          </div>
+          )}
 
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-800 dark:text-white">Top Gangguan TT</h3>
-                <p className="text-xs text-gray-500">Ringkasan 1 tahun (top 7)</p>
+          {!isMarketing && (
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-gray-800 dark:text-white">Top Gangguan TT</h3>
+                  <p className="text-xs text-gray-500">Ringkasan 1 tahun (top 7)</p>
+                </div>
+              </div>
+              <div className="w-full overflow-x-auto -mx-4 px-4">
+                <div style={{ width: troubleChartWidth, height: 256 }}>
+                  <BarChart width={troubleChartWidth} height={256} data={troubleTopData.length ? troubleTopData : [{ name: '-', total: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={0}
+                      height={72}
+                      angle={-25}
+                      textAnchor="end"
+                      tickMargin={10}
+                      tickFormatter={(v) => shortLabel(v, 12)}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                    <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                    <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} barSize={28} fill="#f59e0b">
+                      <LabelList dataKey="total" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
+                    </Bar>
+                  </BarChart>
+                </div>
               </div>
             </div>
-            <div className="w-full overflow-x-auto -mx-4 px-4">
-              <div style={{ width: troubleChartWidth, height: 256 }}>
-                <BarChart width={troubleChartWidth} height={256} data={troubleTopData.length ? troubleTopData : [{ name: '-', total: 0 }]} margin={{ top: 12, right: 16, left: 10, bottom: 24 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    height={72}
-                    angle={-25}
-                    textAnchor="end"
-                    tickMargin={10}
-                    tickFormatter={(v) => shortLabel(v, 12)}
-                  />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} barSize={28} fill="#f59e0b">
-                    <LabelList dataKey="total" position="top" offset={6} fontSize={10} fontWeight={700} fill="#6b7280" />
-                  </Bar>
-                </BarChart>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -632,7 +640,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && (
+      {!isMobilePortrait && !isMarketing && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -725,7 +733,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && (
+      {!isMobilePortrait && !isMarketing && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
