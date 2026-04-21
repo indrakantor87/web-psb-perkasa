@@ -375,7 +375,7 @@ export function Header({ user }: { user: SessionUser }) {
         
           <div className="flex items-center space-x-3 sm:space-x-4">
           <h2 className="hidden md:block text-sm font-medium text-gray-500 dark:text-gray-400">
-            Welcome, {user?.name}
+            Hello, {user?.name}
           </h2>
         
           <div className="relative" ref={dropdownRef}>

@@ -31,6 +31,14 @@ body {
   display: none !important;
 }
 
+.mp-table-enhanced thead th {
+  background-color: rgb(219 234 254);
+}
+
+.dark .mp-table-enhanced thead th {
+  background-color: rgba(30, 58, 138, 0.28);
+}
+
 @keyframes ttPulseRed {
   0%, 100% {
     background-color: rgba(220, 38, 38, 0.08);
@@ -97,10 +105,5 @@ body {
     position: sticky;
     top: 0;
     z-index: 20;
-    background-color: rgb(249 250 251);
-  }
-
-  .dark .mp-table-enhanced thead th {
-    background-color: rgb(55 65 81);
   }
 }
