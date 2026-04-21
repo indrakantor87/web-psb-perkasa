@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@ionic/react": "^8.8.3",
+    "@aparajita/capacitor-biometric-auth": "^8.0.0",
     "@prisma/client": "6.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.16.0",
     "bcryptjs": "^3.0.3",
+    "capacitor-secure-storage-plugin": "0.10.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "jose": "^6.1.3",
