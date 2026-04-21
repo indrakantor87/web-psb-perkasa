@@ -431,11 +431,11 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
             <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-gray-700 md:min-w-full">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Marketing</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ada Aktivitas</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tidak Ada</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hari</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider w-10"></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Marketing</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ada Aktivitas</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Tidak Ada</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Total Hari</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -484,11 +484,11 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
                                   <thead className="bg-gray-100 dark:bg-gray-800">
                                     <tr>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Tanggal</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Area</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Aktivitas</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Keterangan</th>
-                                      <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 uppercase w-24">Action</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Tanggal</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Area</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Aktivitas</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Keterangan</th>
+                                      <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase w-24">Action</th>
                                     </tr>
                                   </thead>
                                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">

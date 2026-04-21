@@ -659,7 +659,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           <div className="mp-table-enhanced overflow-x-auto">
           <table className="w-full min-w-[980px] lg:min-w-full">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-300">
+              <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-100">
                 {canEdit && (
                   <th className="py-3 pr-4 pl-3 w-10">
                     <input

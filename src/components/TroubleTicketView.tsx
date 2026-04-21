@@ -1441,25 +1441,25 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">
                 <input
                   type="checkbox"
                   checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
                   onChange={toggleSelectAllCurrent}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">ID Ticket</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Nama Pelanggan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">User</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">No WA</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">In Maps</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Type</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Gangguan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Tindakan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Open</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Close</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Durasi</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 uppercase">Keterangan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">ID Ticket</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Nama Pelanggan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">User</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">No WA</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">In Maps</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Type</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Gangguan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Tindakan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Open</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Close</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Durasi</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Keterangan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
