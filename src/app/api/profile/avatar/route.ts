@@ -24,7 +24,7 @@ export async function POST(request: Request) {
           { status: 500 }
         )
       }
-      return NextResponse.redirect(new URL('/profile', request.url), 303)
+      return NextResponse.redirect('/profile', 303)
     }
 
     const file = formData.get('avatar') as File | null
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.redirect(new URL('/profile', request.url), 303)
+    return NextResponse.redirect('/profile', 303)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     return NextResponse.json({ error: msg || 'Gagal upload avatar' }, { status: 500 })
