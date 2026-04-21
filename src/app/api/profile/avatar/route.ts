@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const action = String(formData.get('action') ?? '').trim()
+    const mode = String(formData.get('mode') ?? '').trim()
     const baseUrl = getExternalBaseUrl(request)
 
     if (action === 'remove') {
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
           { status: 500 }
         )
       }
+      if (mode === 'json') return NextResponse.json({ ok: true })
       return NextResponse.redirect(`${baseUrl}/profile`, 303)
     }
 
@@ -66,6 +68,7 @@ export async function POST(request: Request) {
       )
     }
 
+    if (mode === 'json') return NextResponse.json({ ok: true })
     return NextResponse.redirect(`${baseUrl}/profile`, 303)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)

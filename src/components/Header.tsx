@@ -1,7 +1,7 @@
 'use client'
 
 import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { clsx } from 'clsx'
@@ -13,6 +13,7 @@ export function Header({ user }: { user: SessionUser }) {
   const [isNavOpen, setIsNavOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
+  const [avatar, setAvatar] = useState<string | null>(null)
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -48,6 +49,32 @@ export function Header({ user }: { user: SessionUser }) {
     mq.addListener(update)
     return () => mq.removeListener(update)
   }, [])
+
+  const refreshAvatar = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' })
+      if (!res.ok) return
+      const data = (await res.json()) as { user?: { avatar?: string | null } | null }
+      setAvatar(data?.user?.avatar ?? null)
+    } catch {
+      setAvatar(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      refreshAvatar()
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [refreshAvatar])
+
+  useEffect(() => {
+    const handler = () => {
+      refreshAvatar()
+    }
+    window.addEventListener('app:refresh', handler as EventListener)
+    return () => window.removeEventListener('app:refresh', handler as EventListener)
+  }, [refreshAvatar])
 
   // Close click outside
   useEffect(() => {
@@ -356,9 +383,18 @@ export function Header({ user }: { user: SessionUser }) {
               onClick={() => setIsOpen(!isOpen)}
               className={clsx("flex items-center space-x-2 focus:outline-none hover:bg-gray-50 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-colors")}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold text-sm">
-                {user?.name?.charAt(0)}
-              </div>
+              {avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatar}
+                  alt="Foto profil"
+                  className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold text-sm">
+                  {user?.name?.charAt(0)}
+                </div>
+              )}
               <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </button>
 
