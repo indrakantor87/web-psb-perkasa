@@ -14,6 +14,7 @@ model User {
   username  String   @unique
   password  String
   role      String   // ADMIN, CS, NOC, MARKETING, TEKNISI
+  avatar    String?
   createdAt DateTime @default(now())
   
   ticketsClosed Ticket[] @relation("ClosedBy")
