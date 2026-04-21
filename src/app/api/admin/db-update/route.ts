@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const requiredKey = process.env.DB_UPDATE_KEY
+  const requiredKey = String(process.env.DB_UPDATE_KEY ?? '').trim()
   if (!requiredKey) {
     return NextResponse.json(
       { error: 'DB_UPDATE_KEY belum diset di environment' },
@@ -20,8 +20,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const key = String(searchParams.get('key') ?? '')
-  if (key !== requiredKey) {
+  const key = String(searchParams.get('key') ?? '').trim()
+  if (!key || key !== requiredKey) {
     return NextResponse.json({ error: 'Invalid key' }, { status: 403 })
   }
 
