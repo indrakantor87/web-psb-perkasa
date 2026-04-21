@@ -4,6 +4,15 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
+function getExternalBaseUrl(request: Request) {
+  const h = request.headers
+  const host = (h.get('x-forwarded-host') ?? h.get('host') ?? '').trim()
+  const proto = (h.get('x-forwarded-proto') ?? '').trim()
+  const originFromHeaders = host ? `${proto || 'https'}://${host}` : ''
+  const fallbackOrigin = new URL(request.url).origin
+  return originFromHeaders || fallbackOrigin
+}
+
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -11,6 +20,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData()
     const action = String(formData.get('action') ?? '').trim()
+    const baseUrl = getExternalBaseUrl(request)
 
     if (action === 'remove') {
       try {
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
           { status: 500 }
         )
       }
-      return NextResponse.redirect('/profile', 303)
+      return NextResponse.redirect(`${baseUrl}/profile`, 303)
     }
 
     const file = formData.get('avatar') as File | null
@@ -56,7 +66,7 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.redirect('/profile', 303)
+    return NextResponse.redirect(`${baseUrl}/profile`, 303)
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     return NextResponse.json({ error: msg || 'Gagal upload avatar' }, { status: 500 })
