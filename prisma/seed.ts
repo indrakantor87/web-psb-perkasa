@@ -27,6 +27,16 @@ async function main() {
     })
     console.log({ upsertUser })
   }
+
+  const packages = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
+  for (const name of packages) {
+    const upsertPackage = await prisma.package.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    })
+    console.log({ upsertPackage })
+  }
 }
 
 main()

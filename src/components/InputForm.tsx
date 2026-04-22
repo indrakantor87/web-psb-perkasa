@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+const FALLBACK_PACKAGES = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
 
 export function InputForm({ user }: { user?: { name: string; role: string } }) {
   const [loading, setLoading] = useState(false)
@@ -17,6 +19,34 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
   })
   const [fotoRumah, setFotoRumah] = useState<File | null>(null)
 
+  const [packageOptions, setPackageOptions] = useState<string[]>(FALLBACK_PACKAGES)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/packages')
+        if (!res.ok) throw new Error('Failed to fetch packages')
+        const data = (await res.json()) as Array<{ name?: string }>
+        const names = data.map((p) => p.name).filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        if (!mounted) return
+        if (names.length > 0) {
+          setPackageOptions(names)
+          setFormData((prev) => ({
+            ...prev,
+            package: names.includes(prev.package) ? prev.package : names[0],
+          }))
+        }
+      } catch {
+        if (!mounted) return
+        setPackageOptions(FALLBACK_PACKAGES)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
   if (user?.role === 'TEKNISI') {
     return (
       <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
@@ -25,15 +55,6 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
       </div>
     )
   }
-
-  const packages = [
-    'HOME LITE',
-    'HOME BASIC',
-    'HOME STREAM',
-    'HOME ENTERTAIN',
-    'HOME SMALL',
-    'HOME ADVAN',
-  ]
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -280,7 +301,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
             onChange={handleChange}
             className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
           >
-            {packages.map((pkg) => (
+            {packageOptions.map((pkg) => (
               <option key={pkg} value={pkg}>
                 {pkg}
               </option>

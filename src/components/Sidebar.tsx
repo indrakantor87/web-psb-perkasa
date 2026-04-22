@@ -37,6 +37,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
 
   const settingsLinks = hasSettingsAccess ? [
     { href: '/settings/areas', label: 'Master Area' },
+    { href: '/settings/packages', label: 'Master Paket' },
     { href: '/settings/users', label: 'Manajemen Pengguna' },
     { href: '/settings/templates', label: 'Template WA' },
     { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },

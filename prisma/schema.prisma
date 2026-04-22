@@ -92,6 +92,13 @@ model Priority {
   updatedAt DateTime @updatedAt
 }
 
+model Package {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model WhatsappTemplate {
   id        Int      @id @default(autoincrement())
   name      String
