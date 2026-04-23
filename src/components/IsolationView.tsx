@@ -452,7 +452,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
                 {showSelection && (
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">
                     <input
                       type="checkbox"
                       checked={allOnPageSelected}
@@ -466,19 +466,19 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                     />
                   </th>
                 )}
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Pelanggan</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Active Date</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">User</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Maps</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No. HP</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Marketing</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Radboox</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Suspend</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider w-[260px]">Keterangan</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ticket</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Pelanggan</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Active Date</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">User</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Maps</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No. HP</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Marketing</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Radboox</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Suspend</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider w-[240px]">Keterangan</th>
+                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ticket</th>
                 {showActions && (
-                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Aksi</th>
+                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Aksi</th>
                 )}
               </tr>
             </thead>
@@ -495,7 +495,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                 isolations.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     {showSelection && (
-                      <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedSet.has(item.id)}
@@ -505,19 +505,19 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                         />
                       </td>
                     )}
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {(page - 1) * limit + idx + 1}
                     </td>
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-900 dark:text-white">
                       {item.customerName}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
                     </td>
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {item.userEmail || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm">
                       {item.customerAddress ? (
                         <a
                           href={item.customerAddress}
@@ -532,7 +532,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                         <span className="text-gray-500 dark:text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.customerPhone ? (
                         <a
                           href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`}
@@ -544,18 +544,18 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                         </a>
                       ) : '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {item.marketing || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.radboox || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {suspendLabel(item.isolationDate)}
                     </td>
                     <td
                       className={clsx(
-                        'hidden md:table-cell px-6 py-4 text-sm w-[260px] max-w-[260px] whitespace-normal break-words mp-clamp-3 leading-snug',
+                        'hidden md:table-cell px-2 sm:px-3 py-3 text-sm w-[240px] max-w-[240px] whitespace-normal break-words mp-clamp-3 leading-snug',
                         String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
                           ? 'text-red-700 dark:text-red-300 font-semibold'
                           : 'text-gray-500 dark:text-gray-400'
@@ -564,11 +564,11 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                     >
                       {item.reason || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.ticket ? 'Sudah' : '-'}
                     </td>
                     {showActions && (
-                      <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="hidden md:table-cell px-2 sm:px-3 py-3 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
                           {canEdit && (
                             <button
