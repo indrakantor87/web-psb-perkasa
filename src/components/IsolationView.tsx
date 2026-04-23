@@ -48,6 +48,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const [editId, setEditId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false)
 
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
@@ -66,7 +68,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const showActions = canEdit || canDelete
+  const showActions = canEdit
+  const showSelection = canDelete
 
   // Form State
   const [formData, setFormData] = useState({
@@ -134,6 +137,18 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     fetchIsolations()
   }, [fetchIsolations])
 
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.length === 0) return prev
+      const current = new Set(isolations.map((x) => x.id))
+      return prev.filter((id) => current.has(id))
+    })
+  }, [isolations])
+
+  useEffect(() => {
+    setSelectedIds([])
+  }, [page, limit, debouncedSearch, radbooxFilter, marketingFilter, statusPreset])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -177,19 +192,48 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return
+  const toggleSelected = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
 
-    try {
-      const res = await fetch(`/api/isolations/${id}`, {
-        method: 'DELETE',
-      })
-      
-      if (res.ok) {
-        fetchIsolations()
+  const toggleSelectAllOnPage = () => {
+    const pageIds = isolations.map((x) => x.id)
+    setSelectedIds((prev) => {
+      const prevSet = new Set(prev)
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => prevSet.has(id))
+      if (allSelected) {
+        return prev.filter((id) => !pageIds.includes(id))
       }
-    } catch (error) {
-      console.error(error)
+      for (const id of pageIds) prevSet.add(id)
+      return Array.from(prevSet)
+    })
+  }
+
+  const deleteSelected = async () => {
+    if (!canDelete) return
+    if (selectedIds.length === 0) return
+    if (!confirm(`Hapus ${selectedIds.length} data yang dipilih?`)) return
+    setIsDeletingSelected(true)
+    setLoading(true)
+    try {
+      const ids = [...selectedIds]
+      const results = await Promise.all(
+        ids.map((id) => fetch(`/api/isolations/${id}`, { method: 'DELETE' }))
+      )
+      const failed = results.filter((r) => !r.ok).length
+      if (failed > 0) {
+        alert(`Sebagian gagal dihapus (${failed} dari ${ids.length}). Silakan coba lagi.`)
+      } else {
+        alert(`Berhasil menghapus ${ids.length} data`)
+      }
+      setSelectedIds([])
+      await fetchIsolations()
+    } catch (e) {
+      console.error(e)
+      alert('Terjadi kesalahan saat menghapus data terpilih')
+    } finally {
+      setLoading(false)
+      setIsDeletingSelected(false)
     }
   }
 
@@ -300,6 +344,11 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     return `${monthDiff(from, now)} Bulan`
   }
 
+  const selectedSet = new Set(selectedIds)
+  const allOnPageSelected = isolations.length > 0 && isolations.every((x) => selectedSet.has(x.id))
+  const someOnPageSelected = isolations.some((x) => selectedSet.has(x.id))
+  const desktopColumns = 11 + (showSelection ? 1 : 0) + (showActions ? 1 : 0)
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <input
@@ -351,6 +400,18 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
               <Upload className="h-4 w-4" />
               Import Excel
             </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={deleteSelected}
+                disabled={selectedIds.length === 0 || isDeletingSelected}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800 disabled:opacity-60 sm:w-auto"
+                title="Hapus Data Terpilih"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
+              </button>
+            )}
             {canBulkDelete && (
               <button
                 type="button"
@@ -410,6 +471,21 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
+                {showSelection && (
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      ref={(el) => {
+                        if (!el) return
+                        el.indeterminate = someOnPageSelected && !allOnPageSelected
+                      }}
+                      onChange={toggleSelectAllOnPage}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      aria-label="Pilih semua"
+                    />
+                  </th>
+                )}
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Pelanggan</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Active Date</th>
@@ -429,15 +505,26 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={showActions ? 12 : 11} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                  <td colSpan={desktopColumns} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={showActions ? 12 : 11} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={desktopColumns} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
                 </tr>
               ) : (
                 isolations.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    {showSelection && (
+                      <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(item.id)}
+                          onChange={() => toggleSelected(item.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          aria-label={`Pilih ${item.customerName}`}
+                        />
+                      </td>
+                    )}
                     <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {(page - 1) * limit + idx + 1}
                     </td>
@@ -512,15 +599,6 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                               <Edit3 className="h-5 w-5" />
                             </button>
                           )}
-                          {canDelete && (
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
-                              title="Hapus Data"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          )}
                         </div>
                       </td>
                     )}
@@ -528,12 +606,23 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                     {/* Mobile View (Card Style) */}
                     <td className="table-cell md:hidden px-4 py-4">
                       <div className="space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{item.customerName}</div>
-                            {item.userEmail && (
-                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.userEmail}</div>
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex items-start gap-3">
+                            {showSelection && (
+                              <input
+                                type="checkbox"
+                                checked={selectedSet.has(item.id)}
+                                onChange={() => toggleSelected(item.id)}
+                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                aria-label={`Pilih ${item.customerName}`}
+                              />
                             )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{item.customerName}</div>
+                              {item.userEmail && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.userEmail}</div>
+                              )}
+                            </div>
                           </div>
                           <span className={clsx(
                             "px-2 py-0.5 text-[10px] font-semibold rounded-full",
@@ -597,15 +686,6 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                             >
                               <Edit3 className="h-3.5 w-3.5" />
                               Edit
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="text-xs flex items-center gap-1 text-red-500 font-medium hover:text-red-600"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Hapus
                             </button>
                           )}
                         </div>
