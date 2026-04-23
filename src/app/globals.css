@@ -39,6 +39,13 @@ body {
   background-color: rgba(30, 58, 138, 0.28);
 }
 
+.mp-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
 @keyframes ttPulseRed {
   0%, 100% {
     background-color: rgba(220, 38, 38, 0.08);

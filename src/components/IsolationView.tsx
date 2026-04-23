@@ -475,7 +475,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Marketing</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Radboox</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Suspend</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Keterangan</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider w-[260px]">Keterangan</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ticket</th>
                 {showActions && (
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Aksi</th>
@@ -555,7 +555,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                     </td>
                     <td
                       className={clsx(
-                        'hidden md:table-cell px-6 py-4 text-sm max-w-xs truncate',
+                        'hidden md:table-cell px-6 py-4 text-sm w-[260px] max-w-[260px] whitespace-normal break-words mp-clamp-3 leading-snug',
                         String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
                           ? 'text-red-700 dark:text-red-300 font-semibold'
                           : 'text-gray-500 dark:text-gray-400'
