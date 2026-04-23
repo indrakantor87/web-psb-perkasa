@@ -250,20 +250,26 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       if (!res.ok) throw new Error('Gagal mengambil data')
       const data = await res.json()
       const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
+      const now = new Date()
+      const monthDiff = (from: Date, to: Date) => {
+        const fromTotal = from.getFullYear() * 12 + from.getMonth()
+        const toTotal = to.getFullYear() * 12 + to.getMonth()
+        let diff = toTotal - fromTotal
+        if (to.getDate() < from.getDate()) diff -= 1
+        return Math.max(0, diff)
+      }
       const rows = items.map((it, idx) => ({
         'No': idx + 1,
         'Nama Pelanggan': it.customerName,
-        'User': it.userEmail || '-',
-        'No. HP': it.customerPhone || '-',
         'Active Date': it.activeDate ? format(new Date(it.activeDate), 'dd/MM/yyyy') : '-',
+        'User': it.userEmail || '-',
+        'Maps': it.customerAddress || '-',
+        'No. HP': it.customerPhone || '-',
         'Keterangan': it.reason || '-',
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
-        'Status': it.status,
-        'Tgl Isolasi': it.isolationDate ? format(new Date(it.isolationDate), 'dd/MM/yyyy') : '-',
-        'Tgl Restorasi': it.restorationDate ? format(new Date(it.restorationDate), 'dd/MM/yyyy') : '-',
-        'Teknisi': it.teknisi || '-',
-        'Maps': it.customerAddress || '-'
+        'Suspend': it.isolationDate ? `${monthDiff(new Date(it.isolationDate), now)} Bulan` : '-',
+        'Ticket': it.ticket ? 'Sudah' : '-',
       }))
 
       const wb = XLSX.utils.book_new()
@@ -276,6 +282,22 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     } finally {
       setIsExporting(false)
     }
+  }
+
+  const now = new Date()
+  const monthDiff = (from: Date, to: Date) => {
+    const fromTotal = from.getFullYear() * 12 + from.getMonth()
+    const toTotal = to.getFullYear() * 12 + to.getMonth()
+    let diff = toTotal - fromTotal
+    if (to.getDate() < from.getDate()) diff -= 1
+    return Math.max(0, diff)
+  }
+
+  const suspendLabel = (isoDate?: string | null) => {
+    if (!isoDate) return '-'
+    const from = new Date(isoDate)
+    if (Number.isNaN(from.getTime())) return '-'
+    return `${monthDiff(from, now)} Bulan`
   }
 
   return (
@@ -388,15 +410,17 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden md:table-header-group bg-gray-50 dark:bg-gray-700">
               <tr>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Pelanggan</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Active Date</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">User</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Maps</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">No. HP</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Active Date</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Keterangan</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Marketing</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Radboox</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Status</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Suspend</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Keterangan</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ticket</th>
                 {showActions && (
                   <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Aksi</th>
                 )}
@@ -405,17 +429,23 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={showActions ? 10 : 9} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                  <td colSpan={showActions ? 12 : 11} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Loading...</td>
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={showActions ? 10 : 9} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={showActions ? 12 : 11} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
                 </tr>
               ) : (
-                isolations.map((item) => (
+                isolations.map((item, idx) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {(page - 1) * limit + idx + 1}
+                    </td>
                     <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-white">
                       {item.customerName}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
                     </td>
                     <td className="hidden md:table-cell px-3 sm:px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.userEmail || '-'}
@@ -435,11 +465,11 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                         <span className="text-gray-500 dark:text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.customerPhone ? (
-                        <a 
-                          href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`} 
-                          target="_blank" 
+                        <a
+                          href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`}
+                          target="_blank"
                           rel="noreferrer"
                           className="text-blue-600 dark:text-blue-400 hover:underline"
                         >
@@ -447,27 +477,28 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                         </a>
                       ) : '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
-                    </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title={item.reason || ''}>
-                      {item.reason || '-'}
-                    </td>
                     <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {item.marketing || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.radboox || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                      <span className={clsx(
-                        "px-2 py-1 text-xs font-semibold rounded-full",
-                        item.status === 'OPEN' 
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                          : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                      )}>
-                        {item.status === 'OPEN' ? 'TERISOLIR' : 'NORMAL'}
-                      </span>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {suspendLabel(item.isolationDate)}
+                    </td>
+                    <td
+                      className={clsx(
+                        'hidden md:table-cell px-6 py-4 text-sm max-w-xs truncate',
+                        String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
+                          ? 'text-red-700 dark:text-red-300 font-semibold'
+                          : 'text-gray-500 dark:text-gray-400'
+                      )}
+                      title={item.reason || ''}
+                    >
+                      {item.reason || '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {item.ticket ? 'Sudah' : '-'}
                     </td>
                     {showActions && (
                       <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -532,9 +563,25 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Active Date:</span>
                             {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
                           </div>
+                          <div>
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Suspend:</span>
+                            {suspendLabel(item.isolationDate)}
+                          </div>
+                          <div>
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
+                            {item.ticket ? 'Sudah' : '-'}
+                          </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
-                            {item.reason || '-'}
+                            <span
+                              className={clsx(
+                                String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
+                                  ? 'text-red-700 dark:text-red-300 font-semibold'
+                                  : undefined
+                              )}
+                            >
+                              {item.reason || '-'}
+                            </span>
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Marketing:</span>
