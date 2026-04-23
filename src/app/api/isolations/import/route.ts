@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
       if (['KETERANGAN', 'ALASAN', 'REASON', 'CATATAN'].includes(k)) return 'reason'
       if (['MARKETING', 'SALES', 'PIC MARKETING', 'PIC'].includes(k)) return 'marketing'
       if (['RADBOOX', 'RADBOX', 'RADBOOK', 'RADBOOX AREA'].includes(k)) return 'radboox'
+      if (['TGL ISOLASI', 'TANGGAL ISOLASI', 'ISOLATION DATE', 'TGL SUSPEND', 'TANGGAL SUSPEND'].includes(k)) return 'isolationDate'
+      if (['TGL RESTORASI', 'TANGGAL RESTORASI', 'RESTORATION DATE', 'TGL NORMAL', 'TANGGAL NORMAL'].includes(k)) return 'restorationDate'
+      if (['SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)', 'LAMA SUSPEND', 'LAMA SUSPEND (BULAN)'].includes(k)) return 'suspendMonths'
       return ''
     }
 
@@ -88,6 +92,9 @@ export async function POST(request: Request) {
       reason?: unknown
       marketing?: unknown
       radboox?: unknown
+      isolationDate?: unknown
+      restorationDate?: unknown
+      suspendMonths?: unknown
     }
 
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
@@ -110,6 +117,7 @@ export async function POST(request: Request) {
       status: string
       isolationDate: Date
       teknisi: string | null
+      restorationDate?: Date | null
     }> = []
 
     for (const [idx, row] of jsonData.entries()) {
@@ -124,6 +132,24 @@ export async function POST(request: Request) {
         const reason = r.reason ? String(r.reason) : null
         const marketing = r.marketing ? String(r.marketing) : null
         const radboox = r.radboox ? String(r.radboox) : null
+        const isoDateRaw = r.isolationDate
+        const isoDateParsed = parseDate(typeof isoDateRaw === 'number' || typeof isoDateRaw === 'string' ? isoDateRaw : String(isoDateRaw ?? ''))
+        const restorationRaw = r.restorationDate
+        const restorationDate = parseDate(typeof restorationRaw === 'number' || typeof restorationRaw === 'string' ? restorationRaw : String(restorationRaw ?? ''))
+        const suspendMonthsRaw = r.suspendMonths
+        const suspendMonthsNum =
+          typeof suspendMonthsRaw === 'number'
+            ? Math.trunc(suspendMonthsRaw)
+            : typeof suspendMonthsRaw === 'string'
+              ? Math.trunc(parseInt(suspendMonthsRaw, 10))
+              : NaN
+
+        const isolationDate =
+          isoDateParsed && !Number.isNaN(isoDateParsed.getTime())
+            ? isoDateParsed
+            : Number.isFinite(suspendMonthsNum) && suspendMonthsNum > 0
+              ? new Date(new Date().getFullYear(), new Date().getMonth() - suspendMonthsNum, 1)
+              : new Date()
 
         toCreate.push({
           customerName: String(customerName),
@@ -133,9 +159,10 @@ export async function POST(request: Request) {
           reason,
           marketing,
           radboox,
-          status: 'OPEN',
-          isolationDate: new Date(),
+          status: restorationDate ? 'CLOSED' : 'OPEN',
+          isolationDate,
           teknisi: session.user.name ?? null,
+          restorationDate: restorationDate || null,
         })
       } catch (e) {
         errorCount++
@@ -168,6 +195,7 @@ export async function POST(request: Request) {
       }
     }
 
+    cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ 
       message: `Import selesai. Berhasil: ${successCount}, Gagal: ${errorCount}`,
       successCount,
