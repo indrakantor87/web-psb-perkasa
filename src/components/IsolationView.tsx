@@ -67,7 +67,6 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   // Role Permissions
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const showActions = canEdit
   const showSelection = canDelete
 
@@ -410,35 +409,6 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
               >
                 <Trash2 className="h-4 w-4" />
                 {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
-              </button>
-            )}
-            {canBulkDelete && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!confirm('Hapus SEMUA data isolir? Tindakan ini tidak dapat dibatalkan.')) return
-                  try {
-                    setLoading(true)
-                    const res = await fetch('/api/isolations', { method: 'DELETE' })
-                    const data = await res.json()
-                    if (res.ok) {
-                      alert(`Berhasil menghapus ${data.count} data`)
-                      fetchIsolations()
-                    } else {
-                      alert(data.error || 'Gagal menghapus semua data')
-                    }
-                  } catch (e) {
-                    console.error(e)
-                    alert('Terjadi kesalahan saat menghapus semua data')
-                  } finally {
-                    setLoading(false)
-                  }
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800 sm:w-auto"
-                title="Hapus Semua Data"
-              >
-                <Trash2 className="h-4 w-4" />
-                Hapus Semua
               </button>
             )}
             <button
