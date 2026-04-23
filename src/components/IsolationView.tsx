@@ -98,7 +98,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       params.append('page', String(page))
       params.append('limit', String(limit))
       
-      const res = await fetch(`/api/isolations?${params.toString()}`)
+      const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
@@ -213,8 +213,14 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     if (selectedIds.length === 0) return
     if (!confirm(`Hapus ${selectedIds.length} data yang dipilih?`)) return
     setIsDeletingSelected(true)
-    setLoading(true)
     try {
+      const idsSet = new Set(selectedIds)
+      const removedOnPage = isolations.filter((x) => idsSet.has(x.id)).length
+      const willMovePrevPage = removedOnPage === isolations.length && page > 1
+      setIsolations((prev) => prev.filter((x) => !idsSet.has(x.id)))
+      setTotal((prev) => Math.max(0, prev - removedOnPage))
+      setSelectedIds([])
+
       const ids = [...selectedIds]
       const results = await Promise.all(
         ids.map((id) => fetch(`/api/isolations/${id}`, { method: 'DELETE' }))
@@ -225,13 +231,15 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       } else {
         alert(`Berhasil menghapus ${ids.length} data`)
       }
-      setSelectedIds([])
+      if (willMovePrevPage) {
+        setPage((p) => Math.max(1, p - 1))
+        return
+      }
       await fetchIsolations()
     } catch (e) {
       console.error(e)
       alert('Terjadi kesalahan saat menghapus data terpilih')
     } finally {
-      setLoading(false)
       setIsDeletingSelected(false)
     }
   }
@@ -289,7 +297,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       params.append('page', '1')
       params.append('limit', '10000')
 
-      const res = await fetch(`/api/isolations?${params.toString()}`)
+      const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Gagal mengambil data')
       const data = await res.json()
       const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
