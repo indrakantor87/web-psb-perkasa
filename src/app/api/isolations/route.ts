@@ -153,7 +153,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -163,7 +163,17 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    const deleted = await prisma.isolation.deleteMany({})
+    const body = (await request.json().catch(() => ({}))) as { ids?: unknown }
+    const idsRaw = body?.ids
+    const ids =
+      Array.isArray(idsRaw)
+        ? idsRaw.map((x) => (typeof x === 'number' ? x : typeof x === 'string' ? parseInt(x, 10) : NaN)).filter((n) => Number.isFinite(n)) as number[]
+        : null
+
+    const deleted = ids && ids.length > 0
+      ? await prisma.isolation.deleteMany({ where: { id: { in: ids } } })
+      : await prisma.isolation.deleteMany({})
+
     cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true, count: deleted.count })
   } catch (error) {

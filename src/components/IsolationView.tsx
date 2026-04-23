@@ -222,15 +222,16 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       setSelectedIds([])
 
       const ids = [...selectedIds]
-      const results = await Promise.all(
-        ids.map((id) => fetch(`/api/isolations/${id}`, { method: 'DELETE' }))
-      )
-      const failed = results.filter((r) => !r.ok).length
-      if (failed > 0) {
-        alert(`Sebagian gagal dihapus (${failed} dari ${ids.length}). Silakan coba lagi.`)
-      } else {
-        alert(`Berhasil menghapus ${ids.length} data`)
+      const res = await fetch('/api/isolations', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { count?: number; error?: string }
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal menghapus data')
       }
+      alert(`Berhasil menghapus ${data.count ?? ids.length} data`)
       if (willMovePrevPage) {
         setPage((p) => Math.max(1, p - 1))
         return
@@ -238,6 +239,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       await fetchIsolations()
     } catch (e) {
       console.error(e)
+      fetchIsolations()
       alert('Terjadi kesalahan saat menghapus data terpilih')
     } finally {
       setIsDeletingSelected(false)
