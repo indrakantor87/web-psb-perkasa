@@ -38,20 +38,9 @@ export async function POST(request: Request) {
       where: { username: normalizedUsername },
     })
 
-    if (!user) {
-      return NextResponse.json(
-        { message: 'User not found' },
-        { status: 401 }
-      )
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password)
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { message: 'Invalid credentials' },
-        { status: 401 }
-      )
+    const isPasswordValid = user ? await bcrypt.compare(password, user.password) : false
+    if (!user || !isPasswordValid) {
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
     }
 
     const sessionUser = { id: user.id, name: user.name, username: user.username, role: user.role }
