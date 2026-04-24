@@ -51,6 +51,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [isSyncingTickets, setIsSyncingTickets] = useState(false)
 
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
@@ -252,6 +253,29 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     fileInputRef.current.click()
   }
 
+  const syncTickets = async (opts?: { silent?: boolean }) => {
+    if (isSyncingTickets) return
+    try {
+      setIsSyncingTickets(true)
+      const res = await fetch('/api/isolations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ radboox: radbooxFilter, limit: 5000 }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; scanned?: number; updated?: number; error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal sinkron ticket')
+      if (!opts?.silent) {
+        alert(`Sinkron ticket selesai: ${data.updated ?? 0} dari ${data.scanned ?? 0} data`)
+      }
+      await fetchIsolations()
+    } catch (e) {
+      console.error(e)
+      if (!opts?.silent) alert('Gagal sinkron ticket')
+    } finally {
+      setIsSyncingTickets(false)
+    }
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -268,7 +292,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       const data = (await res.json()) as { message?: string; error?: string }
       if (res.ok) {
         alert(data.message || 'Import berhasil')
-        fetchIsolations()
+        await syncTickets({ silent: true })
       } else {
         alert(data.error || 'Import gagal')
       }
@@ -409,6 +433,15 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             >
               <Upload className="h-4 w-4" />
               Import Excel
+            </button>
+            <button
+              type="button"
+              onClick={() => syncTickets()}
+              disabled={isSyncingTickets}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium border border-blue-200 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 disabled:opacity-60 sm:w-auto"
+              title="Sinkron Ticket dari database PSB"
+            >
+              {isSyncingTickets ? 'Sinkron...' : 'Sinkron Ticket'}
             </button>
             {canDelete && (
               <button

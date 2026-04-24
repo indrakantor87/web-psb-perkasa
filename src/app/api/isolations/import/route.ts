@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
+import { Prisma } from '@prisma/client'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -115,6 +116,13 @@ export async function POST(request: Request) {
       return v.replace(/\D/g, '')
     }
 
+    const normalizeNameKey = (v: string) => {
+      return v
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '')
+        .trim()
+    }
+
     const inferTicketId = async (args: { ticketCell: unknown; customerName: string; customerPhone: string | null }) => {
       const ticketCell = args.ticketCell
       if (typeof ticketCell === 'number') {
@@ -157,7 +165,37 @@ export async function POST(request: Request) {
           orderBy: { createdAt: 'desc' },
           select: { id: true },
         })
-        return found?.id ?? null
+        if (found?.id) return found.id
+
+        if (phoneDigits) {
+          const likeA = `%${phoneDigits}%`
+          const last10 = phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits
+          const likeB = `%${last10}%`
+          const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+            SELECT "id"
+            FROM "Ticket"
+            WHERE regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeA}
+               OR regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeB}
+            ORDER BY "createdAt" DESC
+            LIMIT 1
+          `)
+          if (rows[0]?.id) return rows[0].id
+        }
+
+        const nameKey = normalizeNameKey(args.customerName)
+        if (nameKey && nameKey.length >= 4) {
+          const likeName = `%${nameKey}%`
+          const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+            SELECT "id"
+            FROM "Ticket"
+            WHERE regexp_replace(lower(COALESCE("customerName", '')), '[^a-z0-9]+', '', 'g') LIKE ${likeName}
+            ORDER BY "createdAt" DESC
+            LIMIT 1
+          `)
+          if (rows[0]?.id) return rows[0].id
+        }
+
+        return null
       }
       return null
     }
