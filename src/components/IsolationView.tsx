@@ -323,7 +323,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
         'Suspend': it.isolationDate ? `${monthDiff(new Date(it.isolationDate), now)} Bulan` : '-',
-        'Ticket': it.ticket?.package || (it.ticketId != null ? String(it.ticketId) : '-'),
+        'Ticket': it.ticket ? 'Sudah' : '-',
       }))
 
       const wb = XLSX.utils.book_new()
@@ -566,7 +566,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                       {item.reason || '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.ticket?.package || (item.ticketId != null ? String(item.ticketId) : '-')}
+                      {item.ticket ? 'Sudah' : '-'}
                     </td>
                     {showActions && (
                       <td className="hidden md:table-cell px-2 sm:px-3 py-3 whitespace-nowrap text-sm font-medium">
@@ -639,7 +639,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            {item.ticket?.package || (item.ticketId != null ? String(item.ticketId) : '-')}
+                            {item.ticket ? 'Sudah' : '-'}
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
