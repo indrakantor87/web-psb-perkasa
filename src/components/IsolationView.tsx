@@ -261,12 +261,14 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         method: 'POST',
         body: formData,
       })
-      const data = (await res.json()) as { message?: string; error?: string }
+      const data = (await res.json()) as { message?: string; error?: string; errors?: string[] }
       if (res.ok) {
-        alert(data.message || 'Import berhasil')
+        const detail = Array.isArray(data.errors) && data.errors.length > 0 ? `\n\n${data.errors.join('\n')}` : ''
+        alert(`${data.message || 'Import berhasil'}${detail}`)
         fetchIsolations()
       } else {
-        alert(data.error || 'Import gagal')
+        const detail = Array.isArray(data.errors) && data.errors.length > 0 ? `\n\n${data.errors.join('\n')}` : ''
+        alert(`${data.error || 'Import gagal'}${detail}`)
       }
     } catch (error) {
       console.error('Import isolir gagal', error)

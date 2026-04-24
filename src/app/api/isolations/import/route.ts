@@ -45,6 +45,10 @@ export async function POST(request: Request) {
   // Let's allow those who can access Isolir page usually.
   
   try {
+    try {
+      await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT')
+    } catch {}
+
     const XLSX = await import('xlsx')
     const formData = await request.formData()
     const file = formData.get('file') as File
