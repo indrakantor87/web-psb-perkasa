@@ -22,14 +22,60 @@ export async function PUT(
   }
 
   const { id } = await params
-  const body = await request.json()
+  const isolationId = parseInt(id, 10)
+  if (!Number.isFinite(isolationId)) {
+    return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+  }
+
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+
+  const normalizeOptionalString = (v: unknown) => {
+    if (typeof v !== 'string') return undefined
+    const s = v.trim()
+    return s === '' ? null : s
+  }
+
+  const normalizeOptionalDate = (v: unknown) => {
+    if (v == null) return undefined
+    if (typeof v !== 'string' && typeof v !== 'number') return undefined
+    const s = String(v).trim()
+    if (!s) return null
+    const d = new Date(s)
+    if (!Number.isFinite(d.getTime())) return 'INVALID'
+    return d
+  }
+
+  const statusRaw = typeof body.status === 'string' ? body.status.trim().toUpperCase() : undefined
+  const status = statusRaw === 'OPEN' || statusRaw === 'CLOSED' ? statusRaw : undefined
+  const activeDateParsed = normalizeOptionalDate(body.activeDate)
+  if (activeDateParsed === 'INVALID') {
+    return NextResponse.json({ error: 'Active Date tidak valid' }, { status: 400 })
+  }
+
+  const ticketIdRaw = body.ticketId
+  const ticketId =
+    typeof ticketIdRaw === 'number'
+      ? Math.trunc(ticketIdRaw)
+      : typeof ticketIdRaw === 'string' && ticketIdRaw.trim() !== ''
+        ? parseInt(ticketIdRaw, 10)
+        : undefined
 
   try {
     const isolation = await prisma.isolation.update({
-      where: { id: parseInt(id) },
+      where: { id: isolationId },
       data: {
-        ...body,
-        restorationDate: body.status === 'CLOSED' ? new Date() : undefined,
+        customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
+        customerAddress: normalizeOptionalString(body.customerAddress),
+        customerPhone: normalizeOptionalString(body.customerPhone),
+        userEmail: normalizeOptionalString(body.userEmail),
+        activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
+        marketing: normalizeOptionalString(body.marketing),
+        radboox: normalizeOptionalString(body.radboox),
+        reason: normalizeOptionalString(body.reason),
+        teknisi: normalizeOptionalString(body.teknisi),
+        ticketId: Number.isFinite(ticketId as number) ? (ticketId as number) : ticketId === null ? null : undefined,
+        status,
+        restorationDate: status === 'CLOSED' ? new Date() : status === 'OPEN' ? null : undefined,
       },
     })
 
@@ -37,6 +83,11 @@ export async function PUT(
     return NextResponse.json(isolation)
   } catch (error) {
     console.error('Failed to update isolation:', error)
+    const code =
+      typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code ?? '') : ''
+    if (code === 'P2025') {
+      return NextResponse.json({ error: 'Data isolir tidak ditemukan' }, { status: 404 })
+    }
     return NextResponse.json({ error: 'Failed to update isolation' }, { status: 500 })
   }
 }
