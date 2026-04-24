@@ -75,12 +75,14 @@ export async function POST(request: Request) {
       if (['USER', 'EMAIL', 'ID PELANGGAN', 'USER EMAIL'].includes(k)) return 'userEmail'
       if (['NO HP', 'NOHP', 'NO TELP', 'NO TELPON', 'NO HP AKTIF', 'NOHP AKTIF', 'NO HP PELANGGAN', 'NO HP PEL'].includes(k)) return 'customerPhone'
       if (['ACTIVE DATE', 'AKTIF', 'TANGGAL AKTIF', 'TGL AKTIF', 'START DATE', 'AKTIVE DATE'].includes(k)) return 'activeDate'
+      if (['MAPS', 'MAPS LOKASI', 'LOKASI MAPS', 'LINK MAPS', 'IN MAPS', 'MAP'].includes(k)) return 'customerAddress'
       if (['KETERANGAN', 'ALASAN', 'REASON', 'CATATAN'].includes(k)) return 'reason'
       if (['MARKETING', 'SALES', 'PIC MARKETING', 'PIC'].includes(k)) return 'marketing'
       if (['RADBOOX', 'RADBOX', 'RADBOOK', 'RADBOOX AREA'].includes(k)) return 'radboox'
       if (['TGL ISOLASI', 'TANGGAL ISOLASI', 'ISOLATION DATE', 'TGL SUSPEND', 'TANGGAL SUSPEND'].includes(k)) return 'isolationDate'
       if (['TGL RESTORASI', 'TANGGAL RESTORASI', 'RESTORATION DATE', 'TGL NORMAL', 'TANGGAL NORMAL'].includes(k)) return 'restorationDate'
       if (['SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)', 'LAMA SUSPEND', 'LAMA SUSPEND (BULAN)'].includes(k)) return 'suspendMonths'
+      if (['TICKET', 'ID TICKET', 'TICKET ID', 'IDTICKET'].includes(k)) return 'ticketId'
       return ''
     }
 
@@ -89,12 +91,14 @@ export async function POST(request: Request) {
       userEmail?: unknown
       customerPhone?: unknown
       activeDate?: unknown
+      customerAddress?: unknown
       reason?: unknown
       marketing?: unknown
       radboox?: unknown
       isolationDate?: unknown
       restorationDate?: unknown
       suspendMonths?: unknown
+      ticketId?: unknown
     }
 
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
@@ -111,6 +115,7 @@ export async function POST(request: Request) {
       userEmail: string | null
       customerPhone: string | null
       activeDate: Date | null
+      customerAddress: string | null
       reason: string | null
       marketing: string | null
       radboox: string | null
@@ -118,6 +123,7 @@ export async function POST(request: Request) {
       isolationDate: Date
       teknisi: string | null
       restorationDate?: Date | null
+      ticketId?: number | null
     }> = []
 
     for (const [idx, row] of jsonData.entries()) {
@@ -129,6 +135,7 @@ export async function POST(request: Request) {
         const customerPhone = r.customerPhone ? String(r.customerPhone) : null
         const activeDateRaw = r.activeDate
         const activeDate = parseDate(typeof activeDateRaw === 'number' || typeof activeDateRaw === 'string' ? activeDateRaw : String(activeDateRaw ?? ''))
+        const customerAddress = r.customerAddress ? String(r.customerAddress) : null
         const reason = r.reason ? String(r.reason) : null
         const marketing = r.marketing ? String(r.marketing) : null
         const radboox = r.radboox ? String(r.radboox) : null
@@ -151,11 +158,20 @@ export async function POST(request: Request) {
               ? new Date(new Date().getFullYear(), new Date().getMonth() - suspendMonthsNum, 1)
               : new Date()
 
+        const ticketIdRaw = r.ticketId
+        const ticketId =
+          typeof ticketIdRaw === 'number'
+            ? Math.trunc(ticketIdRaw)
+            : typeof ticketIdRaw === 'string' && ticketIdRaw.trim() !== ''
+              ? parseInt(ticketIdRaw, 10)
+              : null
+
         toCreate.push({
           customerName: String(customerName),
           userEmail,
           customerPhone,
           activeDate,
+          customerAddress,
           reason,
           marketing,
           radboox,
@@ -163,6 +179,7 @@ export async function POST(request: Request) {
           isolationDate,
           teknisi: session.user.name ?? null,
           restorationDate: restorationDate || null,
+          ticketId: Number.isFinite(ticketId) ? ticketId : null,
         })
       } catch (e) {
         errorCount++

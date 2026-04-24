@@ -19,6 +19,7 @@ interface Isolation {
   status: string
   restorationDate: string | null
   teknisi: string | null
+  ticketId?: number | null
   ticket?: {
     package: string
     locationMap: string
@@ -322,7 +323,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
         'Suspend': it.isolationDate ? `${monthDiff(new Date(it.isolationDate), now)} Bulan` : '-',
-        'Ticket': it.ticket ? 'Sudah' : '-',
+        'Ticket': it.ticket?.package || (it.ticketId != null ? String(it.ticketId) : '-'),
       }))
 
       const wb = XLSX.utils.book_new()
@@ -565,7 +566,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                       {item.reason || '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.ticket ? 'Sudah' : '-'}
+                      {item.ticket?.package || (item.ticketId != null ? String(item.ticketId) : '-')}
                     </td>
                     {showActions && (
                       <td className="hidden md:table-cell px-2 sm:px-3 py-3 whitespace-nowrap text-sm font-medium">
@@ -638,7 +639,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            {item.ticket ? 'Sudah' : '-'}
+                            {item.ticket?.package || (item.ticketId != null ? String(item.ticketId) : '-')}
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
