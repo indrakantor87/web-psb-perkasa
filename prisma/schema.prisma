@@ -70,6 +70,7 @@ model Isolation {
   status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)
   restorationDate DateTime?
   teknisi         String?
+  ticketDismantle String?
   
   ticketId        Int?
   ticket          Ticket?  @relation(fields: [ticketId], references: [id])

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
-import { Prisma } from '@prisma/client'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -83,7 +82,7 @@ export async function POST(request: Request) {
       if (['TGL ISOLASI', 'TANGGAL ISOLASI', 'ISOLATION DATE', 'TGL SUSPEND', 'TANGGAL SUSPEND'].includes(k)) return 'isolationDate'
       if (['TGL RESTORASI', 'TANGGAL RESTORASI', 'RESTORATION DATE', 'TGL NORMAL', 'TANGGAL NORMAL'].includes(k)) return 'restorationDate'
       if (['SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)', 'LAMA SUSPEND', 'LAMA SUSPEND (BULAN)'].includes(k)) return 'suspendMonths'
-      if (['TICKET', 'TIKET', 'ID TICKET', 'TICKET ID', 'IDTICKET'].includes(k)) return 'ticketId'
+      if (['TICKET', 'TIKET', 'ID TICKET', 'TICKET ID', 'IDTICKET'].includes(k)) return 'ticketDismantle'
       return ''
     }
 
@@ -99,7 +98,7 @@ export async function POST(request: Request) {
       isolationDate?: unknown
       restorationDate?: unknown
       suspendMonths?: unknown
-      ticketId?: unknown
+      ticketDismantle?: unknown
     }
 
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
@@ -109,95 +108,6 @@ export async function POST(request: Request) {
         if (f) (out as Record<string, unknown>)[f] = v
       }
       return out
-    }
-
-    const normalizePhoneDigits = (v: string | null) => {
-      if (!v) return ''
-      return v.replace(/\D/g, '')
-    }
-
-    const normalizeNameKey = (v: string) => {
-      return v
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '')
-        .trim()
-    }
-
-    const inferTicketId = async (args: { ticketCell: unknown; customerName: string; customerPhone: string | null }) => {
-      const ticketCell = args.ticketCell
-      if (typeof ticketCell === 'number') {
-        const n = Math.trunc(ticketCell)
-        return Number.isFinite(n) ? n : null
-      }
-      if (typeof ticketCell === 'string') {
-        const s = ticketCell.trim()
-        if (!s) return null
-        if (/^\d+$/.test(s)) {
-          const n = parseInt(s, 10)
-          return Number.isFinite(n) ? n : null
-        }
-        const low = s.toLowerCase()
-        const marked = low.includes('sudah') || low === 'ya' || low === 'y' || low === '1' || low === 'true'
-        if (!marked) return null
-
-        const name = args.customerName.trim()
-        const phoneDigits = normalizePhoneDigits(args.customerPhone)
-        const phoneVariants = new Set<string>()
-        if (phoneDigits) {
-          phoneVariants.add(phoneDigits)
-          if (phoneDigits.startsWith('0') && phoneDigits.length > 1) phoneVariants.add(`62${phoneDigits.slice(1)}`)
-          if (phoneDigits.startsWith('62') && phoneDigits.length > 2) phoneVariants.add(`0${phoneDigits.slice(2)}`)
-          if (phoneDigits.length > 10) phoneVariants.add(phoneDigits.slice(-10))
-        }
-
-        const ors: Array<Record<string, unknown>> = []
-        if (name) {
-          ors.push({ customerName: { equals: name, mode: 'insensitive' } })
-          if (name.length >= 4) ors.push({ customerName: { contains: name, mode: 'insensitive' } })
-        }
-        for (const pv of phoneVariants) {
-          if (pv.length >= 8) ors.push({ phoneNumber: { contains: pv } })
-        }
-        if (ors.length === 0) return null
-
-        const found = await prisma.ticket.findFirst({
-          where: { OR: ors },
-          orderBy: { createdAt: 'desc' },
-          select: { id: true },
-        })
-        if (found?.id) return found.id
-
-        if (phoneDigits) {
-          const likeA = `%${phoneDigits}%`
-          const last10 = phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits
-          const likeB = `%${last10}%`
-          const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
-            SELECT "id"
-            FROM "Ticket"
-            WHERE regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeA}
-               OR regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeB}
-            ORDER BY "createdAt" DESC
-            LIMIT 1
-          `)
-          if (rows[0]?.id) return rows[0].id
-        }
-
-        const nameKey = normalizeNameKey(args.customerName)
-        if (nameKey && nameKey.length >= 4) {
-          const likeName = `%${nameKey}%`
-          const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
-            SELECT "id"
-            FROM "Ticket"
-            WHERE regexp_replace(lower(COALESCE("customerName", '')), '[^a-z0-9]+', '', 'g') LIKE ${likeName}
-            ORDER BY "createdAt" DESC
-            LIMIT 1
-          `)
-          if (rows[0]?.id) return rows[0].id
-        }
-
-        return null
-      }
-      return null
     }
 
     const toCreate: Array<{
@@ -213,7 +123,7 @@ export async function POST(request: Request) {
       isolationDate: Date
       teknisi: string | null
       restorationDate?: Date | null
-      ticketId?: number | null
+      ticketDismantle?: string | null
     }> = []
 
     for (const [idx, row] of jsonData.entries()) {
@@ -249,7 +159,19 @@ export async function POST(request: Request) {
               ? new Date(new Date().getFullYear(), new Date().getMonth() - suspendMonthsNum, 1)
               : new Date()
 
-        const ticketId = await inferTicketId({ ticketCell: r.ticketId, customerName: customerNameStr, customerPhone })
+        const ticketDismantleRaw = r.ticketDismantle
+        const ticketDismantle =
+          typeof ticketDismantleRaw === 'string'
+            ? ticketDismantleRaw.trim() === ''
+              ? null
+              : ticketDismantleRaw.trim()
+            : typeof ticketDismantleRaw === 'number'
+              ? String(ticketDismantleRaw)
+              : ticketDismantleRaw == null
+                ? null
+                : String(ticketDismantleRaw).trim() === ''
+                  ? null
+                  : String(ticketDismantleRaw).trim()
 
         toCreate.push({
           customerName: customerNameStr,
@@ -264,7 +186,7 @@ export async function POST(request: Request) {
           isolationDate,
           teknisi: session.user.name ?? null,
           restorationDate: restorationDate || null,
-          ticketId,
+          ticketDismantle,
         })
       } catch (e) {
         errorCount++

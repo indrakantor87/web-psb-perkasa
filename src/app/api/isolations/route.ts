@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 
 export async function GET(request: Request) {
@@ -150,90 +150,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Failed to create isolation:', error)
     return NextResponse.json({ error: 'Failed to create isolation' }, { status: 500 })
-  }
-}
-
-export async function PATCH(request: Request) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const body = (await request.json().catch(() => ({}))) as { radboox?: unknown; limit?: unknown }
-  const radboox = typeof body.radboox === 'string' && body.radboox.trim() !== '' && body.radboox !== 'ALL' ? body.radboox.trim() : null
-  const limitRaw = typeof body.limit === 'number' ? Math.trunc(body.limit) : typeof body.limit === 'string' ? parseInt(body.limit, 10) : 500
-  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(5000, limitRaw)) : 500
-
-  const normalizePhoneDigits = (v: string | null) => {
-    if (!v) return ''
-    return v.replace(/\D/g, '')
-  }
-  const normalizeNameKey = (v: string) => {
-    return v
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '')
-      .trim()
-  }
-
-  try {
-    const where: Prisma.IsolationWhereInput = { ticketId: null }
-    if (radboox) where.radboox = radboox
-
-    const items = await prisma.isolation.findMany({
-      where,
-      take: limit,
-      orderBy: { id: 'desc' },
-      select: { id: true, customerName: true, customerPhone: true },
-    })
-
-    let updated = 0
-    for (const it of items) {
-      const phoneDigits = normalizePhoneDigits(it.customerPhone)
-      let ticketId: number | null = null
-
-      if (phoneDigits) {
-        const likeA = `%${phoneDigits}%`
-        const last10 = phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits
-        const likeB = `%${last10}%`
-        const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
-          SELECT "id"
-          FROM "Ticket"
-          WHERE regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeA}
-             OR regexp_replace(COALESCE("phoneNumber", ''), '[^0-9]+', '', 'g') LIKE ${likeB}
-          ORDER BY "createdAt" DESC
-          LIMIT 1
-        `)
-        ticketId = rows[0]?.id ?? null
-      }
-
-      if (!ticketId) {
-        const nameKey = normalizeNameKey(it.customerName)
-        if (nameKey && nameKey.length >= 4) {
-          const likeName = `%${nameKey}%`
-          const rows = await prisma.$queryRaw<Array<{ id: number }>>(Prisma.sql`
-            SELECT "id"
-            FROM "Ticket"
-            WHERE regexp_replace(lower(COALESCE("customerName", '')), '[^a-z0-9]+', '', 'g') LIKE ${likeName}
-            ORDER BY "createdAt" DESC
-            LIMIT 1
-          `)
-          ticketId = rows[0]?.id ?? null
-        }
-      }
-
-      if (ticketId) {
-        await prisma.isolation.update({
-          where: { id: it.id },
-          data: { ticketId },
-        })
-        updated++
-      }
-    }
-
-    cache.invalidateByPrefix('isolations:')
-    return NextResponse.json({ ok: true, scanned: items.length, updated })
-  } catch (error) {
-    console.error('Failed to sync isolation tickets:', error)
-    return NextResponse.json({ error: 'Failed to sync tickets' }, { status: 500 })
   }
 }
 
