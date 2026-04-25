@@ -37,7 +37,11 @@ export async function GET() {
   const session = await getSession().catch(() => null)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const enabled = Boolean(String(process.env.FCM_SERVER_KEY ?? process.env.FIREBASE_SERVER_KEY ?? '').trim())
+  const enabled = Boolean(
+    String(process.env.FCM_PROJECT_ID ?? '').trim() &&
+      String(process.env.FCM_CLIENT_EMAIL ?? '').trim() &&
+      String(process.env.FCM_PRIVATE_KEY ?? '').trim()
+  )
   return NextResponse.json({ enabled })
 }
 

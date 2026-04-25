@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
+import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
 
@@ -28,33 +29,109 @@ async function listPushTokensForRoles(roles: string[]) {
   }
 }
 
-async function sendFcmLegacy(tokens: string[], payload: { title: string; body: string; data?: Record<string, unknown> }) {
-  const serverKey = String(process.env.FCM_SERVER_KEY ?? process.env.FIREBASE_SERVER_KEY ?? '').trim()
-  if (!serverKey) return
-  const cleaned = Array.from(new Set(tokens.map((t) => String(t ?? '').trim()).filter(Boolean)))
-  if (cleaned.length === 0) return
+type FcmAccess = { token: string; exp: number }
+let cachedFcmAccess: FcmAccess | null = null
 
-  const chunkSize = 500
-  for (let i = 0; i < cleaned.length; i += chunkSize) {
-    const chunk = cleaned.slice(i, i + chunkSize)
-    await fetch('https://fcm.googleapis.com/fcm/send', {
+function readFcmServiceAccountEnv() {
+  const projectId = String(process.env.FCM_PROJECT_ID ?? '').trim()
+  const clientEmail = String(process.env.FCM_CLIENT_EMAIL ?? '').trim()
+  const privateKeyRaw = String(process.env.FCM_PRIVATE_KEY ?? '').trim()
+  const privateKey = privateKeyRaw.includes('\\n') ? privateKeyRaw.replace(/\\n/g, '\n') : privateKeyRaw
+  if (!projectId || !clientEmail || !privateKey) return null
+  return { projectId, clientEmail, privateKey }
+}
+
+function base64Url(input: string) {
+  return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+function signJwtRs256(payload: Record<string, unknown>, privateKey: string) {
+  const header = { alg: 'RS256', typ: 'JWT' }
+  const encHeader = base64Url(JSON.stringify(header))
+  const encPayload = base64Url(JSON.stringify(payload))
+  const data = `${encHeader}.${encPayload}`
+  const signer = crypto.createSign('RSA-SHA256')
+  signer.update(data)
+  signer.end()
+  const signature = signer.sign(privateKey)
+  const encSignature = signature.toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  return `${data}.${encSignature}`
+}
+
+async function getFcmAccessToken() {
+  const sa = readFcmServiceAccountEnv()
+  if (!sa) return null
+  const now = Math.floor(Date.now() / 1000)
+  if (cachedFcmAccess && cachedFcmAccess.exp - 60 > now) return cachedFcmAccess.token
+
+  const assertion = signJwtRs256(
+    {
+      iss: sa.clientEmail,
+      sub: sa.clientEmail,
+      scope: 'https://www.googleapis.com/auth/firebase.messaging',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600,
+    },
+    sa.privateKey
+  )
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }).toString(),
+  }).catch(() => null)
+  const json = (await res?.json().catch(() => null)) as { access_token?: unknown; expires_in?: unknown } | null
+  const token = String(json?.access_token ?? '').trim()
+  const expiresIn = Math.trunc(Number(json?.expires_in ?? 3600))
+  if (!res?.ok || !token) return null
+  cachedFcmAccess = { token, exp: now + Math.max(60, expiresIn) }
+  return token
+}
+
+async function sendFcmV1(tokens: string[], payload: { title: string; body: string; data?: Record<string, unknown> }) {
+  const sa = readFcmServiceAccountEnv()
+  if (!sa) return
+  const cleaned = Array.from(new Set(tokens.map((t) => String(t ?? '').trim()).filter(Boolean))).slice(0, 500)
+  if (cleaned.length === 0) return
+  const accessToken = await getFcmAccessToken()
+  if (!accessToken) return
+
+  for (const token of cleaned) {
+    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(sa.projectId)}/messages:send`, {
       method: 'POST',
       headers: {
-        Authorization: `key=${serverKey}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        registration_ids: chunk,
-        priority: 'high',
-        android_channel_id: 'trouble_tickets',
-        notification: {
-          title: payload.title,
-          body: payload.body,
-          sound: 'default',
+        message: {
+          token,
+          notification: { title: payload.title, body: payload.body },
+          data: Object.fromEntries(Object.entries(payload.data ?? {}).map(([k, v]) => [k, String(v ?? '')])),
+          android: {
+            priority: 'HIGH',
+            notification: {
+              channel_id: 'trouble_tickets',
+              default_sound: true,
+              default_vibrate_timings: true,
+            },
+          },
         },
-        data: payload.data ?? {},
       }),
-    }).catch(() => {})
+    }).catch(() => null)
+
+    if (!res) continue
+    if (res.ok) continue
+
+    const text = await res.text().catch(() => '')
+    const lower = String(text ?? '').toLowerCase()
+    if (lower.includes('unregistered') || lower.includes('registration-token-not-registered')) {
+      await prisma.$executeRawUnsafe(`DELETE FROM "DevicePushToken" WHERE "token" = $1;`, token).catch(() => {})
+    }
   }
 }
 
@@ -673,7 +750,7 @@ export async function POST(request: Request) {
     const body = [createdCode, createdCustomer].filter(Boolean).join(' - ') || 'Ada trouble ticket baru'
     const rolesToNotify = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
     const tokens = await listPushTokensForRoles(rolesToNotify)
-    await sendFcmLegacy(tokens, {
+    await sendFcmV1(tokens, {
       title,
       body,
       data: { ticketId: createdId, ticketCode: createdCode, category: String(row.category ?? '').trim() },
