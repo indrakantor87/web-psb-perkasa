@@ -45,7 +45,6 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
         const { Capacitor } = await import('@capacitor/core')
         if (!Capacitor.isNativePlatform()) return
 
-        const { PushNotifications } = await import('@capacitor/push-notifications')
         const { LocalNotifications } = await import('@capacitor/local-notifications')
 
         await LocalNotifications.requestPermissions().catch(() => {})
@@ -57,6 +56,12 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           visibility: 1,
         }).catch(() => {})
 
+        const enabledRes = await fetch('/api/push-tokens', { method: 'GET', credentials: 'include' }).catch(() => null)
+        const enabledJson = (await enabledRes?.json().catch(() => null)) as { enabled?: unknown } | null
+        const pushEnabled = Boolean(enabledRes?.ok && enabledJson && enabledJson.enabled)
+        if (!pushEnabled) return
+
+        const { PushNotifications } = await import('@capacitor/push-notifications')
         const perm = await PushNotifications.requestPermissions()
         if (perm.receive !== 'granted') return
 
