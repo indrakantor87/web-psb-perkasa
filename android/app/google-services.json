@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "176876985468",
+    "project_id": "notif-perkasa-networks",
+    "storage_bucket": "notif-perkasa-networks.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:176876985468:android:84605f846fe6d32768bdf9",
+        "android_client_info": {
+          "package_name": "com.psbperkasa.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD46enWXDsOVSBkTNfMoPrcu5mkoKFC7nI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
