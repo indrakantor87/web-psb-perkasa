@@ -133,7 +133,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<OdpRow | null>(null)
-  const [form, setForm] = useState({ nama_odp: '', wilayah: 'Pati', lokasi: '', koordinat: '', terpakai: '0', status_tiang: 'Perkasa' })
+  const [form, setForm] = useState({ nama_odp: '', wilayah: 'Pati', lokasi: '', koordinat: '', kapasitas: '8', terpakai: '0', status_tiang: 'Perkasa' })
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize])
 
@@ -240,7 +240,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
   const openAdd = () => {
     setEditing(null)
-    setForm({ nama_odp: '', wilayah: wilayah || 'Pati', lokasi: '', koordinat: '', terpakai: '0', status_tiang: 'Perkasa' })
+    setForm({ nama_odp: '', wilayah: wilayah || 'Pati', lokasi: '', koordinat: '', kapasitas: '8', terpakai: '0', status_tiang: 'Perkasa' })
     setModalOpen(true)
   }
 
@@ -253,6 +253,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       wilayah: row.wilayah || 'Pati',
       lokasi: row.lokasi,
       koordinat,
+      kapasitas: String(row.kapasitas ?? 8),
       terpakai: String(row.terpakai ?? 0),
       status_tiang: row.status_tiang ?? 'Perkasa',
     })
@@ -264,12 +265,15 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     setSaving(true)
     setError(null)
     try {
+      const kapasitas = toInt(form.kapasitas)
       const terpakai = toInt(form.terpakai)
       if (!form.nama_odp.trim()) throw new Error('Nama ODP wajib diisi')
       if (!form.wilayah.trim()) throw new Error('Wilayah wajib diisi')
       if (!form.lokasi.trim()) throw new Error('Lokasi wajib diisi')
+      if (!Number.isFinite(kapasitas) || kapasitas < 1) throw new Error('Kapasitas tidak valid')
+      if (kapasitas > 128) throw new Error('Kapasitas maksimal 128')
       if (!Number.isFinite(terpakai) || terpakai < 0) throw new Error('Terpakai tidak valid')
-      if (terpakai > 8) throw new Error('Terpakai maksimal 8')
+      if (terpakai > kapasitas) throw new Error('Terpakai melebihi kapasitas')
 
       const coords = parseLatLng(form.koordinat.trim()) ?? parseLatLng(form.lokasi.trim())
       if (form.koordinat.trim() && !coords) throw new Error('Koordinat tidak valid. Gunakan format lat,lng atau link maps')
@@ -278,6 +282,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         nama_odp: form.nama_odp.trim(),
         wilayah: form.wilayah.trim(),
         lokasi: form.lokasi.trim(),
+        kapasitas,
         terpakai,
         status_tiang: form.status_tiang.trim() || 'Perkasa',
         latitude: coords?.latitude ?? null,
@@ -465,7 +470,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">PORT ODP</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">1 ODP berisi 8 port. Merah (penuh), Kuning (&gt; 50%), Hijau (&lt; 50%).</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Kapasitas ODP bisa berbeda. Merah (penuh), Kuning (&gt; 50%), Hijau (&lt; 50%).</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <button
@@ -811,7 +816,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           </div>
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kapasitas</label>
-            <input value="8" disabled className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white opacity-80" />
+            <input value={form.kapasitas} onChange={(e) => setForm((p) => ({ ...p, kapasitas: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="8" />
           </div>
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Terpakai</label>

@@ -178,7 +178,11 @@ export async function POST(req: Request) {
   const wilayah = String(body?.wilayah ?? 'Pati').trim() || 'Pati'
   const lokasi = String(body?.lokasi ?? '').trim()
   const status_tiang = normalizeStatusTiang(String(body?.status_tiang ?? 'Perkasa').trim() || 'Perkasa')
-  const kapasitas = 8
+  const kapasitasRaw = body?.kapasitas
+  const kapasitas =
+    kapasitasRaw === null || typeof kapasitasRaw === 'undefined' || kapasitasRaw === ''
+      ? 8
+      : Math.trunc(Number(kapasitasRaw))
   const terpakai = Math.trunc(Number(body?.terpakai ?? 0))
   const latitudeRaw = body?.latitude
   const longitudeRaw = body?.longitude
@@ -193,6 +197,8 @@ export async function POST(req: Request) {
   if (!nama_odp) return NextResponse.json({ error: 'Nama ODP wajib diisi' }, { status: 400 })
   if (!wilayah) return NextResponse.json({ error: 'Wilayah wajib diisi' }, { status: 400 })
   if (!lokasi) return NextResponse.json({ error: 'Lokasi wajib diisi' }, { status: 400 })
+  if (!Number.isFinite(kapasitas) || kapasitas < 1) return NextResponse.json({ error: 'Kapasitas tidak valid' }, { status: 400 })
+  if (kapasitas > 128) return NextResponse.json({ error: 'Kapasitas maksimal 128' }, { status: 400 })
   if (!Number.isFinite(terpakai) || terpakai < 0) return NextResponse.json({ error: 'Terpakai tidak valid' }, { status: 400 })
   if (terpakai > kapasitas) return NextResponse.json({ error: 'Terpakai melebihi kapasitas' }, { status: 400 })
 
@@ -203,7 +209,7 @@ export async function POST(req: Request) {
     DO UPDATE SET
       wilayah = EXCLUDED.wilayah,
       lokasi = EXCLUDED.lokasi,
-      kapasitas = 8,
+      kapasitas = EXCLUDED.kapasitas,
       terpakai = EXCLUDED.terpakai,
       status_tiang = EXCLUDED.status_tiang,
       latitude = EXCLUDED.latitude,

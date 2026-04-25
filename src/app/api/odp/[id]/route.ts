@@ -57,7 +57,20 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const lokasi = String(body?.lokasi ?? '').trim()
   const status_tiang = String(body?.status_tiang ?? 'Perkasa').trim() || 'Perkasa'
   const statusNorm = normalizeStatusTiang(status_tiang)
-  const kapasitas = 8
+  const kapasitasRaw = body?.kapasitas
+  const kapasitasParsed =
+    kapasitasRaw === null || typeof kapasitasRaw === 'undefined' || kapasitasRaw === ''
+      ? null
+      : Math.trunc(Number(kapasitasRaw))
+  const existing = kapasitasParsed === null
+    ? await prisma.$queryRaw<Array<{ kapasitas: number }>>`
+        SELECT kapasitas
+        FROM psb_odp
+        WHERE id = ${odpId} AND is_active = TRUE
+        LIMIT 1
+      `
+    : null
+  const kapasitas = kapasitasParsed ?? Math.trunc(Number(existing?.[0]?.kapasitas ?? 8))
   const terpakai = Math.trunc(Number(body?.terpakai ?? 0))
   const latitudeRaw = body?.latitude
   const longitudeRaw = body?.longitude
@@ -72,6 +85,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (!nama_odp) return NextResponse.json({ error: 'Nama ODP wajib diisi' }, { status: 400 })
   if (!wilayah) return NextResponse.json({ error: 'Wilayah wajib diisi' }, { status: 400 })
   if (!lokasi) return NextResponse.json({ error: 'Lokasi wajib diisi' }, { status: 400 })
+  if (!Number.isFinite(kapasitas) || kapasitas < 1) return NextResponse.json({ error: 'Kapasitas tidak valid' }, { status: 400 })
+  if (kapasitas > 128) return NextResponse.json({ error: 'Kapasitas maksimal 128' }, { status: 400 })
   if (!Number.isFinite(terpakai) || terpakai < 0) return NextResponse.json({ error: 'Terpakai tidak valid' }, { status: 400 })
   if (terpakai > kapasitas) return NextResponse.json({ error: 'Terpakai melebihi kapasitas' }, { status: 400 })
 
