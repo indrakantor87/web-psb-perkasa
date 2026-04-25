@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       if (['NAMA ODP', 'ODP', 'NAMA'].includes(k)) return 'nama_odp'
       if (['POP', 'WILAYAH', 'REGION', 'AREA'].includes(k)) return 'wilayah'
       if (['LOKASI', 'ALAMAT'].includes(k)) return 'lokasi'
+      if (['KAPASITAS', 'KAPASITAS ODP', 'CAPACITY'].includes(k)) return 'kapasitas'
       if (['KOORDINAT', 'KOORDINAT (LAT,LNG)', 'COORDINATE', 'COORDINATES', 'COORDS', 'MAPS'].includes(k)) return 'koordinat'
       if (['LAT', 'LATITUDE'].includes(k)) return 'latitude'
       if (['LNG', 'LON', 'LONG', 'LONGITUDE'].includes(k)) return 'longitude'
@@ -112,6 +113,7 @@ export async function POST(request: Request) {
       nama_odp: string
       wilayah: string
       lokasi: string
+      kapasitas: number
       latitude: number | null
       longitude: number | null
       terpakai: number
@@ -148,15 +150,19 @@ export async function POST(request: Request) {
             : t === 'numpang'
               ? 'Numpang'
               : statusRaw
+      const kapasitasRaw = (r as Record<string, unknown>).kapasitas
+      const kapasitas =
+        kapasitasRaw === null || typeof kapasitasRaw === 'undefined' || kapasitasRaw === '' ? 8 : toInt(kapasitasRaw)
       const terpakaiRaw = r.terpakai
       const terpakai = terpakaiRaw === null || typeof terpakaiRaw === 'undefined' || terpakaiRaw === '' ? 0 : toInt(terpakaiRaw)
 
       if (!nama_odp || !wilayah || !lokasi) { fail++; continue }
-      if (!Number.isFinite(terpakai) || terpakai < 0 || terpakai > 8) { fail++; continue }
+      if (!Number.isFinite(kapasitas) || kapasitas < 1 || kapasitas > 128) { fail++; continue }
+      if (!Number.isFinite(terpakai) || terpakai < 0 || terpakai > kapasitas) { fail++; continue }
       if (latitude !== null && (latitude < -90 || latitude > 90)) { fail++; continue }
       if (longitude !== null && (longitude < -180 || longitude > 180)) { fail++; continue }
 
-      normalizedRows.push({ nama_odp, wilayah, lokasi, latitude, longitude, terpakai, status_tiang })
+      normalizedRows.push({ nama_odp, wilayah, lokasi, kapasitas, latitude, longitude, terpakai, status_tiang })
     }
 
     const map = new Map<string, (typeof normalizedRows)[number]>()
@@ -172,7 +178,7 @@ export async function POST(request: Request) {
       try {
         const values = Prisma.join(
           chunk.map((r) =>
-            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())`
+            Prisma.sql`(${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, ${r.kapasitas}, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())`
           )
         )
 
@@ -183,7 +189,7 @@ export async function POST(request: Request) {
           DO UPDATE SET
             wilayah = EXCLUDED.wilayah,
             lokasi = EXCLUDED.lokasi,
-            kapasitas = 8,
+            kapasitas = EXCLUDED.kapasitas,
             terpakai = EXCLUDED.terpakai,
             status_tiang = EXCLUDED.status_tiang,
             latitude = EXCLUDED.latitude,
@@ -197,12 +203,12 @@ export async function POST(request: Request) {
           try {
             await prisma.$executeRaw(Prisma.sql`
               INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, latitude, longitude, is_active, created_at, updated_at)
-              VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, 8, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())
+              VALUES (${r.nama_odp}, ${r.wilayah}, ${r.lokasi}, ${r.kapasitas}, ${r.terpakai}, ${r.status_tiang}, ${r.latitude}, ${r.longitude}, TRUE, NOW(), NOW())
               ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
               DO UPDATE SET
                 wilayah = EXCLUDED.wilayah,
                 lokasi = EXCLUDED.lokasi,
-                kapasitas = 8,
+                kapasitas = EXCLUDED.kapasitas,
                 terpakai = EXCLUDED.terpakai,
                 status_tiang = EXCLUDED.status_tiang,
                 latitude = EXCLUDED.latitude,
