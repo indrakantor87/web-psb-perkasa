@@ -36,6 +36,83 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
     }
   }, [])
 
+  useEffect(() => {
+    if (!isNative) return
+    let removed = false
+    const handles: Array<{ remove: () => Promise<void> }> = []
+    ;(async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core')
+        if (!Capacitor.isNativePlatform()) return
+
+        const { PushNotifications } = await import('@capacitor/push-notifications')
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+
+        await LocalNotifications.requestPermissions().catch(() => {})
+        await LocalNotifications.createChannel({
+          id: 'trouble_tickets',
+          name: 'Trouble Ticket',
+          description: 'Notifikasi trouble ticket baru',
+          importance: 5,
+          visibility: 1,
+        }).catch(() => {})
+
+        const perm = await PushNotifications.requestPermissions()
+        if (perm.receive !== 'granted') return
+
+        handles.push(
+          await PushNotifications.addListener('registration', async (token) => {
+            if (removed) return
+            const value = String(token?.value ?? '').trim()
+            if (!value) return
+            await fetch('/api/push-tokens', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ token: value, platform: Capacitor.getPlatform(), userRole: user.role }),
+            }).catch(() => {})
+          })
+        )
+
+        handles.push(
+          await PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+            if (removed) return
+            const title = String(notification?.title ?? '').trim() || 'Trouble Ticket Baru'
+            const body = String(notification?.body ?? '').trim() || 'Ada trouble ticket baru'
+            const id = Math.trunc(Date.now() % 2_000_000_000)
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  id,
+                  title,
+                  body,
+                  channelId: 'trouble_tickets',
+                  extra: notification?.data ?? {},
+                },
+              ],
+            }).catch(() => {})
+          })
+        )
+
+        handles.push(
+          await PushNotifications.addListener('pushNotificationActionPerformed', async (action) => {
+            if (removed) return
+            const data = (action?.notification as { data?: Record<string, unknown> } | undefined)?.data ?? {}
+            const ticketId = String((data as { ticketId?: unknown }).ticketId ?? '').trim()
+            router.push(ticketId ? `/trouble-ticket?focus=${encodeURIComponent(ticketId)}` : '/trouble-ticket')
+          })
+        )
+
+        await PushNotifications.register()
+      } catch {}
+    })()
+
+    return () => {
+      removed = true
+      handles.forEach((h) => h.remove().catch(() => {}))
+    }
+  }, [isNative, router, user.role])
+
   const onRefresh = useMemo(() => {
     return async () => {
       const promises: Promise<unknown>[] = []

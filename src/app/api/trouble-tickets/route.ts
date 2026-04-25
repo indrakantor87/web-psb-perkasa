@@ -9,6 +9,55 @@ export const runtime = 'nodejs'
 let ensuredPromise: Promise<void> | null = null
 let ensuredSlaPromise: Promise<void> | null = null
 
+async function listPushTokensForRoles(roles: string[]) {
+  if (!Array.isArray(roles) || roles.length === 0) return []
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{ token: string }>>(
+      `SELECT "token"
+       FROM "DevicePushToken"
+       WHERE "token" IS NOT NULL
+         AND COALESCE("userRole",'') <> ''
+         AND "userRole" = ANY($1::text[])
+       ORDER BY "lastSeenAt" DESC
+       LIMIT 5000;`,
+      roles
+    )
+    return rows.map((r) => String(r.token ?? '').trim()).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+async function sendFcmLegacy(tokens: string[], payload: { title: string; body: string; data?: Record<string, unknown> }) {
+  const serverKey = String(process.env.FCM_SERVER_KEY ?? process.env.FIREBASE_SERVER_KEY ?? '').trim()
+  if (!serverKey) return
+  const cleaned = Array.from(new Set(tokens.map((t) => String(t ?? '').trim()).filter(Boolean)))
+  if (cleaned.length === 0) return
+
+  const chunkSize = 500
+  for (let i = 0; i < cleaned.length; i += chunkSize) {
+    const chunk = cleaned.slice(i, i + chunkSize)
+    await fetch('https://fcm.googleapis.com/fcm/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `key=${serverKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        registration_ids: chunk,
+        priority: 'high',
+        android_channel_id: 'trouble_tickets',
+        notification: {
+          title: payload.title,
+          body: payload.body,
+          sound: 'default',
+        },
+        data: payload.data ?? {},
+      }),
+    }).catch(() => {})
+  }
+}
+
 async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "TroubleTicket" (
@@ -590,7 +639,7 @@ export async function POST(request: Request) {
       return rows[0] ?? null
     }
 
-    let row: { id: number } | null = null
+    let row: Record<string, unknown> | null = null
     if (parsed) {
       try {
         row = await insertOnce(parsed)
@@ -617,6 +666,18 @@ export async function POST(request: Request) {
     if (!row) return NextResponse.json({ error: 'Failed to create trouble ticket' }, { status: 500 })
     cache.invalidateByPrefix('trouble-tickets-list:')
     cache.invalidateByPrefix('trouble-tickets:')
+    const createdId = Math.trunc(Number(row.id))
+    const createdCode = String(row.ticketCode ?? '').trim()
+    const createdCustomer = String(row.customerName ?? '').trim()
+    const title = 'Trouble Ticket Baru'
+    const body = [createdCode, createdCustomer].filter(Boolean).join(' - ') || 'Ada trouble ticket baru'
+    const rolesToNotify = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
+    const tokens = await listPushTokensForRoles(rolesToNotify)
+    await sendFcmLegacy(tokens, {
+      title,
+      body,
+      data: { ticketId: createdId, ticketCode: createdCode, category: String(row.category ?? '').trim() },
+    })
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
