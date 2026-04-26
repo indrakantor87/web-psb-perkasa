@@ -35,9 +35,16 @@ let cachedFcmAccess: FcmAccess | null = null
 function readFcmServiceAccountEnv() {
   const projectId = String(process.env.FCM_PROJECT_ID ?? '').trim()
   const clientEmail = String(process.env.FCM_CLIENT_EMAIL ?? '').trim()
-  const privateKeyRaw = String(process.env.FCM_PRIVATE_KEY ?? '').trim()
-  const privateKey = privateKeyRaw.includes('\\n') ? privateKeyRaw.replace(/\\n/g, '\n') : privateKeyRaw
+  let privateKeyRaw = String(process.env.FCM_PRIVATE_KEY ?? '').trim()
+  if (privateKeyRaw.startsWith('"') && privateKeyRaw.endsWith('"')) privateKeyRaw = privateKeyRaw.slice(1, -1)
+  let privateKey = privateKeyRaw.includes('\\n') ? privateKeyRaw.replace(/\\n/g, '\n') : privateKeyRaw
+  privateKey = privateKey.replace(/\r\n/g, '\n')
   if (!projectId || !clientEmail || !privateKey) return null
+  try {
+    crypto.createPrivateKey({ key: privateKey, format: 'pem', type: 'pkcs8' })
+  } catch {
+    return null
+  }
   return { projectId, clientEmail, privateKey }
 }
 
