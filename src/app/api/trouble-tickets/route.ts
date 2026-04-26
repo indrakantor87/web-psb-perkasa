@@ -750,11 +750,13 @@ export async function POST(request: Request) {
     const body = [createdCode, createdCustomer].filter(Boolean).join(' - ') || 'Ada trouble ticket baru'
     const rolesToNotify = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
     const tokens = await listPushTokensForRoles(rolesToNotify)
-    await sendFcmV1(tokens, {
-      title,
-      body,
-      data: { ticketId: createdId, ticketCode: createdCode, category: String(row.category ?? '').trim() },
-    })
+    try {
+      await sendFcmV1(tokens, {
+        title,
+        body,
+        data: { ticketId: createdId, ticketCode: createdCode, category: String(row.category ?? '').trim() },
+      })
+    } catch {}
     return NextResponse.json(row, { status: 201 })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
