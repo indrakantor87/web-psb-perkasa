@@ -1168,6 +1168,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       <span className="font-medium text-gray-500 dark:text-gray-400">Marketing</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.marketingName}</span>
                     </div>
+                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
+                      <span className="font-medium text-gray-500 dark:text-gray-400">Keterangan</span>{'\t'}
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span>{' '}
+                      <span className="text-gray-900 dark:text-white break-words">{summaryTicket.description || '-'}</span>
+                    </div>
                   </div>
                 </div>
             <div className="bg-gray-50/50 dark:bg-gray-900/50 px-4 py-3 sm:px-6 sm:py-4 sm:flex sm:flex-row-reverse rounded-b-2xl border-t border-gray-100 dark:border-gray-700">
