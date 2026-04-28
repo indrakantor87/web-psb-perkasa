@@ -1203,7 +1203,19 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 text-sm text-gray-200">{r.customerName}</div>
+                        <div className="mt-1 text-sm text-gray-200">
+                          <span
+                            role="link"
+                            className="cursor-pointer hover:underline"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              void openDetail(r)
+                            }}
+                          >
+                            {r.customerName}
+                          </span>
+                        </div>
                         {(String(r.problemCategory ?? '').trim() || String(r.resolutionAction ?? '').trim()) && (
                           <div className="mt-1 text-xs text-gray-400">
                             {(String(r.problemCategory ?? '').trim() || '-')}
@@ -1223,7 +1235,15 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                       <div className="mt-2 space-y-2 text-sm">
                         <div className="rounded-md bg-gray-900 px-3 py-2">
                           <div className="text-xs text-gray-400">Nama Pelanggan</div>
-                          <div className="font-semibold">{r.customerName}</div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void openDetail(r)
+                            }}
+                            className="text-left font-semibold text-blue-300 hover:underline"
+                          >
+                            {r.customerName}
+                          </button>
                         </div>
                         <div className="rounded-md bg-gray-900 px-3 py-2">
                           <div className="text-xs text-gray-400">No Ticket</div>
@@ -1535,7 +1555,17 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                           </button>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{r.customerName}</td>
+                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void openDetail(r)
+                          }}
+                          className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                        >
+                          {r.customerName}
+                        </button>
+                      </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.user || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm">
                         {wa ? (
