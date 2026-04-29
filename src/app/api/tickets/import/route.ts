@@ -7,23 +7,6 @@ import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-ti
 
 export const runtime = 'nodejs'
 
-function statusOrderFor(status: string) {
-  const s = (status || '').toUpperCase()
-  if (s === 'OPEN') return 0
-  if (s === 'ON_PROGRESS' || s === 'PENDING') return 1
-  if (s === 'CLOSE') return 3
-  return 9
-}
-
-function normalizeStatus(input: unknown) {
-  const s = String(input ?? '').trim()
-  if (!s) return undefined
-  const normalized = s.toUpperCase().replace(/\s+/g, '_')
-  if (normalized === 'PENDING') return 'ON_PROGRESS'
-  if (normalized === 'ONPROGRESS') return 'ON_PROGRESS'
-  return normalized
-}
-
 function parseDate(value: unknown): Date | null {
   if (!value) return null
   if (typeof value === 'number') {
@@ -45,12 +28,6 @@ function parseDate(value: unknown): Date | null {
   return null
 }
 
-function normalizePhoneNumber(value: unknown) {
-  if (value === null || typeof value === 'undefined') return ''
-  if (typeof value === 'number' && Number.isFinite(value)) return value.toFixed(0)
-  return String(value).trim()
-}
-
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -67,7 +44,7 @@ export async function POST(request: Request) {
     const buf = Buffer.from(await file.arrayBuffer())
     const wb = XLSX.read(buf, { type: 'buffer' })
     const sheet = wb.Sheets[wb.SheetNames[0]]
-    let rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null, raw: false })
+    let rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
     // Header normalization helpers
     const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
@@ -87,8 +64,6 @@ export async function POST(request: Request) {
       if (['PEMBAYARAN','PAYMENT'].includes(k)) return 'pembayaran'
       if (['STATUS'].includes(k)) return 'status'
       if (['NO HP','NO TELP','NO TELEPON','NO WA','WA','NO WA AKTIF','NOHP','PHONE','TELEPON'].includes(k)) return 'phoneNumber'
-      if (['TEKNISI','INSTALLER'].includes(k)) return 'teknisi'
-      if (['FOTO RUMAH','FOTO','PHOTO','PHOTO RUMAH'].includes(k)) return 'fotoRumah'
       return ''
     }
     type TicketRow = {
@@ -99,7 +74,6 @@ export async function POST(request: Request) {
       installedDate?: unknown
       package?: unknown
       marketingName?: unknown
-      teknisi?: unknown
       pengawalan?: unknown
       kmz?: unknown
       priority?: unknown
@@ -107,7 +81,6 @@ export async function POST(request: Request) {
       pembayaran?: unknown
       status?: unknown
       phoneNumber?: unknown
-      fotoRumah?: unknown
     }
 
     const toTicketRow = (row: Record<string, unknown>): TicketRow => {
@@ -167,56 +140,43 @@ export async function POST(request: Request) {
         // Jika baris benar-benar kosong, lewati tanpa dihitung gagal
         const isTrulyEmpty = Object.values(r).every(v => v === null || v === '' || typeof v === 'undefined')
         if (!nama) { if (!isTrulyEmpty) fail++; continue }
-        const customerName = String(nama).trim()
-        if (!customerName) { fail++; continue }
-
-        const birthDate = parseDate(r.birthDate || null)
-        const locationMap = String(r.locationMap || '')
-
-        const installedDate = parseDate(r.installedDate || null)
-        const requestDate = parseDate(r.requestDate) || installedDate
-        if (!requestDate) { fail++; continue }
-
-        const pkg = String(r.package ?? '').trim()
-        if (!pkg) { fail++; continue }
-
-        const marketingName = String(r.marketingName ?? '').trim()
-        if (!marketingName) { fail++; continue }
-
-        const teknisi = String(r.teknisi ?? '').trim() || null
-        const pengawalan = String(r.pengawalan ?? '').trim() || null
-        const kmz = String(r.kmz ?? '').trim() || null
-        const priority = String(r.priority ?? '').trim() || null
-        const description = String(r.description ?? '').trim() || null
-        const pembayaran = String(r.pembayaran ?? '').trim() || null
-
-        const status = normalizeStatus(r.status) || 'OPEN'
-        const phoneNumber = normalizePhoneNumber(r.phoneNumber)
-
-        const fotoRumahRaw = String(r.fotoRumah ?? '').trim()
-        const fotoRumah = fotoRumahRaw ? fotoRumahRaw : null
-        const hasPhoto = !!fotoRumah
+        const birth = r.birthDate || null
+        const maps = r.locationMap || ''
+        const req = r.requestDate
+        const install = r.installedDate || null
+        const paket = r.package || 'HOME BASIC'
+        const marketing = r.marketingName || session.user.name
+        const pengawalan = r.pengawalan || null
+        const kmz = r.kmz || null
+        const priority = r.priority || null
+        const ket = r.description || null
+        const pay = r.pembayaran || null
+        // Semua data impor dari Excel dianggap sudah selesai (CLOSE)
+        const status = 'CLOSE'
+        const phone = r.phoneNumber || ''
+        const installedDate = parseDate(install)
+        if (!installedDate) { fail++; continue }
+        const requestDate = parseDate(req) || installedDate
 
         await prisma.ticket.create({
           data: {
-            customerName,
-            birthDate,
-            locationMap,
+            customerName: String(nama),
+            birthDate: parseDate(birth),
+            locationMap: String(maps || ''),
             requestDate,
             installedDate,
-            package: pkg,
-            marketingName,
-            teknisi,
-            description,
-            phoneNumber,
-            fotoRumah,
-            hasPhoto,
-            pengawalan,
-            kmz,
-            priority,
-            pembayaran,
+            package: String(paket),
+            marketingName: String(marketing),
+            teknisi: null,
+            description: ket ? String(ket) : null,
+            phoneNumber: String(phone || ''),
+            fotoRumah: null,
+            hasPhoto: false,
+            pengawalan: pengawalan ? String(pengawalan) : null,
+            kmz: kmz ? String(kmz) : null,
+            priority: priority ? String(priority) : null,
+            pembayaran: pay ? String(pay) : null,
             status: String(status).toUpperCase(),
-            statusOrder: statusOrderFor(String(status)),
           }
         })
         ok++
