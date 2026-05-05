@@ -542,15 +542,31 @@ export async function GET(request: Request) {
       return NextResponse.json(rows, { headers: { 'Cache-Control': 'no-store' } })
     }
 
+    const fromSql = useSlaJoin
+      ? `FROM "TroubleTicket" LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"`
+      : `FROM "TroubleTicket"`
+
+    const dupWhereSql = whereSql
+      ? `${whereSql} AND COALESCE(TRIM("TroubleTicket"."user"), '') <> ''`
+      : `WHERE COALESCE(TRIM("TroubleTicket"."user"), '') <> ''`
+
+    const duplicatedUsersSql = `
+      SELECT LOWER(TRIM("TroubleTicket"."user")) AS "userKey"
+      ${fromSql}
+      ${dupWhereSql}
+      GROUP BY "userKey"
+      HAVING COUNT(*) > 1;
+    `
+    const duplicatedUserRows = await prisma
+      .$queryRawUnsafe<Array<{ userKey: string }>>(duplicatedUsersSql, ...params)
+      .catch(() => [])
+    const repeatedUsers = duplicatedUserRows.map((r) => String(r.userKey ?? '').trim()).filter(Boolean)
+
     const take = pageSize
     params.push(take)
     const limitToken = `$${params.length}`
     params.push(offset)
     const offsetToken = `$${params.length}`
-
-    const fromSql = useSlaJoin
-      ? `FROM "TroubleTicket" LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"`
-      : `FROM "TroubleTicket"`
 
     const sqlPaged = `
       SELECT
@@ -608,7 +624,7 @@ export async function GET(request: Request) {
     const summary = summaryRows[0] ?? { open: 0, close: 0, overdue: 0 }
 
     return NextResponse.json(
-      { items, total, page, limit: pageSize, summary },
+      { items, total, page, limit: pageSize, summary, repeatedUsers },
       { headers: { 'Cache-Control': 'no-store' } }
     )
   } catch (e: unknown) {

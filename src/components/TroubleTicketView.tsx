@@ -297,6 +297,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [rows, setRows] = useState<TroubleTicketRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [repeatedUsers, setRepeatedUsers] = useState<string[]>([])
   const [month, setMonth] = useState(nowDate.getMonth() + 1)
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
@@ -431,6 +432,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         const msg = (data as { error?: string })?.error || 'Gagal memuat data'
         throw new Error(msg)
       }
+      if (!isTroubleshoots) {
+        const dupe = (data as { repeatedUsers?: unknown }).repeatedUsers
+        setRepeatedUsers(Array.isArray(dupe) ? dupe.map((v) => String(v ?? '').trim()).filter(Boolean) : [])
+      } else {
+        setRepeatedUsers([])
+      }
       const nextRows = (isTroubleshoots
         ? (Array.isArray(data) ? data : [])
         : (Array.isArray((data as { items?: unknown }).items) ? (data as { items: unknown[] }).items : [])) as TroubleTicketRow[]
@@ -464,10 +471,29 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       if ((e as { name?: string })?.name === 'AbortError') return
       setError(e instanceof Error ? e.message : String(e))
       setRows([])
+      setRepeatedUsers([])
     } finally {
       setLoading(false)
     }
   }, [debouncedSearch, isTroubleshoots, month, page, pageSize, slaDays, status, year])
+
+  const repeatedUserSet = useMemo(() => {
+    const normalizeUserKey = (value: unknown) => String(value ?? '').trim().toLowerCase()
+    if (!isTroubleshoots) {
+      return new Set(repeatedUsers.map((u) => normalizeUserKey(u)).filter(Boolean))
+    }
+    const counts = new Map<string, number>()
+    for (const r of rows) {
+      const key = normalizeUserKey(r.user)
+      if (!key) continue
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    const set = new Set<string>()
+    for (const [k, n] of counts) {
+      if (n > 1) set.add(k)
+    }
+    return set
+  }, [isTroubleshoots, repeatedUsers, rows])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -1178,6 +1204,10 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   key={r.id}
                   className={clsx(
                     'rounded-lg bg-black text-white border border-gray-800',
+                    (() => {
+                      const k = String(r.user ?? '').trim().toLowerCase()
+                      return k && repeatedUserSet.has(k) ? 'bg-orange-500/10 border-orange-400/40' : undefined
+                    })(),
                     isOverdue
                       ? 'tt-near-overdue tt-near-overdue-blink'
                       : isVeryNearOverdue
@@ -1503,6 +1533,8 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                const userKey = String(r.user ?? '').trim().toLowerCase()
+                const isRepeatedUser = !!userKey && repeatedUserSet.has(userKey)
                 const typeKey = normalizeTypeKey(r.type)
                 const sla = slaDays[typeKey] ?? 1
                 const dueAtMs = Number.isFinite(openedAtMs) ? openedAtMs + sla * 24 * 60 * 60 * 1000 : NaN
@@ -1515,6 +1547,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   <Fragment key={r.id}>
                     <tr
                       className={clsx(
+                        isRepeatedUser ? 'bg-orange-500/10' : undefined,
                         'hover:bg-gray-50 dark:hover:bg-gray-700/30',
                         isOverdue
                           ? 'tt-near-overdue tt-near-overdue-blink'
