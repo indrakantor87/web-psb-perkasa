@@ -9,6 +9,21 @@ export const runtime = 'nodejs'
 
 let ensuredPromise: Promise<void> | null = null
 let ensuredSlaPromise: Promise<void> | null = null
+let ensuredTablePromise: Promise<void> | null = null
+
+async function ensureTroubleTicketTable() {
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
+}
+
+async function ensureTroubleTicketTableOnce() {
+  if (!ensuredTablePromise) {
+    ensuredTablePromise = ensureTroubleTicketTable().catch((e) => {
+      ensuredTablePromise = null
+      throw e
+    })
+  }
+  await ensuredTablePromise
+}
 
 async function listPushTokensForRoles(roles: string[]) {
   if (!Array.isArray(roles) || roles.length === 0) return []
