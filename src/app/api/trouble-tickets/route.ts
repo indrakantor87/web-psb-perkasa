@@ -9,20 +9,20 @@ export const runtime = 'nodejs'
 
 let ensuredPromise: Promise<void> | null = null
 let ensuredSlaPromise: Promise<void> | null = null
-let ensuredTablePromise: Promise<void> | null = null
+let ensuredTempColumnPromise: Promise<void> | null = null
 
-async function ensureTroubleTicketTable() {
+async function ensureTemporaryColumn() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
 }
 
-async function ensureTroubleTicketTableOnce() {
-  if (!ensuredTablePromise) {
-    ensuredTablePromise = ensureTroubleTicketTable().catch((e) => {
-      ensuredTablePromise = null
+async function ensureTemporaryColumnOnce() {
+  if (!ensuredTempColumnPromise) {
+    ensuredTempColumnPromise = ensureTemporaryColumn().catch((e) => {
+      ensuredTempColumnPromise = null
       throw e
     })
   }
-  await ensuredTablePromise
+  await ensuredTempColumnPromise
 }
 
 async function listPushTokensForRoles(roles: string[]) {
@@ -426,6 +426,7 @@ export async function GET(request: Request) {
 
   try {
     await ensureTroubleTicketTableOnce()
+    await ensureTemporaryColumnOnce()
     await ensurePhotoTableOnce()
     await ensureSlaTableOnce()
   } catch (e: unknown) {
