@@ -1302,6 +1302,12 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                               OVERDUE {formatOverdueShort(overdueMs)}
                             </span>
                           )}
+                          {r.temporaryAt && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
+                              <AlertTriangle className="h-3 w-3" />
+                              TEMPORARY
+                            </span>
+                          )}
                         </div>
                         <div className="mt-1 text-sm text-gray-200">
                           <span
@@ -1403,6 +1409,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
+                        {!isClosed && !r.temporaryAt && (
+                          <button
+                            type="button"
+                            onClick={() => handleTemporaryTicket(r)}
+                            className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                            Temporary
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => { void openDetail(r) }}
