@@ -742,6 +742,44 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     window.open(url, '_blank', 'noreferrer')
   }
 
+  const downloadAllPhotos = async () => {
+    if (!detailRow) return
+    try {
+      const sources = (Array.isArray(detailRow.closePhotoUrls) ? detailRow.closePhotoUrls : null) ??
+        (Array.isArray(detailRow.closePhotos) ? detailRow.closePhotos : null) ??
+        []
+      if (sources.length === 0) return
+      
+      for (let i = 0; i < sources.length; i++) {
+        const src = sources[i]
+        try {
+          const response = await fetch(src)
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          const ticketId = detailRow.ticketCode || `ticket-${detailRow.id}`
+          const ext = src.split('.').pop()?.split('?')[0] || 'jpg'
+          a.download = `${ticketId}-foto-${i + 1}.${ext}`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          window.URL.revokeObjectURL(url)
+          await new Promise(resolve => setTimeout(resolve, 300))
+        } catch {
+          const a = document.createElement('a')
+          a.href = src
+          a.target = '_blank'
+          a.rel = 'noreferrer'
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }
+      }
+    } catch {
+    }
+  }
+
   const openDetail = async (row: TroubleTicketRow) => {
     setDetailRow(row)
     setCopied(false)
@@ -2025,22 +2063,40 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   (Number(detailRow.closePhotosCount || 0) > 0 ||
                     (Array.isArray(detailRow.closePhotoUrls) && detailRow.closePhotoUrls.length > 0) ||
                     (Array.isArray(detailRow.closePhotos) && detailRow.closePhotos.length > 0))) && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!detailRow) return
-                      const hasUrls = Array.isArray(detailRow.closePhotoUrls)
-                      const hasLegacy = Array.isArray(detailRow.closePhotos)
-                      if (!hasUrls && !hasLegacy) {
-                        await ensureDetailPhotos(detailRow.id)
-                      }
-                      setIsPhotoViewerOpen(true)
-                    }}
-                    className="rounded-md bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium"
-                    disabled={detailFetching}
-                  >
-                    View
-                  </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!detailRow) return
+                          const hasUrls = Array.isArray(detailRow.closePhotoUrls)
+                          const hasLegacy = Array.isArray(detailRow.closePhotos)
+                          if (!hasUrls && !hasLegacy) {
+                            await ensureDetailPhotos(detailRow.id)
+                          }
+                          setIsPhotoViewerOpen(true)
+                        }}
+                        className="rounded-md bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium"
+                        disabled={detailFetching}
+                      >
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!detailRow) return
+                          const hasUrls = Array.isArray(detailRow.closePhotoUrls)
+                          const hasLegacy = Array.isArray(detailRow.closePhotos)
+                          if (!hasUrls && !hasLegacy) {
+                            await ensureDetailPhotos(detailRow.id)
+                          }
+                          downloadAllPhotos()
+                        }}
+                        className="rounded-md bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 text-sm font-medium"
+                        disabled={detailFetching}
+                      >
+                        Download Semua Foto
+                      </button>
+                    </>
                 )}
                 <button
                   type="button"
@@ -2070,14 +2126,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           <div className="w-full max-w-4xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div className="text-lg font-bold text-gray-900 dark:text-white">Foto Lokasi</div>
-              <button
-                type="button"
-                onClick={() => setIsPhotoViewerOpen(false)}
-                className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
-                aria-label="Close"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={downloadAllPhotos}
+                  className="rounded-md bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 text-sm font-medium"
+                >
+                  Download Semua
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoViewerOpen(false)}
+                  className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="px-5 py-4">
               {(() => {
