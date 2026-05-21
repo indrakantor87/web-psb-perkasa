@@ -166,6 +166,7 @@ model TroubleTicket {
   type         String
   openedAt     DateTime @default(now())
   closedAt     DateTime?
+  temporaryAt  DateTime?
   notes        String?
   problemCategory String?
   resolutionAction String?

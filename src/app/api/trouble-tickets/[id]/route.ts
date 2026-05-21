@@ -22,6 +22,7 @@ async function ensureTroubleTicketTable() {
       "type" TEXT NOT NULL,
       "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "closedAt" TIMESTAMP(3),
+      "temporaryAt" TIMESTAMP(3),
       "notes" TEXT,
       "status" TEXT NOT NULL DEFAULT 'OPEN',
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -42,6 +43,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -92,8 +94,8 @@ export async function GET(
       COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
       + COALESCE(array_length("closePhotos",1), 0)
     )::int AS "closePhotosCount"`
-    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
-    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status"
+    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
@@ -266,5 +268,54 @@ export async function DELETE(
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: msg || 'Failed to delete ticket' }, { status: 500 })
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
+  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  await ensureTroubleTicketTableOnce().catch(() => {})
+
+  const { id } = await params
+  const ticketId = toInt(id)
+  if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
+
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
+  const action = String(body.action ?? '').trim().toUpperCase()
+
+  if (action !== 'TEMPORARY') {
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  }
+
+  try {
+    const rows = await prisma.$queryRawUnsafe<Array<{ id: number; closedAt: unknown; temporaryAt: unknown; status: string }>>(
+      `SELECT "id", "closedAt", "temporaryAt", "status" FROM "TroubleTicket" WHERE "id" = $1 OR "ticketNumber" = $1 ORDER BY "openedAt" DESC LIMIT 1;`,
+      ticketId
+    )
+    const ticket = rows[0]
+    if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (ticket.closedAt || (ticket.status ?? '').toUpperCase() === 'CLOSE') {
+      return NextResponse.json({ error: 'Ticket sudah di-close' }, { status: 400 })
+    }
+    if (ticket.temporaryAt) {
+      return NextResponse.json({ error: 'Ticket sudah di-temporary' }, { status: 400 })
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "TroubleTicket" SET "temporaryAt" = NOW(), "updatedAt" = NOW() WHERE "id" = $1;`,
+      ticket.id
+    )
+
+    return NextResponse.json({ ok: true, temporaryAt: new Date() })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: msg || 'Failed to mark ticket as temporary' }, { status: 500 })
   }
 }

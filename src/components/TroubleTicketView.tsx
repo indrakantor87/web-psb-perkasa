@@ -19,6 +19,7 @@ type TroubleTicketRow = {
   type: string
   openedAt: string
   closedAt: string | null
+  temporaryAt: string | null
   notes: string | null
   problemCategory?: string | null
   resolutionAction?: string | null
@@ -886,6 +887,37 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     }
   }
 
+  const handleTemporaryTicket = async (row: TroubleTicketRow) => {
+    const isClosed = (row.status || '').toUpperCase() === 'CLOSE' || !!row.closedAt
+    if (isClosed) {
+      alert('Ticket sudah di-close')
+      return
+    }
+    if (row.temporaryAt) {
+      alert('Ticket sudah di-temporary')
+      return
+    }
+
+    const confirmed = confirm('Yakin ingin menandai ticket sebagai Temporary? Durasi akan berhenti sampai ticket di-close.')
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(`/api/trouble-tickets/${row.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TEMPORARY' }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(data.error || 'Gagal menandai ticket sebagai Temporary')
+      }
+      await fetchRows()
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e)
+      alert(msg || 'Gagal menandai ticket sebagai Temporary')
+    }
+  }
+
   const copyRowDetail = async (row: TroubleTicketRow) => {
     try {
       await navigator.clipboard.writeText(buildTicketDetailText(row))
@@ -1567,7 +1599,9 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               rows.map((r) => {
                 const openedAtMs = new Date(r.openedAt).getTime()
                 const closedAtMs = r.closedAt ? new Date(r.closedAt).getTime() : null
-                const durationMs = Number.isFinite(openedAtMs) ? (closedAtMs ?? now) - openedAtMs : NaN
+                const temporaryAtMs = r.temporaryAt ? new Date(r.temporaryAt).getTime() : null
+                const endAtMs = closedAtMs ?? temporaryAtMs
+                const durationMs = Number.isFinite(openedAtMs) ? (endAtMs ?? now) - openedAtMs : NaN
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
@@ -1691,11 +1725,21 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
-                                <div className="font-semibold">Action</div>
+                                <div className="flex items-center gap-2 font-semibold">
+                                  <span>Action</span>
+                                  {r.temporaryAt && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      TEMPORARY
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
                                   {isClosed
                                     ? `Ticket CLOSE by ${(closeByMap[r.id] ?? '').trim() || '-'}`
-                                    : 'Ticket masih OPEN'}
+                                    : r.temporaryAt
+                                      ? 'Ticket TEMPORARY (durasi berhenti)'
+                                      : 'Ticket masih OPEN'}
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -1728,6 +1772,16 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                                   <Pencil className="h-4 w-4" />
                                   Edit
                                 </button>
+                                {!isClosed && !r.temporaryAt && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTemporaryTicket(r)}
+                                    className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
+                                  >
+                                    <AlertTriangle className="h-4 w-4" />
+                                    Temporary
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2042,7 +2096,15 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
+              <div className="flex items-center gap-2">
+                <div className="text-lg font-bold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
+                {detailRow.temporaryAt && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[11px] font-extrabold">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    TEMPORARY
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setDetailRow(null)}
