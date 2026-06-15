@@ -196,6 +196,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -537,6 +538,7 @@ export async function GET(request: Request) {
           "waNumber",
           "mapsUrl",
           "type",
+          "ont",
           "openedAt",
           "closedAt",
           "temporaryAt",
@@ -599,6 +601,7 @@ export async function GET(request: Request) {
         "waNumber",
         "mapsUrl",
         "type",
+        "ont",
         "openedAt",
         "closedAt",
         "temporaryAt",
@@ -678,6 +681,7 @@ export async function POST(request: Request) {
   const waNumber = String(body.waNumber ?? '').trim()
   const mapsUrlRaw = String(body.mapsUrl ?? '').trim()
   const type = String(body.type ?? '').trim()
+  const ont = String(body.ont ?? '').trim()
   const notes = String(body.notes ?? '').trim()
   const problemCategory = String(body.problemCategory ?? '').trim()
   const requestedCategory = normalizeCategory(body.category)
@@ -730,15 +734,15 @@ export async function POST(request: Request) {
         `INSERT INTO "TroubleTicket" (
            "ticketCode","ticketPrefix","ticketNumber","category",
            "periodMonth","periodYear",
-           "customerName","user","waNumber","mapsUrl","type","notes",
+           "customerName","user","waNumber","mapsUrl","type","ont","notes",
            "problemCategory","resolutionAction",
            "status","openedAt"
          )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'OPEN',NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'OPEN',NOW())
          RETURNING
            "id","ticketCode","ticketPrefix","ticketNumber","category",
            "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
-         "type","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
+         "type","ont","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
         allocated.ticketCode,
         allocated.ticketPrefix,
         allocated.ticketNumber,
@@ -750,6 +754,7 @@ export async function POST(request: Request) {
         waNumber,
         mapsUrlRaw || null,
         typeKey,
+        ont || null,
         notes || null,
         problemCategory || null,
         null

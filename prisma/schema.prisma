@@ -164,6 +164,7 @@ model TroubleTicket {
   waNumber     String
   mapsUrl      String?
   type         String
+  ont          String?
   openedAt     DateTime @default(now())
   closedAt     DateTime?
   temporaryAt  DateTime?

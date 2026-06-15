@@ -17,6 +17,7 @@ type TroubleTicketRow = {
   waNumber: string
   mapsUrl: string | null
   type: string
+  ont?: string | null
   openedAt: string
   closedAt: string | null
   temporaryAt: string | null
@@ -39,6 +40,7 @@ type TroubleTicketCreatePayload = {
   waNumber: string
   mapsUrl: string
   type: string
+  ont: string
   notes: string
   problemCategory: string
 }
@@ -49,6 +51,7 @@ type TroubleTicketEditPayload = {
   waNumber: string
   mapsUrl: string
   type: string
+  ont: string
   problemCategory: string
   status: 'OPEN' | 'CLOSE'
   notes: string
@@ -213,6 +216,7 @@ function buildTicketDetailText(row: TroubleTicketRow) {
     `No WA : ${formatWaDisplay(row.waNumber)}`,
     `In Maps\t: ${maps ? `\`${maps}\`` : '-'}`,
     `Type : ${type}`,
+    `ONT : ${(row.ont || '').trim() || '-'}`,
     `Gangguan : ${(row.problemCategory || '').trim() || '-'}`,
     `Tindakan : ${(row.resolutionAction || '').trim() || '-'}`,
     `Keterangan : ${(row.notes || '').trim() || '-'}`,
@@ -334,6 +338,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     waNumber: '',
     mapsUrl: '',
     type: '',
+    ont: '',
     notes: '',
     problemCategory: '',
   })
@@ -345,6 +350,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     waNumber: '',
     mapsUrl: '',
     type: '',
+    ont: '',
     problemCategory: '',
     status: 'OPEN',
     notes: '',
@@ -616,6 +622,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         waNumber: form.waNumber.trim(),
         mapsUrl: form.mapsUrl.trim(),
         type: normalizeTypeKey(form.type),
+        ont: form.ont.trim(),
         notes: form.notes.trim(),
         problemCategory: form.problemCategory.trim(),
         month,
@@ -640,6 +647,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         waNumber: '',
         mapsUrl: '',
         type: '',
+        ont: '',
         notes: '',
         problemCategory: '',
       })
@@ -676,6 +684,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
       waNumber: row.waNumber || '',
       mapsUrl: row.mapsUrl || '',
       type: inferredCategory === 'PV' ? 'PREVENTIVE' : normalizeTypeKey(row.type),
+      ont: String(row.ont ?? '').trim(),
       problemCategory: String(row.problemCategory ?? '').trim(),
       status: ((row.status || '').toUpperCase() === 'CLOSE' || row.closedAt) ? 'CLOSE' : 'OPEN',
       notes: row.notes || '',
@@ -703,6 +712,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         waNumber: editForm.waNumber.trim(),
         mapsUrl: editForm.mapsUrl.trim(),
         type: normalizedType,
+        ont: editForm.ont.trim(),
         notes: editForm.notes.trim(),
         problemCategory: editForm.problemCategory.trim(),
         status: editForm.status,
@@ -981,6 +991,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         'NO WA': r.waNumber,
         'IN MAPS': r.mapsUrl || '',
         'TYPE': formatTypeLabel(r.type),
+        'ONT': (r.ont || '').trim(),
         'GANGGUAN': (r.problemCategory || '').trim(),
         'TINDAKAN': (r.resolutionAction || '').trim(),
         'OPEN': formatExcelDate(r.openedAt),
@@ -1044,6 +1055,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           const closedAt = parseExcelDate(closedAtRaw)
           const typeKey = normalizeTypeKey(typeRaw)
           const type = slaDays[typeKey] ? typeKey : typeRaw
+          const ont = String(get('ONT', 'ONT ID') ?? '').trim()
 
           if (!customerName || !type) return null
 
@@ -1054,6 +1066,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
             waNumber,
             mapsUrl,
             type,
+            ont,
             problemCategory,
             resolutionAction,
             notes,
@@ -1590,6 +1603,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">No WA</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">In Maps</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Type</th>
+              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">ONT</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Gangguan</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Tindakan</th>
               <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Open</th>
@@ -1601,13 +1615,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={13} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={13} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Tidak ada data
                 </td>
               </tr>
@@ -1717,6 +1731,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                         )}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{formatTypeLabel(r.type)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.ont || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.problemCategory || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.resolutionAction || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDateTime(r.openedAt)}</td>
@@ -1737,7 +1752,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                     </tr>
                     {expandedId === r.id && (
                       <tr>
-                        <td colSpan={13} className="px-3 pb-4">
+                        <td colSpan={14} className="px-3 pb-4">
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
@@ -1949,6 +1964,14 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                   </select>
                 </div>
                 <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
+                  <input
+                    value={form.ont}
+                    onChange={(e) => setForm({ ...form, ont: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  />
+                </div>
+                <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
                   <select
                     value={form.problemCategory}
@@ -2051,6 +2074,14 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
+                  <input
+                    value={editForm.ont}
+                    onChange={(e) => setEditForm({ ...editForm, ont: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>

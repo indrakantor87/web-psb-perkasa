@@ -43,6 +43,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
@@ -94,8 +95,8 @@ export async function GET(
       COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
       + COALESCE(array_length("closePhotos",1), 0)
     )::int AS "closePhotosCount"`
-    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
-    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt"
+    const sql = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","ont","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sqlFallback = `SELECT "id","ticketCode","category","customerName","waNumber","mapsUrl","type","ont","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
            ORDER BY "openedAt" DESC
@@ -188,6 +189,7 @@ export async function PUT(
   const waNumber = typeof body.waNumber === 'undefined' ? undefined : String(body.waNumber ?? '').trim()
   const mapsUrl = typeof body.mapsUrl === 'undefined' ? undefined : String(body.mapsUrl ?? '').trim()
   const type = typeof body.type === 'undefined' ? undefined : String(body.type ?? '').trim()
+  const ont = typeof body.ont === 'undefined' ? undefined : String(body.ont ?? '').trim()
   const notes = typeof body.notes === 'undefined' ? undefined : String(body.notes ?? '').trim()
   const problemCategory = typeof body.problemCategory === 'undefined' ? undefined : String(body.problemCategory ?? '').trim()
   const resolutionAction = typeof body.resolutionAction === 'undefined' ? undefined : String(body.resolutionAction ?? '').trim()
@@ -209,6 +211,7 @@ export async function PUT(
   if (waNumber !== undefined) addSet('waNumber', waNumber)
   if (mapsUrl !== undefined) addSet('mapsUrl', mapsUrl || null)
   if (type !== undefined) addSet('type', type)
+  if (ont !== undefined) addSet('ont', ont || null)
   if (notes !== undefined) addSet('notes', notes || null)
   if (problemCategory !== undefined) addSet('problemCategory', problemCategory || null)
   if (resolutionAction !== undefined) addSet('resolutionAction', resolutionAction || null)

@@ -43,6 +43,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -277,6 +278,7 @@ export async function POST(request: Request) {
       waNumber?: unknown
       mapsUrl?: unknown
       type?: unknown
+      ont?: unknown
       openedAt?: unknown
       closedAt?: unknown
       notes?: unknown
@@ -312,6 +314,7 @@ export async function POST(request: Request) {
       const typeKey = normalizeTypeKey(r.type)
       const type = category === 'PV' ? 'PREVENTIVE' : typeKey
       const mapsUrl = String(r.mapsUrl ?? '').trim()
+      const ont = String(r.ont ?? '').trim()
       const notes = String(r.notes ?? '').trim()
       const problemCategory = String(r.problemCategory ?? '').trim()
       const resolutionAction = String(r.resolutionAction ?? '').trim()
@@ -341,6 +344,7 @@ export async function POST(request: Request) {
         waNumber,
         mapsUrl: mapsUrl || null,
         type,
+        ont: ont || null,
         notes: notes || null,
         problemCategory: problemCategory || null,
         resolutionAction: resolutionAction || null,
@@ -365,6 +369,7 @@ export async function POST(request: Request) {
           waNumber,
           mapsUrl: mapsUrl || null,
           type,
+          ont: ont || null,
           notes: notes || null,
           problemCategory: problemCategory || null,
           resolutionAction: resolutionAction || null,
