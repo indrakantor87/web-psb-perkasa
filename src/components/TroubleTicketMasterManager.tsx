@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { clsx } from 'clsx'
 import { Trash2, Plus } from 'lucide-react'
 
-type Kind = 'PROBLEM_CATEGORY' | 'RESOLUTION_ACTION'
+type Kind = 'PROBLEM_CATEGORY' | 'RESOLUTION_ACTION' | 'ONT'
 
 type Row = { id: number; value: string }
 
@@ -188,18 +188,21 @@ export function TroubleTicketMasterManager() {
   const [loading, setLoading] = useState(true)
   const [problemRows, setProblemRows] = useState<Row[]>([])
   const [actionRows, setActionRows] = useState<Row[]>([])
+  const [ontRows, setOntRows] = useState<Row[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
-      const [p, a] = await Promise.all([
+      const [p, a, o] = await Promise.all([
         fetchList('PROBLEM_CATEGORY', signal),
         fetchList('RESOLUTION_ACTION', signal),
+        fetchList('ONT', signal),
       ])
       setProblemRows(p)
       setActionRows(a)
+      setOntRows(o)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -235,6 +238,7 @@ export function TroubleTicketMasterManager() {
       )}
       <Section title="Master Jenis Gangguan" kind="PROBLEM_CATEGORY" rows={problemRows} loading={loading} {...handlers} />
       <Section title="Master Tindakan" kind="RESOLUTION_ACTION" rows={actionRows} loading={loading} {...handlers} />
+      <Section title="Master ONT" kind="ONT" rows={ontRows} loading={loading} {...handlers} />
     </div>
   )
 }

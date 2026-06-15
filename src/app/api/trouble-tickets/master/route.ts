@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
-type Kind = 'PROBLEM_CATEGORY' | 'RESOLUTION_ACTION'
+type Kind = 'PROBLEM_CATEGORY' | 'RESOLUTION_ACTION' | 'ONT'
 
 const DEFAULT_PROBLEM_CATEGORIES = [
   'LOSS/LOS',
@@ -37,11 +37,13 @@ const DEFAULT_RESOLUTION_ACTIONS = [
   'LAINNYA',
 ]
 
+const DEFAULT_ONT = []
+
 let ensuredPromise: Promise<void> | null = null
 
 function normalizeKind(input: unknown): Kind | null {
   const k = String(input ?? '').trim().toUpperCase()
-  if (k === 'PROBLEM_CATEGORY' || k === 'RESOLUTION_ACTION') return k
+  if (k === 'PROBLEM_CATEGORY' || k === 'RESOLUTION_ACTION' || k === 'ONT') return k
   return null
 }
 
@@ -78,6 +80,13 @@ async function ensureMasterTable() {
      FROM unnest($1::text[]) AS x
      ON CONFLICT DO NOTHING;`,
     DEFAULT_RESOLUTION_ACTIONS
+  )
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "TroubleTicketMaster" ("kind","value")
+     SELECT 'ONT', x
+     FROM unnest($1::text[]) AS x
+     ON CONFLICT DO NOTHING;`,
+    DEFAULT_ONT
   )
 }
 

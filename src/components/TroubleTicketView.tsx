@@ -358,6 +358,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [slaDays, setSlaDays] = useState<Record<string, number>>(DEFAULT_SLA_DAYS)
   const [slaTypes, setSlaTypes] = useState<string[]>(Object.keys(DEFAULT_SLA_DAYS))
   const [problemOptions, setProblemOptions] = useState<string[]>([...DEFAULT_PROBLEM_CATEGORIES])
+  const [ontOptions, setOntOptions] = useState<string[]>([])
   const [idPrefix, setIdPrefix] = useState('TT/PKN/')
   const [nextNumber, setNextNumber] = useState(1)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
@@ -411,6 +412,23 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           .map((r) => String(r?.value ?? '').trim())
           .filter(Boolean)
         if (values.length) setProblemOptions(values)
+      } catch {}
+    })()
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/trouble-tickets/master?kind=ONT', { signal: controller.signal })
+        const data = (await res.json().catch(() => ({}))) as unknown
+        if (!res.ok) return
+        const rows = Array.isArray(data) ? (data as Array<{ value?: unknown }>) : []
+        const values = rows
+          .map((r) => String(r?.value ?? '').trim())
+          .filter(Boolean)
+        setOntOptions(values)
       } catch {}
     })()
     return () => controller.abort()
@@ -1965,11 +1983,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 </div>
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
-                  <input
+                  <select
                     value={form.ont}
                     onChange={(e) => setForm({ ...form, ont: e.target.value })}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
-                  />
+                  >
+                    <option value="">Pilih ONT...</option>
+                    {ontOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
@@ -2077,11 +2102,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
                 </div>
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
-                  <input
+                  <select
                     value={editForm.ont}
                     onChange={(e) => setEditForm({ ...editForm, ont: e.target.value })}
                     className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
-                  />
+                  >
+                    <option value="">Pilih ONT...</option>
+                    {ontOptions.map((x) => (
+                      <option key={x} value={x}>
+                        {x}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
