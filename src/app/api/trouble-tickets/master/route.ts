@@ -37,7 +37,7 @@ const DEFAULT_RESOLUTION_ACTIONS = [
   'LAINNYA',
 ]
 
-const DEFAULT_ONT = []
+const DEFAULT_ONT: string[] = []
 
 let ensuredPromise: Promise<void> | null = null
 
