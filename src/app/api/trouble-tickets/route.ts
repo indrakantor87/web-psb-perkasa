@@ -444,18 +444,15 @@ export async function GET(request: Request) {
 
   if (roleUpper !== 'TROUBLESHOOTS') {
     try {
-      // Perbaiki periodMonth/periodYear untuk SEMUA ticket (OPEN & CLOSE) yang salah
+      // Perbaiki SEMUA ticket (OPEN & CLOSE) agar periodMonth/periodYear sesuai dengan tanggal openedAt
       await prisma.$executeRawUnsafe(
         `UPDATE "TroubleTicket"
-         SET "periodMonth" = $1, "periodYear" = $2
-         WHERE (
-             "periodYear" IS NULL
-             OR "periodMonth" IS NULL
-             OR "periodYear" < $2
-             OR ("periodYear" = $2 AND "periodMonth" < $1)
-           );`,
-        month,
-        year
+         SET "periodMonth" = EXTRACT(MONTH FROM "openedAt")::int,
+             "periodYear" = EXTRACT(YEAR FROM "openedAt")::int
+         WHERE "periodMonth" != EXTRACT(MONTH FROM "openedAt")::int
+            OR "periodYear" != EXTRACT(YEAR FROM "openedAt")::int
+            OR "periodYear" IS NULL
+            OR "periodMonth" IS NULL;`
       )
     } catch {}
   }
