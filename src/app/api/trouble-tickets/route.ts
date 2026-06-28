@@ -444,11 +444,11 @@ export async function GET(request: Request) {
 
   if (roleUpper !== 'TROUBLESHOOTS') {
     try {
+      // Perbaiki periodMonth/periodYear untuk SEMUA ticket (OPEN & CLOSE) yang salah
       await prisma.$executeRawUnsafe(
         `UPDATE "TroubleTicket"
          SET "periodMonth" = $1, "periodYear" = $2
-         WHERE "status" = 'OPEN'
-           AND (
+         WHERE (
              "periodYear" IS NULL
              OR "periodMonth" IS NULL
              OR "periodYear" < $2
