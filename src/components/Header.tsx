@@ -360,7 +360,7 @@ export function Header({ user }: { user: SessionUser }) {
                             className={clsx(
                               'block px-3 py-2 text-sm transition-colors',
                               pathname === '/'
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                             )}
                           >
@@ -385,7 +385,7 @@ export function Header({ user }: { user: SessionUser }) {
                                   className={clsx(
                                     'block px-3 py-2 text-sm transition-colors',
                                     matchesLink(link)
-                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                       : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                   )}
                                 >
@@ -407,7 +407,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block px-3 py-2 text-sm transition-colors',
                                 isActive
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >
@@ -459,7 +459,7 @@ export function Header({ user }: { user: SessionUser }) {
                                 className={clsx(
                                   'block rounded-lg px-3 py-2 text-sm transition-colors',
                                   pathname === link.href
-                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                     : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                 )}
                               >
@@ -475,7 +475,7 @@ export function Header({ user }: { user: SessionUser }) {
                         <select
                           value={zoomLevel}
                           onChange={(e) => setZoomLevel(Number(e.target.value))}
-                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                         >
                           <option value={100}>100%</option>
                           <option value={90}>90%</option>
@@ -490,7 +490,7 @@ export function Header({ user }: { user: SessionUser }) {
                         <select
                           value={theme ?? 'system'}
                           onChange={(e) => setTheme(e.target.value)}
-                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                           suppressHydrationWarning
                         >
                           <option value="light">Light</option>
@@ -590,7 +590,7 @@ export function Header({ user }: { user: SessionUser }) {
                     className={clsx(
                       'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                        ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                     )}
                   >
@@ -610,7 +610,7 @@ export function Header({ user }: { user: SessionUser }) {
                 className={clsx(
                   'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname.startsWith('/settings')
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                 )}
               >
@@ -639,7 +639,7 @@ export function Header({ user }: { user: SessionUser }) {
                             className={clsx(
                               'block rounded-lg px-3 py-2 text-sm transition-colors',
                               pathname === link.href
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                             )}
                           >
@@ -659,7 +659,7 @@ export function Header({ user }: { user: SessionUser }) {
                     <select
                       value={zoomLevel}
                       onChange={(e) => setZoomLevel(Number(e.target.value))}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <option value={100}>100%</option>
@@ -676,7 +676,7 @@ export function Header({ user }: { user: SessionUser }) {
                     <select
                       value={theme ?? 'system'}
                       onChange={(e) => setTheme(e.target.value)}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                       onClick={(e) => e.stopPropagation()}
                       suppressHydrationWarning
                     >
@@ -698,7 +698,7 @@ export function Header({ user }: { user: SessionUser }) {
               Hello, {user?.name}
             </h2>
             {divisionLabel && (
-              <p className="mt-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+              <p className="mt-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
                 {divisionLabel}
               </p>
             )}
@@ -717,7 +717,7 @@ export function Header({ user }: { user: SessionUser }) {
                   className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 font-bold text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 font-bold text-sm">
                   {user?.name?.charAt(0)}
                 </div>
               )}
@@ -730,7 +730,7 @@ export function Header({ user }: { user: SessionUser }) {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</p>
                     {divisionLabel && (
-                      <p className="mt-1 text-xs font-medium text-blue-600 dark:text-blue-400">{divisionLabel}</p>
+                      <p className="mt-1 text-xs font-medium text-gray-600 dark:text-gray-300">{divisionLabel}</p>
                     )}
                  </div>
                  <Link 
@@ -767,7 +767,7 @@ export function Header({ user }: { user: SessionUser }) {
               className={clsx(
                 'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
                 pathname === '/'
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                   : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
               )}
             >
@@ -791,7 +791,7 @@ export function Header({ user }: { user: SessionUser }) {
                         className={clsx(
                           'block px-3 py-2 text-sm transition-colors',
                           pathname === '/'
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                             : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                         )}
                       >
@@ -821,7 +821,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block px-3 py-2 text-sm transition-colors',
                                 matchesLink(link)
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >
@@ -843,7 +843,7 @@ export function Header({ user }: { user: SessionUser }) {
                           className={clsx(
                             'block px-3 py-2 text-sm transition-colors',
                             isActive
-                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                              ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                               : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                           )}
                         >
@@ -866,7 +866,7 @@ export function Header({ user }: { user: SessionUser }) {
                 className={clsx(
                   'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
                   pathname.startsWith('/settings')
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                     : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
                 )}
               >
@@ -896,7 +896,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block rounded-lg px-3 py-2 text-sm transition-colors',
                                 pathname === link.href
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >
@@ -912,7 +912,7 @@ export function Header({ user }: { user: SessionUser }) {
                       <select
                         value={zoomLevel}
                         onChange={(e) => setZoomLevel(Number(e.target.value))}
-                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                       >
                         <option value={100}>100%</option>
                         <option value={90}>90%</option>
@@ -927,7 +927,7 @@ export function Header({ user }: { user: SessionUser }) {
                       <select
                         value={theme ?? 'system'}
                         onChange={(e) => setTheme(e.target.value)}
-                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
                         suppressHydrationWarning
                       >
                         <option value="light">Light</option>

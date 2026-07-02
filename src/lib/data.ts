@@ -1,9 +1,26 @@
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 
+function isPrismaConnectionError(error: unknown) {
+  const message = String(error instanceof Error ? error.message : error)
+  return (
+    message.includes('PrismaClientInitializationError') ||
+    message.includes('Error querying the database') ||
+    message.includes('ENOTFOUND') ||
+    message.includes('Can\'t reach database server')
+  )
+}
+
 export const getPriorities = unstable_cache(
   async () => {
-    return await prisma.priority.findMany()
+    try {
+      return await prisma.priority.findMany()
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production' && isPrismaConnectionError(error)) {
+        return []
+      }
+      throw error
+    }
   },
   ['priorities-list'],
   {
@@ -14,9 +31,16 @@ export const getPriorities = unstable_cache(
 
 export const getDefaultTemplate = unstable_cache(
   async () => {
-    return await prisma.whatsappTemplate.findFirst({
-      where: { isDefault: true }
-    })
+    try {
+      return await prisma.whatsappTemplate.findFirst({
+        where: { isDefault: true }
+      })
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production' && isPrismaConnectionError(error)) {
+        return null
+      }
+      throw error
+    }
   },
   ['default-whatsapp-template'],
   {

@@ -44,7 +44,12 @@ export default async function ListPage({
   let tickets: Awaited<ReturnType<typeof getTicketsListData>>['tickets'] = []
   let totalCount = 0
   let countsForUi: Awaited<ReturnType<typeof getTicketsListData>>['counts'] | undefined = undefined
-  const defaultTemplate = await getDefaultTemplate()
+  let defaultTemplate: Awaited<ReturnType<typeof getDefaultTemplate>> = null
+  try {
+    defaultTemplate = await getDefaultTemplate()
+  } catch {
+    defaultTemplate = null
+  }
   try {
     const list = await getTicketsListData({
       role: session.user.role,
