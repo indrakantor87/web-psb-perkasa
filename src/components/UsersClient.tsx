@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Eye, EyeOff, KeyRound, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 
@@ -31,6 +31,20 @@ const ROLE_OPTIONS = [
   { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
 ] as const
 
+const DIVISION_OPTIONS = [
+  { value: 'ALL', label: 'Semua Division' },
+  { value: 'PENJUALAN', label: 'Penjualan' },
+  { value: 'CS_ADMIN', label: 'CS & Admin CS' },
+  { value: 'NOC_TROUBLESHOOTS', label: 'NOC & Troubleshoots' },
+  { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
+] as const
+
+function formatDivisionLabel(division?: string | null) {
+  const normalized = String(division ?? '').trim().toUpperCase()
+  const found = DIVISION_OPTIONS.find((option) => option.value === normalized)
+  return found?.label ?? '-'
+}
+
 function mapRoleToDivision(role: string) {
   const roleUpper = String(role ?? '').trim().toUpperCase()
   if (roleUpper === 'MARKETING') return 'PENJUALAN'
@@ -58,6 +72,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   // Delete User states
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [divisionFilter, setDivisionFilter] = useState<(typeof DIVISION_OPTIONS)[number]['value']>('ALL')
   
   const [formData, setFormData] = useState({
     name: '',
@@ -70,6 +86,19 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   const isAdmin = currentUser?.role === 'ADMIN'
   const canCreate = isAdmin
   const derivedDivision = mapRoleToDivision(formData.role)
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+    return users.filter((user) => {
+      const matchesDivision =
+        divisionFilter === 'ALL' || String(user.division ?? '').trim().toUpperCase() === divisionFilter
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        user.name.toLowerCase().includes(normalizedSearch) ||
+        user.username.toLowerCase().includes(normalizedSearch) ||
+        user.role.toLowerCase().includes(normalizedSearch)
+      return matchesDivision && matchesSearch
+    })
+  }, [divisionFilter, searchTerm, users])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -363,6 +392,33 @@ export function UsersClient({ currentUser }: UsersClientProps) {
           <Shield className="h-5 w-5" />
           Daftar User
         </h2>
+
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cari User</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Nama, username, atau role"
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Filter Division</label>
+            <select
+              value={divisionFilter}
+              onChange={(e) => setDivisionFilter(e.target.value as (typeof DIVISION_OPTIONS)[number]['value'])}
+              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+            >
+              {DIVISION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         
         {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
@@ -378,7 +434,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-              {users.map((user, index) => (
+              {filteredUsers.map((user, index) => (
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{index + 1}</td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{user.name}</td>
@@ -394,7 +450,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                    {user.division || '-'}
+                    {formatDivisionLabel(user.division)}
                   </td>
                   {isAdmin && (
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -420,7 +476,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   )}
                 </tr>
               ))}
-              {users.length === 0 && (
+              {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 6 : 5} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     No users found.
@@ -433,13 +489,13 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <div key={user.id} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-white">{user.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{user.division || '-'}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDivisionLabel(user.division)}</p>
                 </div>
                 <span className={clsx(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
@@ -471,7 +527,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               )}
             </div>
           ))}
-          {users.length === 0 && (
+          {filteredUsers.length === 0 && (
             <div className="text-center text-gray-500 dark:text-gray-400 py-4">
               No users found.
             </div>
