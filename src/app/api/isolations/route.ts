@@ -18,12 +18,19 @@ export async function GET(request: Request) {
   const radboox = searchParams.get('radboox')
   const marketing = searchParams.get('marketing')
   const status = searchParams.get('status')
+  const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
   const limit = (() => {
     const n = parseInt(searchParams.get('limit') || '25', 10)
     if ([25, 50, 75, 100].includes(n)) return n
     return 25
   })()
+  const roleUpper = (session.user.role || '').toUpperCase()
+  const divisionFilter =
+    roleUpper === 'ADMIN' &&
+    ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+      ? divisionParam
+      : 'ALL'
 
   const where: Prisma.IsolationWhereInput = {}
   const appendAnd = (clause: Prisma.IsolationWhereInput) => {
@@ -64,8 +71,18 @@ export async function GET(request: Request) {
     }
   }
 
+  if (roleUpper === 'ADMIN') {
+    if (divisionFilter === 'CS_ADMIN') {
+      appendAnd({ status: 'OPEN' })
+    } else if (divisionFilter === 'NOC_TROUBLESHOOTS') {
+      appendAnd({ status: 'CLOSED' })
+    } else if (divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
+      appendAnd({ id: { lt: 0 } })
+    }
+  }
+
   try {
-    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, page, limit, role: session.user.role, user: session.user.name })}`
+    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
     const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' } })

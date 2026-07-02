@@ -4,10 +4,22 @@ import { IsolationView } from '@/components/IsolationView'
 
 export const dynamic = 'force-dynamic'
 
-export default async function IsolirPage({ searchParams }: { searchParams?: { search?: string, marketing?: string, status?: string } }) {
+function toValidDivision(value?: string) {
+  if (value === 'PENJUALAN' || value === 'CS_ADMIN' || value === 'NOC_TROUBLESHOOTS' || value === 'CREATOR_DIGITAL') {
+    return value
+  }
+  return 'ALL'
+}
+
+export default async function IsolirPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ search?: string; marketing?: string; status?: string; division?: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/login')
   if (session.user.role === 'TEKNISI') redirect('/')
+  const params = await searchParams
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -20,9 +32,10 @@ export default async function IsolirPage({ searchParams }: { searchParams?: { se
       
       <IsolationView 
         userRole={session.user.role} 
-        initialSearch={searchParams?.search || ''} 
-        initialMarketing={searchParams?.marketing || ''} 
-        initialStatus={searchParams?.status || ''} 
+        initialSearch={params?.search || ''} 
+        initialMarketing={params?.marketing || ''} 
+        initialStatus={params?.status || ''} 
+        initialDivision={toValidDivision(params?.division)}
       />
     </div>
   )

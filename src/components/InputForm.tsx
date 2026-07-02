@@ -3,16 +3,34 @@
 import { useEffect, useState } from 'react'
 
 const FALLBACK_PACKAGES = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
+type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 
-export function InputForm({ user }: { user?: { name: string; role: string } }) {
+export function InputForm({
+  user,
+  initialDivision = 'ALL',
+}: {
+  user?: { name: string; role: string }
+  initialDivision?: DivisionFilter
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [division, setDivision] = useState<DivisionFilter>(initialDivision)
+  const roleUpper = (user?.role || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
+  const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
+  const divisionDescriptions: Record<DivisionFilter, string> = {
+    ALL: 'Modul Input PSB saat ini merepresentasikan operasional Penjualan, jadi admin masih memakai formulir utama ini untuk input pelanggan baru.',
+    PENJUALAN: 'Formulir aktif untuk input PSB baru dari divisi Penjualan.',
+    CS_ADMIN: 'Belum ada relasi langsung antara CS & Admin CS dan modul Input PSB, jadi tampilan ini masih placeholder.',
+    NOC_TROUBLESHOOTS: 'Belum ada relasi langsung antara NOC & Troubleshoots dan modul Input PSB, jadi tampilan ini masih placeholder.',
+    CREATOR_DIGITAL: 'Belum ada relasi langsung antara Creator Digital dan modul Input PSB, jadi tampilan ini masih placeholder.',
+  }
 
   const [formData, setFormData] = useState({
     customerName: '',
     locationMap: '',
     package: 'HOME LITE',
-    marketingName: user?.role === 'MARKETING' ? user.name : '',
+    marketingName: roleUpper === 'MARKETING' ? user?.name ?? '' : '',
     description: '',
     phoneNumber: '',
     birthDate: '',
@@ -47,7 +65,7 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
     }
   }, [])
 
-  if (user?.role === 'TEKNISI') {
+  if (roleUpper === 'TEKNISI') {
     return (
       <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
         <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
@@ -236,14 +254,42 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-      {error && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
-          {error}
+    <div className="space-y-4 sm:space-y-6">
+      {isAdmin && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="grid gap-3 md:grid-cols-[220px,1fr] md:items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Divisi
+              </label>
+              <select
+                value={division}
+                onChange={(e) => setDivision(e.target.value as DivisionFilter)}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="ALL">Semua Divisi</option>
+                <option value="PENJUALAN">Penjualan</option>
+                <option value="CS_ADMIN">CS & Admin CS</option>
+                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CREATOR_DIGITAL">Creator Digital</option>
+              </select>
+            </div>
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+              {divisionDescriptions[division]}
+            </div>
+          </div>
         </div>
       )}
-      
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+
+      {isPenjualanFocus ? (
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          {error && (
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
+              {error}
+            </div>
+          )}
+          
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Nama Pelanggan
@@ -319,9 +365,9 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
             value={formData.marketingName}
             onChange={handleChange}
             required
-            readOnly={user?.role === 'MARKETING'}
+            readOnly={roleUpper === 'MARKETING'}
             className={`mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white ${
-              user?.role === 'MARKETING' ? 'bg-gray-100 dark:bg-gray-600' : 'bg-white dark:bg-gray-700'
+              roleUpper === 'MARKETING' ? 'bg-gray-100 dark:bg-gray-600' : 'bg-white dark:bg-gray-700'
             }`}
           />
         </div>
@@ -373,15 +419,24 @@ export function InputForm({ user }: { user?: { name: string; role: string } }) {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 md:w-auto"
-        >
-          {loading ? 'Menyimpan...' : 'Kirim'}
-        </button>
-      </div>
-    </form>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 md:w-auto"
+            >
+              {loading ? 'Menyimpan...' : 'Kirim'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Input PSB Belum Tersedia untuk Divisi Ini</h3>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Saat ini input pelanggan baru masih dicatat melalui alur divisi Penjualan. Pilih `Semua Divisi` atau `Penjualan` untuk memakai formulir PSB.
+          </p>
+        </div>
+      )}
+    </div>
   )
 }

@@ -4,10 +4,23 @@ import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MarketingActivitiesPage() {
+function toValidDivision(value?: string) {
+  if (value === 'PENJUALAN' || value === 'CS_ADMIN' || value === 'NOC_TROUBLESHOOTS' || value === 'CREATOR_DIGITAL') {
+    return value
+  }
+  return 'ALL'
+}
+
+export default async function MarketingActivitiesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ division?: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/login')
   if (session.user.role === 'TEKNISI') redirect('/')
+  const params = await searchParams
+  const initialDivision = toValidDivision(params?.division)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -18,6 +31,7 @@ export default async function MarketingActivitiesPage() {
       <MarketingActivityView 
         userRole={session.user.role} 
         userName={session.user.name} 
+        initialDivision={initialDivision}
       />
     </div>
   )

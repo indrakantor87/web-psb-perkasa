@@ -290,7 +290,13 @@ function normalizeHeader(s: unknown) {
   return String(s ?? '').trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ')
 }
 
-export function TroubleTicketView({ userRole }: { userRole: string }) {
+export function TroubleTicketView({
+  userRole,
+  initialDivision = 'ALL',
+}: {
+  userRole: string
+  initialDivision?: 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+}) {
   const router = useRouter()
   const nowDate = new Date()
   const months = [
@@ -307,7 +313,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>('ALL')
+  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>(initialDivision)
   const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE'>(
     (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
   )
@@ -1227,13 +1233,13 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
           )}
           {!isTroubleshoots && isAdmin && (
             <div className="flex flex-col">
-              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Division</span>
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Divisi</span>
               <select
                 value={division}
                 onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
                 className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-52 md:py-2"
               >
-                <option value="ALL">Semua Division</option>
+                <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
                 <option value="CS_ADMIN">CS & Admin CS</option>
                 <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>

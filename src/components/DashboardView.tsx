@@ -210,6 +210,33 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showNocFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showCreatorPlaceholder = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
+  const focusDivisionConfig = {
+    ALL: {
+      title: 'Semua Divisi',
+      description: 'Dashboard menampilkan ringkasan lintas divisi agar admin bisa membaca kondisi operasional secara menyeluruh.',
+      badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    },
+    PENJUALAN: {
+      title: 'Penjualan',
+      description: 'Fokus ke akuisisi pelanggan baru, performa marketing, dan aktivitas PSB.',
+      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200',
+    },
+    CS_ADMIN: {
+      title: 'CS & Admin CS',
+      description: 'Fokus ke tindak lanjut pelanggan, isolir aktif, dan kebutuhan administratif operasional.',
+      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200',
+    },
+    NOC_TROUBLESHOOTS: {
+      title: 'NOC & Troubleshoots',
+      description: 'Fokus ke aset jaringan, ODP, dan penyelesaian trouble ticket teknis.',
+      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200',
+    },
+    CREATOR_DIGITAL: {
+      title: 'Creator Digital',
+      description: 'Divisi sudah tersedia sebagai fokus dashboard, tetapi KPI campaign digital masih menunggu sumber data khusus.',
+      badge: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-200',
+    },
+  }[focusedDivision]
 
   return (
     <div className="space-y-8 pb-10">
@@ -285,6 +312,40 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       </div>
 
+      {isAdmin && (
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <div className={clsx('inline-flex rounded-full px-3 py-1 text-xs font-semibold', focusDivisionConfig.badge)}>
+                Fokus Dashboard
+              </div>
+              <h3 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">{focusDivisionConfig.title}</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{focusDivisionConfig.description}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[440px]">
+              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area Penjualan</div>
+                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
+                  {focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN' ? 'Aktif' : 'Tidak difokuskan'}
+                </div>
+              </div>
+              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area CS</div>
+                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
+                  {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Aktif' : 'Tidak difokuskan'}
+                </div>
+              </div>
+              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area Teknis</div>
+                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
+                  {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Aktif' : 'Tidak difokuskan'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {!showCreatorPlaceholder && (
         <div
@@ -320,7 +381,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               color="bg-orange-50 dark:bg-orange-900/20"
             />
           )}
-          {showSalesFocus && (
+          {showNocFocus && (
             <StatCard 
               title="Total port ODP" 
               value={odpTotal} 

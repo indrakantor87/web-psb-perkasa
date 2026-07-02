@@ -4,9 +4,21 @@ import { TroubleTicketView } from '@/components/TroubleTicketView'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TroubleTicketPage() {
+function toValidDivision(value?: string) {
+  if (value === 'PENJUALAN' || value === 'CS_ADMIN' || value === 'NOC_TROUBLESHOOTS' || value === 'CREATOR_DIGITAL') {
+    return value
+  }
+  return 'ALL'
+}
+
+export default async function TroubleTicketPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ division?: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/login')
+  const params = await searchParams
 
   const isTroubleshoots = (session.user.role || '').toUpperCase() === 'TROUBLESHOOTS'
 
@@ -17,7 +29,7 @@ export default async function TroubleTicketPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trouble Ticket</h1>
         </div>
       )}
-      <TroubleTicketView userRole={session.user.role} />
+      <TroubleTicketView userRole={session.user.role} initialDivision={toValidDivision(params?.division)} />
     </div>
   )
 }

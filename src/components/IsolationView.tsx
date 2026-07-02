@@ -27,9 +27,18 @@ interface IsolationViewProps {
   initialSearch?: string
   initialMarketing?: string
   initialStatus?: string
+  initialDivision?: DivisionFilter
 }
 
-export function IsolationView({ userRole, initialSearch = '', initialMarketing = '', initialStatus = '' }: IsolationViewProps) {
+type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
+export function IsolationView({
+  userRole,
+  initialSearch = '',
+  initialMarketing = '',
+  initialStatus = '',
+  initialDivision = 'ALL',
+}: IsolationViewProps) {
   const [isolations, setIsolations] = useState<Isolation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(initialSearch)
@@ -37,6 +46,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   const [debouncedSearch, setDebouncedSearch] = useState(search)
   const [marketingFilter, setMarketingFilter] = useState(initialMarketing)
   const [statusPreset] = useState(initialStatus) // hidden preset (e.g., OPEN)
+  const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(25)
   const [total, setTotal] = useState(0)
@@ -62,10 +72,22 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   }, [marketingFilter, statusPreset])
 
   // Role Permissions
+  const roleUpper = (userRole || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
   const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const showActions = canEdit
-  const showSelection = canDelete
+  const supportsIsolationWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS'
+  const canMutate = canEdit && supportsIsolationWorkflow
+  const canBulkDelete = canDelete && supportsIsolationWorkflow
+  const showActions = canMutate
+  const showSelection = canBulkDelete
+  const divisionDescriptions: Record<DivisionFilter, string> = {
+    ALL: 'Menampilkan seluruh data isolir pada periode aktif tanpa membatasi perspektif divisi tertentu.',
+    PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul Isolir, jadi tampilan ini masih placeholder.',
+    CS_ADMIN: 'Fokus ke pelanggan yang masih berstatus isolir aktif (`OPEN`), cocok untuk follow up CS & Admin CS.',
+    NOC_TROUBLESHOOTS: 'Fokus ke data isolir yang sudah normal kembali (`CLOSED`), cocok untuk perspektif tindak lanjut teknis.',
+    CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul Isolir, jadi tampilan ini masih placeholder.',
+  }
 
   // Form State
   const [formData, setFormData] = useState({
@@ -92,6 +114,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
+      if (isAdmin && division !== 'ALL') params.append('division', division)
       params.append('page', String(page))
       params.append('limit', String(limit))
       
@@ -108,7 +131,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, limit, marketingFilter, page, radbooxFilter, statusPreset])
+  }, [debouncedSearch, division, isAdmin, limit, marketingFilter, page, radbooxFilter, statusPreset])
 
   // Debounce pencarian untuk mengurangi request beruntun
   useEffect(() => {
@@ -127,7 +150,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, limit, radbooxFilter, marketingFilter])
+  }, [debouncedSearch, division, limit, marketingFilter, radbooxFilter])
 
   useEffect(() => {
     fetchIsolations()
@@ -143,10 +166,11 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
 
   useEffect(() => {
     setSelectedIds([])
-  }, [page, limit, debouncedSearch, radbooxFilter, marketingFilter, statusPreset])
+  }, [page, limit, debouncedSearch, radbooxFilter, marketingFilter, statusPreset, division])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canMutate) return
     setIsSubmitting(true)
     try {
       const url = editId ? `/api/isolations/${editId}` : '/api/isolations'
@@ -206,7 +230,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   }
 
   const deleteSelected = async () => {
-    if (!canDelete) return
+    if (!canBulkDelete) return
     if (selectedIds.length === 0) return
     if (!confirm(`Hapus ${selectedIds.length} data yang dipilih?`)) return
     setIsDeletingSelected(true)
@@ -244,11 +268,13 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
   }
 
   const handleImportClick = () => {
+    if (!canMutate) return
     if (!fileInputRef.current) return
     fileInputRef.current.click()
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canMutate) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -295,6 +321,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
+      if (isAdmin && division !== 'ALL') params.append('division', division)
       params.append('page', '1')
       params.append('limit', '10000')
 
@@ -388,13 +415,26 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <option value="Radboox 25">Radboox 25</option>
             <option value="Radboox 26">Radboox 26</option>
           </select>
+          {isAdmin && (
+            <select
+              value={division}
+              onChange={(e) => setDivision(e.target.value as DivisionFilter)}
+              className="w-full px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white sm:w-56"
+            >
+              <option value="ALL">Semua Divisi</option>
+              <option value="PENJUALAN">Penjualan</option>
+              <option value="CS_ADMIN">CS & Admin CS</option>
+              <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+              <option value="CREATOR_DIGITAL">Creator Digital</option>
+            </select>
+          )}
         </div>
         {canEdit && (
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={handleExportExcel}
-              disabled={isExporting}
+              disabled={isExporting || !supportsIsolationWorkflow}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg text-sm font-medium border border-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/40 dark:text-green-400 dark:border-green-800 disabled:opacity-60 sm:w-auto"
             >
               <Download className="h-4 w-4" />
@@ -403,7 +443,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             <button
               type="button"
               onClick={handleImportClick}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-500 sm:w-auto"
+              disabled={!canMutate}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-sm font-medium border border-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-500 disabled:opacity-60 sm:w-auto"
             >
               <Upload className="h-4 w-4" />
               Import Excel
@@ -412,7 +453,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
               <button
                 type="button"
                 onClick={deleteSelected}
-                disabled={selectedIds.length === 0 || isDeletingSelected}
+                disabled={selectedIds.length === 0 || isDeletingSelected || !canBulkDelete}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium border border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-300 dark:border-red-800 disabled:opacity-60 sm:w-auto"
                 title="Hapus Data Terpilih"
               >
@@ -422,6 +463,7 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
             )}
             <button
               onClick={() => {
+                if (!canMutate) return
                 setEditId(null)
                 setFormData({
                   customerName: '',
@@ -435,7 +477,8 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                 })
                 setIsModalOpen(true)
               }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors sm:w-auto"
+              disabled={!canMutate}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-60 sm:w-auto"
             >
               <Plus className="h-4 w-4" />
               Tambah Isolir
@@ -443,6 +486,12 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+          {divisionDescriptions[division]}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -488,7 +537,9 @@ export function IsolationView({ userRole, initialSearch = '', initialMarketing =
                 </tr>
               ) : isolations.length === 0 ? (
                 <tr>
-                  <td colSpan={desktopColumns} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">Tidak ada data ditemukan</td>
+                  <td colSpan={desktopColumns} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    {supportsIsolationWorkflow ? 'Tidak ada data ditemukan' : 'Belum ada data untuk divisi ini di modul Isolir'}
+                  </td>
                 </tr>
               ) : (
                 isolations.map((item, idx) => (

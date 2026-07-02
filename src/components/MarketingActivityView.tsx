@@ -31,9 +31,10 @@ interface CoveredArea {
 interface MarketingActivityViewProps {
   userRole: string
   userName: string
+  initialDivision?: 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 }
 
-export function MarketingActivityView({ userRole, userName }: MarketingActivityViewProps) {
+export function MarketingActivityView({ userRole, userName, initialDivision = 'ALL' }: MarketingActivityViewProps) {
   const [activities, setActivities] = useState<MarketingActivity[]>([])
   const [coveredAreas, setCoveredAreas] = useState<CoveredArea[]>([])
   const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
@@ -50,7 +51,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [marketingSearch, setMarketingSearch] = useState('')
-  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>('ALL')
+  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>(initialDivision)
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
@@ -398,13 +399,13 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
             )}
             {isAdmin && (
               <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Division</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Divisi</label>
                 <select
                   value={division}
                   onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
                   className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
                 >
-                  <option value="ALL">Semua Division</option>
+                  <option value="ALL">Semua Divisi</option>
                   <option value="PENJUALAN">Penjualan</option>
                   <option value="CS_ADMIN">CS & Admin CS</option>
                   <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
@@ -483,7 +484,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                     <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                       {isPenjualanFocus
                         ? 'Tidak ada data untuk periode ini'
-                        : 'Belum ada data untuk division ini di modul Aktivitas Marketing'}
+                        : 'Belum ada data untuk divisi ini di modul Aktivitas Marketing'}
                     </td>
                   </tr>
                 ) : (
@@ -600,7 +601,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 <div className="text-center py-10 text-gray-500 text-sm italic">
                   {isPenjualanFocus
                     ? 'Belum ada data area terdaftar atau aktivitas ditemukan.'
-                    : 'Analisis area belum tersedia untuk division ini karena sumber datanya belum terhubung ke modul Aktivitas Marketing.'}
+                    : 'Analisis area belum tersedia untuk divisi ini karena sumber datanya belum terhubung ke modul Aktivitas Marketing.'}
                 </div>
               ) : (
                 areaStats.map((stat) => (

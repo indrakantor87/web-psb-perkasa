@@ -3,7 +3,7 @@
 import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
@@ -23,13 +23,77 @@ function formatDivisionLabel(division?: string | null) {
   }
 }
 
+type HeaderNavLink = {
+  href: string
+  label: string
+  icon: typeof LayoutDashboard
+  matchDivision?: string
+}
+
+type HeaderNavGroup = {
+  key: string
+  label: string
+  icon: typeof LayoutDashboard
+  description: string
+  items: HeaderNavLink[]
+}
+
+type HeaderSettingsLink = {
+  href: string
+  label: string
+}
+
+type HeaderSettingsGroup = {
+  key: string
+  label: string
+  description: string
+  items: HeaderSettingsLink[]
+}
+
+function getDivisionGroupTone(key: string) {
+  switch (key) {
+    case 'penjualan':
+      return {
+        buttonActive: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300',
+        badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+        panel: 'border-emerald-100 dark:border-emerald-900/40',
+      }
+    case 'cs-admin':
+      return {
+        buttonActive: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
+        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+        panel: 'border-amber-100 dark:border-amber-900/40',
+      }
+    case 'noc-troubleshoots':
+      return {
+        buttonActive: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
+        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        panel: 'border-blue-100 dark:border-blue-900/40',
+      }
+    case 'creator-digital':
+      return {
+        buttonActive: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/20 dark:text-fuchsia-300',
+        badge: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
+        panel: 'border-fuchsia-100 dark:border-fuchsia-900/40',
+      }
+    default:
+      return {
+        buttonActive: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
+        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        panel: 'border-gray-100 dark:border-gray-700',
+      }
+  }
+}
+
 export function Header({ user }: { user: SessionUser }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isNavOpen, setIsNavOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [openDivisionMenu, setOpenDivisionMenu] = useState<string | null>(null)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { theme, setTheme } = useTheme()
   const [zoomLevel, setZoomLevel] = useState(() => {
     if (typeof window === 'undefined') return 100
@@ -38,10 +102,14 @@ export function Header({ user }: { user: SessionUser }) {
     return Number.isFinite(n) && n > 0 ? n : 100
   })
   const isMarketing = user?.role === 'MARKETING'
+  const roleUpper = (user?.role || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const divisionLabel = formatDivisionLabel(user?.division)
+  const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navRefMobile = useRef<HTMLDivElement>(null)
+  const divisionNavRef = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
   const settingsRefMobile = useRef<HTMLDivElement>(null)
   const navOverlayRef = useRef<HTMLDivElement>(null)
@@ -103,6 +171,10 @@ export function Header({ user }: { user: SessionUser }) {
       if (!inNavMobile && !inNavOverlay) {
         setIsNavOpen(false)
       }
+      const inDivisionNav = divisionNavRef.current?.contains(event.target as Node) ?? false
+      if (!inDivisionNav) {
+        setOpenDivisionMenu(null)
+      }
       const inDesktop = settingsRefDesktop.current?.contains(event.target as Node) ?? false
       const inMobile = settingsRefMobile.current?.contains(event.target as Node) ?? false
       const inOverlay = settingsOverlayRef.current?.contains(event.target as Node) ?? false
@@ -116,7 +188,22 @@ export function Header({ user }: { user: SessionUser }) {
     }
   }, [])
 
-  const links = isTroubleshoots
+  const matchesLink = useCallback((link: HeaderNavLink) => {
+    const [linkPath, queryString = ''] = link.href.split('?')
+    if (queryString) {
+      const params = new URLSearchParams(queryString)
+      const linkDivision = (params.get('division') || '').trim().toUpperCase()
+      if (linkDivision) {
+        return pathname === linkPath && currentDivisionParam === linkDivision
+      }
+    }
+    if (link.matchDivision) {
+      return pathname === linkPath && currentDivisionParam === link.matchDivision
+    }
+    return pathname === linkPath || (linkPath !== '/' && pathname.startsWith(linkPath))
+  }, [currentDivisionParam, pathname])
+
+  const flatLinks: HeaderNavLink[] = isTroubleshoots
     ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
     : [
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -128,14 +215,82 @@ export function Header({ user }: { user: SessionUser }) {
         ...(user?.role !== 'MARKETING' ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }] : []),
       ]
 
+  const adminDivisionGroups: HeaderNavGroup[] = isAdmin && !isTroubleshoots
+    ? [
+        {
+          key: 'penjualan',
+          label: 'Penjualan',
+          icon: FileInput,
+          description: 'Operasional akuisisi pelanggan baru dan aktivitas marketing.',
+          items: [
+            { href: '/division?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
+            { href: '/input?division=PENJUALAN', label: 'Input PSB', icon: FileInput },
+            { href: '/list?division=PENJUALAN', label: 'List Data', icon: List },
+            { href: '/marketing-activities?division=PENJUALAN', label: 'Aktivitas Marketing', icon: ClipboardList },
+          ],
+        },
+        {
+          key: 'cs-admin',
+          label: 'CS & Admin CS',
+          icon: Ban,
+          description: 'Fokus follow up pelanggan, isolir, dan proses administratif CS.',
+          items: [
+            { href: '/division?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
+            { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
+          ],
+        },
+        {
+          key: 'noc-troubleshoots',
+          label: 'NOC & Troubleshoots',
+          icon: Wrench,
+          description: 'Monitoring aset jaringan dan tindak lanjut teknis lapangan.',
+          items: [
+            { href: '/division?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
+            { href: '/odp?division=NOC_TROUBLESHOOTS', label: 'PORT ODP', icon: Wifi },
+            { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
+          ],
+        },
+        {
+          key: 'creator-digital',
+          label: 'Creator Digital',
+          icon: ClipboardList,
+          description: 'Ruang ringkasan untuk kebutuhan KPI dan pengembangan modul digital.',
+          items: [
+            { href: '/division?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
+          ],
+        },
+      ]
+    : []
+
   const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
 
-  const settingsLinks = hasSettingsAccess ? [
-    { href: '/settings/areas', label: 'Master Area' },
-    { href: '/settings/packages', label: 'Master Paket' },
-    { href: '/settings/users', label: 'Manajemen Pengguna' },
-    { href: '/settings/templates', label: 'Template WA' },
-    { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
+  const settingsGroups: HeaderSettingsGroup[] = hasSettingsAccess ? [
+    {
+      key: 'sales-master',
+      label: 'Penjualan',
+      description: 'Master data untuk operasional PSB dan komunikasi marketing.',
+      items: [
+        { href: '/settings/areas', label: 'Master Area' },
+        { href: '/settings/packages', label: 'Master Paket' },
+        { href: '/settings/templates', label: 'Template WA' },
+      ],
+    },
+    {
+      key: 'admin-system',
+      label: 'Admin & Sistem',
+      description: 'Pengelolaan user dan fondasi akses dashboard.',
+      items: [
+        { href: '/settings/users', label: 'Manajemen Pengguna' },
+      ],
+    },
+    {
+      key: 'noc-ticketing',
+      label: 'NOC & Ticketing',
+      description: 'Konfigurasi yang berkaitan dengan trouble ticket dan operasional teknis.',
+      items: [
+        { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
+      ],
+    },
   ] : []
 
   const handleLogout = async () => {
@@ -194,25 +349,79 @@ export function Header({ user }: { user: SessionUser }) {
                 {isNavOpen && (
                   <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                      {links.map((link) => {
-                        const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
-                        return (
+                      {isAdmin && adminDivisionGroups.length > 0 ? (
+                        <>
+                          <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            Umum
+                          </div>
                           <Link
-                            key={link.href}
-                            href={link.href}
+                            href="/"
                             prefetch={false}
                             onClick={() => setIsNavOpen(false)}
                             className={clsx(
                               'block px-3 py-2 text-sm transition-colors',
-                              isActive
+                              pathname === '/'
                                 ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                             )}
                           >
-                            {link.label}
+                            Dashboard
                           </Link>
-                        )
-                      })}
+                          {adminDivisionGroups.map((group) => (
+                            <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
+                              <div className="px-3 pb-2 pt-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    {group.label}
+                                  </div>
+                                  <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', getDivisionGroupTone(group.key).badge)}>
+                                    Divisi
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                  {group.description}
+                                </p>
+                              </div>
+                              {group.items.map((link) => (
+                                <Link
+                                  key={link.href}
+                                  href={link.href}
+                                  prefetch={false}
+                                  onClick={() => setIsNavOpen(false)}
+                                  className={clsx(
+                                    'block px-3 py-2 text-sm transition-colors',
+                                    matchesLink(link)
+                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                                  )}
+                                >
+                                  {link.label}
+                                </Link>
+                              ))}
+                            </div>
+                          ))}
+                        </>
+                      ) : (
+                        flatLinks.map((link) => {
+                          const isActive = matchesLink(link)
+                          return (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              prefetch={false}
+                              onClick={() => setIsNavOpen(false)}
+                              className={clsx(
+                                'block px-3 py-2 text-sm transition-colors',
+                                isActive
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                              )}
+                            >
+                              {link.label}
+                            </Link>
+                          )
+                        })
+                      )}
                     </div>
                   </div>
                 )}
@@ -239,23 +448,35 @@ export function Header({ user }: { user: SessionUser }) {
                 {isSettingsOpen && (
                   <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                      {settingsLinks.map((link) => (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          prefetch={false}
-                          onClick={() => setIsSettingsOpen(false)}
-                          className={clsx(
-                            'block px-3 py-2 text-sm transition-colors',
-                            pathname === link.href
-                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                              : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                          )}
-                        >
-                          {link.label}
-                        </Link>
+                      {settingsGroups.map((group) => (
+                        <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
+                          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {group.label}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                            {group.description}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {group.items.map((link) => (
+                              <Link
+                                key={link.href}
+                                href={link.href}
+                                prefetch={false}
+                                onClick={() => setIsSettingsOpen(false)}
+                                className={clsx(
+                                  'block rounded-lg px-3 py-2 text-sm transition-colors',
+                                  pathname === link.href
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                                )}
+                              >
+                                {link.label}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       ))}
-                      {settingsLinks.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
+                      {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
                       <div className="px-3 py-2">
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
                         <select
@@ -293,30 +514,119 @@ export function Header({ user }: { user: SessionUser }) {
 
           {!isTroubleshoots && (
           <nav className="hidden md:flex items-center space-x-1">
-            {links.map((link) => {
-              const Icon = link.icon
-              const isActive = pathname === link.href
-              return (
+            {isAdmin && adminDivisionGroups.length > 0 ? (
+              <>
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  href="/"
                   prefetch={false}
                   className={clsx(
                     'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
+                    pathname === '/'
                       ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
                   )}
                 >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {link.label}
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Dashboard
                 </Link>
-              )
-            })}
+
+                <div className="flex items-center space-x-1" ref={divisionNavRef}>
+                  {adminDivisionGroups.map((group) => {
+                    const GroupIcon = group.icon
+                    const isActive = group.items.some((item) => matchesLink(item))
+                    const isOpenGroup = openDivisionMenu === group.key
+                    const tone = getDivisionGroupTone(group.key)
+                    return (
+                      <div key={group.key} className="relative">
+                        <button
+                          onClick={() => {
+                            setOpenDivisionMenu((current) => current === group.key ? null : group.key)
+                            setIsSettingsOpen(false)
+                          }}
+                          className={clsx(
+                            'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                            isActive || isOpenGroup
+                              ? tone.buttonActive
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                          )}
+                        >
+                          <GroupIcon className="h-4 w-4 mr-2" />
+                          {group.label}
+                          <ChevronDown className={clsx("ml-1 h-3 w-3 transition-transform", isOpenGroup && "rotate-180")} />
+                        </button>
+
+                        {isOpenGroup && (
+                          <div className={clsx('absolute left-0 mt-2 w-72 overflow-hidden rounded-xl border bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700 z-50', tone.panel)}>
+                            <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <GroupIcon className="h-4 w-4" />
+                                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.label}</span>
+                                </div>
+                                <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', tone.badge)}>
+                                  Divisi
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                                {group.description}
+                              </p>
+                            </div>
+                            {group.items.map((link) => {
+                              const Icon = link.icon
+                              return (
+                                <Link
+                                  key={link.href}
+                                  href={link.href}
+                                  prefetch={false}
+                                  onClick={() => setOpenDivisionMenu(null)}
+                                  className={clsx(
+                                    'flex items-center px-4 py-2.5 text-sm transition-colors',
+                                    matchesLink(link)
+                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                                  )}
+                                >
+                                  <Icon className="mr-2 h-4 w-4" />
+                                  {link.label}
+                                </Link>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            ) : (
+              flatLinks.map((link) => {
+                const Icon = link.icon
+                const isActive = matchesLink(link)
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    prefetch={false}
+                    className={clsx(
+                      'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {link.label}
+                  </Link>
+                )
+              })
+            )}
 
             <div className="relative" ref={settingsRefDesktop}>
               <button
-                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                onClick={() => {
+                  setIsSettingsOpen(!isSettingsOpen)
+                  setOpenDivisionMenu(null)
+                }}
                 className={clsx(
                   'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname.startsWith('/settings')
@@ -330,25 +640,37 @@ export function Header({ user }: { user: SessionUser }) {
               </button>
 
               {isSettingsOpen && (
-                <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
-                  {settingsLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      prefetch={false}
-                      onClick={() => setIsSettingsOpen(false)}
-                      className={clsx(
-                        'block px-4 py-2 text-sm transition-colors',
-                        pathname === link.href
-                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                      )}
-                    >
-                      {link.label}
-                    </Link>
+                <div className="absolute left-0 mt-2 w-80 overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700 z-50">
+                  {settingsGroups.map((group) => (
+                    <div key={group.key} className="border-b border-gray-100 px-4 py-3 last:border-b-0 dark:border-gray-700">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        {group.label}
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                        {group.description}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {group.items.map((link) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            prefetch={false}
+                            onClick={() => setIsSettingsOpen(false)}
+                            className={clsx(
+                              'block rounded-lg px-3 py-2 text-sm transition-colors',
+                              pathname === link.href
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                            )}
+                          >
+                            {link.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                  
-                  {settingsLinks.length > 0 && (
+
+                  {settingsGroups.length > 0 && (
                     <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                   )}
                   
@@ -477,25 +799,79 @@ export function Header({ user }: { user: SessionUser }) {
             {isNavOpen && (
               <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                  {links.map((link) => {
-                    const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href))
-                    return (
+                  {isAdmin && adminDivisionGroups.length > 0 ? (
+                    <>
+                      <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Umum
+                      </div>
                       <Link
-                        key={link.href}
-                        href={link.href}
+                        href="/"
                         prefetch={false}
                         onClick={() => setIsNavOpen(false)}
                         className={clsx(
                           'block px-3 py-2 text-sm transition-colors',
-                          isActive
+                          pathname === '/'
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                             : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                         )}
                       >
-                        {link.label}
+                        Dashboard
                       </Link>
-                    )
-                  })}
+                      {adminDivisionGroups.map((group) => (
+                        <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
+                          <div className="px-3 pb-2 pt-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                {group.label}
+                              </div>
+                              <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', getDivisionGroupTone(group.key).badge)}>
+                                Divisi
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                              {group.description}
+                            </p>
+                          </div>
+                          {group.items.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              prefetch={false}
+                              onClick={() => setIsNavOpen(false)}
+                              className={clsx(
+                                'block px-3 py-2 text-sm transition-colors',
+                                matchesLink(link)
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                              )}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    flatLinks.map((link) => {
+                      const isActive = matchesLink(link)
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          prefetch={false}
+                          onClick={() => setIsNavOpen(false)}
+                          className={clsx(
+                            'block px-3 py-2 text-sm transition-colors',
+                            isActive
+                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                              : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                          )}
+                        >
+                          {link.label}
+                        </Link>
+                      )
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -522,23 +898,35 @@ export function Header({ user }: { user: SessionUser }) {
               {isSettingsOpen && (
                 <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                    {settingsLinks.map((link) => (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        prefetch={false}
-                        onClick={() => setIsSettingsOpen(false)}
-                        className={clsx(
-                          'block px-3 py-2 text-sm transition-colors',
-                          pathname === link.href
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                        )}
-                      >
-                        {link.label}
-                      </Link>
+                    {settingsGroups.map((group) => (
+                      <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
+                        <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          {group.label}
+                        </div>
+                        <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                          {group.description}
+                        </p>
+                        <div className="mt-2 space-y-1">
+                          {group.items.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              prefetch={false}
+                              onClick={() => setIsSettingsOpen(false)}
+                              className={clsx(
+                                'block rounded-lg px-3 py-2 text-sm transition-colors',
+                                pathname === link.href
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                              )}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
                     ))}
-                    {settingsLinks.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
+                    {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
                     <div className="px-3 py-2">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
                       <select

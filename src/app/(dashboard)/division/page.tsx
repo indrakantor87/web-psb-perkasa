@@ -43,6 +43,12 @@ type ProblemRow = {
   total: number
 }
 
+type QuickLink = {
+  label: string
+  href: string
+  description: string
+}
+
 const divisionMeta: Record<DivisionCode, { label: string; description: string }> = {
   PENJUALAN: {
     label: 'Penjualan',
@@ -96,6 +102,50 @@ export default async function DivisionDetailPage({
   const month = toValidPeriod(params.month, now.getMonth() + 1, 1, 12)
   const year = toValidPeriod(params.year, now.getFullYear(), 2024, 2100)
   const { label, description } = divisionMeta[division]
+  const quickLinks: QuickLink[] = (() => {
+    const dashboardHref = `/?month=${month}&year=${year}&division=${division}`
+    if (division === 'PENJUALAN') {
+      return [
+        { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus Penjualan.' },
+        { label: 'Input PSB', href: '/input?division=PENJUALAN', description: 'Masuk ke formulir input pelanggan baru untuk alur PSB.' },
+        { label: 'List Data', href: '/list?division=PENJUALAN', description: 'Pantau data PSB yang sudah masuk dari perspektif Penjualan.' },
+        { label: 'Aktivitas Marketing', href: '/marketing-activities?division=PENJUALAN', description: 'Lihat aktivitas lapangan dan agenda marketing.' },
+      ]
+    }
+    if (division === 'CS_ADMIN') {
+      return [
+        { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus CS & Admin CS.' },
+        { label: 'Isolir Aktif', href: '/isolir?division=CS_ADMIN&status=OPEN', description: 'Pantau pelanggan yang masih berstatus isolir aktif.' },
+        { label: 'Trouble Ticket', href: '/trouble-ticket?division=CS_ADMIN', description: 'Masuk ke daftar ticket yang relevan untuk tindak lanjut awal.' },
+        { label: 'Manajemen Pengguna', href: '/settings/users', description: 'Rapikan mapping anggota dan role di divisi layanan.' },
+      ]
+    }
+    if (division === 'NOC_TROUBLESHOOTS') {
+      return [
+        { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus area teknis.' },
+        { label: 'PORT ODP', href: '/odp?division=NOC_TROUBLESHOOTS', description: 'Lihat kapasitas ODP dan aset jaringan dari perspektif teknis.' },
+        { label: 'Trouble Ticket', href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', description: 'Masuk ke ticket teknis dan progres penanganannya.' },
+        { label: 'Riwayat Isolir', href: '/isolir?division=NOC_TROUBLESHOOTS', description: 'Pantau data isolir yang sudah kembali normal.' },
+      ]
+    }
+    return [
+      { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus Creator Digital.' },
+      { label: 'Manajemen Pengguna', href: '/settings/users', description: 'Siapkan anggota Creator Digital dan mapping division-nya.' },
+      { label: 'Pengaturan Trouble Ticket', href: '/settings/trouble-ticket', description: 'Akses master data yang sudah siap dipakai lintas divisi.' },
+    ]
+  })()
+  const focusNote = (() => {
+    if (division === 'PENJUALAN') {
+      return 'Divisi ini paling lengkap saat ini karena sudah terhubung ke PSB, aktivitas marketing, dan list data.'
+    }
+    if (division === 'CS_ADMIN') {
+      return 'Fokus utama divisi ini ada pada follow up awal pelanggan, ticket masuk, dan monitoring isolir aktif.'
+    }
+    if (division === 'NOC_TROUBLESHOOTS') {
+      return 'Divisi ini memegang area teknis: ODP, ticket teknis, dan penyelesaian gangguan lapangan.'
+    }
+    return 'Divisi ini sudah siap secara struktur, tetapi KPI dan modul operasional digital masih menunggu fase implementasi berikutnya.'
+  })()
 
   let members: MemberRow[] = []
   let summaryCards: SummaryCard[] = []
@@ -298,6 +348,32 @@ export default async function DivisionDetailPage({
             <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{card.hint}</div>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Shortcut Operasional</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Akses cepat ke modul yang paling relevan untuk divisi ini.
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:bg-gray-900/30 dark:text-gray-300">
+            {focusNote}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          {quickLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-gray-700 dark:bg-gray-900/30 dark:hover:border-blue-900/40 dark:hover:bg-blue-900/10"
+            >
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">{link.label}</div>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{link.description}</p>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">

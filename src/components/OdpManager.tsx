@@ -23,6 +23,8 @@ export type OdpRow = {
   longitude?: number | null
 }
 
+type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
 function toInt(v: string) {
   const n = Number(v)
   return Number.isFinite(n) ? Math.trunc(n) : NaN
@@ -98,8 +100,19 @@ function Modal({
   )
 }
 
-export function OdpManager({ canEdit }: { canEdit: boolean }) {
+export function OdpManager({
+  canEdit,
+  userRole,
+  initialDivision = 'ALL',
+}: {
+  canEdit: boolean
+  userRole?: string
+  initialDivision?: DivisionFilter
+}) {
   const defaultWilayah = useMemo(() => ['Pati', 'Bumiayu', 'Banjarsari', 'Kedungbulus', 'Trangkil', 'Margoyoso'], [])
+  const roleUpper = (userRole || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
+  const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const [q, setQ] = useState('')
   const [qQuery, setQQuery] = useState('')
   const [qDebounced, setQDebounced] = useState('')
@@ -129,6 +142,15 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
   const [searchPoint, setSearchPoint] = useState<{ latitude: number; longitude: number } | null>(null)
   const [mapFullscreen, setMapFullscreen] = useState(false)
+  const supportsOdpWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
+  const canMutate = canEdit && supportsOdpWorkflow
+  const divisionDescriptions: Record<DivisionFilter, string> = {
+    ALL: 'Menampilkan seluruh aset ODP aktif tanpa membatasi perspektif divisi tertentu.',
+    PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul PORT ODP, jadi tampilan ini masih placeholder.',
+    CS_ADMIN: 'Belum ada relasi operasional langsung antara CS & Admin CS dan modul PORT ODP, jadi tampilan ini masih placeholder.',
+    NOC_TROUBLESHOOTS: 'Fokus ke aset jaringan dan kapasitas ODP yang menjadi area kerja utama NOC & Troubleshoots.',
+    CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul PORT ODP, jadi tampilan ini masih placeholder.',
+  }
 
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -148,6 +170,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     url.searchParams.set('wilayah', wilayah)
     url.searchParams.set('page', String(page))
     url.searchParams.set('pageSize', String(pageSize))
+    if (isAdmin && division !== 'ALL') url.searchParams.set('division', division)
     if (bypassCache) url.searchParams.set('bypassCache', '1')
     const r = await fetch(url.toString(), { cache: 'no-store', signal })
     const data = await r.json().catch(() => ({}))
@@ -157,7 +180,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     const fromServer = Array.isArray(data?.wilayahList) ? (data.wilayahList as string[]) : []
     const merged = Array.from(new Set([...defaultWilayah, ...fromServer].map((x) => String(x).trim()).filter(Boolean)))
     setWilayahList(merged)
-  }, [defaultWilayah, page, pageSize, qDebounced, wilayah])
+  }, [defaultWilayah, division, isAdmin, page, pageSize, qDebounced, wilayah])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -190,23 +213,24 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
 
   useEffect(() => {
     setPage(1)
-  }, [q, pageSize, wilayah])
+  }, [division, q, pageSize, wilayah])
 
   useEffect(() => {
     setSelectedIds([])
-  }, [q, wilayah])
+  }, [division, q, wilayah])
 
   const fetchMap = useCallback(async (signal?: AbortSignal) => {
     const url = new URL('/api/odp', window.location.origin)
     url.searchParams.set('q', qDebounced)
     url.searchParams.set('wilayah', wilayah)
     url.searchParams.set('map', '1')
+    if (isAdmin && division !== 'ALL') url.searchParams.set('division', division)
     url.searchParams.set('bypassCache', '1')
     const r = await fetch(url.toString(), { cache: 'no-store', signal })
     const data = await r.json().catch(() => [])
     if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat peta')
     setMapRows(Array.isArray(data) ? (data as OdpRow[]) : [])
-  }, [qDebounced, wilayah])
+  }, [division, isAdmin, qDebounced, wilayah])
 
   useEffect(() => {
     if (!mapOpen) return
@@ -239,12 +263,14 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }, [mapFullscreen])
 
   const openAdd = () => {
+    if (!canMutate) return
     setEditing(null)
     setForm({ nama_odp: '', wilayah: wilayah || 'Pati', lokasi: '', koordinat: '', kapasitas: '8', terpakai: '0', status_tiang: 'Perkasa' })
     setModalOpen(true)
   }
 
   const openEdit = (row: OdpRow) => {
+    if (!canMutate) return
     setEditing(row)
     const koordinat =
       Number.isFinite(row.latitude) && Number.isFinite(row.longitude) ? `${Number(row.latitude)},${Number(row.longitude)}` : ''
@@ -261,7 +287,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }
 
   const save = async () => {
-    if (!canEdit) return
+    if (!canMutate) return
     setSaving(true)
     setError(null)
     try {
@@ -307,7 +333,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }
 
   const removeRow = async (row: OdpRow) => {
-    if (!canEdit) return
+    if (!canMutate) return
     if (!confirm(`Hapus ODP \"${row.nama_odp}\"?`)) return
     const r = await fetch(`/api/odp/${row.id}`, { method: 'DELETE' })
     const data = await r.json().catch(() => ({}))
@@ -343,7 +369,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }
 
   const deleteSelected = async () => {
-    if (!canEdit) return
+    if (!canMutate) return
     if (selectedIds.length === 0) return
     if (!confirm(`Hapus ${selectedIds.length} ODP yang dipilih?`)) return
     setBulkDeleting(true)
@@ -377,7 +403,12 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
     setError(null)
     try {
       const XLSX = await import('xlsx')
-      const res = await fetch(`/api/odp?all=1&q=${encodeURIComponent(q)}&wilayah=${encodeURIComponent(wilayah)}`, { cache: 'no-store' })
+      const params = new URLSearchParams()
+      params.set('all', '1')
+      params.set('q', q)
+      params.set('wilayah', wilayah)
+      if (isAdmin && division !== 'ALL') params.set('division', division)
+      const res = await fetch(`/api/odp?${params.toString()}`, { cache: 'no-store' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((data as { error?: string })?.error ?? 'Gagal export')
 
@@ -419,11 +450,13 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
   }
 
   const handleImportClick = () => {
+    if (!canMutate) return
     const el = document.getElementById(fileInputId) as HTMLInputElement | null
     el?.click()
   }
 
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canMutate) return
     const file = e.target.files?.[0]
     if (!file) return
     setIsImporting(true)
@@ -475,14 +508,15 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <button
             onClick={() => setMapOpen((v) => !v)}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
+            disabled={!supportsOdpWorkflow}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
             title="Tampilan peta realtime"
           >
             <Map className="h-4 w-4" />
             {mapOpen ? 'Tutup Peta' : 'Lihat Peta'}
           </button>
           {canEdit && (
-            <button onClick={openAdd} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto">
+            <button onClick={openAdd} disabled={!canMutate} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto">
               <Plus className="h-4 w-4" />
               Tambah ODP
             </button>
@@ -490,7 +524,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           {canEdit && selectedIds.length > 0 && (
             <button
               onClick={deleteSelected}
-              disabled={bulkDeleting}
+              disabled={bulkDeleting || !canMutate}
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:w-auto"
               title="Hapus ODP yang dipilih"
             >
@@ -500,7 +534,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           )}
           <button
             onClick={handleExportExcel}
-            disabled={isExporting}
+            disabled={isExporting || !supportsOdpWorkflow}
             className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
           >
             {isExporting ? 'Export...' : 'Export Excel'}
@@ -510,7 +544,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               <input id={fileInputId} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImportFileChange} />
               <button
                 onClick={handleImportClick}
-                disabled={isImporting}
+                disabled={isImporting || !canMutate}
                 className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 sm:w-auto"
                 title="Import Excel (Admin/CS/NOC/TEKNISI)"
               >
@@ -521,6 +555,12 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
           )}
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+          {divisionDescriptions[division]}
+        </div>
+      )}
 
       <div className="rounded-2xl bg-white dark:bg-gray-900 p-3 sm:p-5 ring-1 ring-gray-200 dark:ring-gray-800">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -544,6 +584,19 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                   </option>
                 ))}
               </select>
+              {isAdmin && (
+                <select
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto"
+                  value={division}
+                  onChange={(e) => setDivision(e.target.value as DivisionFilter)}
+                >
+                  <option value="ALL">Semua Divisi</option>
+                  <option value="PENJUALAN">Penjualan</option>
+                  <option value="CS_ADMIN">CS & Admin CS</option>
+                  <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                  <option value="CREATOR_DIGITAL">Creator Digital</option>
+                </select>
+              )}
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -697,7 +750,7 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
               ) : rows.length === 0 ? (
                 <tr>
                   <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 11 : 9}>
-                    Tidak ada data.
+                    {supportsOdpWorkflow ? 'Tidak ada data.' : 'Belum ada data untuk divisi ini di modul PORT ODP.'}
                   </td>
                 </tr>
               ) : (
@@ -747,10 +800,10 @@ export function OdpManager({ canEdit }: { canEdit: boolean }) {
                       {canEdit && (
                         <td className="py-3">
                           <div className="flex items-center gap-2">
-                            <button onClick={() => openEdit(row)} className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-2.5 py-2 text-white hover:bg-amber-700" title="Edit">
+                            <button onClick={() => openEdit(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-2.5 py-2 text-white hover:bg-amber-700 disabled:opacity-60" title="Edit">
                               <Pencil className="h-4 w-4" />
                             </button>
-                            <button onClick={() => removeRow(row)} className="inline-flex items-center justify-center rounded-lg bg-red-600 px-2.5 py-2 text-white hover:bg-red-700" title="Hapus">
+                            <button onClick={() => removeRow(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-lg bg-red-600 px-2.5 py-2 text-white hover:bg-red-700 disabled:opacity-60" title="Hapus">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>

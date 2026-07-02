@@ -70,12 +70,19 @@ export async function GET(req: Request) {
   const all = (url.searchParams.get('all') ?? '').trim() === '1'
   const map = (url.searchParams.get('map') ?? '').trim() === '1'
   const wilayah = (url.searchParams.get('wilayah') ?? '').trim()
+  const divisionParam = (url.searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(1, toInt(url.searchParams.get('page'), 1))
   const pageSize = Math.min(100, Math.max(5, toInt(url.searchParams.get('pageSize'), 10)))
   const offset = (page - 1) * pageSize
   const like = q ? `%${q}%` : ''
   const bypassCache = (url.searchParams.get('bypassCache') ?? '').trim() === '1'
-  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, page, pageSize })}`
+  const roleUpper = (session.user.role || '').toUpperCase()
+  const divisionFilter =
+    roleUpper === 'ADMIN' &&
+    ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+      ? divisionParam
+      : 'ALL'
+  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, divisionFilter, page, pageSize })}`
 
   try {
     if (!bypassCache) {
@@ -97,6 +104,9 @@ export async function GET(req: Request) {
     if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
     if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
+    if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'NOC_TROUBLESHOOTS') {
+      whereParts.push(Prisma.sql`1 = 0`)
+    }
     const whereSql = Prisma.join(whereParts, ' AND ')
 
     const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
