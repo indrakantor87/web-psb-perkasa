@@ -33,6 +33,7 @@ export type TicketListCounts = {
 type Args = {
   role: string
   userName: string
+  division?: string
   month: number
   year: number
   status: string
@@ -47,7 +48,7 @@ function toCacheKey(args: Args) {
 }
 
 async function queryTicketsList(args: Args) {
-  const { role, userName, month, year, status, marketing, search, page, pageSize } = args
+  const { role, userName, division, month, year, status, marketing, search, page, pageSize } = args
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
@@ -70,6 +71,35 @@ async function queryTicketsList(args: Args) {
 
     const baseWhere: Prisma.TicketWhereInput = {
       OR: baseWhereOr,
+    }
+    const appendAnd = (condition: Prisma.TicketWhereInput) => {
+      const currentAnd = baseWhere.AND
+      if (!currentAnd) {
+        baseWhere.AND = [condition]
+        return
+      }
+      baseWhere.AND = Array.isArray(currentAnd) ? [...currentAnd, condition] : [currentAnd, condition]
+    }
+
+    const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
+    if (role === 'ADMIN') {
+      if (normalizedDivision === 'CS_ADMIN') {
+        appendAnd({
+          OR: [
+            { teknisi: null },
+            { teknisi: '' },
+          ],
+        })
+      } else if (normalizedDivision === 'NOC_TROUBLESHOOTS') {
+        appendAnd({
+          AND: [
+            { teknisi: { not: null } },
+            { NOT: { teknisi: '' } },
+          ],
+        })
+      } else if (normalizedDivision === 'CREATOR_DIGITAL') {
+        baseWhere.id = -1
+      }
     }
 
     if (role === 'MARKETING') {

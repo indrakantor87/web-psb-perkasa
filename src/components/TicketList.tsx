@@ -35,6 +35,7 @@ interface TicketListProps {
   initialStatus?: string
   initialMarketing?: string
   initialSearch?: string
+  initialDivision?: string
   pagination?: {
     currentPage: number
     totalPages: number
@@ -49,9 +50,10 @@ interface TicketListProps {
   defaultTemplateContent?: string
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
+export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
+  const isAdmin = (userRole || '').toUpperCase() === 'ADMIN'
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -63,6 +65,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const [status, setStatus] = useState(((initialStatus || 'ALL').toUpperCase() === 'PENDING' ? 'ON_PROGRESS' : (initialStatus || 'ALL').toUpperCase()))
   const [marketing, setMarketing] = useState(initialMarketing || '')
   const [search, setSearch] = useState(initialSearch || '')
+  const [division, setDivision] = useState((initialDivision || 'ALL').toUpperCase())
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
@@ -124,10 +127,11 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     const statusPart = status === 'ALL' ? '' : `&status=${status}`
     const marketingPart = marketing.trim() ? `&marketing=${encodeURIComponent(marketing.trim())}` : ''
     const searchPart = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ''
+    const divisionPart = isAdmin && division !== 'ALL' ? `&division=${division}` : ''
     const limitPart = pagination?.pageSize && pagination.pageSize !== 25 ? `&limit=${pagination.pageSize}` : ''
-    const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
+    const url = `${base}${statusPart}${marketingPart}${searchPart}${divisionPart}${limitPart}`
     router.replace(url)
-  }, [marketing, month, pagination?.pageSize, router, search, status, year])
+  }, [division, isAdmin, marketing, month, pagination?.pageSize, router, search, status, year])
 
   // Auto-filter when state changes
   useEffect(() => {
@@ -310,6 +314,13 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const canDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
   const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
   const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
+  const divisionDescriptions: Record<string, string> = {
+    ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
+    PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
+    CS_ADMIN: 'Fokus ke tiket yang belum memiliki teknisi, cocok untuk alur CS & Admin CS.',
+    NOC_TROUBLESHOOTS: 'Fokus ke tiket yang sudah memiliki teknisi, cocok untuk tindak lanjut teknis.',
+    CREATOR_DIGITAL: 'Belum ada relasi langsung ke data PSB, sehingga hasil list akan kosong sebagai placeholder.',
+  }
 
   const normalizeStatus = (s: string) => {
     const v = s.toUpperCase().replace(/\s+/g, '_')
@@ -631,6 +642,22 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <option value="CLOSE">CLOSE</option>
             </select>
           </div>
+          {isAdmin && (
+            <div className="flex flex-col min-w-0">
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Division</span>
+              <select
+                value={division}
+                onChange={(e) => setDivision(e.target.value.toUpperCase())}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-0.5 text-sm leading-tight text-black dark:text-white md:w-44"
+              >
+                <option value="ALL">Semua Division</option>
+                <option value="PENJUALAN">Penjualan</option>
+                <option value="CS_ADMIN">CS & Admin CS</option>
+                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CREATOR_DIGITAL">Creator Digital</option>
+              </select>
+            </div>
+          )}
           {userRole !== 'MARKETING' && (
             <div className="flex flex-col min-w-0">
               <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Nama Marketing</span>
@@ -696,6 +723,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+          {divisionDescriptions[division] || divisionDescriptions.ALL}
+        </div>
+      )}
 
       {importError && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 border border-red-200">

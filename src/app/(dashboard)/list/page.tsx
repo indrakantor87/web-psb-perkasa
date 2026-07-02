@@ -23,6 +23,7 @@ export default async function ListPage({
   const marketingParam = resolvedSearchParams.marketing
   const searchParam = resolvedSearchParams.search
   const limitParam = resolvedSearchParams.limit
+  const divisionParam = resolvedSearchParams.division
 
   const now = new Date()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
@@ -30,6 +31,11 @@ export default async function ListPage({
   const currentStatus = typeof statusParam === 'string' ? statusParam.toUpperCase() : 'ALL'
   const currentMarketing = typeof marketingParam === 'string' ? marketingParam : ''
   const currentSearch = typeof searchParam === 'string' ? searchParam : ''
+  const currentDivision =
+    typeof divisionParam === 'string' &&
+    ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam.toUpperCase())
+      ? divisionParam.toUpperCase()
+      : 'ALL'
 
   const pageParam = resolvedSearchParams.page
   const currentPageNumber = typeof pageParam === 'string' ? parseInt(pageParam) : 1
@@ -43,6 +49,7 @@ export default async function ListPage({
     const list = await getTicketsListData({
       role: session.user.role,
       userName: session.user.name,
+      division: currentDivision,
       month: currentMonth,
       year: currentYear,
       status: currentStatus,
@@ -85,6 +92,7 @@ export default async function ListPage({
             initialStatus={currentStatus}
             initialMarketing={currentMarketing}
             initialSearch={currentSearch}
+            initialDivision={currentDivision}
             pagination={{
               currentPage: currentPageNumber,
               totalPages: Math.ceil(totalCount / pageSize),
