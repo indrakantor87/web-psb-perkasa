@@ -24,6 +24,17 @@ export async function GET(request: Request) {
   const month = searchParams.get('month')
   const year = searchParams.get('year')
   const marketing = searchParams.get('marketing')
+  const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
+  const roleUpper = (session.user.role || '').toUpperCase()
+  const divisionFilter =
+    roleUpper === 'ADMIN' &&
+    ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+      ? divisionParam
+      : 'ALL'
+
+  if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'PENJUALAN') {
+    return NextResponse.json([])
+  }
 
   const where: Prisma.MarketingActivityWhereInput = {}
 

@@ -50,6 +50,17 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [marketingSearch, setMarketingSearch] = useState('')
+  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>('ALL')
+  const roleUpper = (userRole || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
+  const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
+  const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
+    ALL: 'Modul Aktivitas Marketing saat ini merepresentasikan operasional divisi Penjualan.',
+    PENJUALAN: 'Menampilkan aktivitas asli tim Penjualan/Marketing pada periode terpilih.',
+    CS_ADMIN: 'Belum ada relasi langsung antara divisi CS & Admin CS dan modul Aktivitas Marketing, jadi tampilan ini masih placeholder.',
+    NOC_TROUBLESHOOTS: 'Belum ada relasi langsung antara divisi NOC & Troubleshoots dan modul Aktivitas Marketing, jadi tampilan ini masih placeholder.',
+    CREATOR_DIGITAL: 'Belum ada relasi langsung antara divisi Creator Digital dan modul Aktivitas Marketing, jadi tampilan ini masih placeholder.',
+  }
 
   // Form State
   const [formData, setFormData] = useState({
@@ -80,6 +91,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
         year: year.toString(),
       })
       if (marketingSearch) params.append('marketing', marketingSearch)
+      if (isAdmin && division !== 'ALL') params.append('division', division)
       
       const res = await fetch(`/api/marketing-activities?${params.toString()}`)
       if (res.ok) {
@@ -91,7 +103,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
     } finally {
       setLoading(false)
     }
-  }, [month, year, marketingSearch, coveredAreas.length])
+  }, [coveredAreas.length, division, isAdmin, marketingSearch, month, year])
 
   useEffect(() => {
     fetchActivities()
@@ -384,6 +396,22 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                 </div>
               </div>
             )}
+            {isAdmin && (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Division</label>
+                <select
+                  value={division}
+                  onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
+                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                >
+                  <option value="ALL">Semua Division</option>
+                  <option value="PENJUALAN">Penjualan</option>
+                  <option value="CS_ADMIN">CS & Admin CS</option>
+                  <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                  <option value="CREATOR_DIGITAL">Creator Digital</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
         
@@ -391,7 +419,7 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
           {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
             <>
               <button
-                disabled={isImporting}
+                disabled={isImporting || !isPenjualanFocus}
                 className="flex-1 lg:flex-none bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                 onClick={() => document.getElementById('marketing-import-input')?.click()}
               >
@@ -417,13 +445,20 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2"
+            disabled={!isPenjualanFocus}
+            className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             Tambah
           </button>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+          {divisionDescriptions[division]}
+        </div>
+      )}
 
       {viewMode === 'marketing' ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
@@ -445,7 +480,11 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
                   </tr>
                 ) : sortedMarketingNames.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">Tidak ada data untuk periode ini</td>
+                    <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                      {isPenjualanFocus
+                        ? 'Tidak ada data untuk periode ini'
+                        : 'Belum ada data untuk division ini di modul Aktivitas Marketing'}
+                    </td>
                   </tr>
                 ) : (
                   sortedMarketingNames.map((name) => {
@@ -559,7 +598,9 @@ export function MarketingActivityView({ userRole, userName }: MarketingActivityV
             <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-h-[600px] overflow-y-auto custom-scrollbar">
               {areaStats.length === 0 ? (
                 <div className="text-center py-10 text-gray-500 text-sm italic">
-                  Belum ada data area terdaftar atau aktivitas ditemukan.
+                  {isPenjualanFocus
+                    ? 'Belum ada data area terdaftar atau aktivitas ditemukan.'
+                    : 'Analisis area belum tersedia untuk division ini karena sumber datanya belum terhubung ke modul Aktivitas Marketing.'}
                 </div>
               ) : (
                 areaStats.map((stat) => (
