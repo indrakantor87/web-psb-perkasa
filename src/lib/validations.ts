@@ -32,7 +32,7 @@ export const userCreateSchema = z.object({
   name: z.string().min(1, 'Nama harus diisi'),
   username: z.string().min(3, 'Username minimal 3 karakter'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
-  role: z.enum(['ADMIN', 'CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS']),
+  role: z.enum(['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS', 'CREATOR_DIGITAL']),
 })
 
 export const userUpdateSchema = z.object({

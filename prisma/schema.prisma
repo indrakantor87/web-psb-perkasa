@@ -13,7 +13,8 @@ model User {
   name      String
   username  String   @unique
   password  String
-  role      String   // ADMIN, CS, NOC, MARKETING, TEKNISI
+  role      String   // ADMIN, CS, ADMIN_CS, NOC, MARKETING, TEKNISI, TROUBLESHOOTS, CREATOR_DIGITAL
+  division  String?
   avatar    String?
   createdAt DateTime @default(now())
   

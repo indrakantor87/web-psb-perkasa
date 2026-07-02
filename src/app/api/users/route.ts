@@ -5,6 +5,16 @@ import { NextResponse } from 'next/server'
 import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { ensureUserDivisionColumn } from '@/lib/db-init'
+
+function mapRoleToDivision(role: string) {
+  const roleUpper = String(role ?? '').trim().toUpperCase()
+  if (roleUpper === 'MARKETING') return 'PENJUALAN'
+  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') return 'CS_ADMIN'
+  if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
+  if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
+  return null
+}
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -18,6 +28,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await ensureUserDivisionColumn().catch(() => {})
     const body = await request.json()
 
     // Validate input
@@ -30,6 +41,7 @@ export async function POST(request: Request) {
     }
 
     const { name, username, password, role } = result.data
+    const division = mapRoleToDivision(role)
 
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '')
 
@@ -70,6 +82,7 @@ export async function POST(request: Request) {
           username: normalizedUsername,
           password: hashedPassword,
           role,
+          division,
         },
       })
     } catch (e) {
@@ -81,10 +94,18 @@ export async function POST(request: Request) {
           username: normalizedUsername,
           password: hashedPassword,
           role,
+          division,
         },
       })
     }
-    const safeUser = { id: newUser.id, name: newUser.name, username: newUser.username, role: newUser.role, createdAt: newUser.createdAt }
+    const safeUser = {
+      id: newUser.id,
+      name: newUser.name,
+      username: newUser.username,
+      role: newUser.role,
+      division: newUser.division,
+      createdAt: newUser.createdAt,
+    }
     cache.invalidateByPrefix('users:')
     return NextResponse.json(safeUser)
   } catch (error) {
@@ -108,9 +129,10 @@ export async function GET() {
   }
 
   try {
+    await ensureUserDivisionColumn().catch(() => {})
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, username: true, role: true, createdAt: true },
+      select: { id: true, name: true, username: true, role: true, division: true, createdAt: true },
     })
 
     // Return users. 

@@ -1,11 +1,25 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle } from 'lucide-react'
+import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
+type DivisionSummary = {
+  code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+  label: string
+  description: string
+  members: number
+  primaryValue: number
+  primaryLabel: string
+  secondaryValue: number
+  secondaryLabel: string
+  note?: string
+}
+
+type DivisionFilter = DivisionSummary['code'] | 'ALL'
 
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
@@ -28,9 +42,11 @@ interface DashboardViewProps {
   initialPeriod: { month: number; year: number }
   userRole?: string
   isolationCount?: number
+  divisionSummary?: DivisionSummary[]
+  selectedDivision?: DivisionFilter
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0 }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0, divisionSummary = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -61,6 +77,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
+  const isAdmin = userRole === 'ADMIN'
+  const focusedDivision = isAdmin ? selectedDivision : 'ALL'
 
   const defaultMonthShort = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], [])
 
@@ -172,6 +190,27 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     }
   }, [])
 
+  const pushFilters = (nextMonth: number, nextYear: number, nextDivision: DivisionFilter) => {
+    const params = new URLSearchParams()
+    params.set('month', String(nextMonth))
+    params.set('year', String(nextYear))
+    if (isAdmin && nextDivision !== 'ALL') {
+      params.set('division', nextDivision)
+    }
+    router.push(`/?${params.toString()}`)
+  }
+
+  const visibleDivisionSummary = useMemo(() => {
+    if (!isAdmin || focusedDivision === 'ALL') return divisionSummary
+    return divisionSummary.filter((division) => division.code === focusedDivision)
+  }, [divisionSummary, focusedDivision, isAdmin])
+
+  const showSalesFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
+  const showSupportFocus =
+    !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' || focusedDivision === 'NOC_TROUBLESHOOTS'
+  const showNocFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
+  const showCreatorPlaceholder = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
+
   return (
     <div className="space-y-8 pb-10">
       {/* Header & Filter */}
@@ -201,7 +240,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               onChange={(e) => {
                 const newMonth = Number(e.target.value)
                 setMonth(newMonth)
-                router.push(`/?month=${newMonth}&year=${year}`)
+                pushFilters(newMonth, year, focusedDivision)
               }}
               className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
@@ -216,7 +255,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               onChange={(e) => {
                 const newYear = Number(e.target.value)
                 setYear(newYear)
-                router.push(`/?month=${month}&year=${newYear}`)
+                pushFilters(month, newYear, focusedDivision)
               }}
               className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
             >
@@ -225,141 +264,200 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               ))}
             </select>
           </div>
+          {isAdmin && (
+            <div className="col-span-2 flex items-center rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2 md:col-span-1">
+              <select
+                value={focusedDivision}
+                onChange={(e) => {
+                  const newDivision = e.target.value as DivisionFilter
+                  pushFilters(month, year, newDivision)
+                }}
+                className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">Semua Divisi</option>
+                <option value="PENJUALAN">Penjualan</option>
+                <option value="CS_ADMIN">CS & Admin CS</option>
+                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CREATOR_DIGITAL">Creator Digital</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div
-        className={clsx(
-          'grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3',
-          isTeknisi ? 'xl:grid-cols-3' : isNoc ? 'xl:grid-cols-4' : 'xl:grid-cols-5'
-        )}
-      >
-        <StatCard 
-          title="Total PSB" 
-          value={statusCounts.total} 
-          icon={<Ticket className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />}
-          trend="Total"
-          color="bg-blue-50 dark:bg-blue-900/20"
-        />
-        {!isTeknisi && !isNoc && (
-          <StatCard 
-            title="Total Aktivitas Marketing" 
-            value={marketingActivityTotal} 
-            icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400" />}
-            trend="Total"
-            color="bg-indigo-50 dark:bg-indigo-900/20"
-          />
-        )}
-        {!isTeknisi && (
-          <StatCard 
-            title="Total Isolir" 
-            value={isolationCount} 
-            icon={<WifiOff className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />}
-            trend="Aktif"
-            color="bg-orange-50 dark:bg-orange-900/20"
-          />
-        )}
-        <StatCard 
-          title="Total port ODP" 
-          value={odpTotal} 
-          icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />}
-          trend="Total"
-          color="bg-emerald-50 dark:bg-emerald-900/20"
-        />
-        {!isMarketing && (
-          <StatCard 
-            title="Total Ticketing" 
-            value={ticketingTotal} 
-            icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
-            trend="Total"
-            color="bg-slate-100 dark:bg-slate-700/40"
-          />
-        )}
-      </div>
+      {!showCreatorPlaceholder && (
+        <div
+          className={clsx(
+            'grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3',
+            isTeknisi ? 'xl:grid-cols-3' : isNoc ? 'xl:grid-cols-4' : 'xl:grid-cols-5'
+          )}
+        >
+          {showSalesFocus && (
+            <StatCard 
+              title="Total PSB" 
+              value={statusCounts.total} 
+              icon={<Ticket className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />}
+              trend="Total"
+              color="bg-blue-50 dark:bg-blue-900/20"
+            />
+          )}
+          {!isTeknisi && !isNoc && showSalesFocus && (
+            <StatCard 
+              title="Total Aktivitas Marketing" 
+              value={marketingActivityTotal} 
+              icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400" />}
+              trend="Total"
+              color="bg-indigo-50 dark:bg-indigo-900/20"
+            />
+          )}
+          {!isTeknisi && showNocFocus && (
+            <StatCard 
+              title="Total Isolir" 
+              value={isolationCount} 
+              icon={<WifiOff className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />}
+              trend="Aktif"
+              color="bg-orange-50 dark:bg-orange-900/20"
+            />
+          )}
+          {showSalesFocus && (
+            <StatCard 
+              title="Total port ODP" 
+              value={odpTotal} 
+              icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />}
+              trend="Total"
+              color="bg-emerald-50 dark:bg-emerald-900/20"
+            />
+          )}
+          {!isMarketing && showSupportFocus && (
+            <StatCard 
+              title="Total Ticketing" 
+              value={ticketingTotal} 
+              icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
+              trend="Total"
+              color="bg-slate-100 dark:bg-slate-700/40"
+            />
+          )}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-6 flex items-center justify-between">
+      {isAdmin && visibleDivisionSummary.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
-              <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
-              Total: {psbYearTotal}
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Performa Divisi</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {focusedDivision === 'ALL'
+                  ? 'Ringkasan tahap 1 khusus admin berdasarkan data yang sudah tersedia'
+                  : 'Dashboard sedang difokuskan ke divisi yang dipilih'}
+              </p>
             </div>
           </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {visibleDivisionSummary.map((division) => (
+              <DivisionCard
+                key={division.code}
+                division={division}
+                detailHref={`/division?division=${division.code}&month=${month}&year=${year}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
-          {psbYearSeries.length === 0 ? (
-            <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data PSB untuk tahun ini</div>
-          ) : (
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={psbYearSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name="Total"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6' }}
-                    activeDot={{ r: 6 }}
-                  >
-                    <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
-                  </Line>
-                </LineChart>
-              </ResponsiveContainer>
+      {showCreatorPlaceholder && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+          Divisi `Creator Digital` sudah bisa dipilih di dashboard admin, tetapi KPI detailnya belum aktif karena sumber data campaign dan aktivitas digital belum dibuat.
+        </div>
+      )}
+
+      {!showCreatorPlaceholder && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {showSalesFocus && (
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
+                  <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+                  Total: {psbYearTotal}
+                </div>
+              </div>
+
+              {psbYearSeries.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data PSB untuk tahun ini</div>
+              ) : (
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={psbYearSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                      <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        name="Total"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 2, fill: '#3b82f6' }}
+                        activeDot={{ r: 6 }}
+                      >
+                        <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                      </Line>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isMarketing && showSupportFocus && (
+            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
+                  <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
+                  Total: {troubleYearTotal}
+                </div>
+              </div>
+
+              {troubleYearTotalSeries.length === 0 ? (
+                <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
+              ) : (
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+                      <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        name="Total"
+                        stroke="#f59e0b"
+                        strokeWidth={3}
+                        dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
+                        activeDot={{ r: 6 }}
+                      >
+                        <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
+                      </Line>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           )}
         </div>
+      )}
 
-        {!isMarketing && (
-          <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
-                <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
-              </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
-                Total: {troubleYearTotal}
-              </div>
-            </div>
-
-            {troubleYearTotalSeries.length === 0 ? (
-              <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                    <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      name="Total"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
-                      activeDot={{ r: 6 }}
-                    >
-                      <LabelList dataKey="total" position="top" offset={8} fontSize={10} fontWeight={700} fill="#6b7280" />
-                    </Line>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {isMobilePortrait && (
+      {isMobilePortrait && !showCreatorPlaceholder && (
         <div className="space-y-4">
+          {showSalesFocus && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -408,7 +506,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </div>
             </div>
           </div>
+          )}
 
+          {showSalesFocus && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
             <div className="mb-3 flex items-center justify-between">
               <div>
@@ -441,8 +541,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </div>
             </div>
           </div>
+          )}
 
-          {!isMarketing && (
+          {!isMarketing && showSupportFocus && (
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -476,7 +577,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </div>
           )}
 
-          {!isMarketing && (
+          {!isMarketing && showSupportFocus && (
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -514,7 +615,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Marketing Table */}
-      {!isMobilePortrait && !isTeknisi && !isNoc && (
+      {!isMobilePortrait && !isTeknisi && !isNoc && showSalesFocus && !showCreatorPlaceholder && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -640,7 +741,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && (
+      {!isMobilePortrait && !isMarketing && showSupportFocus && !showCreatorPlaceholder && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -733,7 +834,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && (
+      {!isMobilePortrait && !isMarketing && showSupportFocus && !showCreatorPlaceholder && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -807,7 +908,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && showSalesFocus && !showCreatorPlaceholder && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -856,7 +957,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && showSalesFocus && !showCreatorPlaceholder && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -928,6 +1029,79 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
         </div>
       )}
+    </div>
+  )
+}
+
+function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref: string }) {
+  const config = {
+    PENJUALAN: {
+      icon: <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-300" />,
+      badge: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-200',
+    },
+    CS_ADMIN: {
+      icon: <Headset className="h-5 w-5 text-violet-600 dark:text-violet-300" />,
+      badge: 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-200',
+    },
+    NOC_TROUBLESHOOTS: {
+      icon: <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />,
+      badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200',
+    },
+    CREATOR_DIGITAL: {
+      icon: <Clapperboard className="h-5 w-5 text-amber-600 dark:text-amber-300" />,
+      badge: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-200',
+    },
+  }[division.code]
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-700/50">{config.icon}</div>
+            <div>
+              <h4 className="text-base font-bold text-gray-900 dark:text-white">{division.label}</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{division.description}</p>
+            </div>
+          </div>
+        </div>
+        <div className={clsx('rounded-full px-3 py-1 text-xs font-semibold', config.badge)}>
+          {division.code}
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <Users className="h-4 w-4" />
+            Member
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.members}</div>
+        </div>
+        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.primaryLabel}</div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.primaryValue}</div>
+        </div>
+        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.secondaryLabel}</div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.secondaryValue}</div>
+        </div>
+      </div>
+
+      {division.note && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+          {division.note}
+        </div>
+      )}
+
+      <div className="mt-4 flex justify-end">
+        <Link
+          href={detailHref}
+          className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+        >
+          Lihat detail
+        </Link>
+      </div>
     </div>
   )
 }

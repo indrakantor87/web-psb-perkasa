@@ -9,6 +9,7 @@ interface User {
   name: string
   username: string
   role: string
+  division?: string | null
   createdAt: string
 }
 
@@ -17,6 +18,26 @@ interface UsersClientProps {
     role: string
     username: string
   }
+}
+
+const ROLE_OPTIONS = [
+  { value: 'MARKETING', label: 'Marketing' },
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'CS', label: 'Customer Service (CS)' },
+  { value: 'ADMIN_CS', label: 'Admin CS' },
+  { value: 'NOC', label: 'NOC' },
+  { value: 'TEKNISI', label: 'Teknisi' },
+  { value: 'TROUBLESHOOTS', label: 'Troubleshoots' },
+  { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
+] as const
+
+function mapRoleToDivision(role: string) {
+  const roleUpper = String(role ?? '').trim().toUpperCase()
+  if (roleUpper === 'MARKETING') return 'PENJUALAN'
+  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') return 'CS_ADMIN'
+  if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
+  if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
+  return ''
 }
 
 export function UsersClient({ currentUser }: UsersClientProps) {
@@ -48,6 +69,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   // Permissions
   const isAdmin = currentUser?.role === 'ADMIN'
   const canCreate = isAdmin
+  const derivedDivision = mapRoleToDivision(formData.role)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -301,13 +323,25 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
               >
-                <option value="MARKETING">Marketing</option>
-                <option value="ADMIN">Admin</option>
-                <option value="CS">Customer Service (CS)</option>
-                <option value="NOC">NOC</option>
-                <option value="TEKNISI">Teknisi</option>
-                <option value="TROUBLESHOOTS">Troubleshoots</option>
+                {ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Division</label>
+              <input
+                type="text"
+                value={derivedDivision || '-'}
+                readOnly
+                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 px-3 py-2 shadow-sm sm:text-sm text-black dark:text-white"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Division diisi otomatis berdasarkan mapping role.
+              </p>
             </div>
 
             <div className="pt-2">
@@ -339,6 +373,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Full Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Username</th>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Division</th>
                 {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Action</th>}
               </tr>
             </thead>
@@ -357,6 +392,9 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                     )}>
                       {user.role}
                     </span>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    {user.division || '-'}
                   </td>
                   {isAdmin && (
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -384,7 +422,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 5 : 4} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={isAdmin ? 6 : 5} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     No users found.
                   </td>
                 </tr>
@@ -401,6 +439,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-white">{user.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{user.division || '-'}</p>
                 </div>
                 <span className={clsx(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",

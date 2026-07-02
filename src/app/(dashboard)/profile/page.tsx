@@ -4,6 +4,21 @@ import ChangePasswordForm from '@/components/ChangePasswordForm'
 import { prisma } from '@/lib/prisma'
 import { ProfileAvatarForm } from '@/components/ProfileAvatarForm'
 
+function formatDivisionLabel(division?: string | null) {
+  switch ((division || '').toUpperCase()) {
+    case 'PENJUALAN':
+      return 'Penjualan'
+    case 'CS_ADMIN':
+      return 'CS & Admin CS'
+    case 'NOC_TROUBLESHOOTS':
+      return 'NOC & Troubleshoots'
+    case 'CREATOR_DIGITAL':
+      return 'Creator Digital'
+    default:
+      return '-'
+  }
+}
+
 export default async function ProfilePage() {
   const session = await getSession()
   if (!session) redirect('/login')
@@ -63,6 +78,10 @@ export default async function ProfilePage() {
             <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Role</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{user.role}</dd>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Division</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{formatDivisionLabel(user.division)}</dd>
             </div>
           </dl>
         </div>

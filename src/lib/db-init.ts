@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 
 type GlobalState = {
   __dbInitPromise?: Promise<void>
+  __userDivisionInitPromise?: Promise<void>
 }
 
 const g = globalThis as unknown as GlobalState
@@ -66,4 +67,18 @@ export async function ensureDbOptimizations() {
     })()
   }
   await g.__dbInitPromise
+}
+
+export async function ensureUserDivisionColumn() {
+  if (!g.__userDivisionInitPromise) {
+    g.__userDivisionInitPromise = (async () => {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "division" TEXT;`)
+      } catch (e) {
+        g.__userDivisionInitPromise = undefined
+        throw e
+      }
+    })()
+  }
+  await g.__userDivisionInitPromise
 }

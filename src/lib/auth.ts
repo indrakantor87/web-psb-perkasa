@@ -17,6 +17,7 @@ export type SessionUser = {
   name: string
   username: string
   role: string
+  division?: string | null
 }
 
 export type SessionData = {

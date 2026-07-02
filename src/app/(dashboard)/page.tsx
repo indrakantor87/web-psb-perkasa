@@ -3,12 +3,108 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Prisma as PrismaSql } from '@prisma/client'
-import { ensureDbOptimizations } from '@/lib/db-init'
+import { ensureDbOptimizations, ensureUserDivisionColumn } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { ensureOdpTable } from '@/lib/odp-init'
 
 export const dynamic = 'force-dynamic'
+
+type DivisionSummary = {
+  code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+  label: string
+  description: string
+  members: number
+  primaryValue: number
+  primaryLabel: string
+  secondaryValue: number
+  secondaryLabel: string
+  note?: string
+}
+
+type DivisionFilter = DivisionSummary['code'] | 'ALL'
+
+type DashboardPayload = {
+  packageData: { name: string; count: number }[]
+  marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
+  monthlyData: { name: string; count: number }[]
+  yearTopPackages: { name: string; count: number }[]
+  yearMarketingMonthly: {
+    months: string[]
+    rows: Array<{ name: string; total: number; byMonth: number[] }>
+  }
+  statusCounts: { total: number; open: number; close: number; on_progress: number }
+  isolationCount: number
+  marketingActivityTotal: number
+  odpTotal: number
+  ticketingTotal: number
+  ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
+  troubleTicketProblemMonthly: {
+    months: string[]
+    rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
+  }
+  divisionSummary: DivisionSummary[]
+}
+
+function createEmptyDashboardPayload(): DashboardPayload {
+  return {
+    packageData: [],
+    marketingDataWithIsolir: [],
+    monthlyData: [],
+    yearTopPackages: [],
+    yearMarketingMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
+    statusCounts: { total: 0, open: 0, close: 0, on_progress: 0 },
+    isolationCount: 0,
+    marketingActivityTotal: 0,
+    odpTotal: 0,
+    ticketingTotal: 0,
+    ticketingMonthRecap: [],
+    troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
+    divisionSummary: [
+      {
+        code: 'PENJUALAN',
+        label: 'Penjualan',
+        description: 'Fokus pada performa PSB dan aktivitas marketing',
+        members: 0,
+        primaryValue: 0,
+        primaryLabel: 'PSB periode ini',
+        secondaryValue: 0,
+        secondaryLabel: 'Aktivitas marketing',
+      },
+      {
+        code: 'CS_ADMIN',
+        label: 'CS & Admin CS',
+        description: 'Fokus pada ticket masuk dan tindak lanjut awal',
+        members: 0,
+        primaryValue: 0,
+        primaryLabel: 'Ticket bulan ini',
+        secondaryValue: 0,
+        secondaryLabel: 'Perlu follow up',
+      },
+      {
+        code: 'NOC_TROUBLESHOOTS',
+        label: 'NOC & Troubleshoots',
+        description: 'Fokus pada penanganan dan penyelesaian gangguan',
+        members: 0,
+        primaryValue: 0,
+        primaryLabel: 'Ticket close',
+        secondaryValue: 0,
+        secondaryLabel: 'Ticket open',
+      },
+      {
+        code: 'CREATOR_DIGITAL',
+        label: 'Creator Digital',
+        description: 'KPI khusus digital menunggu modul aktivitas',
+        members: 0,
+        primaryValue: 0,
+        primaryLabel: 'Aktivitas tercatat',
+        secondaryValue: 0,
+        secondaryLabel: 'Data campaign',
+        note: 'Modul KPI Creator Digital belum aktif.',
+      },
+    ],
+  }
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -22,78 +118,77 @@ export default async function DashboardPage({
   const resolvedSearchParams = await searchParams
   const monthParam = resolvedSearchParams.month
   const yearParam = resolvedSearchParams.year
+  const divisionParam = resolvedSearchParams.division
 
   const now = jakartaNow()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
+  const selectedDivision: DivisionFilter =
+    typeof divisionParam === 'string' &&
+    ['PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+      ? (divisionParam as DivisionSummary['code'])
+      : 'ALL'
 
   const cacheKey = `dashboard:${JSON.stringify({
     role: session.user.role,
     name: session.user.name,
     month: currentMonth,
     year: currentYear,
+    division: selectedDivision,
   })}`
-  const cached = cache.get<{
-    packageData: { name: string; count: number }[]
-    marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
-    monthlyData: { name: string; count: number }[]
-    yearTopPackages: { name: string; count: number }[]
-    yearMarketingMonthly: {
-      months: string[]
-      rows: Array<{ name: string; total: number; byMonth: number[] }>
-    }
-    statusCounts: { total: number; open: number; close: number; on_progress: number }
-    isolationCount: number
-    marketingActivityTotal: number
-    odpTotal: number
-    ticketingTotal: number
-    ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
-    troubleTicketProblemMonthly: {
-      months: string[]
-      rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
-    }
-  }>(cacheKey)
+  const renderDashboard = (payload: DashboardPayload, localNotice?: string) => (
+    <div>
+      <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+      {localNotice && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+          {localNotice}
+        </div>
+      )}
+      <DashboardView
+        packageData={payload.packageData}
+        marketingData={payload.marketingDataWithIsolir}
+        monthlyData={payload.monthlyData}
+        yearTopPackages={payload.yearTopPackages}
+        yearMarketingMonthly={payload.yearMarketingMonthly}
+        statusCounts={payload.statusCounts}
+        marketingActivityTotal={payload.marketingActivityTotal}
+        odpTotal={payload.odpTotal}
+        ticketingTotal={payload.ticketingTotal}
+        ticketingMonthRecap={payload.ticketingMonthRecap}
+        troubleTicketProblemMonthly={payload.troubleTicketProblemMonthly}
+        initialPeriod={{ month: currentMonth, year: currentYear }}
+        userRole={session.user.role}
+        isolationCount={payload.isolationCount}
+        divisionSummary={payload.divisionSummary}
+        selectedDivision={selectedDivision}
+      />
+    </div>
+  )
+
+  const cached = cache.get<DashboardPayload>(cacheKey)
   if (cached) {
-    return (
-      <div>
-        <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-        <DashboardView
-          packageData={cached.packageData}
-          marketingData={cached.marketingDataWithIsolir}
-          monthlyData={cached.monthlyData}
-          yearTopPackages={cached.yearTopPackages}
-          yearMarketingMonthly={cached.yearMarketingMonthly}
-          statusCounts={cached.statusCounts}
-          marketingActivityTotal={cached.marketingActivityTotal}
-          odpTotal={cached.odpTotal}
-          ticketingTotal={cached.ticketingTotal}
-          ticketingMonthRecap={cached.ticketingMonthRecap}
-          troubleTicketProblemMonthly={cached.troubleTicketProblemMonthly}
-          initialPeriod={{ month: currentMonth, year: currentYear }}
-          userRole={session.user.role}
-          isolationCount={cached.isolationCount}
-        />
-      </div>
-    )
+    return renderDashboard(cached)
   }
 
-  const { start: startDate, end: endDate } = jakartaMonthRange(currentYear, currentMonth)
-  const isSelectedCurrentMonth = (() => {
-    const n = jakartaNow()
-    return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
-  })()
-  const openStatuses = ['OPEN', 'ON_PROGRESS']
+  try {
+    await ensureUserDivisionColumn().catch(() => {})
+    const { start: startDate, end: endDate } = jakartaMonthRange(currentYear, currentMonth)
+    const isSelectedCurrentMonth = (() => {
+      const n = jakartaNow()
+      return n.getFullYear() === currentYear && (n.getMonth() + 1) === currentMonth
+    })()
+    const openStatuses = ['OPEN', 'ON_PROGRESS']
 
-  const marketingRole = session.user.role === 'MARKETING'
-  const marketingName = session.user.name || ''
+    const marketingRole = session.user.role === 'MARKETING'
+    const marketingName = session.user.name || ''
 
-  const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
-  const marketingClause = marketingRole ? PrismaSql.sql`AND "marketingName" = ${marketingName}` : PrismaSql.sql``
-  const carryClause = isSelectedCurrentMonth
-    ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN (${statusVals}) AND "requestDate" < ${endDate})`
-    : PrismaSql.sql``
+    const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
+    const marketingClause = marketingRole ? PrismaSql.sql`AND "marketingName" = ${marketingName}` : PrismaSql.sql``
+    const carryClause = isSelectedCurrentMonth
+      ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN (${statusVals}) AND "requestDate" < ${endDate})`
+      : PrismaSql.sql``
 
-  const [statusRows, packageRows, marketingRows] = await Promise.all([
+    const [statusRows, packageRows, marketingRows] = await Promise.all([
     prisma.$queryRaw<Array<{ status: string; count: number }>>(PrismaSql.sql`
       SELECT "status" AS status, COUNT(*)::int AS count
       FROM "Ticket"
@@ -145,8 +240,8 @@ export default async function DashboardPage({
     `),
   ])
 
-  const packageOrder = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
-  const packageData = packageRows
+    const packageOrder = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
+    const packageData = packageRows
     .map((r) => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
     .sort((a, b) => {
       const indexA = packageOrder.indexOf(a.name)
@@ -157,7 +252,7 @@ export default async function DashboardPage({
       return a.name.localeCompare(b.name)
     })
 
-  const marketingData = marketingRows.map((r) => ({
+    const marketingData = marketingRows.map((r) => ({
     name: r.name || 'Unknown',
     count: Number(r.count || 0),
     open: Number(r.open || 0),
@@ -166,10 +261,10 @@ export default async function DashboardPage({
   }))
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
-  const yearStart = new Date(Date.UTC(currentYear, 0, 1) - JAKARTA_OFFSET_MS)
-  const yearEnd = new Date(Date.UTC(currentYear + 1, 0, 1) - JAKARTA_OFFSET_MS)
+    const yearStart = new Date(Date.UTC(currentYear, 0, 1) - JAKARTA_OFFSET_MS)
+    const yearEnd = new Date(Date.UTC(currentYear + 1, 0, 1) - JAKARTA_OFFSET_MS)
   // Gunakan date_trunc di Postgres pada installedDate saja agar selaras dengan List PSB
-  const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
+    const monthlyRows = await prisma.$queryRaw<Array<{ month: number; count: number }>>`
     SELECT
       EXTRACT(MONTH FROM date_trunc('month', "installedDate"))::int AS month,
       COUNT(*)::int AS count
@@ -180,19 +275,19 @@ export default async function DashboardPage({
     GROUP BY 1
     ORDER BY 1
   `
-  const monthlyBuckets: number[] = Array.from({ length: 12 }, () => 0)
-  for (const row of monthlyRows) {
-    const idx = Math.max(1, Math.min(12, row.month)) - 1
-    monthlyBuckets[idx] = row.count || 0
-  }
-  const monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
-  const monthlyData = monthLabels.map((label, idx) => ({
-    name: label,
-    count: monthlyBuckets[idx] || 0
-  }))
+    const monthlyBuckets: number[] = Array.from({ length: 12 }, () => 0)
+    for (const row of monthlyRows) {
+      const idx = Math.max(1, Math.min(12, row.month)) - 1
+      monthlyBuckets[idx] = row.count || 0
+    }
+    const monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    const monthlyData = monthLabels.map((label, idx) => ({
+      name: label,
+      count: monthlyBuckets[idx] || 0
+    }))
 
   // 2c. Top packages of the year (untuk kebijakan)
-  const yearTopPackagesRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
+    const yearTopPackagesRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>`
     WITH src AS (
       SELECT CASE
         WHEN UPPER("package") LIKE '%HOME LITE%' THEN 'HOME LITE'
@@ -213,9 +308,9 @@ export default async function DashboardPage({
     ORDER BY COUNT(*) DESC
     LIMIT 5
   `
-  const yearTopPackages = yearTopPackagesRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
+    const yearTopPackages = yearTopPackagesRows.map(r => ({ name: r.name || 'Unknown', count: Number(r.count || 0) }))
 
-  const yearMarketingMonthlyRows = await prisma
+    const yearMarketingMonthlyRows = await prisma
     .$queryRaw<Array<{ month: number; name: string; count: number }>>(PrismaSql.sql`
       WITH raw AS (
         SELECT
@@ -258,7 +353,7 @@ export default async function DashboardPage({
     `)
     .catch(() => [])
 
-  const yearMarketingMonthly = (() => {
+    const yearMarketingMonthly = (() => {
     const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
     const byName = new Map<string, { total: number; byMonth: number[] }>()
     for (const row of yearMarketingMonthlyRows) {
@@ -279,26 +374,26 @@ export default async function DashboardPage({
     return { months, rows }
   })()
 
-  const onProgressCount = (statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0) + (statusRows.find((r) => r.status === 'PENDING')?.count || 0)
-  const statusCounts = {
+    const onProgressCount = (statusRows.find((r) => r.status === 'ON_PROGRESS')?.count || 0) + (statusRows.find((r) => r.status === 'PENDING')?.count || 0)
+    const statusCounts = {
     total: statusRows.reduce((acc, r) => acc + Number(r.count || 0), 0),
     open: statusRows.find((r) => r.status === 'OPEN')?.count || 0,
     close: statusRows.find((r) => r.status === 'CLOSE')?.count || 0,
     on_progress: onProgressCount,
   }
 
-  const isoRoleClause = marketingRole ? PrismaSql.sql`AND "marketing" = ${marketingName}` : PrismaSql.sql``
-  const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
+    const isoRoleClause = marketingRole ? PrismaSql.sql`AND "marketing" = ${marketingName}` : PrismaSql.sql``
+    const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
     SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
     FROM "Isolation"
     WHERE "status" = 'OPEN'
     ${isoRoleClause}
     GROUP BY COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown')
   `)
-  const isolirByMarketing = new Map<string, number>(isoRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)]))
-  const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
+    const isolirByMarketing = new Map<string, number>(isoRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)]))
+    const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-  const [marketingActivityTotal, odpTotal, ticketingTotal] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, ticketingTotal] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
         ...(marketingRole ? { marketingName } : {}),
@@ -329,7 +424,7 @@ export default async function DashboardPage({
       .catch(() => 0),
   ])
 
-  const ticketingMonthRecap = await prisma
+    const ticketingMonthRecap = await prisma
     .$queryRaw<Array<{ type: string; total: number; open: number; close: number }>>(PrismaSql.sql`
       SELECT
         COALESCE(NULLIF(TRIM(UPPER("type")), ''), 'UNKNOWN') AS type,
@@ -344,7 +439,7 @@ export default async function DashboardPage({
     `)
     .catch(() => [])
 
-  const troubleTicketProblemMonthlyRows = await prisma
+    const troubleTicketProblemMonthlyRows = await prisma
     .$queryRaw<Array<{ month: number; problemCategory: string; count: number }>>(PrismaSql.sql`
       SELECT
         EXTRACT(MONTH FROM date_trunc('month', "openedAt"))::int AS month,
@@ -359,7 +454,7 @@ export default async function DashboardPage({
     `)
     .catch(() => [])
 
-  const troubleTicketProblemMonthly = (() => {
+    const troubleTicketProblemMonthly = (() => {
     const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
     const byCategory = new Map<string, { total: number; byMonth: number[] }>()
     for (const row of troubleTicketProblemMonthlyRows) {
@@ -382,14 +477,69 @@ export default async function DashboardPage({
   })()
 
   // Merge isolir count into marketingData
-  const marketingDataWithIsolir = marketingData.map((m) => ({
-    ...m,
-    isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
-  }))
+    const marketingDataWithIsolir = marketingData.map((m) => ({
+      ...m,
+      isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
+    }))
 
-  cache.set(
-    cacheKey,
-    {
+    const divisionCountRows = await prisma
+      .$queryRaw<Array<{ division: string; count: number }>>(PrismaSql.sql`
+        SELECT COALESCE(NULLIF(TRIM("division"), ''), 'UNASSIGNED') AS division, COUNT(*)::int AS count
+        FROM "User"
+        GROUP BY 1
+      `)
+      .catch(() => [])
+
+    const divisionCounts = new Map<string, number>(
+      divisionCountRows.map((row) => [String(row.division || 'UNASSIGNED').trim().toUpperCase(), Number(row.count || 0)])
+    )
+    const ticketOpenTotal = ticketingMonthRecap.reduce((acc, row) => acc + Number(row.open || 0), 0)
+    const ticketCloseTotal = ticketingMonthRecap.reduce((acc, row) => acc + Number(row.close || 0), 0)
+    const divisionSummary: DivisionSummary[] = [
+      {
+        code: 'PENJUALAN',
+        label: 'Penjualan',
+        description: 'Fokus pada performa PSB dan aktivitas marketing',
+        members: divisionCounts.get('PENJUALAN') || 0,
+        primaryValue: statusCounts.total,
+        primaryLabel: 'PSB periode ini',
+        secondaryValue: marketingActivityTotal,
+        secondaryLabel: 'Aktivitas marketing',
+      },
+      {
+        code: 'CS_ADMIN',
+        label: 'CS & Admin CS',
+        description: 'Fokus pada ticket masuk dan tindak lanjut awal',
+        members: divisionCounts.get('CS_ADMIN') || 0,
+        primaryValue: ticketingTotal,
+        primaryLabel: 'Ticket bulan ini',
+        secondaryValue: ticketOpenTotal,
+        secondaryLabel: 'Perlu follow up',
+      },
+      {
+        code: 'NOC_TROUBLESHOOTS',
+        label: 'NOC & Troubleshoots',
+        description: 'Fokus pada penanganan dan penyelesaian gangguan',
+        members: divisionCounts.get('NOC_TROUBLESHOOTS') || 0,
+        primaryValue: ticketCloseTotal,
+        primaryLabel: 'Ticket close',
+        secondaryValue: ticketOpenTotal,
+        secondaryLabel: 'Ticket open',
+      },
+      {
+        code: 'CREATOR_DIGITAL',
+        label: 'Creator Digital',
+        description: 'KPI khusus digital menunggu modul aktivitas',
+        members: divisionCounts.get('CREATOR_DIGITAL') || 0,
+        primaryValue: 0,
+        primaryLabel: 'Aktivitas tercatat',
+        secondaryValue: 0,
+        secondaryLabel: 'Data campaign',
+        note: 'Modul KPI Creator Digital belum aktif.',
+      },
+    ]
+
+    const payload: DashboardPayload = {
       packageData,
       marketingDataWithIsolir,
       monthlyData,
@@ -402,29 +552,18 @@ export default async function DashboardPage({
       ticketingMonthRecap,
       yearMarketingMonthly,
       troubleTicketProblemMonthly,
-    },
-    120_000
-  )
+      divisionSummary,
+    }
 
-  return (
-    <div>
-      <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-      <DashboardView 
-        packageData={packageData} 
-        marketingData={marketingDataWithIsolir}
-        monthlyData={monthlyData}
-        yearTopPackages={yearTopPackages}
-        yearMarketingMonthly={yearMarketingMonthly}
-        statusCounts={statusCounts}
-        marketingActivityTotal={marketingActivityTotal}
-        odpTotal={odpTotal}
-        ticketingTotal={ticketingTotal}
-        ticketingMonthRecap={ticketingMonthRecap}
-        troubleTicketProblemMonthly={troubleTicketProblemMonthly}
-        initialPeriod={{ month: currentMonth, year: currentYear }}
-        userRole={session.user.role}
-        isolationCount={isolationCount}
-      />
-    </div>
-  )
+    cache.set(cacheKey, payload, 120_000)
+    return renderDashboard(payload)
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      return renderDashboard(
+        createEmptyDashboardPayload(),
+        'Mode lokal aktif: dashboard ditampilkan tanpa data karena koneksi database remote sedang tidak tersedia.'
+      )
+    }
+    throw error
+  }
 }

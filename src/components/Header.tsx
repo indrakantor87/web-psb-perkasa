@@ -8,6 +8,21 @@ import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
 
+function formatDivisionLabel(division?: string | null) {
+  switch ((division || '').toUpperCase()) {
+    case 'PENJUALAN':
+      return 'Penjualan'
+    case 'CS_ADMIN':
+      return 'CS & Admin CS'
+    case 'NOC_TROUBLESHOOTS':
+      return 'NOC & Troubleshoots'
+    case 'CREATOR_DIGITAL':
+      return 'Creator Digital'
+    default:
+      return null
+  }
+}
+
 export function Header({ user }: { user: SessionUser }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isNavOpen, setIsNavOpen] = useState(false)
@@ -24,6 +39,7 @@ export function Header({ user }: { user: SessionUser }) {
   })
   const isMarketing = user?.role === 'MARKETING'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
+  const divisionLabel = formatDivisionLabel(user?.division)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navRefMobile = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
@@ -375,9 +391,16 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
         
           <div className="flex items-center space-x-3 sm:space-x-4">
-          <h2 className="hidden md:block text-sm font-medium text-gray-500 dark:text-gray-400">
-            Hello, {user?.name}
-          </h2>
+          <div className="hidden md:block text-right">
+            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              Hello, {user?.name}
+            </h2>
+            {divisionLabel && (
+              <p className="mt-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                {divisionLabel}
+              </p>
+            )}
+          </div>
         
           <div className="relative" ref={dropdownRef}>
             <button 
@@ -404,6 +427,9 @@ export function Header({ user }: { user: SessionUser }) {
                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</p>
+                    {divisionLabel && (
+                      <p className="mt-1 text-xs font-medium text-blue-600 dark:text-blue-400">{divisionLabel}</p>
+                    )}
                  </div>
                  <Link 
                    href="/profile"
