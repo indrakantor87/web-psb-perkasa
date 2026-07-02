@@ -1143,28 +1143,28 @@ export function TroubleTicketView({
     <div className="space-y-4 overflow-x-hidden">
       {!isTroubleshoots && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center dark:border-red-800 dark:bg-red-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Open</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.open}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Open</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.open}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300 md:hidden">Open</span>
+              <span className="text-base font-semibold text-red-800 dark:text-red-200 md:hidden">{summary.open}</span>
+              <span className="hidden text-xs font-medium text-red-700 dark:text-red-300 md:inline">Open</span>
+              <span className="hidden text-lg font-semibold text-red-800 dark:text-red-200 md:inline">{summary.open}</span>
             </div>
           </div>
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-center dark:border-green-800 dark:bg-green-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Close</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.close}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Close</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.close}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 md:hidden">Close</span>
+              <span className="text-base font-semibold text-green-800 dark:text-green-200 md:hidden">{summary.close}</span>
+              <span className="hidden text-xs font-medium text-green-700 dark:text-green-300 md:inline">Close</span>
+              <span className="hidden text-lg font-semibold text-green-800 dark:text-green-200 md:inline">{summary.close}</span>
             </div>
           </div>
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-center dark:border-orange-800 dark:bg-orange-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Overdue</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.overdue}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Overdue</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.overdue}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300 md:hidden">Overdue</span>
+              <span className="text-base font-semibold text-orange-800 dark:text-orange-200 md:hidden">{summary.overdue}</span>
+              <span className="hidden text-xs font-medium text-orange-700 dark:text-orange-300 md:inline">Overdue</span>
+              <span className="hidden text-lg font-semibold text-orange-800 dark:text-orange-200 md:inline">{summary.overdue}</span>
             </div>
           </div>
         </div>
@@ -1256,7 +1256,7 @@ export function TroubleTicketView({
         </div>
 
         {!isTroubleshoots && isAdmin && (
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             {divisionDescriptions[division]}
           </div>
         )}
@@ -1281,7 +1281,7 @@ export function TroubleTicketView({
               <label
                 htmlFor={fileInputId}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-sm font-medium text-white cursor-pointer text-center md:w-auto',
+                  'w-full cursor-pointer rounded-md px-3 py-2 text-center text-sm font-medium md:w-auto',
                   isImporting || !supportsTroubleTicketWorkflow ? 'pointer-events-none border border-gray-300 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
                 )}
               >
@@ -1312,7 +1312,7 @@ export function TroubleTicketView({
       </div>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {error}
         </div>
       )}
@@ -1353,7 +1353,7 @@ export function TroubleTicketView({
                     'rounded-lg bg-black text-white border border-gray-800',
                     (() => {
                       const k = String(r.user ?? '').trim().toLowerCase()
-                      return k && repeatedUserSet.has(k) ? 'bg-orange-500/10 border-orange-400/40' : undefined
+                      return k && repeatedUserSet.has(k) ? 'bg-orange-50 border-orange-300' : undefined
                     })(),
                     isOverdue
                       ? 'tt-near-overdue tt-near-overdue-blink'
@@ -1375,12 +1375,12 @@ export function TroubleTicketView({
                         <div className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-wide">
                           <span>{label} - {dt} - {code} - {statusLabel}</span>
                           {isOverdue && (
-                            <span className="inline-flex items-center rounded-full bg-red-600/25 text-red-200 border border-red-600/40 px-2 py-0.5 text-[11px] font-extrabold tracking-wider">
+                            <span className="inline-flex items-center rounded-full bg-red-700 text-red-200 border border-red-700 px-2 py-0.5 text-[11px] font-extrabold tracking-wider">
                               OVERDUE {formatOverdueShort(overdueMs)}
                             </span>
                           )}
                           {r.temporaryAt && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
                               <AlertTriangle className="h-3 w-3" />
                               TEMPORARY
                             </span>
@@ -1490,7 +1490,7 @@ export function TroubleTicketView({
                           <button
                             type="button"
                             onClick={() => handleTemporaryTicket(r)}
-                            className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
+                            className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-950 dark:text-yellow-200 dark:hover:bg-yellow-950 dark:border-yellow-800"
                           >
                             <AlertTriangle className="h-4 w-4" />
                             Temporary
@@ -1561,8 +1561,8 @@ export function TroubleTicketView({
                         className={clsx(
                           'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold',
                           isClosed
-                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
-                            : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                            ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+                            : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                         )}
                       >
                         {isClosed ? 'CLOSE' : 'OPEN'}
@@ -1618,7 +1618,7 @@ export function TroubleTicketView({
                         href={mapsLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/30 dark:border-blue-800"
+                        className="inline-flex items-center gap-2 rounded-md bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold hover:bg-blue-100 border border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-950 dark:border-blue-800"
                       >
                         View Maps
                       </a>
@@ -1652,7 +1652,7 @@ export function TroubleTicketView({
         <div className={clsx('rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800', isMobilePortrait ? 'block' : 'hidden md:block')}>
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[1100px] table-auto">
-          <thead className="bg-gray-50 dark:bg-gray-900/20">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
                 <input
@@ -1713,8 +1713,8 @@ export function TroubleTicketView({
                   <Fragment key={r.id}>
                     <tr
                       className={clsx(
-                        isRepeatedUser ? 'bg-orange-500/10' : undefined,
-                        'hover:bg-gray-50 dark:hover:bg-gray-700/30',
+                        isRepeatedUser ? 'bg-orange-50' : undefined,
+                        'hover:bg-gray-50 dark:hover:bg-gray-700',
                         isOverdue
                           ? 'tt-near-overdue tt-near-overdue-blink'
                           : isVeryNearOverdue
@@ -1806,8 +1806,8 @@ export function TroubleTicketView({
                           className={clsx(
                             'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
                             (r.status || '').toUpperCase() === 'CLOSE'
-                              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
-                              : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                              ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+                              : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                           )}
                         >
                           {(r.notes || '').trim() || '-'}
@@ -1817,13 +1817,13 @@ export function TroubleTicketView({
                     {expandedId === r.id && (
                       <tr>
                         <td colSpan={14} className="px-3 pb-4">
-                          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700 p-4">
+                          <div className="rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 p-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
                                 <div className="flex items-center gap-2 font-semibold">
                                   <span>Action</span>
                                   {r.temporaryAt && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
                                       <AlertTriangle className="h-3 w-3" />
                                       TEMPORARY
                                     </span>
@@ -1851,7 +1851,7 @@ export function TroubleTicketView({
                                 <button
                                   type="button"
                                   onClick={() => copyRowDetail(r)}
-                                  className="inline-flex items-center gap-2 rounded-md bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold hover:bg-blue-100 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:hover:bg-blue-900/30 dark:border-blue-800"
+                                  className="inline-flex items-center gap-2 rounded-md bg-blue-50 text-blue-700 px-3 py-2 text-xs font-semibold hover:bg-blue-100 border border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-950 dark:border-blue-800"
                                 >
                                   <Clipboard className="h-4 w-4" />
                                   {copied ? 'Tercopy' : 'Copy'}
@@ -1871,7 +1871,7 @@ export function TroubleTicketView({
                                   <button
                                     type="button"
                                     onClick={() => handleTemporaryTicket(r)}
-                                    className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
+                                    className="inline-flex items-center gap-2 rounded-md bg-yellow-50 text-yellow-700 px-3 py-2 text-xs font-semibold hover:bg-yellow-100 border border-yellow-200 dark:bg-yellow-950 dark:text-yellow-200 dark:hover:bg-yellow-950 dark:border-yellow-800"
                                   >
                                     <AlertTriangle className="h-4 w-4" />
                                     Temporary
@@ -1883,7 +1883,7 @@ export function TroubleTicketView({
                                     window.location.href = `/trouble-ticket/close/${r.id}`
                                   }}
                                   disabled={isClosed}
-                                  className="inline-flex items-center gap-2 rounded-md bg-green-50 text-green-700 px-3 py-2 text-xs font-semibold hover:bg-green-100 border border-green-200 disabled:opacity-50 dark:bg-green-900/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:border-green-800"
+                                  className="inline-flex items-center gap-2 rounded-md bg-green-50 text-green-700 px-3 py-2 text-xs font-semibold hover:bg-green-100 border border-green-200 disabled:opacity-50 dark:bg-green-950 dark:text-green-200 dark:hover:bg-green-950 dark:border-green-800"
                                 >
                                   <CheckCircle2 className="h-4 w-4" />
                                   Close
@@ -1892,7 +1892,7 @@ export function TroubleTicketView({
                                   type="button"
                                   onClick={() => handleDeleteTicket(r.id)}
                                   disabled={deletingId === r.id}
-                                  className="inline-flex items-center gap-2 rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 border border-red-200 disabled:opacity-50 dark:bg-red-900/20 dark:text-red-200 dark:hover:bg-red-900/30 dark:border-red-800"
+                                  className="inline-flex items-center gap-2 rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 border border-red-200 disabled:opacity-50 dark:bg-red-950 dark:text-red-200 dark:hover:bg-red-950 dark:border-red-800"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                   {deletingId === r.id ? 'Deleting...' : 'Delete'}
@@ -1954,14 +1954,14 @@ export function TroubleTicketView({
       )}
 
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
           <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
               <div className="text-lg font-semibold text-gray-900 dark:text-white">Buat Trouble Ticket</div>
               <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Isi data gangguan atau preventive secara singkat dan jelas.</div>
             </div>
             <div className="px-5 py-4 space-y-3">
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
                 ID Ticket otomatis: {idPrefix}{formatTicketNumber(nextNumber)}
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -2089,7 +2089,7 @@ export function TroubleTicketView({
       )}
 
       {isEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
           <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
               <div className="text-lg font-semibold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
@@ -2220,7 +2220,7 @@ export function TroubleTicketView({
       )}
 
       {detailRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
           <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -2229,7 +2229,7 @@ export function TroubleTicketView({
                   <div className="text-xs text-gray-500 dark:text-gray-400">Salin, kirim, atau lihat lampiran tiket dari satu tempat.</div>
                 </div>
                 {detailRow.temporaryAt && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[11px] font-extrabold">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 px-2 py-0.5 text-[11px] font-extrabold">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     TEMPORARY
                   </span>
@@ -2248,7 +2248,7 @@ export function TroubleTicketView({
               <textarea
                 readOnly
                 value={detailText}
-                className="w-full min-h-[220px] rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900/30 dark:text-white"
+                className="w-full min-h-[220px] rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
                 {(((detailRow.status || '').toUpperCase() === 'CLOSE' || !!detailRow.closedAt) &&
@@ -2314,7 +2314,7 @@ export function TroubleTicketView({
       )}
 
       {detailRow && isPhotoViewerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
           <div className="w-full max-w-4xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div className="text-lg font-bold text-gray-900 dark:text-white">Foto Lokasi</div>

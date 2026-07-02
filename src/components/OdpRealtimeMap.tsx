@@ -224,7 +224,7 @@ export default function OdpRealtimeMap({
 
   return (
     <div className="relative rounded-xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800">
-      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-3 rounded-xl bg-white/95 px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900/95 dark:text-gray-100 dark:ring-gray-800 md:bottom-auto md:left-14 md:right-auto md:top-3 md:gap-2 md:rounded-lg md:px-2 md:py-1 md:text-xs">
+      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-3 rounded-xl bg-white px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:ring-gray-800 md:bottom-auto md:left-14 md:right-auto md:top-3 md:gap-2 md:rounded-lg md:px-2 md:py-1 md:text-xs">
         <button
           type="button"
           onClick={() => setRouteEnabled((v) => !v)}
@@ -248,7 +248,7 @@ export default function OdpRealtimeMap({
         >
           Reset
         </button>
-        <div className="ml-1 rounded-lg bg-blue-50 px-3 py-2 text-[14px] font-bold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:ring-blue-900/40 md:rounded md:px-2 md:py-1 md:text-[12px]">
+        <div className="ml-1 rounded-lg bg-blue-50 px-3 py-2 text-[14px] font-bold text-blue-700 ring-1 ring-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-800 md:rounded md:px-2 md:py-1 md:text-[12px]">
           Jarak: {routeDistance !== null ? `${Math.round(routeDistance)} m` : '-'}
         </div>
         {routeEnabled && !measured && (

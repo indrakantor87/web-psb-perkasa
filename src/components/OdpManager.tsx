@@ -62,10 +62,10 @@ function OdpBadge({ kapasitas, terpakai }: { kapasitas: number; terpakai: number
 
   const className =
     used >= cap
-      ? 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/20 dark:text-red-200 dark:ring-red-900/40'
+      ? 'bg-red-50 text-red-700 ring-red-200 dark:bg-red-950 dark:text-red-200 dark:ring-red-800'
       : ratio > 0.5
-        ? 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:ring-amber-900/40'
-        : 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:ring-emerald-900/40'
+        ? 'bg-amber-50 text-amber-800 ring-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800'
+        : 'bg-emerald-50 text-emerald-800 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800'
 
   const label = used >= cap ? 'Penuh' : ratio > 0.5 ? '> 50%' : '< 50%'
 
@@ -86,7 +86,7 @@ function Modal({
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-900" onClick={onClose} />
       <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
@@ -142,13 +142,13 @@ export function OdpManager({
   const [focusedOdpId, setFocusedOdpId] = useState<number | null>(null)
   const [searchPoint, setSearchPoint] = useState<{ latitude: number; longitude: number } | null>(null)
   const [mapFullscreen, setMapFullscreen] = useState(false)
-  const supportsOdpWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
+  const supportsOdpWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN'
   const canMutate = canEdit && supportsOdpWorkflow
   const divisionDescriptions: Record<DivisionFilter, string> = {
     ALL: 'Menampilkan seluruh aset ODP aktif tanpa membatasi perspektif divisi tertentu.',
     PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul PORT ODP, jadi tampilan ini masih placeholder.',
-    CS_ADMIN: 'Belum ada relasi operasional langsung antara CS & Admin CS dan modul PORT ODP, jadi tampilan ini masih placeholder.',
-    NOC_TROUBLESHOOTS: 'Fokus ke aset jaringan dan kapasitas ODP yang menjadi area kerja utama NOC & Troubleshoots.',
+    CS_ADMIN: 'Fokus ke data PORT ODP untuk kebutuhan operasional CS & Admin CS sesuai struktur menu terbaru.',
+    NOC_TROUBLESHOOTS: 'Modul PORT ODP saat ini tidak ditampilkan sebagai alur utama NOC & Troubleshoots, jadi tampilan ini tetap placeholder.',
     CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul PORT ODP, jadi tampilan ini masih placeholder.',
   }
 
@@ -557,7 +557,7 @@ export function OdpManager({
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
@@ -653,8 +653,8 @@ export function OdpManager({
           </div>
         </div>
 
-        {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{error}</div>}
-        {importError && <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{importError}</div>}
+        {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{error}</div>}
+        {importError && <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{importError}</div>}
 
         {mapOpen && (
           <div
@@ -662,7 +662,7 @@ export function OdpManager({
             className={clsx(
               'space-y-3',
               mapFullscreen
-                ? 'fixed inset-0 z-[60] bg-black/70 p-3'
+                ? 'fixed inset-0 z-[60] bg-gray-900 p-3'
                 : 'mt-4'
             )}
           >
@@ -692,11 +692,11 @@ export function OdpManager({
                 </div>
               </div>
               {geoResolving && (
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                   Membaca link Google Maps...
                 </div>
               )}
-              {mapError && <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{mapError}</div>}
+              {mapError && <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">{mapError}</div>}
               {mapLoading ? (
                 <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">Memuat peta...</div>
               ) : (

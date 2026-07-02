@@ -17,6 +17,17 @@ export function marketingNameKey(value: unknown) {
   return normalizeMarketingName(value).toLowerCase()
 }
 
+export function isSyntheticMarketingLabel(value: unknown) {
+  const normalized = marketingNameKey(value)
+  return normalized === marketingNameKey(INVALID_MARKETING_LABEL) || normalized === marketingNameKey(EMPTY_MARKETING_LABEL)
+}
+
+export function toDisplayMarketingName(value: unknown) {
+  const normalized = normalizeMarketingName(value)
+  if (!normalized || isSyntheticMarketingLabel(normalized)) return ''
+  return normalized
+}
+
 export async function getMarketingUsers(): Promise<MarketingUserOption[]> {
   const users = await prisma.user.findMany({
     where: { role: 'MARKETING' },

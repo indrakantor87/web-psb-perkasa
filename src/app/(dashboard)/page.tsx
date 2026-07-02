@@ -163,7 +163,7 @@ export default async function DashboardPage({
   const renderDashboard = (payload: DashboardPayload, localNotice?: string) => (
     <div className="space-y-4">
       {localNotice && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           {localNotice}
         </div>
       )}

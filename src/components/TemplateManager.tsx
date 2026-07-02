@@ -118,7 +118,7 @@ export function TemplateManager() {
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           <AlertCircle className="mr-2 h-5 w-5" />
           {error}
         </div>
@@ -126,7 +126,7 @@ export function TemplateManager() {
 
       <form
         onSubmit={handleAdd}
-        className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/30 sm:mb-8 sm:p-4"
+        className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 sm:mb-8 sm:p-4"
       >
         <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-200">Tambah Template</h3>
         <div className="space-y-4">
@@ -189,7 +189,7 @@ export function TemplateManager() {
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900/40">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Nama</th>
               <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Isi Pesan</th>

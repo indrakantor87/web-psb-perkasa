@@ -257,7 +257,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
         
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800 md:flex md:items-center md:gap-2">
-          <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40">
+          <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
             <Calendar className="h-4 w-4 text-gray-400" />
             <select
               value={month}
@@ -273,7 +273,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               ))}
             </select>
           </div>
-          <div className="flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40">
+          <div className="flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
             <select
               value={year}
               onChange={(e) => {
@@ -289,7 +289,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </select>
           </div>
           {isAdmin && (
-            <div className="col-span-2 flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40 md:col-span-1">
+            <div className="col-span-2 flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900 md:col-span-1">
               <select
                 value={focusedDivision}
                 onChange={(e) => {
@@ -324,19 +324,19 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{focusDivisionConfig.description}</p>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[420px]">
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penjualan</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
                   {focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">CS & Admin</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
                   {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Teknis</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
                   {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Tampil' : 'Disembunyikan'}
@@ -372,7 +372,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {showCreatorPlaceholder && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           Fokus `Creator Digital` sudah tersedia, tetapi KPI detailnya belum aktif karena sumber data campaign digital belum dibuat.
         </div>
       )}
@@ -498,15 +498,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </ResponsiveContainer>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-red-50 dark:bg-red-900/20 px-3 py-2 text-center">
+              <div className="rounded-xl bg-red-50 dark:bg-red-950 px-3 py-2 text-center">
                 <div className="text-[11px] font-semibold text-red-700 dark:text-red-200">OPEN</div>
                 <div className="text-sm font-bold text-red-800 dark:text-red-100">{statusCounts.open}</div>
               </div>
-              <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-center">
+              <div className="rounded-xl bg-blue-50 dark:bg-blue-950 px-3 py-2 text-center">
                 <div className="text-[11px] font-semibold text-blue-700 dark:text-blue-200">ON PROGRESS</div>
                 <div className="text-sm font-bold text-blue-800 dark:text-blue-100">{statusCounts.on_progress}</div>
               </div>
-              <div className="rounded-xl bg-green-50 dark:bg-green-900/20 px-3 py-2 text-center">
+              <div className="rounded-xl bg-green-50 dark:bg-green-950 px-3 py-2 text-center">
                 <div className="text-[11px] font-semibold text-green-700 dark:text-green-200">CLOSE</div>
                 <div className="text-sm font-bold text-green-800 dark:text-green-100">{statusCounts.close}</div>
               </div>
@@ -652,7 +652,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 const progress = (item.close / target) * 100
                 
                 return (
-                  <tr key={index} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-2 whitespace-nowrap dark:border-gray-700 dark:bg-gray-800 sm:static sm:border-r-0 sm:bg-transparent">
                       <div className="flex items-center">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
@@ -678,17 +678,17 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       </div>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400">
                         {item.close}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
                         {item.on_progress}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400">
                         {item.open}
                       </span>
                     </td>
@@ -700,7 +700,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                     <td className="px-4 py-2 text-center whitespace-nowrap">
                       <button
                         onClick={() => router.push(`/isolir?marketing=${encodeURIComponent(item.name)}&status=OPEN`)}
-                        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400 hover:underline"
+                        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400 hover:underline"
                         title={`Lihat isolir untuk ${item.name}`}
                       >
                         {item.isolir ?? 0}
@@ -710,8 +710,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 )
               })}
               {marketingData.length > 0 && (
-                <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold dark:border-gray-700 dark:bg-gray-900/30">
-                  <td className="sticky left-0 z-10 border-r border-gray-200 bg-gray-50 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white sm:static sm:border-r-0">
+                <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold dark:border-gray-700 dark:bg-gray-900">
+                  <td className="sticky left-0 z-10 border-r border-gray-200 bg-gray-50 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white sm:static sm:border-r-0">
                     TOTAL
                   </td>
                   <td className="px-4 py-2 text-center">
@@ -761,11 +761,11 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <div className="lg:w-72 lg:shrink-0">
             {ticketingPieData.length === 0 ? (
-              <div className="h-60 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-900/20 text-sm text-gray-500 dark:text-gray-400 italic">
+              <div className="h-60 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-900 text-sm text-gray-500 dark:text-gray-400 italic">
                 Tidak ada data
               </div>
             ) : (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/20">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
                 <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Komposisi Open vs Close</div>
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -783,11 +783,11 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   </ResponsiveContainer>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-center">
+                  <div className="rounded-lg bg-red-50 dark:bg-red-950 px-3 py-2 text-center">
                     <div className="text-[11px] font-semibold text-red-700 dark:text-red-200">OPEN</div>
                     <div className="text-sm font-bold text-red-800 dark:text-red-100">{ticketingTotals.open}</div>
                   </div>
-                  <div className="rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-center">
+                  <div className="rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2 text-center">
                     <div className="text-[11px] font-semibold text-green-700 dark:text-green-200">CLOSE</div>
                     <div className="text-sm font-bold text-green-800 dark:text-green-100">{ticketingTotals.close}</div>
                   </div>
@@ -807,7 +807,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {ticketingMonthRecap.map((r) => (
-                  <tr key={r.type} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={r.type} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
                     <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
                     <td className="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">{r.close}</td>
@@ -823,7 +823,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </tbody>
               {ticketingMonthRecap.length > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
                     <td className="px-4 py-3 text-center text-sm font-semibold text-red-700 dark:text-red-300">
                       {ticketingTotals.open}
@@ -867,7 +867,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
               {(troubleTicketProblemMonthly?.rows ?? []).map((r) => (
-                <tr key={r.problemCategory} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                <tr key={r.problemCategory} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.problemCategory}</td>
                   {troubleVisibleMonthIdx.map((i) => {
                     const v = Number(r.byMonth?.[i] ?? 0)
@@ -892,7 +892,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </tbody>
             {(troubleTicketProblemMonthly?.rows?.length ?? 0) > 0 && (
               <tfoot>
-                <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                   <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                   {troubleVisibleMonthIdx.map((i) => {
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
@@ -989,7 +989,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {(yearMarketingMonthly?.rows ?? []).map((r) => (
-                  <tr key={r.name} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={r.name} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.name}</td>
                     {marketingVisibleMonthIdx.map((i) => {
                       const v = Number(r.byMonth?.[i] ?? 0)
@@ -1014,7 +1014,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </tbody>
               {(yearMarketingMonthly?.rows?.length ?? 0) > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/20">
+                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
                     {marketingVisibleMonthIdx.map((i) => {
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
@@ -1063,7 +1063,7 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-700/30">{config.icon}</div>
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-700">{config.icon}</div>
           <div>
             <h4 className="text-base font-semibold text-gray-900 dark:text-white">{division.label}</h4>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{division.description}</p>
@@ -1075,25 +1075,25 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             <Users className="h-4 w-4" />
             Member
           </div>
           <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.members}</div>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.primaryLabel}</div>
           <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.primaryValue}</div>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.secondaryLabel}</div>
           <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.secondaryValue}</div>
         </div>
       </div>
 
       {division.note && (
-        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {division.note}
         </div>
       )}

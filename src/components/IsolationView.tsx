@@ -488,7 +488,7 @@ export function IsolationView({
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
@@ -497,7 +497,7 @@ export function IsolationView({
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="mp-desktop-table mp-table-enhanced overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900/20">
+            <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
               <tr>
                 {showSelection && (
                   <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">
@@ -543,7 +543,7 @@ export function IsolationView({
                 </tr>
               ) : (
                 isolations.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40">
+                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     {showSelection && (
                   <td className="hidden whitespace-nowrap px-2 py-3 text-sm text-gray-500 dark:text-gray-400 md:table-cell sm:px-3">
                         <input
@@ -657,8 +657,8 @@ export function IsolationView({
                           <span className={clsx(
                             "px-2 py-0.5 text-[10px] font-semibold rounded-full",
                             item.status === 'OPEN' 
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                              : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                              ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                              : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
                           )}>
                             {item.status === 'OPEN' ? 'TERISOLIR' : 'NORMAL'}
                           </span>
@@ -774,7 +774,7 @@ export function IsolationView({
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <div>

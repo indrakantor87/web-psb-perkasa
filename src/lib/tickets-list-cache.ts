@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
-import { getMarketingNameMap, normalizeMarketingName, toCanonicalMarketingLabel } from '@/lib/marketing-users'
+import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 
 export type TicketListRow = {
   id: number
@@ -263,7 +263,6 @@ async function queryTicketsList(args: Args) {
     }
 
     const tickets = await fetchTickets()
-    const marketingNameMap = await getMarketingNameMap()
 
     let counts: TicketListCounts | null = null
     if (role !== 'MARKETING') {
@@ -278,7 +277,7 @@ async function queryTicketsList(args: Args) {
 
     const normalizedTickets = tickets.map((t) => ({
       ...t,
-      marketingName: toCanonicalMarketingLabel(t.marketingName, marketingNameMap),
+      marketingName: toDisplayMarketingName(t.marketingName),
       status: t.status === 'PENDING' ? 'ON_PROGRESS' : t.status,
     }))
 

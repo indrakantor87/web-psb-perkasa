@@ -233,7 +233,7 @@ export function CoveredAreaManager() {
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900/40">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
@@ -332,7 +332,7 @@ export function CoveredAreaManager() {
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in duration-200 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

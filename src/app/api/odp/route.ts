@@ -104,7 +104,7 @@ export async function GET(req: Request) {
     if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
     if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
-    if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'NOC_TROUBLESHOOTS') {
+    if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'CS_ADMIN') {
       whereParts.push(Prisma.sql`1 = 0`)
     }
     const whereSql = Prisma.join(whereParts, ' AND ')

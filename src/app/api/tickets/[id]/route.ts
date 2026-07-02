@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
-import { normalizeMarketingName } from '@/lib/marketing-users'
+import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketing-users'
 
 function statusOrderFor(status: string) {
   const s = (status || '').toUpperCase()
@@ -72,10 +72,13 @@ export async function PUT(
 
       const marketingName = formData.get('marketingName')
       if (typeof marketingName === 'string' && marketingName) {
-        updateData.marketingName =
+        const normalizedMarketingName =
           role === 'MARKETING'
             ? normalizeMarketingName(session.user.name)
             : normalizeMarketingName(marketingName)
+        if (!isSyntheticMarketingLabel(normalizedMarketingName)) {
+          updateData.marketingName = normalizedMarketingName
+        }
       }
 
       const teknisi = formData.get('teknisi')
@@ -118,10 +121,13 @@ export async function PUT(
         if (k === 'birthDate' || k === 'installedDate') {
           next[k] = new Date(String(v))
         } else if (k === 'marketingName') {
-          next[k] =
+          const normalizedMarketingName =
             role === 'MARKETING'
               ? normalizeMarketingName(session.user.name)
               : normalizeMarketingName(v)
+          if (!isSyntheticMarketingLabel(normalizedMarketingName)) {
+            next[k] = normalizedMarketingName
+          }
         } else {
           next[k] = String(v)
         }

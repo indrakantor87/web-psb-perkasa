@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
+import { toDisplayMarketingName } from '@/lib/marketing-users'
 
 interface Ticket {
   id: number
@@ -26,6 +27,10 @@ interface Ticket {
   pembayaran?: string | null
   status: string
   closedBy?: { name: string } | null
+}
+
+function getVisibleMarketingName(value: string | null | undefined) {
+  return toDisplayMarketingName(value) || '-'
 }
 
 interface TicketListProps {
@@ -117,7 +122,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     return template
       .replace(/{{name}}/g, ticket.customerName || '')
       .replace(/{{package}}/g, ticket.package || '')
-      .replace(/{{marketing}}/g, ticket.marketingName || '')
+      .replace(/{{marketing}}/g, toDisplayMarketingName(ticket.marketingName) || '')
       .replace(/{{phone}}/g, ticket.phoneNumber || '')
       .replace(/{{location}}/g, ticket.locationMap || '')
   }
@@ -333,7 +338,10 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     // Find the ticket to edit
     const ticketToEdit = ticketsState.find(t => t.id === id)
     if (ticketToEdit) {
-      setEditTicket(ticketToEdit)
+      setEditTicket({
+        ...ticketToEdit,
+        marketingName: toDisplayMarketingName(ticketToEdit.marketingName),
+      })
       setEditFile(null)
     }
   }
@@ -464,7 +472,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         'Tgl Request': format(new Date(ticket.requestDate), 'dd/MM/yyyy'),
         'Tgl Terpasang': ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-',
         'Paket': ticket.package,
-        'Marketing': ticket.marketingName,
+        'Marketing': toDisplayMarketingName(ticket.marketingName),
         'Pengawalan': ticket.pengawalan || '-',
         'KMZ': ticket.kmz || '-',
         'Keterangan': ticket.description || '-',
@@ -579,28 +587,28 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center dark:border-red-800 dark:bg-red-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Open</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{counts?.OPEN ?? 0}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Open</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{counts?.OPEN ?? 0}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300 md:hidden">Open</span>
+              <span className="text-base font-semibold text-red-800 dark:text-red-200 md:hidden">{counts?.OPEN ?? 0}</span>
+              <span className="hidden text-xs font-medium text-red-700 dark:text-red-300 md:inline">Open</span>
+              <span className="hidden text-lg font-semibold text-red-800 dark:text-red-200 md:inline">{counts?.OPEN ?? 0}</span>
             </div>
           </div>
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-center dark:border-blue-800 dark:bg-blue-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">On Progress</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{counts?.ON_PROGRESS ?? 0}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">On Progress</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{counts?.ON_PROGRESS ?? 0}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300 md:hidden">On Progress</span>
+              <span className="text-base font-semibold text-blue-800 dark:text-blue-200 md:hidden">{counts?.ON_PROGRESS ?? 0}</span>
+              <span className="hidden text-xs font-medium text-blue-700 dark:text-blue-300 md:inline">On Progress</span>
+              <span className="hidden text-lg font-semibold text-blue-800 dark:text-blue-200 md:inline">{counts?.ON_PROGRESS ?? 0}</span>
             </div>
           </div>
-          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-center dark:border-green-800 dark:bg-green-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Close</span>
-              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{counts?.CLOSE ?? 0}</span>
-              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Close</span>
-              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{counts?.CLOSE ?? 0}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-green-700 dark:text-green-300 md:hidden">Close</span>
+              <span className="text-base font-semibold text-green-800 dark:text-green-200 md:hidden">{counts?.CLOSE ?? 0}</span>
+              <span className="hidden text-xs font-medium text-green-700 dark:text-green-300 md:inline">Close</span>
+              <span className="hidden text-lg font-semibold text-green-800 dark:text-green-200 md:inline">{counts?.CLOSE ?? 0}</span>
             </div>
           </div>
         </div>
@@ -728,7 +736,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division] || divisionDescriptions.ALL}
         </div>
       )}
@@ -741,7 +749,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
       <div className="mp-desktop-table mp-table-enhanced overflow-x-auto overflow-y-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <table className="min-w-full border-collapse">
-          <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900/20">
+          <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
             <tr>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
@@ -766,7 +774,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
           <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
             {currentTickets.map((ticket, index) => (
               <Fragment key={ticket.id}>
-                <tr key={ticket.id} className={clsx("hover:bg-gray-50/70 dark:hover:bg-gray-700/40", !isMarketing && "transition-colors")}>
+                <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-2">
                       <button
@@ -806,7 +814,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
                   {userRole !== 'MARKETING' && (
-                    <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.marketingName}</td>
+                    <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{getVisibleMarketingName(ticket.marketingName)}</td>
                   )}
 
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
@@ -835,15 +843,15 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                   <td className="hidden md:table-cell px-3 py-3 text-xs">
                     <span className={clsx(
-                      'inline-flex items-center justify-center text-center rounded-full px-2 py-0.5 font-semibold leading-tight',
+                      'inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-center font-semibold leading-tight',
                       (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING') ? 'text-[9px] whitespace-normal max-w-[70px]' : 'text-[10px] whitespace-nowrap',
                       ticket.status === 'OPEN'
-                        ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                        ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
                         : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                          ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                          ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
                           : ticket.status === 'CLOSE' 
-                            ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                            : 'bg-gray-200 text-gray-800'
+                            ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                            : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
                     )}>
                       {(ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status).replace(/_/g, ' ')}
                     </span>
@@ -900,7 +908,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       </div>
                       {userRole !== 'MARKETING' && (
                         <div className="text-gray-500 dark:text-gray-400">
-                          <span className="font-medium">Marketing:</span> {ticket.marketingName}
+                          <span className="font-medium">Marketing:</span> {getVisibleMarketingName(ticket.marketingName)}
                         </div>
                       )}
                       <div className="text-gray-500 dark:text-gray-400">
@@ -918,14 +926,14 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                       </div>
                       <div>
                         <span className={clsx(
-                          'inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                          'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
                           ticket.status === 'OPEN' 
-                            ? 'bg-red-600 text-gray-200 dark:bg-red-700' 
+                            ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
                             : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                              ? 'bg-blue-600 text-gray-200 dark:bg-blue-700'
+                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
                               : ticket.status === 'CLOSE' 
-                                ? 'bg-green-600 text-gray-200 dark:bg-green-700' 
-                                : 'bg-gray-200 text-gray-800'
+                                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                                : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
                         )}>
                           {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
                         </span>
@@ -960,7 +968,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   </td>
                 </tr>
                 {expandedTicketId === ticket.id && (
-                  <tr className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr className="bg-gray-50 dark:bg-gray-800">
                     <td colSpan={colSpan} className="px-4 py-4 text-left">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
                         <div className="space-y-3">
@@ -1086,7 +1094,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                             ) : (
                               // Marketing View for Actions
                               ticket.status === 'CLOSE' && (
-                                <div className="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded border border-green-100 dark:border-green-800">
+                                <div className="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-50 dark:bg-green-950 rounded border border-green-100 dark:border-green-800">
                                   by {ticket.closedBy?.name}
                                 </div>
                               )
@@ -1164,7 +1172,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
       </div>
 
       {summaryTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4 transition-all duration-300">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-700">
               <div>
@@ -1205,7 +1213,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">Marketing</span>{'\t'}
-                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryTicket.marketingName}</span>
+                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{getVisibleMarketingName(summaryTicket.marketingName)}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">Keterangan</span>{'\t'}
@@ -1214,7 +1222,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                     </div>
                   </div>
                 </div>
-            <div className="rounded-b-xl border-t border-gray-100 bg-gray-50/60 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 sm:py-4 dark:border-gray-700 dark:bg-gray-900/40">
+            <div className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 sm:py-4 dark:border-gray-700 dark:bg-gray-900">
               <button
                 type="button"
                 className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
@@ -1229,7 +1237,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
 
       {/* Edit Modal */}
       {editTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4">
           <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
               <div>
@@ -1411,7 +1419,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-gray-100 bg-white/80 px-6 py-4 dark:border-gray-700 dark:bg-gray-800/80">
+              <div className="flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
                 <button
                   type="button"
                   onClick={() => setEditTicket(null)}

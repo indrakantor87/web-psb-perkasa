@@ -114,7 +114,7 @@ export function PullToRefresh({ scrollEl, enabled = true, onRefresh }: PullToRef
         transition: (pull === 0 || refreshing) ? 'transform 300ms cubic-bezier(0.23, 1, 0.32, 1)' : undefined,
       }}
     >
-      <div className="flex items-center gap-2 rounded-full bg-white/90 dark:bg-gray-800/90 px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-2 rounded-full bg-white dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 shadow-lg border border-gray-200 dark:border-gray-700">
         {refreshing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (

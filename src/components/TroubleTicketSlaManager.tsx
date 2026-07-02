@@ -117,13 +117,13 @@ export function TroubleTicketSlaManager() {
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           <AlertCircle className="h-5 w-5 mr-2" />
           {error}
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/30">
+      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
         <div className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Tambah Type</div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="flex flex-col">
@@ -161,7 +161,7 @@ export function TroubleTicketSlaManager() {
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900/20">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Type</th>
               <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Durasi (Hari)</th>

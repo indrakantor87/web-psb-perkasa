@@ -280,13 +280,13 @@ export function UsersClient({ currentUser }: UsersClientProps) {
           </h2>
           
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
+            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
               {error}
             </div>
           )}
           
           {success && (
-            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-900/30 p-3 sm:p-4 text-sm text-green-700 dark:text-green-200">
+            <div className="mb-4 rounded-lg bg-green-50 dark:bg-green-950 p-3 sm:p-4 text-sm text-green-700 dark:text-green-200">
               {success}
             </div>
           )}
@@ -366,7 +366,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 type="text"
                 value={derivedDivision || '-'}
                 readOnly
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-black sm:text-sm dark:border-gray-600 dark:bg-gray-700/60 dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-black sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Divisi diisi otomatis dari mapping role.
@@ -423,7 +423,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         {/* Desktop Table */}
         <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900/20">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama</th>
@@ -442,9 +442,9 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     <span className={clsx(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                      user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" :
-                      user.role === 'TEKNISI' || user.role === 'TROUBLESHOOTS' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" :
-                      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                      user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300" :
+                      user.role === 'TEKNISI' || user.role === 'TROUBLESHOOTS' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" :
+                      "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                     )}>
                       {user.role}
                     </span>
@@ -499,9 +499,9 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 </div>
                 <span className={clsx(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                  user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" :
-                  user.role === 'TEKNISI' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" :
-                  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                  user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300" :
+                  user.role === 'TEKNISI' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" :
+                  "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                 )}>
                   {user.role}
                 </span>
@@ -537,7 +537,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       {/* Reset Password Modal */}
       {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reset Password</h3>
@@ -591,7 +591,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Hapus User</h3>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">

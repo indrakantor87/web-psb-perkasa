@@ -400,7 +400,7 @@ export default async function DivisionDetailPage({
       </div>
 
       {localNotice && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           {localNotice}
         </div>
       )}
@@ -423,7 +423,7 @@ export default async function DivisionDetailPage({
               Akses cepat ke modul yang paling relevan untuk divisi ini.
             </p>
           </div>
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
             {focusNote}
           </div>
         </div>
@@ -432,7 +432,7 @@ export default async function DivisionDetailPage({
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/30 dark:hover:bg-gray-800"
+              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
             >
               <div className="text-sm font-semibold text-gray-900 dark:text-white">{link.label}</div>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{link.description}</p>
@@ -447,18 +447,18 @@ export default async function DivisionDetailPage({
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Anggota Divisi</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Mapping role ke division yang saat ini aktif.</p>
           </div>
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
             Total {members.length} user
           </div>
         </div>
         {members.length === 0 ? (
-          <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-500 dark:bg-gray-900/30 dark:text-gray-400">
+          <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
             Belum ada user yang terhubung ke divisi ini.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {members.map((member) => (
-              <div key={member.id} className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+              <div key={member.id} className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                 <div className="font-semibold text-gray-900 dark:text-white">{member.name}</div>
                 <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">@{member.username}</div>
                 <div className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
@@ -513,13 +513,13 @@ export default async function DivisionDetailPage({
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Komposisi paket dengan pemasangan terbanyak.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
               ))}
               {problemRows.length === 0 && (
-                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900/30">
+                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900">
                   Belum ada data paket untuk periode ini.
                 </div>
               )}
@@ -565,13 +565,13 @@ export default async function DivisionDetailPage({
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Perangkat Radboox yang paling sering muncul pada data isolir.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
               ))}
               {problemRows.length === 0 && (
-                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900/30">
+                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900">
                   Belum ada data Radboox untuk divisi ini.
                 </div>
               )}
@@ -623,13 +623,13 @@ export default async function DivisionDetailPage({
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Top kategori gangguan selama tahun berjalan.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
               ))}
               {problemRows.length === 0 && (
-                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900/30">
+                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900">
                   Belum ada data gangguan untuk tahun ini.
                 </div>
               )}
@@ -639,7 +639,7 @@ export default async function DivisionDetailPage({
       )}
 
       {division === 'CREATOR_DIGITAL' && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           Detail KPI `Creator Digital` belum diaktifkan karena modul campaign, leads, dan aktivitas konten belum tersedia di sistem. Struktur division dan member sudah siap dipakai untuk fase berikutnya.
         </div>
       )}

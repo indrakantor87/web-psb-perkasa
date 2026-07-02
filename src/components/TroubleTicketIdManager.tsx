@@ -102,7 +102,7 @@ export function TroubleTicketIdManager() {
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           <AlertCircle className="h-5 w-5 mr-2" />
           {error}
         </div>
@@ -145,7 +145,7 @@ export function TroubleTicketIdManager() {
         </div>
         <div className="flex flex-col">
           <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preview</span>
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-700/30 dark:text-gray-200">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200">
             {normalizePrefix(category, prefix)}
             {formatTicketNumber(nextNumber)}
           </div>

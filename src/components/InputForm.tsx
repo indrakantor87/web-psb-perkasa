@@ -274,7 +274,7 @@ export function InputForm({
                 <option value="CREATOR_DIGITAL">Creator Digital</option>
               </select>
             </div>
-            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
               {divisionDescriptions[division]}
             </div>
           </div>
@@ -288,7 +288,7 @@ export function InputForm({
             <p className="text-sm text-gray-500 dark:text-gray-400">Isi data pelanggan baru secara singkat dan rapi.</p>
           </div>
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
               {error}
             </div>
           )}
@@ -393,7 +393,7 @@ export function InputForm({
           )}
         </div>
 
-        <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50/70 p-4 dark:border-gray-600 dark:bg-gray-900/20">
+        <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Foto Rumah (Max 10MB - Otomatis Dikompres)
           </label>

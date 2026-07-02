@@ -5,7 +5,7 @@ import { ticketCreateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
-import { getMarketingNameMap, normalizeMarketingName, toCanonicalMarketingLabel } from '@/lib/marketing-users'
+import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -196,13 +196,12 @@ export async function GET(request: Request) {
       }
     })
 
-    const marketingNameMap = await getMarketingNameMap()
-    const normalizedTickets = tickets.map((ticket) => ({
+    const sanitizedTickets = tickets.map((ticket) => ({
       ...ticket,
-      marketingName: toCanonicalMarketingLabel(ticket.marketingName, marketingNameMap),
+      marketingName: toDisplayMarketingName(ticket.marketingName),
     }))
 
-    return NextResponse.json(normalizedTickets, {
+    return NextResponse.json(sanitizedTickets, {
       headers: {
         'Cache-Control': 'no-store'
       }
@@ -286,7 +285,7 @@ export async function POST(request: Request) {
         ? normalizeMarketingName(session.user.name)
         : normalizeMarketingName(submittedMarketingName)
 
-    if (!finalMarketingName) {
+    if (!finalMarketingName || (session.user.role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }
 

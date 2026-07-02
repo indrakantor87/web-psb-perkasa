@@ -54,31 +54,31 @@ function getDivisionGroupTone(key: string) {
   switch (key) {
     case 'penjualan':
       return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
         badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
         panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'cs-admin':
       return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
         badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
         panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'noc-troubleshoots':
       return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
         badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
         panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'creator-digital':
       return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
         badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
         panel: 'border-gray-200 dark:border-gray-700',
       }
     default:
       return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
         badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
         panel: 'border-gray-200 dark:border-gray-700',
       }
@@ -337,8 +337,8 @@ export function Header({ user }: { user: SessionUser }) {
                   className={clsx(
                     'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
                     pathname === '/'
-                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700/70 dark:text-white'
-                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
                   )}
                 >
                   Dashboard
@@ -360,7 +360,7 @@ export function Header({ user }: { user: SessionUser }) {
                             className={clsx(
                               'block px-3 py-2 text-sm transition-colors',
                               pathname === '/'
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                             )}
                           >
@@ -385,7 +385,7 @@ export function Header({ user }: { user: SessionUser }) {
                                   className={clsx(
                                     'block px-3 py-2 text-sm transition-colors',
                                     matchesLink(link)
-                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                       : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                   )}
                                 >
@@ -407,7 +407,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block px-3 py-2 text-sm transition-colors',
                                 isActive
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >
@@ -430,8 +430,8 @@ export function Header({ user }: { user: SessionUser }) {
                   className={clsx(
                     'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
                     pathname.startsWith('/settings')
-                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700/70 dark:text-white'
-                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
                   )}
                 >
                   Pengaturan
@@ -459,7 +459,7 @@ export function Header({ user }: { user: SessionUser }) {
                                 className={clsx(
                                   'block rounded-lg px-3 py-2 text-sm transition-colors',
                                   pathname === link.href
-                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                     : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                 )}
                               >
@@ -515,8 +515,8 @@ export function Header({ user }: { user: SessionUser }) {
                   className={clsx(
                     'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
                     pathname === '/'
-                      ? 'border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-700 dark:bg-gray-700/70 dark:text-white'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                      ? 'border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-700 dark:bg-gray-700 dark:text-white'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   )}
                 >
                   Dashboard
@@ -538,7 +538,7 @@ export function Header({ user }: { user: SessionUser }) {
                             'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
                             isActive || isOpenGroup
                               ? tone.buttonActive
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                           )}
                         >
                           {group.label}
@@ -563,7 +563,7 @@ export function Header({ user }: { user: SessionUser }) {
                                   className={clsx(
                                     'block px-4 py-2.5 text-sm transition-colors',
                                     matchesLink(link)
-                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700/70 dark:text-white'
+                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                                       : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                   )}
                                 >
@@ -590,8 +590,8 @@ export function Header({ user }: { user: SessionUser }) {
                     className={clsx(
                       'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                     )}
                   >
                     <Icon className="h-4 w-4 mr-2" />
@@ -610,8 +610,8 @@ export function Header({ user }: { user: SessionUser }) {
                 className={clsx(
                   'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname.startsWith('/settings')
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                 )}
               >
                 <Settings className="h-4 w-4 mr-2" />
@@ -639,7 +639,7 @@ export function Header({ user }: { user: SessionUser }) {
                             className={clsx(
                               'block rounded-lg px-3 py-2 text-sm transition-colors',
                               pathname === link.href
-                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                 : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                             )}
                           >
@@ -717,7 +717,7 @@ export function Header({ user }: { user: SessionUser }) {
                   className="h-8 w-8 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400 font-bold text-sm">
                   {user?.name?.charAt(0)}
                 </div>
               )}
@@ -744,7 +744,7 @@ export function Header({ user }: { user: SessionUser }) {
                  </Link>
                  <button
                     onClick={handleLogout}
-                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                  >
                    <LogOut className="mr-2 h-4 w-4" />
                    Logout
@@ -767,8 +767,8 @@ export function Header({ user }: { user: SessionUser }) {
               className={clsx(
                 'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
                 pathname === '/'
-                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                  : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                  : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
               )}
             >
               <LayoutDashboard className="h-4 w-4" />
@@ -778,7 +778,7 @@ export function Header({ user }: { user: SessionUser }) {
 
             {isNavOpen && (
               <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-gray-300 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
                   {isAdmin && adminDivisionGroups.length > 0 ? (
                     <>
                       <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -791,7 +791,7 @@ export function Header({ user }: { user: SessionUser }) {
                         className={clsx(
                           'block px-3 py-2 text-sm transition-colors',
                           pathname === '/'
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                             : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                         )}
                       >
@@ -821,7 +821,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block px-3 py-2 text-sm transition-colors',
                                 matchesLink(link)
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >
@@ -843,7 +843,7 @@ export function Header({ user }: { user: SessionUser }) {
                           className={clsx(
                             'block px-3 py-2 text-sm transition-colors',
                             isActive
-                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                               : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                           )}
                         >
@@ -866,8 +866,8 @@ export function Header({ user }: { user: SessionUser }) {
                 className={clsx(
                   'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
                   pathname.startsWith('/settings')
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -877,7 +877,7 @@ export function Header({ user }: { user: SessionUser }) {
 
               {isSettingsOpen && (
                 <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-gray-300 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
                     {settingsGroups.map((group) => (
                       <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
                         <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -896,7 +896,7 @@ export function Header({ user }: { user: SessionUser }) {
                               className={clsx(
                                 'block rounded-lg px-3 py-2 text-sm transition-colors',
                                 pathname === link.href
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400'
                                   : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                               )}
                             >

@@ -76,12 +76,12 @@ export default function ChangePasswordForm() {
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
               {error}
             </div>
           )}
           {success && (
-            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-900/40 dark:bg-green-900/30 dark:text-green-200">
+            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
               {success}
             </div>
           )}

@@ -405,7 +405,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       {/* View Switcher and Filters */}
       <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 lg:flex-row lg:items-end">
         <div className="flex flex-col gap-4 flex-1 w-full">
-          <div className="flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900/30">
+          <div className="flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900">
             <button
               onClick={() => setViewMode('marketing')}
               className={clsx(
@@ -531,13 +531,13 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
 
       {marketingOptionsError && isPenjualanFocus && (
-        <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-200">
+        <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {marketingOptionsError}
         </div>
       )}
@@ -546,7 +546,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-gray-700 md:min-w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900/20">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   <th className="w-10 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300"></th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Marketing</th>
@@ -575,7 +575,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                     return (
                       <Fragment key={name}>
                         <tr 
-                          className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                          className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setExpandedMarketing(isExpanded ? null : name)}
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -600,10 +600,10 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={5} className="px-0 py-0 bg-gray-50/50 dark:bg-gray-900/20">
+                            <td colSpan={5} className="px-0 py-0 bg-gray-50 dark:bg-gray-900">
                               <div className="p-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
                                 <table className="min-w-full overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200 dark:border-gray-700 dark:divide-gray-700">
-                                  <thead className="bg-gray-50 dark:bg-gray-900/20">
+                                  <thead className="bg-gray-50 dark:bg-gray-900">
                                     <tr>
                                       <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Tanggal</th>
                                       <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Area</th>
@@ -614,7 +614,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                                   </thead>
                                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                     {group.activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((activity) => (
-                                      <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                      <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                                         <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
                                           {format(new Date(activity.date), 'dd/MM/yyyy')}
                                         </td>
@@ -641,7 +641,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                                             {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(activity.id); }}
-                                                className="text-red-600 hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                className="text-red-600 hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950"
                                                 title="Hapus"
                                               >
                                                 <Trash2 className="h-3.5 w-3.5" />
@@ -668,7 +668,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 p-4 dark:border-gray-700 dark:bg-gray-900/30">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
               <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
                 <BarChart2 className="h-4 w-4 text-gray-500" />
                 Persentase Kunjungan Per Area
@@ -765,7 +765,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 backdrop-blur-sm">
           <div className="w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in duration-200 dark:border-gray-700 dark:bg-gray-800">
             <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div>
