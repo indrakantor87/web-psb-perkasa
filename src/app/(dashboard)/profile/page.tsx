@@ -37,11 +37,14 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">Profil Saya</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Kelola foto, informasi akun, dan keamanan login.</p>
+      </div>
       
-      <div className="max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="px-4 py-4 sm:px-6 sm:py-5">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Foto Profil</h3>
+          <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">Foto Profil</h3>
           <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
             Upload foto profil (JPG/PNG/WEBP, maks 2MB).
           </p>
@@ -51,15 +54,15 @@ export default async function ProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="px-4 py-4 sm:px-6 sm:py-5">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">User Information</h3>
-          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Your account details.</p>
+          <h3 className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">Informasi Akun</h3>
+          <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Data akun yang sedang dipakai untuk login.</p>
         </div>
         <div className="border-t border-gray-200 dark:border-gray-700">
           <dl>
             <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Nama Lengkap</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{user.name}</dd>
             </div>
             <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -70,8 +73,8 @@ export default async function ProfilePage() {
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Password</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 flex items-center justify-between">
                 <span>********</span>
-                <a href="#change-password-form" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-xs font-medium">
-                  Change
+                <a href="#change-password-form" className="text-xs font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white">
+                  Ganti
                 </a>
               </dd>
             </div>
@@ -80,7 +83,7 @@ export default async function ProfilePage() {
               <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{user.role}</dd>
             </div>
             <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Division</dt>
+              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Divisi</dt>
               <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{formatDivisionLabel(user.division)}</dd>
             </div>
           </dl>

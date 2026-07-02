@@ -63,9 +63,9 @@ export default function ChangePasswordForm() {
   }
 
   return (
-    <div id="change-password-form" className="mt-4 sm:mt-6 max-w-2xl overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700">
+    <div id="change-password-form" className="mt-4 max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 sm:mt-6">
       <div className="px-4 py-4 sm:px-6 sm:py-5">
-        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white flex items-center">
+        <h3 className="flex items-center text-lg font-semibold leading-6 text-gray-900 dark:text-white">
           <Lock className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
           Ganti Password
         </h3>
@@ -76,25 +76,25 @@ export default function ChangePasswordForm() {
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-200 p-3 rounded-md text-sm">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
               {error}
             </div>
           )}
           {success && (
-            <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-200 p-3 rounded-md text-sm">
+            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-600 dark:border-green-900/40 dark:bg-green-900/30 dark:text-green-200">
               {success}
             </div>
           )}
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Password Saat Ini
             </label>
             <div className="relative mt-1">
               <input
                 type={showCurrent ? "text" : "password"}
                 required
-                className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
               />
@@ -113,7 +113,7 @@ export default function ChangePasswordForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Password Baru
             </label>
             <div className="relative mt-1">
@@ -121,7 +121,7 @@ export default function ChangePasswordForm() {
                 type={showNew ? "text" : "password"}
                 required
                 minLength={6}
-                className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
               />
@@ -140,7 +140,7 @@ export default function ChangePasswordForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Konfirmasi Password Baru
             </label>
             <div className="relative mt-1">
@@ -148,7 +148,7 @@ export default function ChangePasswordForm() {
                 type={showConfirm ? "text" : "password"}
                 required
                 minLength={6}
-                className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               />
@@ -166,13 +166,13 @@ export default function ChangePasswordForm() {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              className="inline-flex justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
             >
-              {loading ? 'Saving...' : 'Save Password'}
+              {loading ? 'Menyimpan...' : 'Simpan Password'}
             </button>
           </div>
         </form>

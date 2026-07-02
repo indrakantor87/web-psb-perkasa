@@ -87,10 +87,10 @@ function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[calc(100vh-2rem)] rounded-2xl bg-white dark:bg-gray-900 shadow-xl ring-1 ring-gray-200 dark:ring-gray-800 flex flex-col">
+      <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
-          <button onClick={onClose} className="rounded-lg px-2 py-1 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <button onClick={onClose} className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800">
             Tutup
           </button>
         </div>
@@ -516,7 +516,7 @@ export function OdpManager({
             {mapOpen ? 'Tutup Peta' : 'Lihat Peta'}
           </button>
           {canEdit && (
-            <button onClick={openAdd} disabled={!canMutate} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto">
+            <button onClick={openAdd} disabled={!canMutate} className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto">
               <Plus className="h-4 w-4" />
               Tambah ODP
             </button>
@@ -525,7 +525,7 @@ export function OdpManager({
             <button
               onClick={deleteSelected}
               disabled={bulkDeleting || !canMutate}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:w-auto"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
               title="Hapus ODP yang dipilih"
             >
               <Trash2 className="h-4 w-4" />
@@ -535,7 +535,7 @@ export function OdpManager({
           <button
             onClick={handleExportExcel}
             disabled={isExporting || !supportsOdpWorkflow}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
           >
             {isExporting ? 'Export...' : 'Export Excel'}
           </button>
@@ -545,7 +545,7 @@ export function OdpManager({
               <button
                 onClick={handleImportClick}
                 disabled={isImporting || !canMutate}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 sm:w-auto"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
                 title="Import Excel (Admin/CS/NOC/TEKNISI)"
               >
                 <Upload className="h-4 w-4" />
@@ -557,23 +557,23 @@ export function OdpManager({
       </div>
 
       {isAdmin && (
-        <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
 
-      <div className="rounded-2xl bg-white dark:bg-gray-900 p-3 sm:p-5 ring-1 ring-gray-200 dark:ring-gray-800">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-            <select className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+            <select className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white sm:w-auto" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
               {[10, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>
-                  Show {n}
+                    Tampil {n}
                 </option>
               ))}
             </select>
               <select
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white sm:w-auto"
                 value={wilayah}
                 onChange={(e) => setWilayah(e.target.value)}
               >
@@ -586,7 +586,7 @@ export function OdpManager({
               </select>
               {isAdmin && (
                 <select
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white sm:w-auto"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white sm:w-auto"
                   value={division}
                   onChange={(e) => setDivision(e.target.value as DivisionFilter)}
                 >
@@ -648,13 +648,13 @@ export function OdpManager({
                 }
               }}
               placeholder="Cari ODP / lokasi... (paste link Google Maps)"
-              className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white md:w-80"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white md:w-80"
             />
           </div>
         </div>
 
-        {error && <div className="mt-4 rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{error}</div>}
-        {importError && <div className="mt-3 rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{importError}</div>}
+        {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{error}</div>}
+        {importError && <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{importError}</div>}
 
         {mapOpen && (
           <div
@@ -692,13 +692,13 @@ export function OdpManager({
                 </div>
               </div>
               {geoResolving && (
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-3 text-sm text-blue-700 dark:text-blue-200 ring-1 ring-blue-200 dark:ring-blue-900/40">
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
                   Membaca link Google Maps...
                 </div>
               )}
-              {mapError && <div className="rounded-lg bg-red-900/20 p-3 text-sm font-medium text-red-200 ring-1 ring-red-900/40">{mapError}</div>}
+              {mapError && <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">{mapError}</div>}
               {mapLoading ? (
-                <div className="rounded-lg bg-gray-50 dark:bg-gray-950 p-3 text-sm text-gray-600 dark:text-gray-300 ring-1 ring-gray-200 dark:ring-gray-800">Memuat peta...</div>
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">Memuat peta...</div>
               ) : (
                 <OdpRealtimeMap
                   key={`${mapFullscreen ? 'fs' : 'normal'}:${searchPoint ? `${searchPoint.latitude}:${searchPoint.longitude}` : 'no-target'}`}
@@ -713,18 +713,18 @@ export function OdpManager({
           </div>
         )}
 
-        <div className="mt-4 overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700">
+        <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="mp-table-enhanced overflow-x-auto">
           <table className="w-full min-w-[980px] lg:min-w-full">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-[11px] font-bold text-gray-600 dark:text-gray-100">
+              <tr className="border-b border-gray-100 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:border-gray-800 dark:text-gray-300">
                 {canEdit && (
                   <th className="py-3 pr-4 pl-3 w-10">
                     <input
                       type="checkbox"
                       checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
                       onChange={toggleSelectAllCurrent}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
                     />
                   </th>
                 )}
@@ -744,7 +744,7 @@ export function OdpManager({
               {loading ? (
                 <tr>
                   <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 11 : 9}>
-                    Loading...
+                    Memuat data...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
@@ -766,7 +766,7 @@ export function OdpManager({
                             type="checkbox"
                             checked={selectedSet.has(row.id)}
                             onChange={() => toggleRowSelected(row.id)}
-                            className="h-4 w-4 rounded border-gray-300"
+                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
                           />
                         </td>
                       )}
@@ -800,10 +800,10 @@ export function OdpManager({
                       {canEdit && (
                         <td className="py-3">
                           <div className="flex items-center gap-2">
-                            <button onClick={() => openEdit(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-2.5 py-2 text-white hover:bg-amber-700 disabled:opacity-60" title="Edit">
+                            <button onClick={() => openEdit(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-2.5 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600" title="Edit">
                               <Pencil className="h-4 w-4" />
                             </button>
-                            <button onClick={() => removeRow(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-lg bg-red-600 px-2.5 py-2 text-white hover:bg-red-700 disabled:opacity-60" title="Hapus">
+                            <button onClick={() => removeRow(row)} disabled={!canMutate} className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-2.5 py-2 text-red-600 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600" title="Hapus">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -820,14 +820,14 @@ export function OdpManager({
 
         <div className="mt-4 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
           <div>
-            Page {page} / {totalPages} · Total {total}
+            Halaman {page} / {totalPages} · Total {total}
           </div>
           <div className="flex items-center gap-2">
-            <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-semibold disabled:opacity-50">
-              Previous
+            <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950">
+              Sebelumnya
             </button>
-            <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-semibold disabled:opacity-50">
-              Next
+            <button disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950">
+              Berikutnya
             </button>
           </div>
         </div>
@@ -836,16 +836,16 @@ export function OdpManager({
       <Modal open={modalOpen} title={editing ? 'Edit ODP' : 'Tambah ODP'} onClose={() => setModalOpen(false)}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Nama ODP</label>
-            <input value={form.nama_odp} onChange={(e) => setForm((p) => ({ ...p, nama_odp: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="ODP-001" />
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama ODP</label>
+            <input value={form.nama_odp} onChange={(e) => setForm((p) => ({ ...p, nama_odp: e.target.value }))} className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="ODP-001" />
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">POP</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">POP</label>
             <input
               list="odp-wilayah-list"
               value={form.wilayah}
               onChange={(e) => setForm((p) => ({ ...p, wilayah: e.target.value }))}
-              className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white"
+              className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
               placeholder="Pati"
             />
             <datalist id="odp-wilayah-list">
@@ -855,29 +855,29 @@ export function OdpManager({
             </datalist>
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Lokasi</label>
-            <input value={form.lokasi} onChange={(e) => setForm((p) => ({ ...p, lokasi: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="Alamat / patokan lokasi" />
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Lokasi</label>
+            <input value={form.lokasi} onChange={(e) => setForm((p) => ({ ...p, lokasi: e.target.value }))} className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="Alamat / patokan lokasi" />
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Koordinat</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Koordinat</label>
             <input
               value={form.koordinat}
               onChange={(e) => setForm((p) => ({ ...p, koordinat: e.target.value }))}
-              className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white"
+              className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
               placeholder="-6.888,110.905 atau link Google Maps"
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Kapasitas</label>
-            <input value={form.kapasitas} onChange={(e) => setForm((p) => ({ ...p, kapasitas: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="8" />
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kapasitas</label>
+            <input value={form.kapasitas} onChange={(e) => setForm((p) => ({ ...p, kapasitas: e.target.value }))} className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="8" />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Terpakai</label>
-            <input value={form.terpakai} onChange={(e) => setForm((p) => ({ ...p, terpakai: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white" placeholder="0" />
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Terpakai</label>
+            <input value={form.terpakai} onChange={(e) => setForm((p) => ({ ...p, terpakai: e.target.value }))} className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white" placeholder="0" />
           </div>
           <div className="md:col-span-2">
-            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Status Tiang</label>
-            <select value={form.status_tiang} onChange={(e) => setForm((p) => ({ ...p, status_tiang: e.target.value }))} className="mt-2 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-3 py-2 text-sm text-gray-900 dark:text-white">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Tiang</label>
+            <select value={form.status_tiang} onChange={(e) => setForm((p) => ({ ...p, status_tiang: e.target.value }))} className="mt-2 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white">
               {['Perkasa', 'Numpang', 'n/a'].map((x) => (
                 <option key={x} value={x}>
                   {x}
@@ -888,10 +888,10 @@ export function OdpManager({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          <button onClick={() => setModalOpen(false)} className="rounded-lg bg-white dark:bg-gray-950 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
-            Close
+          <button onClick={() => setModalOpen(false)} className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-800">
+            Batal
           </button>
-          <button onClick={save} disabled={saving || !canEdit} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-blue-700">
+          <button onClick={save} disabled={saving || !canEdit} className="rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">
             {saving ? 'Menyimpan...' : editing ? 'Simpan' : 'Tambah'}
           </button>
         </div>

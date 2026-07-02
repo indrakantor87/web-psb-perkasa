@@ -54,33 +54,33 @@ function getDivisionGroupTone(key: string) {
   switch (key) {
     case 'penjualan':
       return {
-        buttonActive: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300',
-        badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
-        panel: 'border-emerald-100 dark:border-emerald-900/40',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
+        panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'cs-admin':
       return {
-        buttonActive: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300',
-        badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-        panel: 'border-amber-100 dark:border-amber-900/40',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
+        panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'noc-troubleshoots':
       return {
-        buttonActive: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300',
-        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-        panel: 'border-blue-100 dark:border-blue-900/40',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
+        panel: 'border-gray-200 dark:border-gray-700',
       }
     case 'creator-digital':
       return {
-        buttonActive: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-900/20 dark:text-fuchsia-300',
-        badge: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
-        panel: 'border-fuchsia-100 dark:border-fuchsia-900/40',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
+        panel: 'border-gray-200 dark:border-gray-700',
       }
     default:
       return {
-        buttonActive: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400',
-        badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-        panel: 'border-gray-100 dark:border-gray-700',
+        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700/60 dark:text-white',
+        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
+        panel: 'border-gray-200 dark:border-gray-700',
       }
   }
 }
@@ -221,7 +221,7 @@ export function Header({ user }: { user: SessionUser }) {
           key: 'penjualan',
           label: 'Penjualan',
           icon: FileInput,
-          description: 'Operasional akuisisi pelanggan baru dan aktivitas marketing.',
+          description: 'PSB baru dan aktivitas marketing.',
           items: [
             { href: '/division?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
             { href: '/input?division=PENJUALAN', label: 'Input PSB', icon: FileInput },
@@ -233,7 +233,7 @@ export function Header({ user }: { user: SessionUser }) {
           key: 'cs-admin',
           label: 'CS & Admin CS',
           icon: Ban,
-          description: 'Fokus follow up pelanggan, isolir, dan proses administratif CS.',
+          description: 'Follow up pelanggan dan administrasi CS.',
           items: [
             { href: '/division?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
             { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
@@ -244,7 +244,7 @@ export function Header({ user }: { user: SessionUser }) {
           key: 'noc-troubleshoots',
           label: 'NOC & Troubleshoots',
           icon: Wrench,
-          description: 'Monitoring aset jaringan dan tindak lanjut teknis lapangan.',
+          description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
             { href: '/division?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
             { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
@@ -254,7 +254,7 @@ export function Header({ user }: { user: SessionUser }) {
           key: 'creator-digital',
           label: 'Creator Digital',
           icon: ClipboardList,
-          description: 'Ruang ringkasan untuk kebutuhan KPI dan pengembangan modul digital.',
+          description: 'Ruang KPI dan pengembangan modul digital.',
           items: [
             { href: '/division?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
           ],
@@ -268,7 +268,7 @@ export function Header({ user }: { user: SessionUser }) {
     {
       key: 'sales-master',
       label: 'Penjualan',
-      description: 'Master data untuk operasional PSB dan komunikasi marketing.',
+      description: 'Master data PSB dan komunikasi marketing.',
       items: [
         { href: '/settings/areas', label: 'Master Area' },
         { href: '/settings/packages', label: 'Master Paket' },
@@ -278,7 +278,7 @@ export function Header({ user }: { user: SessionUser }) {
     {
       key: 'admin-system',
       label: 'Admin & Sistem',
-      description: 'Pengelolaan user dan fondasi akses dashboard.',
+      description: 'Pengguna dan pengaturan akses.',
       items: [
         { href: '/settings/users', label: 'Manajemen Pengguna' },
       ],
@@ -286,7 +286,7 @@ export function Header({ user }: { user: SessionUser }) {
     {
       key: 'noc-ticketing',
       label: 'NOC & Ticketing',
-      description: 'Konfigurasi yang berkaitan dengan trouble ticket dan operasional teknis.',
+      description: 'Konfigurasi trouble ticket dan operasional teknis.',
       items: [
         { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
       ],
@@ -303,7 +303,7 @@ export function Header({ user }: { user: SessionUser }) {
   }
 
   return (
-    <header className={clsx("bg-white dark:bg-gray-800 shadow-sm relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
+    <header className={clsx("border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
       <div className="mx-auto w-full max-w-7xl md:max-w-none">
         <div className="flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2 md:gap-8">
@@ -335,20 +335,19 @@ export function Header({ user }: { user: SessionUser }) {
                     setIsSettingsOpen(false)
                   }}
                   className={clsx(
-                    'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
+                    'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
                     pathname === '/'
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                      : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700/70 dark:text-white'
+                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
                   )}
                 >
-                  <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                   <ChevronDown className={clsx("h-3 w-3 transition-transform", isNavOpen && "rotate-180")} />
                 </button>
 
                 {isNavOpen && (
                   <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                    <div className="max-h-[60vh] overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
                       {isAdmin && adminDivisionGroups.length > 0 ? (
                         <>
                           <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -370,15 +369,10 @@ export function Header({ user }: { user: SessionUser }) {
                           {adminDivisionGroups.map((group) => (
                             <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
                               <div className="px-3 pb-2 pt-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                    {group.label}
-                                  </div>
-                                  <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', getDivisionGroupTone(group.key).badge)}>
-                                    Divisi
-                                  </span>
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                  {group.label}
                                 </div>
-                                <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                                   {group.description}
                                 </p>
                               </div>
@@ -434,26 +428,25 @@ export function Header({ user }: { user: SessionUser }) {
                     setIsNavOpen(false)
                   }}
                   className={clsx(
-                    'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
+                    'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
                     pathname.startsWith('/settings')
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                      : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
+                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700/70 dark:text-white'
+                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800/40 dark:hover:bg-gray-700/50'
                   )}
                 >
-                  <Settings className="h-4 w-4" />
                   Pengaturan
                   <ChevronDown className={clsx("h-3 w-3 transition-transform", isSettingsOpen && "rotate-180")} />
                 </button>
 
                 {isSettingsOpen && (
                   <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black/5 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                    <div className="max-h-[60vh] overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
                       {settingsGroups.map((group) => (
                         <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
                           <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             {group.label}
                           </div>
-                          <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                             {group.description}
                           </p>
                           <div className="mt-2 space-y-1">
@@ -520,19 +513,17 @@ export function Header({ user }: { user: SessionUser }) {
                   href="/"
                   prefetch={false}
                   className={clsx(
-                    'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
                     pathname === '/'
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                      ? 'border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-700 dark:bg-gray-700/70 dark:text-white'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
                   )}
                 >
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
                 </Link>
 
                 <div className="flex items-center space-x-1" ref={divisionNavRef}>
                   {adminDivisionGroups.map((group) => {
-                    const GroupIcon = group.icon
                     const isActive = group.items.some((item) => matchesLink(item))
                     const isOpenGroup = openDivisionMenu === group.key
                     const tone = getDivisionGroupTone(group.key)
@@ -544,35 +535,25 @@ export function Header({ user }: { user: SessionUser }) {
                             setIsSettingsOpen(false)
                           }}
                           className={clsx(
-                            'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                            'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
                             isActive || isOpenGroup
                               ? tone.buttonActive
                               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
                           )}
                         >
-                          <GroupIcon className="h-4 w-4 mr-2" />
                           {group.label}
                           <ChevronDown className={clsx("ml-1 h-3 w-3 transition-transform", isOpenGroup && "rotate-180")} />
                         </button>
 
                         {isOpenGroup && (
-                          <div className={clsx('absolute left-0 mt-2 w-72 overflow-hidden rounded-xl border bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700 z-50', tone.panel)}>
+                          <div className={clsx('absolute left-0 z-50 mt-2 w-72 overflow-hidden rounded-md border bg-white py-1 shadow-md dark:bg-gray-800', tone.panel)}>
                             <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <GroupIcon className="h-4 w-4" />
-                                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.label}</span>
-                                </div>
-                                <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', tone.badge)}>
-                                  Divisi
-                                </span>
-                              </div>
-                              <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.label}</span>
+                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 {group.description}
                               </p>
                             </div>
                             {group.items.map((link) => {
-                              const Icon = link.icon
                               return (
                                 <Link
                                   key={link.href}
@@ -580,13 +561,12 @@ export function Header({ user }: { user: SessionUser }) {
                                   prefetch={false}
                                   onClick={() => setOpenDivisionMenu(null)}
                                   className={clsx(
-                                    'flex items-center px-4 py-2.5 text-sm transition-colors',
+                                    'block px-4 py-2.5 text-sm transition-colors',
                                     matchesLink(link)
-                                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700/70 dark:text-white'
                                       : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
                                   )}
                                 >
-                                  <Icon className="mr-2 h-4 w-4" />
                                   {link.label}
                                 </Link>
                               )

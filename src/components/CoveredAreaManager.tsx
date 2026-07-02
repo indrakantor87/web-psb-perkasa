@@ -186,19 +186,24 @@ export function CoveredAreaManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 gap-4">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-          <MapPin className="h-5 w-5 text-blue-600" />
-          Master Data Area Tercover
-        </h2>
+      <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:p-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+            <MapPin className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            Master Area Tercover
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Kelola area yang dipakai untuk pencatatan dan analisis kunjungan marketing.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             disabled={isImporting}
-            className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:flex-none"
             onClick={() => document.getElementById('area-import-input')?.click()}
           >
             <Upload className="h-4 w-4" />
-            {isImporting ? 'Importing...' : 'Import'}
+            {isImporting ? 'Mengimpor...' : 'Import'}
           </button>
           <input
             id="area-import-input"
@@ -210,14 +215,14 @@ export function CoveredAreaManager() {
           <button
             onClick={handleExport}
             disabled={isExporting || areas.length === 0}
-            className="flex-1 sm:flex-none bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:flex-none"
           >
             <Download className="h-4 w-4" />
-            {isExporting ? 'Exporting...' : 'Export'}
+            {isExporting ? 'Mengekspor...' : 'Export'}
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2"
+            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:flex-none"
           >
             <Plus className="h-4 w-4" />
             Tambah Area
@@ -225,10 +230,10 @@ export function CoveredAreaManager() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+          <thead className="bg-gray-50 dark:bg-gray-900/40">
             <tr>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
@@ -247,11 +252,11 @@ export function CoveredAreaManager() {
               </tr>
             ) : (
               currentItems.map((area, index) => (
-                <tr key={area.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <tr key={area.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {indexOfFirstItem + index + 1}
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100 uppercase">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase">
                     {area.name}
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
@@ -261,14 +266,14 @@ export function CoveredAreaManager() {
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleOpenModal(area)}
-                        className="text-blue-600 hover:text-blue-900 p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                         title="Edit"
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(area.id)}
-                        className="text-red-600 hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                         title="Hapus"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -285,7 +290,7 @@ export function CoveredAreaManager() {
 
       {/* Pagination Controls */}
       {!loading && areas.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:p-4">
           <div className="text-sm text-gray-500 dark:text-gray-400">
             Menampilkan <span className="font-medium">{indexOfFirstItem + 1}</span> sampai{' '}
             <span className="font-medium">{Math.min(indexOfLastItem, areas.length)}</span> dari{' '}
@@ -295,7 +300,7 @@ export function CoveredAreaManager() {
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              className="rounded-md border border-gray-300 p-2 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-700"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -305,10 +310,10 @@ export function CoveredAreaManager() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={clsx(
-                    "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+                    'rounded-md px-3 py-1 text-sm font-medium transition-colors',
                     currentPage === page
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+                      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                   )}
                 >
                   {page}
@@ -318,7 +323,7 @@ export function CoveredAreaManager() {
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              className="rounded-md border border-gray-300 p-2 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-700"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -328,49 +333,52 @@ export function CoveredAreaManager() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <div className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in duration-200 dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingArea ? 'Edit Area' : 'Tambah Area Baru'}
+                {editingArea ? 'Edit Area' : 'Tambah Area'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Area</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Area</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Misal: Sidomukti"
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan (Opsional)</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</label>
                 <textarea
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Catatan tambahan tentang area ini..."
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                  className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
                   {submitting ? 'Menyimpan...' : (editingArea ? 'Simpan Perubahan' : 'Tambah Area')}
                 </button>

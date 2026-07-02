@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { LayoutDashboard, Ticket, Calendar, TrendingUp, WifiOff, Wifi, Wrench, User, AlertTriangle, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
+import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 type DivisionSummary = {
@@ -31,9 +31,6 @@ interface DashboardViewProps {
     rows: Array<{ name: string; total: number; byMonth: number[] }>
   }
   statusCounts: { total: number; open: number; close: number; on_progress: number }
-  marketingActivityTotal: number
-  odpTotal: number
-  ticketingTotal: number
   ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
   troubleTicketProblemMonthly?: {
     months: string[]
@@ -41,12 +38,11 @@ interface DashboardViewProps {
   }
   initialPeriod: { month: number; year: number }
   userRole?: string
-  isolationCount?: number
   divisionSummary?: DivisionSummary[]
   selectedDivision?: DivisionFilter
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, marketingActivityTotal, odpTotal, ticketingTotal, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, isolationCount = 0, divisionSummary = [], selectedDivision = 'ALL' }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, divisionSummary = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -214,54 +210,54 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const focusDivisionConfig = {
     ALL: {
       title: 'Semua Divisi',
-      description: 'Dashboard menampilkan ringkasan lintas divisi agar admin bisa membaca kondisi operasional secara menyeluruh.',
-      badge: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+      description: 'Pantau kondisi operasional secara menyeluruh.',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     PENJUALAN: {
       title: 'Penjualan',
-      description: 'Fokus ke akuisisi pelanggan baru, performa marketing, dan aktivitas PSB.',
-      badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200',
+      description: 'PSB baru, aktivitas marketing, dan progres closing.',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     CS_ADMIN: {
       title: 'CS & Admin CS',
-      description: 'Fokus ke tindak lanjut pelanggan, isolir aktif, dan kebutuhan administratif operasional tanpa data Trouble Ticket.',
-      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200',
+      description: 'Follow up pelanggan, isolir aktif, dan proses administratif.',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     NOC_TROUBLESHOOTS: {
       title: 'NOC & Troubleshoots',
-      description: 'Fokus ke aset jaringan, ODP, dan penyelesaian trouble ticket teknis.',
-      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200',
+      description: 'Aset jaringan, ODP, dan penyelesaian gangguan teknis.',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     CREATOR_DIGITAL: {
       title: 'Creator Digital',
-      description: 'Divisi sudah tersedia sebagai fokus dashboard, tetapi KPI campaign digital masih menunggu sumber data khusus.',
-      badge: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-200',
+      description: 'Slot divisi siap, KPI digital menyusul saat sumber data tersedia.',
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
   }[focusedDivision]
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       {/* Header & Filter */}
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-end md:justify-between md:space-y-0">
         <div>
           {isMobilePortrait ? (
             <div className="flex items-start justify-between gap-3">
               <h1 className="text-xl font-bold leading-tight text-gray-800 dark:text-white">Dashboard</h1>
               <div className="min-w-0 text-right">
-                <h2 className="text-lg font-medium leading-tight text-gray-500 dark:text-gray-400">Ringkasan</h2>
-                <p className="text-sm leading-tight text-gray-400">Pantau kinerja dan status tiket</p>
+                <h2 className="text-lg font-medium leading-tight text-gray-500 dark:text-gray-400">Operasional</h2>
+                <p className="text-sm leading-tight text-gray-400">Pantauan kerja harian</p>
               </div>
             </div>
           ) : (
             <>
-              <h2 className="text-lg font-medium text-gray-500 dark:text-gray-400">Ringkasan</h2>
-              <p className="text-sm text-gray-400">Pantau kinerja dan status tiket</p>
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard Operasional</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Ringkasan kerja harian lintas modul.</p>
             </>
           )}
         </div>
         
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-sm border border-gray-100 dark:border-gray-700 md:flex md:items-center md:gap-2">
-          <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800 md:flex md:items-center md:gap-2">
+          <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40">
             <Calendar className="h-4 w-4 text-gray-400" />
             <select
               value={month}
@@ -277,7 +273,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               ))}
             </select>
           </div>
-          <div className="flex items-center rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
+          <div className="flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40">
             <select
               value={year}
               onChange={(e) => {
@@ -293,7 +289,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </select>
           </div>
           {isAdmin && (
-            <div className="col-span-2 flex items-center rounded-lg bg-gray-50 dark:bg-gray-900/40 px-3 py-2 md:col-span-1">
+            <div className="col-span-2 flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900/40 md:col-span-1">
               <select
                 value={focusedDivision}
                 onChange={(e) => {
@@ -314,108 +310,56 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
 
       {isAdmin && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className={clsx('inline-flex rounded-full px-3 py-1 text-xs font-semibold', focusDivisionConfig.badge)}>
-                Fokus Dashboard
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Fokus tampilan
+                </span>
+                <span className={clsx('inline-flex rounded-full px-3 py-1 text-xs font-semibold', focusDivisionConfig.badge)}>
+                  {focusDivisionConfig.title}
+                </span>
               </div>
-              <h3 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">{focusDivisionConfig.title}</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{focusDivisionConfig.description}</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{focusDivisionConfig.description}</p>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[440px]">
-              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area Penjualan</div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[420px]">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penjualan</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN' ? 'Aktif' : 'Tidak difokuskan'}
+                  {focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area CS</div>
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">CS & Admin</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Aktif' : 'Tidak difokuskan'}
+                  {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
-              <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area Teknis</div>
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/30">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Teknis</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Aktif' : 'Tidak difokuskan'}
+                  {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Summary Cards */}
-      {!showCreatorPlaceholder && (
-        <div
-          className={clsx(
-            'grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3',
-            isTeknisi ? 'xl:grid-cols-3' : isNoc ? 'xl:grid-cols-4' : 'xl:grid-cols-5'
-          )}
-        >
-          {showSalesFocus && (
-            <StatCard 
-              title="Total PSB" 
-              value={statusCounts.total} 
-              icon={<Ticket className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />}
-              trend="Total"
-              color="bg-blue-50 dark:bg-blue-900/20"
-            />
-          )}
-          {!isTeknisi && !isNoc && showSalesFocus && (
-            <StatCard 
-              title="Total Aktivitas Marketing" 
-              value={marketingActivityTotal} 
-              icon={<TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-600 dark:text-indigo-400" />}
-              trend="Total"
-              color="bg-indigo-50 dark:bg-indigo-900/20"
-            />
-          )}
-          {!isTeknisi && showSupportFocus && (
-            <StatCard 
-              title="Total Isolir" 
-              value={isolationCount} 
-              icon={<WifiOff className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />}
-              trend="Aktif"
-              color="bg-orange-50 dark:bg-orange-900/20"
-            />
-          )}
-          {showNocFocus && (
-            <StatCard 
-              title="Total port ODP" 
-              value={odpTotal} 
-              icon={<Wifi className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />}
-              trend="Total"
-              color="bg-emerald-50 dark:bg-emerald-900/20"
-            />
-          )}
-          {!isMarketing && showTicketingFocus && (
-            <StatCard 
-              title="Total Ticketing" 
-              value={ticketingTotal} 
-              icon={<Wrench className="h-5 w-5 sm:h-6 sm:w-6 text-slate-700 dark:text-slate-200" />}
-              trend="Total"
-              color="bg-slate-100 dark:bg-slate-700/40"
-            />
-          )}
         </div>
       )}
 
       {isAdmin && visibleDivisionSummary.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Performa Divisi</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">Performa Divisi</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {focusedDivision === 'ALL'
-                  ? 'Ringkasan tahap 1 khusus admin berdasarkan data yang sudah tersedia'
-                  : 'Dashboard sedang difokuskan ke divisi yang dipilih'}
+                  ? 'Ringkasan per divisi dari data yang sudah aktif'
+                  : 'Tampilan disesuaikan dengan divisi yang dipilih'}
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {visibleDivisionSummary.map((division) => (
               <DivisionCard
                 key={division.code}
@@ -428,22 +372,22 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {showCreatorPlaceholder && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
-          Divisi `Creator Digital` sudah bisa dipilih di dashboard admin, tetapi KPI detailnya belum aktif karena sumber data campaign dan aktivitas digital belum dibuat.
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+          Fokus `Creator Digital` sudah tersedia, tetapi KPI detailnya belum aktif karena sumber data campaign digital belum dibuat.
         </div>
       )}
 
       {!showCreatorPlaceholder && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {showSalesFocus && (
-            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik PSB Tahun {year}</h3>
-                  <p className="text-xs text-gray-500">Tahun {year} (berdasarkan tanggal pasang)</p>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Tren PSB {year}</h3>
+                  <p className="text-xs text-gray-500">Berdasarkan tanggal pasang</p>
                 </div>
-                <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
-                  Total: {psbYearTotal}
+                <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-100">
+                  {psbYearTotal} data
                 </div>
               </div>
 
@@ -476,14 +420,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           )}
 
           {!isMarketing && showTicketingFocus && (
-            <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Statistik Trouble Ticket Tahun {year}</h3>
-                  <p className="text-xs text-gray-500">Total Trouble Ticket per bulan (hanya bulan yang terisi)</p>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Tren Trouble Ticket {year}</h3>
+                  <p className="text-xs text-gray-500">Total per bulan yang terisi</p>
                 </div>
-                <div className="rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-100">
-                  Total: {troubleYearTotal}
+                <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-100">
+                  {troubleYearTotal} tiket
                 </div>
               </div>
 
@@ -678,14 +622,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
       {/* Marketing Table */}
       {!isMobilePortrait && !isTeknisi && !isNoc && showSalesFocus && !showCreatorPlaceholder && (
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Kinerja Marketing</h3>
-            <p className="text-xs text-gray-500">Laporan pencapaian individu</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Kinerja Marketing</h3>
+            <p className="text-xs text-gray-500">Ringkasan progres per marketing</p>
           </div>
-          <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <TrendingUp className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+            Target close
           </div>
         </div>
         
@@ -766,8 +710,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 )
               })}
               {marketingData.length > 0 && (
-                <tr className="bg-yellow-100 dark:bg-yellow-900/40 font-bold border-t-2 border-yellow-200 dark:border-yellow-800">
-                  <td className="sticky left-0 z-10 border-r border-yellow-200 bg-yellow-100 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-yellow-800 dark:bg-yellow-900 dark:text-white sm:static sm:border-r-0">
+                <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold dark:border-gray-700 dark:bg-gray-900/30">
+                  <td className="sticky left-0 z-10 border-r border-gray-200 bg-gray-50 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-gray-700 dark:bg-gray-900/30 dark:text-white sm:static sm:border-r-0">
                     TOTAL
                   </td>
                   <td className="px-4 py-2 text-center">
@@ -804,14 +748,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Ticketing Bulan {months[month - 1]} {year}</h3>
-            <p className="text-xs text-gray-500">Ringkasan ticketing berdasarkan kategori</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Rekap Ticketing {months[month - 1]} {year}</h3>
+            <p className="text-xs text-gray-500">Ringkasan per kategori</p>
           </div>
-          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <Wrench className="h-5 w-5 text-gray-600 dark:text-gray-200" />
+          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+            Open vs close
           </div>
         </div>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -821,7 +765,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 Tidak ada data
               </div>
             ) : (
-              <div className="rounded-xl bg-gray-50 dark:bg-gray-900/20 p-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/20">
                 <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Komposisi Open vs Close</div>
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -897,14 +841,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Rekap Gangguan Trouble Ticket Bulanan (Tahun {year})</h3>
-            <p className="text-xs text-gray-500">Top 5 gangguan berdasarkan total 1 tahun</p>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Gangguan Trouble Ticket {year}</h3>
+            <p className="text-xs text-gray-500">Top gangguan berdasarkan total tahunan</p>
           </div>
-          <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
+            Top gangguan
           </div>
         </div>
 
@@ -1098,68 +1042,66 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref: string }) {
   const config = {
     PENJUALAN: {
-      icon: <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-300" />,
-      badge: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-200',
+      icon: <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     CS_ADMIN: {
-      icon: <Headset className="h-5 w-5 text-violet-600 dark:text-violet-300" />,
-      badge: 'bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-200',
+      icon: <Headset className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     NOC_TROUBLESHOOTS: {
-      icon: <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />,
-      badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-200',
+      icon: <ShieldCheck className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     CREATOR_DIGITAL: {
-      icon: <Clapperboard className="h-5 w-5 text-amber-600 dark:text-amber-300" />,
-      badge: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-200',
+      icon: <Clapperboard className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
+      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
   }[division.code]
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-700/50">{config.icon}</div>
-            <div>
-              <h4 className="text-base font-bold text-gray-900 dark:text-white">{division.label}</h4>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{division.description}</p>
-            </div>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-700/30">{config.icon}</div>
+          <div>
+            <h4 className="text-base font-semibold text-gray-900 dark:text-white">{division.label}</h4>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{division.description}</p>
           </div>
         </div>
-        <div className={clsx('rounded-full px-3 py-1 text-xs font-semibold', config.badge)}>
+        <div className={clsx('rounded-md px-2.5 py-1 text-[11px] font-semibold', config.badge)}>
           {division.code}
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             <Users className="h-4 w-4" />
             Member
           </div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.members}</div>
+          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.members}</div>
         </div>
-        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.primaryLabel}</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.primaryValue}</div>
+          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.primaryValue}</div>
         </div>
-        <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900/30">
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.secondaryLabel}</div>
-          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{division.secondaryValue}</div>
+          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.secondaryValue}</div>
         </div>
       </div>
 
       {division.note && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
           {division.note}
         </div>
       )}
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-3 flex justify-end">
         <Link
           href={detailHref}
-          className="inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+          className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
         >
           Lihat detail
         </Link>
@@ -1168,22 +1110,3 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
   )
 }
 
-function StatCard({ title, value, icon, trend, color }: { title: string, value: number, icon: React.ReactNode, trend: string, color: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 p-3 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] sm:text-sm font-medium text-gray-500 dark:text-gray-400 leading-snug">{title}</p>
-          <h3 className="mt-1 sm:mt-2 text-xl sm:text-3xl font-bold text-gray-800 dark:text-white leading-none">{value}</h3>
-        </div>
-        <div className={clsx("rounded-lg sm:rounded-xl p-2 sm:p-3", color)}>
-          {icon}
-        </div>
-      </div>
-      <div className="mt-2 sm:mt-4 flex items-center">
-        <span className="font-medium text-gray-600 dark:text-gray-300 text-[11px] sm:text-sm">{trend}</span>
-        <span className="ml-2 text-gray-400 text-[10px] sm:text-xs">pada periode ini</span>
-      </div>
-    </div>
-  )
-}

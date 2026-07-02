@@ -97,11 +97,11 @@ function Section({
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 sm:p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="text-lg font-bold text-gray-900 dark:text-white">{title}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Kelola daftar untuk dropdown Trouble Ticket.</div>
+          <div className="text-lg font-semibold text-gray-900 dark:text-white">{title}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">Kelola daftar yang dipakai pada form Trouble Ticket.</div>
         </div>
         <div className="flex w-full max-w-lg flex-col gap-2 md:flex-row md:items-center">
           <input
@@ -109,13 +109,13 @@ function Section({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Tambah item baru..."
             disabled={disabled}
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
           <button
             type="button"
             onClick={handleAdd}
             disabled={disabled}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
           >
             <Plus className="h-4 w-4" />
             Tambah
@@ -133,10 +133,10 @@ function Section({
         <table className="min-w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Nama
               </th>
-              <th className="px-2 py-2 text-right text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              <th className="px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Aksi
               </th>
             </tr>
@@ -165,8 +165,8 @@ function Section({
                       disabled={disabled}
                       className={clsx(
                         'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold',
-                        'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
-                        'dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-200 dark:hover:bg-red-900/20',
+                        'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
+                        'dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
                         disabled && 'opacity-50'
                       )}
                     >

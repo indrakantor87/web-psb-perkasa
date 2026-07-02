@@ -403,15 +403,15 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   return (
     <div className="space-y-4">
       {/* View Switcher and Filters */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 lg:flex-row lg:items-end">
         <div className="flex flex-col gap-4 flex-1 w-full">
-          <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-lg w-fit">
+          <div className="flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-900/30">
             <button
               onClick={() => setViewMode('marketing')}
               className={clsx(
-                "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md transition-all",
+                "flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold transition-all",
                 viewMode === 'marketing'
-                  ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
                   : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
@@ -421,9 +421,9 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
             <button
               onClick={() => setViewMode('area')}
               className={clsx(
-                "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-md transition-all",
+                "flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold transition-all",
                 viewMode === 'area'
-                  ? "bg-white dark:bg-gray-800 text-blue-600 shadow-sm"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
                   : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
@@ -434,11 +434,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Bulan</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Bulan</label>
               <select
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 {months.map((m, i) => (
                   <option key={i} value={i + 1}>{m}</option>
@@ -446,11 +446,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Tahun</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Tahun</label>
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -459,7 +459,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
             </div>
             {userRole !== 'MARKETING' && (
               <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Cari Marketing</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Cari Marketing</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                   <input
@@ -467,18 +467,18 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                     value={marketingSearch}
                     onChange={(e) => setMarketingSearch(e.target.value)}
                     placeholder="Nama marketing..."
-                    className="w-full pl-9 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
               </div>
             )}
             {isAdmin && (
               <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Divisi</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Divisi</label>
                 <select
                   value={division}
                   onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="ALL">Semua Divisi</option>
                   <option value="PENJUALAN">Penjualan</option>
@@ -496,7 +496,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
             <>
               <button
                 disabled={isImporting || !isPenjualanFocus}
-                className="flex-1 lg:flex-none bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none"
                 onClick={() => document.getElementById('marketing-import-input')?.click()}
               >
                 <Upload className="h-4 w-4" />
@@ -514,7 +514,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
           <button
             onClick={handleExport}
             disabled={isExporting || activities.length === 0}
-            className="flex-1 lg:flex-none bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none"
           >
             <Download className="h-4 w-4" />
             Export
@@ -522,7 +522,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
           <button
             onClick={() => handleOpenModal()}
             disabled={!isPenjualanFocus}
-            className="flex-1 lg:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white lg:flex-none"
           >
             <Plus className="h-4 w-4" />
             Tambah
@@ -531,7 +531,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       </div>
 
       {isAdmin && (
-        <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
@@ -543,16 +543,16 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       )}
 
       {viewMode === 'marketing' ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[720px] divide-y divide-gray-200 dark:divide-gray-700 md:min-w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className="bg-gray-50 dark:bg-gray-900/20">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider w-10"></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Nama Marketing</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Ada Aktivitas</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Tidak Ada</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-100 uppercase tracking-wider">Total Hari</th>
+                  <th className="w-10 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300"></th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Marketing</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Ada Aktivitas</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Tidak Ada</th>
+                  <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total Hari</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -575,7 +575,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                     return (
                       <Fragment key={name}>
                         <tr 
-                          className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                          className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
                           onClick={() => setExpandedMarketing(isExpanded ? null : name)}
                         >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -585,12 +585,12 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                             {name}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                               {group.count} Hari
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                               {group.noCount} Hari
                             </span>
                           </td>
@@ -602,14 +602,14 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                           <tr>
                             <td colSpan={5} className="px-0 py-0 bg-gray-50/50 dark:bg-gray-900/20">
                               <div className="p-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
-                                  <thead className="bg-gray-100 dark:bg-gray-800">
+                                <table className="min-w-full overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200 dark:border-gray-700 dark:divide-gray-700">
+                                  <thead className="bg-gray-50 dark:bg-gray-900/20">
                                     <tr>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Tanggal</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Area</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Aktivitas</th>
-                                      <th className="px-4 py-2 text-left text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase">Keterangan</th>
-                                      <th className="px-4 py-2 text-center text-[10px] font-bold text-gray-500 dark:text-gray-100 uppercase w-24">Action</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Tanggal</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Area</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Aktivitas</th>
+                                      <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Keterangan</th>
+                                      <th className="w-24 px-4 py-2 text-center text-[10px] font-semibold uppercase text-gray-500 dark:text-gray-300">Aksi</th>
                                     </tr>
                                   </thead>
                                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
@@ -618,7 +618,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                                         <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
                                           {format(new Date(activity.date), 'dd/MM/yyyy')}
                                         </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                                        <td className="px-4 py-3 whitespace-nowrap text-xs font-medium text-gray-700 dark:text-gray-200">
                                         {[activity.area?.name, activity.area2?.name, activity.area3?.name, activity.area4?.name].filter(Boolean).join(', ') || '-'}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-900 dark:text-gray-100">
@@ -633,7 +633,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                                           <div className="flex justify-center gap-1">
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleOpenModal(activity); }}
-                                              className="text-blue-600 hover:text-blue-900 p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
                                               title="Edit"
                                             >
                                               <Edit2 className="h-3.5 w-3.5" />
@@ -667,13 +667,13 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                <BarChart2 className="h-4 w-4 text-blue-500" />
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 p-4 dark:border-gray-700 dark:bg-gray-900/30">
+              <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+                <BarChart2 className="h-4 w-4 text-gray-500" />
                 Persentase Kunjungan Per Area
               </h3>
-              <span className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
+              <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                 Total: {totalAreaVisits} Kunjungan
               </span>
             </div>
@@ -698,16 +698,16 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                       </div>
                       <span className={clsx(
                         "text-xs font-bold",
-                        stat.percentage > 20 ? "text-green-600" : stat.percentage > 5 ? "text-yellow-600" : "text-red-600"
+                          stat.percentage > 20 ? "text-gray-900 dark:text-white" : stat.percentage > 5 ? "text-gray-800 dark:text-gray-200" : "text-gray-600 dark:text-gray-300"
                       )}>
                         {stat.percentage.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
                       <div 
                         className={clsx(
                           "h-full rounded-full transition-all duration-1000 ease-out shadow-sm",
-                          stat.percentage > 20 ? "bg-green-500" : stat.percentage > 5 ? "bg-yellow-500" : "bg-red-500"
+                          stat.percentage > 20 ? "bg-gray-700 dark:bg-gray-200" : stat.percentage > 5 ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-500"
                         )}
                         style={{ width: `${stat.percentage}%` }}
                       />
@@ -719,23 +719,23 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
           </div>
 
           <div className="space-y-4 sm:space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6 flex flex-col items-center text-center space-y-2">
-              <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2">
-                <BarChart2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex flex-col items-center space-y-2 rounded-xl border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                <BarChart2 className="h-6 w-6 text-gray-700 dark:text-gray-200" />
               </div>
               <h4 className="font-bold text-gray-900 dark:text-white uppercase tracking-wider text-xs">Informasi Analitik</h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
                 Persentase dihitung berdasarkan jumlah kunjungan ke area tertentu dibandingkan dengan total seluruh aktivitas marketing pada periode yang dipilih.
               </p>
               <div className="flex gap-4 pt-4 w-full">
-                <div className="flex-1 p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-100 dark:border-green-900/20">
-                  <div className="text-[10px] font-bold text-green-600 uppercase mb-1">Paling Sering</div>
+                <div className="flex-1 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="mb-1 text-[10px] font-bold uppercase text-gray-500">Paling Sering</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white truncate">
                     {areaStats[0]?.visits > 0 ? areaStats[0].name : '-'}
                   </div>
                 </div>
-                <div className="flex-1 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-100 dark:border-red-900/20">
-                  <div className="text-[10px] font-bold text-red-600 uppercase mb-1">Paling Jarang</div>
+                <div className="flex-1 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                  <div className="mb-1 text-[10px] font-bold uppercase text-gray-500">Paling Jarang</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white truncate">
                     {areaStats.filter(s => s.visits > 0).pop()?.name || areaStats[areaStats.length - 1]?.name || '-'}
                   </div>
@@ -743,19 +743,19 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg p-4 sm:p-6 text-white space-y-4">
-              <h4 className="font-bold text-sm flex items-center gap-2">
+            <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
                 <Search className="h-4 w-4" />
                 Tips Strategi Marketing
               </h4>
               <ul className="space-y-3">
-                <li className="flex gap-3 text-xs opacity-90">
-                  <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">1</div>
-                  <p>Fokuskan marketing ke area dengan persentase <span className="font-bold underline">Merah</span> untuk memperluas jangkauan.</p>
+                <li className="flex gap-3 text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">1</div>
+                  <p>Prioritaskan area dengan kunjungan terendah untuk memperluas jangkauan.</p>
                 </li>
-                <li className="flex gap-3 text-xs opacity-90">
-                  <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">2</div>
-                  <p>Evaluasi area <span className="font-bold underline">Hijau</span>, apakah sudah mencapai target penjualan yang maksimal?</p>
+                <li className="flex gap-3 text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">2</div>
+                  <p>Evaluasi area dengan kunjungan tertinggi untuk melihat potensi closing yang sudah maksimal.</p>
                 </li>
               </ul>
             </div>
@@ -766,11 +766,14 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 border border-gray-100 dark:border-gray-700">
+          <div className="w-full max-w-lg overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in duration-200 dark:border-gray-700 dark:bg-gray-800">
             <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {editingActivity ? 'Edit Aktivitas' : 'Tambah Aktivitas'}
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {editingActivity ? 'Edit Aktivitas' : 'Tambah Aktivitas'}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Catat aktivitas lapangan dengan singkat dan jelas.</p>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <X className="h-5 w-5" />
               </button>
@@ -778,24 +781,24 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
             <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal</label>
                   <input
                     type="date"
                     required
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Marketing</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Marketing</label>
                   {userRole === 'MARKETING' ? (
                     <input
                       type="text"
                       required
                       readOnly
                       value={formData.marketingName}
-                      className="w-full rounded-md border-gray-300 bg-gray-50 text-sm dark:border-gray-600 dark:bg-gray-600 cursor-not-allowed"
+                      className="w-full cursor-not-allowed rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-600 dark:text-white"
                     />
                   ) : (
                     <select
@@ -803,7 +806,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                       value={formData.marketingName}
                       onChange={(e) => setFormData({ ...formData, marketingName: e.target.value })}
                       disabled={marketingOptionsLoading || marketingOptions.length === 0}
-                      className="w-full rounded-md border-gray-300 text-sm disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:disabled:bg-gray-600"
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-600"
                     >
                       {marketingOptionsLoading ? (
                         <option value="">Memuat daftar marketing...</option>
@@ -822,11 +825,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 1 (Opsional)</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area 1</label>
                   <select
                     value={formData.areaId}
                     onChange={(e) => updateAreaField('areaId', e.target.value)}
-                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">- Pilih Area -</option>
                     {getAvailableAreas(formData.areaId).map((area) => (
@@ -835,11 +838,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 2 (Opsional)</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area 2</label>
                   <select
                     value={formData.areaId2}
                     onChange={(e) => updateAreaField('areaId2', e.target.value)}
-                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">- Pilih Area -</option>
                     {getAvailableAreas(formData.areaId2).map((area) => (
@@ -848,11 +851,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 3 (Opsional)</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area 3</label>
                   <select
                     value={formData.areaId3}
                     onChange={(e) => updateAreaField('areaId3', e.target.value)}
-                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">- Pilih Area -</option>
                     {getAvailableAreas(formData.areaId3).map((area) => (
@@ -861,11 +864,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Area 4 (Opsional)</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Area 4</label>
                   <select
                     value={formData.areaId4}
                     onChange={(e) => updateAreaField('areaId4', e.target.value)}
-                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">- Pilih Area -</option>
                     {getAvailableAreas(formData.areaId4).map((area) => (
@@ -875,37 +878,37 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aktivitas (Opsional)</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Aktivitas</label>
                 <textarea
                   rows={2}
                   value={formData.activity}
                   onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
                   placeholder="Apa yang dikerjakan? (Bisa dikosongkan jika hanya kunjungan area)"
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Keterangan (Opsional)</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</label>
                 <input
                   type="text"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Catatan tambahan..."
-                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || (userRole !== 'MARKETING' && (marketingOptionsLoading || marketingOptions.length === 0))}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
                   {submitting ? 'Menyimpan...' : (editingActivity ? 'Simpan Perubahan' : 'Tambah Aktivitas')}
                 </button>

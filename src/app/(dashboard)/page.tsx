@@ -161,10 +161,9 @@ export default async function DashboardPage({
     division: selectedDivision,
   })}`
   const renderDashboard = (payload: DashboardPayload, localNotice?: string) => (
-    <div>
-      <h1 className="mp-hide-mobile-portrait mb-4 sm:mb-6 text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+    <div className="space-y-4">
       {localNotice && (
-        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-200">
           {localNotice}
         </div>
       )}
@@ -175,14 +174,10 @@ export default async function DashboardPage({
         yearTopPackages={payload.yearTopPackages}
         yearMarketingMonthly={payload.yearMarketingMonthly}
         statusCounts={payload.statusCounts}
-        marketingActivityTotal={payload.marketingActivityTotal}
-        odpTotal={payload.odpTotal}
-        ticketingTotal={payload.ticketingTotal}
         ticketingMonthRecap={payload.ticketingMonthRecap}
         troubleTicketProblemMonthly={payload.troubleTicketProblemMonthly}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
-        isolationCount={payload.isolationCount}
         divisionSummary={payload.divisionSummary}
         selectedDivision={selectedDivision}
       />

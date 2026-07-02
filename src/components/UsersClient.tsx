@@ -273,8 +273,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       {/* Create User Form - Only for ADMIN */}
       {canCreate && (
-        <div className="max-w-xl rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="max-w-xl rounded-xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-800">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
             <UserPlus className="h-5 w-5" />
             Buat User Baru
           </h2>
@@ -293,33 +293,33 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Lengkap</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Lengkap</label>
               <input
                 type="text"
                 name="name"
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="Contoh: Budi Santoso"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Username</label>
               <input
                 type="text"
                 name="username"
                 required
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
-                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="username_login"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Password</label>
               <div className="relative mt-1">
                 <input
                   type={showCreatePassword ? 'text' : 'password'}
@@ -327,7 +327,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder="********"
                 />
                 <button
@@ -345,12 +345,12 @@ export function UsersClient({ currentUser }: UsersClientProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Role</label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 {ROLE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -361,25 +361,25 @@ export function UsersClient({ currentUser }: UsersClientProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Division</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
               <input
                 type="text"
                 value={derivedDivision || '-'}
                 readOnly
-                className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/60 px-3 py-2 shadow-sm sm:text-sm text-black dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-black sm:text-sm dark:border-gray-600 dark:bg-gray-700/60 dark:text-white"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Division diisi otomatis berdasarkan mapping role.
+                Divisi diisi otomatis dari mapping role.
               </p>
             </div>
 
-            <div className="pt-2">
+            <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                className="inline-flex w-full justify-center rounded-md bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
               >
-                {loading ? 'Saving...' : 'Create User'}
+                {loading ? 'Menyimpan...' : 'Buat User'}
               </button>
             </div>
           </form>
@@ -387,29 +387,29 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       )}
 
       {/* User List */}
-      <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-        <h2 className="mb-4 text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-800">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
           <Shield className="h-5 w-5" />
           Daftar User
         </h2>
 
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cari User</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari User</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Nama, username, atau role"
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Filter Division</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Filter Divisi</label>
             <select
               value={divisionFilter}
               onChange={(e) => setDivisionFilter(e.target.value as (typeof DIVISION_OPTIONS)[number]['value'])}
-              className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
               {DIVISION_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -421,16 +421,16 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         </div>
         
         {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900/20">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Full Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Division</th>
-                {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Action</th>}
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Username</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Divisi</th>
+                {isAdmin && <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
@@ -457,19 +457,19 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                       <div className="flex space-x-3">
                         <button
                           onClick={() => handleOpenResetModal(user.id)}
-                          className="inline-flex items-center text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="inline-flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
                           title="Reset Password"
                         >
-                          <KeyRound className="h-4 w-4 mr-1" />
+                          <KeyRound className="mr-1 h-4 w-4" />
                           Reset
                         </button>
                         <button
                           onClick={() => handleOpenDeleteModal(user.id)}
-                          className="inline-flex items-center text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                          title="Delete User"
+                          className="inline-flex items-center text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          title="Hapus User"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
+                          <Trash2 className="mr-1 h-4 w-4" />
+                          Hapus
                         </button>
                       </div>
                     </td>
@@ -479,7 +479,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               {filteredUsers.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 6 : 5} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                    No users found.
+                    Tidak ada user yang sesuai.
                   </td>
                 </tr>
               )}
@@ -490,7 +490,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         {/* Mobile Card View */}
         <div className="md:hidden space-y-4">
           {filteredUsers.map((user) => (
-            <div key={user.id} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div key={user.id} className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-white">{user.name}</h3>
@@ -511,14 +511,14 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
                   <button
                     onClick={() => handleOpenResetModal(user.id)}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400"
+                    className="flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200"
                   >
                     <KeyRound className="h-4 w-4 mr-1" />
                     Reset
                   </button>
                   <button
                     onClick={() => handleOpenDeleteModal(user.id)}
-                    className="flex items-center text-sm text-red-600 hover:text-red-900 dark:text-red-400"
+                    className="flex items-center text-sm text-red-600 hover:text-red-800 dark:text-red-400"
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
@@ -529,7 +529,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
           ))}
           {filteredUsers.length === 0 && (
             <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-              No users found.
+              Tidak ada user yang sesuai.
             </div>
           )}
         </div>
@@ -538,19 +538,22 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       {/* Reset Password Modal */}
       {isResetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-            <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Reset Password</h3>
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reset Password</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Masukkan password baru untuk user terpilih.</p>
+            </div>
             <form onSubmit={handleResetPassword}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">New Password</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Password Baru</label>
                 <div className="relative mt-1">
                   <input
                     type={showResetPassword ? 'text' : 'password'}
                     required
                     value={resetPasswordValue}
                     onChange={(e) => setResetPasswordValue(e.target.value)}
-                    className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-black dark:text-white"
-                    placeholder="Enter new password"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="Masukkan password baru"
                   />
                   <button
                     type="button"
@@ -569,16 +572,16 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <button
                   type="button"
                   onClick={handleCloseResetModal}
-                  className="w-full sm:w-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="inline-flex w-full justify-center rounded-md bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
                 >
-                  {loading ? 'Saving...' : 'Save Password'}
+                  {loading ? 'Menyimpan...' : 'Simpan Password'}
                 </button>
               </div>
             </form>
@@ -589,26 +592,26 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-            <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-white">Delete User Confirmation</h3>
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Hapus User</h3>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              Are you sure you want to delete this user? This action cannot be undone.
+              User yang dihapus tidak bisa dikembalikan dari layar ini.
             </p>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={handleCloseDeleteModal}
-                className="w-full sm:w-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteUser}
                 disabled={loading}
-                className="inline-flex w-full sm:w-auto justify-center rounded-md border border-transparent bg-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                className="inline-flex w-full sm:w-auto justify-center rounded-md bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
               >
-                {loading ? 'Deleting...' : 'Delete User'}
+                {loading ? 'Menghapus...' : 'Hapus User'}
               </button>
             </div>
           </div>

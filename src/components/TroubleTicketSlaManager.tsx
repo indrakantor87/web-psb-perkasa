@@ -108,7 +108,7 @@ export function TroubleTicketSlaManager() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-6">
       <div className="mb-4">
         <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Trouble Ticket Durasi (SLA)</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -117,40 +117,40 @@ export function TroubleTicketSlaManager() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md flex items-center">
+        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
           <AlertCircle className="h-5 w-5 mr-2" />
           {error}
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-4">
-        <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Tambah Type</div>
+      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/30">
+        <div className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Tambah Type</div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="flex flex-col">
-            <span className="mb-1 text-xs text-gray-500 dark:text-gray-400">Type</span>
+            <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Type</span>
             <input
               value={newType}
               onChange={(e) => setNewType(e.target.value)}
               placeholder="Contoh: Emergency / Major / Minor"
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm sm:text-sm p-2 border"
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </div>
           <div className="flex flex-col">
-            <span className="mb-1 text-xs text-gray-500 dark:text-gray-400">Durasi (Hari)</span>
+            <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Durasi (Hari)</span>
             <input
               type="number"
               min={1}
               max={30}
               value={newDays}
               onChange={(e) => setNewDays(Number(e.target.value))}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm sm:text-sm p-2 border"
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
           </div>
           <div className="flex items-end">
             <button
               onClick={handleAddType}
               disabled={loading || saving}
-              className="inline-flex w-full items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Tambah
@@ -159,9 +159,9 @@ export function TroubleTicketSlaManager() {
         </div>
       </div>
 
-      <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>
               <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Type</th>
               <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Durasi (Hari)</th>
@@ -170,7 +170,7 @@ export function TroubleTicketSlaManager() {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {loading ? (
               <tr>
-                <td colSpan={2} className="text-center py-6 text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                <td colSpan={2} className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">Memuat...</td>
               </tr>
             ) : !hasRows ? (
               <tr>
@@ -193,7 +193,7 @@ export function TroubleTicketSlaManager() {
                         const clamped = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1
                         setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, durationDays: clamped } : x)))
                       }}
-                      className="w-28 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm sm:text-sm p-2 border"
+                      className="w-28 rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                     />
                   </td>
                 </tr>
@@ -203,11 +203,11 @@ export function TroubleTicketSlaManager() {
         </table>
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
         <button
           onClick={handleSave}
           disabled={saving || loading || !hasRows}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
         >
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Menyimpan...' : 'Simpan'}

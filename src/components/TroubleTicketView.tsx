@@ -1143,40 +1143,44 @@ export function TroubleTicketView({
     <div className="space-y-4 overflow-x-hidden">
       {!isTroubleshoots && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
-          <div className="flex items-center justify-center rounded-md bg-blue-600 dark:bg-blue-700 px-3 py-1 shadow-sm text-center">
+          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Open</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.open}</span>
-              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Open : {summary.open}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Open</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.open}</span>
+              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Open</span>
+              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.open}</span>
             </div>
           </div>
-          <div className="flex items-center justify-center rounded-md bg-green-600 dark:bg-green-700 px-3 py-1 shadow-sm text-center">
+          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Close</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.close}</span>
-              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Close : {summary.close}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Close</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.close}</span>
+              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Close</span>
+              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.close}</span>
             </div>
           </div>
-          <div className="flex items-center justify-center rounded-md bg-red-600 dark:bg-red-700 px-3 py-1 shadow-sm text-center">
+          <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-bold text-white text-center md:hidden">Ticket Overdue</span>
-              <span className="text-xs font-bold text-white text-center whitespace-nowrap md:hidden">: {summary.overdue}</span>
-              <span className="hidden text-xs font-bold text-white text-center whitespace-nowrap md:inline">Ticket Overdue : {summary.overdue}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:hidden">Overdue</span>
+              <span className="text-base font-semibold text-gray-900 dark:text-white md:hidden">{summary.overdue}</span>
+              <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 md:inline">Overdue</span>
+              <span className="hidden text-lg font-semibold text-gray-900 dark:text-white md:inline">{summary.overdue}</span>
             </div>
           </div>
         </div>
       )}
 
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-end">
           {!isTroubleshoots && (
             <>
               <div className="flex flex-col">
-                <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Bulan</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bulan</span>
                 <select
                   value={month}
                   onChange={(e) => setMonth(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-44 md:py-2"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-44"
                 >
                   {months.map((m, idx) => (
                     <option key={m} value={idx + 1}>{m}</option>
@@ -1184,11 +1188,11 @@ export function TroubleTicketView({
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Tahun</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tahun</span>
                 <select
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-32 md:py-2"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-32"
                 >
                   {years.map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -1198,21 +1202,21 @@ export function TroubleTicketView({
             </>
           )}
           <div className="col-span-2 flex flex-col md:col-span-1">
-            <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Cari</span>
+            <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-72 md:py-2"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-72"
               placeholder="Nama / WA / Tipe / Keterangan"
             />
           </div>
           {!isTroubleshoots ? (
             <div className="flex flex-col">
-              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
+              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE')}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-40 md:py-2"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-40"
               >
                 <option value="ALL">Semua</option>
                 <option value="OPEN">OPEN</option>
@@ -1222,7 +1226,7 @@ export function TroubleTicketView({
             </div>
           ) : (
             <div className="flex flex-col">
-              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Status</span>
+              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'OPEN' | 'CLOSE')}
@@ -1235,11 +1239,11 @@ export function TroubleTicketView({
           )}
           {!isTroubleshoots && isAdmin && (
             <div className="flex flex-col">
-              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Divisi</span>
+              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</span>
               <select
                 value={division}
                 onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-52 md:py-2"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-52"
               >
                 <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
@@ -1252,7 +1256,7 @@ export function TroubleTicketView({
         </div>
 
         {!isTroubleshoots && isAdmin && (
-          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
             {divisionDescriptions[division]}
           </div>
         )}
@@ -1269,7 +1273,7 @@ export function TroubleTicketView({
             <button
               onClick={handleExport}
               disabled={isExporting || rows.length === 0 || !supportsTroubleTicketWorkflow}
-              className="w-full rounded-md bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 md:w-auto"
             >
               Export Excel
             </button>
@@ -1278,17 +1282,17 @@ export function TroubleTicketView({
                 htmlFor={fileInputId}
                 className={clsx(
                   'w-full rounded-md px-3 py-2 text-sm font-medium text-white cursor-pointer text-center md:w-auto',
-                  isImporting || !supportsTroubleTicketWorkflow ? 'pointer-events-none bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                  isImporting || !supportsTroubleTicketWorkflow ? 'pointer-events-none border border-gray-300 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
                 )}
               >
-                {isImporting ? 'Importing...' : 'Import Excel'}
+                {isImporting ? 'Mengimpor...' : 'Import Excel'}
               </label>
             )}
             {canCreate && (
               <button
                 onClick={() => setIsCreateOpen(true)}
                 disabled={!supportsTroubleTicketWorkflow}
-                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
+                className="w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 md:w-auto"
               >
                 Create Ticket
               </button>
@@ -1297,13 +1301,14 @@ export function TroubleTicketView({
               <button
                 onClick={deleteSelected}
                 disabled={isDeleting || selectedIds.length === 0 || !supportsTroubleTicketWorkflow}
-                className="w-full rounded-md bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 md:w-auto"
               >
                 Hapus Terpilih
               </button>
             )}
           </div>
         )}
+      </div>
       </div>
 
       {error && (
@@ -1528,7 +1533,7 @@ export function TroubleTicketView({
               const code = getDisplayTicketId(r)
 
               return (
-                <div key={r.id} className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 shadow-sm">
+                <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <button
@@ -1644,31 +1649,31 @@ export function TroubleTicketView({
           )}
         </div>
 
-        <div className={clsx('rounded-lg bg-white dark:bg-gray-800 shadow', isMobilePortrait ? 'block' : 'hidden md:block')}>
+        <div className={clsx('rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800', isMobilePortrait ? 'block' : 'hidden md:block')}>
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[1100px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900/20">
             <tr>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
                 <input
                   type="checkbox"
                   checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
                   onChange={toggleSelectAllCurrent}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">ID Ticket</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Nama Pelanggan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">User</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">No WA</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">In Maps</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Type</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">ONT</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Gangguan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Tindakan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Open</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Close</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Durasi</th>
-              <th className="px-3 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-100 uppercase">Keterangan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">ID Ticket</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">User</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No WA</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">In Maps</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Type</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">ONT</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Gangguan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Tindakan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Open</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Close</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Durasi</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Keterangan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -1950,66 +1955,67 @@ export function TroubleTicketView({
 
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">Create Trouble Ticket</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">Buat Trouble Ticket</div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Isi data gangguan atau preventive secara singkat dan jelas.</div>
             </div>
             <div className="px-5 py-4 space-y-3">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-400">
                 ID Ticket otomatis: {idPrefix}{formatTicketNumber(nextNumber)}
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Kategori</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kategori</span>
                   <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value as 'TT' | 'PV' })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="TT">Trouble Ticket (TT)</option>
                     <option value="PV">Preventive (PV)</option>
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Nama Pelanggan</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Pelanggan</span>
                   <input
                     value={form.customerName}
                     onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">User</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">User</span>
                   <input
                     value={form.user}
                     onChange={(e) => setForm({ ...form, user: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">No WA</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No WA</span>
                   <input
                     value={form.waNumber}
                     onChange={(e) => setForm({ ...form, waNumber: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">In Maps</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Link Maps</span>
                   <input
                     value={form.mapsUrl}
                     onChange={(e) => setForm({ ...form, mapsUrl: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="https://maps.google.com/..."
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Type</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Type</span>
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                     disabled={form.category === 'PV'}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih type...</option>
                     {(form.category === 'PV'
@@ -2023,11 +2029,11 @@ export function TroubleTicketView({
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ONT</span>
                   <select
                     value={form.ont}
                     onChange={(e) => setForm({ ...form, ont: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih ONT...</option>
                     {ontOptions.map((x) => (
@@ -2038,11 +2044,11 @@ export function TroubleTicketView({
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jenis Gangguan</span>
                   <select
                     value={form.problemCategory}
                     onChange={(e) => setForm({ ...form, problemCategory: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih...</option>
                     {problemOptions.map((x) => (
@@ -2054,28 +2060,28 @@ export function TroubleTicketView({
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Keterangan</span>
+                <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</span>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="min-h-[90px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  className="min-h-[90px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
               <button
                 onClick={() => setIsCreateOpen(false)}
-                className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                 disabled={isSubmitting}
               >
-                Cancel
+                Batal
               </button>
               <button
                 onClick={handleCreate}
-                className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Saving...' : 'Save'}
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -2084,51 +2090,52 @@ export function TroubleTicketView({
 
       {isEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Perbarui data inti tiket tanpa mengubah alur kerja.</div>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Nama Pelanggan</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Pelanggan</span>
                   <input
                     value={editForm.customerName}
                     onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">User</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">User</span>
                   <input
                     value={editForm.user}
                     onChange={(e) => setEditForm({ ...editForm, user: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">No WA</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No WA</span>
                   <input
                     value={editForm.waNumber}
                     onChange={(e) => setEditForm({ ...editForm, waNumber: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">In Maps</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Link Maps</span>
                   <input
                     value={editForm.mapsUrl}
                     onChange={(e) => setEditForm({ ...editForm, mapsUrl: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="https://maps.google.com/..."
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Type</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Type</span>
                   <select
                     value={editForm.type}
                     onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih type...</option>
                     {(editingCategory === 'PV'
@@ -2142,11 +2149,11 @@ export function TroubleTicketView({
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">ONT</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ONT</span>
                   <select
                     value={editForm.ont}
                     onChange={(e) => setEditForm({ ...editForm, ont: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih ONT...</option>
                     {ontOptions.map((x) => (
@@ -2157,11 +2164,11 @@ export function TroubleTicketView({
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Jenis Gangguan</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jenis Gangguan</span>
                   <select
                     value={editForm.problemCategory}
                     onChange={(e) => setEditForm({ ...editForm, problemCategory: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Pilih...</option>
                     {problemOptions.map((x) => (
@@ -2172,11 +2179,11 @@ export function TroubleTicketView({
                   </select>
                 </div>
                 <div className="flex flex-col">
-                  <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Status</span>
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as 'OPEN' | 'CLOSE' })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="OPEN">OPEN</option>
                     <option value="CLOSE">CLOSE</option>
@@ -2184,28 +2191,28 @@ export function TroubleTicketView({
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">Keterangan</span>
+                <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</span>
                 <textarea
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  className="min-h-[90px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                  className="min-h-[90px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
               <button
                 onClick={() => { setIsEditOpen(false); setEditingId(null) }}
-                className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                 disabled={isSubmitting}
               >
-                Cancel
+                Batal
               </button>
               <button
                 onClick={handleUpdate}
-                className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Saving...' : 'Save'}
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -2214,10 +2221,13 @@ export function TroubleTicketView({
 
       {detailRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-2xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+          <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="text-lg font-bold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Salin, kirim, atau lihat lampiran tiket dari satu tempat.</div>
+                </div>
                 {detailRow.temporaryAt && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 px-2 py-0.5 text-[11px] font-extrabold">
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -2238,7 +2248,7 @@ export function TroubleTicketView({
               <textarea
                 readOnly
                 value={detailText}
-                className="w-full min-h-[220px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-black dark:text-white"
+                className="w-full min-h-[220px] rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900/30 dark:text-white"
               />
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
                 {(((detailRow.status || '').toUpperCase() === 'CLOSE' || !!detailRow.closedAt) &&
@@ -2257,10 +2267,10 @@ export function TroubleTicketView({
                           }
                           setIsPhotoViewerOpen(true)
                         }}
-                        className="rounded-md bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium"
+                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                         disabled={detailFetching}
                       >
-                        View
+                        Lihat
                       </button>
                       <button
                         type="button"
@@ -2273,7 +2283,7 @@ export function TroubleTicketView({
                           }
                           downloadAllPhotos()
                         }}
-                        className="rounded-md bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 text-sm font-medium"
+                        className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                         disabled={detailFetching}
                       >
                         Download Semua Foto
@@ -2283,7 +2293,7 @@ export function TroubleTicketView({
                 <button
                   type="button"
                   onClick={handleShareWa}
-                  className="rounded-md bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-medium"
+                  className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                   disabled={detailFetching}
                 >
                   Kirim ke WA
@@ -2291,7 +2301,7 @@ export function TroubleTicketView({
                 <button
                   type="button"
                   onClick={handleCopyDetail}
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-medium"
+                  className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                   disabled={detailFetching}
                 >
                   <Clipboard className="h-4 w-4" />

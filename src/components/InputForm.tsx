@@ -67,9 +67,9 @@ export function InputForm({
 
   if (roleUpper === 'TEKNISI') {
     return (
-      <div className="rounded-lg bg-red-50 p-6 text-center shadow-sm">
-        <h3 className="text-lg font-medium text-red-800">Access Denied</h3>
-        <p className="mt-2 text-sm text-red-600">You do not have permission to create new PSB data.</p>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Akses Ditolak</h3>
+        <p className="mt-2 text-sm">Akun teknisi tidak memiliki akses untuk membuat data PSB baru.</p>
       </div>
     )
   }
@@ -256,16 +256,16 @@ export function InputForm({
   return (
     <div className="space-y-4 sm:space-y-6">
       {isAdmin && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="grid gap-3 md:grid-cols-[220px,1fr] md:items-end">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Divisi
               </label>
               <select
                 value={division}
                 onChange={(e) => setDivision(e.target.value as DivisionFilter)}
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
@@ -274,7 +274,7 @@ export function InputForm({
                 <option value="CREATOR_DIGITAL">Creator Digital</option>
               </select>
             </div>
-            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
               {divisionDescriptions[division]}
             </div>
           </div>
@@ -282,9 +282,13 @@ export function InputForm({
       )}
 
       {isPenjualanFocus ? (
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 rounded-2xl bg-white dark:bg-gray-800 p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Input Data PSB</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Isi data pelanggan baru secara singkat dan rapi.</p>
+          </div>
           {error && (
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/30 p-3 sm:p-4 text-sm text-red-700 dark:text-red-200">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
               {error}
             </div>
           )}
@@ -300,7 +304,7 @@ export function InputForm({
             value={formData.customerName}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
 
@@ -314,7 +318,7 @@ export function InputForm({
             value={formData.birthDate}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
 
@@ -333,7 +337,7 @@ export function InputForm({
             inputMode="numeric"
             placeholder="08xxxxxxxxxx"
             maxLength={13}
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
 
@@ -345,7 +349,7 @@ export function InputForm({
             name="package"
             value={formData.package}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             {packageOptions.map((pkg) => (
               <option key={pkg} value={pkg}>
@@ -368,7 +372,7 @@ export function InputForm({
               required
               readOnly
               autoComplete="off"
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-600 dark:text-white"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-600 dark:text-white"
             />
           ) : (
             <input
@@ -379,7 +383,7 @@ export function InputForm({
               required
               autoComplete="off"
               placeholder="Masukkan nama marketing"
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           )}
           {roleUpper !== 'MARKETING' && (
@@ -389,7 +393,7 @@ export function InputForm({
           )}
         </div>
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50/70 p-4 dark:border-gray-600 dark:bg-gray-900/20">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Foto Rumah (Max 10MB - Otomatis Dikompres)
           </label>
@@ -397,14 +401,15 @@ export function InputForm({
             type="file"
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleFileChange}
-            className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400
+            className="mt-2 block w-full text-sm text-gray-500 dark:text-gray-400
               file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
+              file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600
               file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              dark:file:bg-blue-900/30 dark:file:text-blue-300
-              hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
+              file:bg-white file:text-gray-700
+              dark:file:bg-gray-800 dark:file:text-gray-200
+              hover:file:bg-gray-50 dark:hover:file:bg-gray-700"
           />
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Foto akan dikompres otomatis sebelum dikirim.</p>
         </div>
 
         <div className="md:col-span-2">
@@ -417,7 +422,7 @@ export function InputForm({
             value={formData.locationMap}
             onChange={handleChange}
             required
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="https://maps.google.com/..."
           />
         </div>
@@ -431,23 +436,23 @@ export function InputForm({
             value={formData.description}
             onChange={handleChange}
             rows={3}
-            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white"
+            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
       </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 md:w-auto"
+              className="w-full rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white md:w-auto"
             >
               {loading ? 'Menyimpan...' : 'Kirim'}
             </button>
           </div>
         </form>
       ) : (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Input PSB Belum Tersedia untuk Divisi Ini</h3>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Saat ini input pelanggan baru masih dicatat melalui alur divisi Penjualan. Pilih `Semua Divisi` atau `Penjualan` untuk memakai formulir PSB.

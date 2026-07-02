@@ -384,7 +384,7 @@ export default async function DivisionDetailPage({
           <div className="mb-2">
             <Link
               href={`/?month=${month}&year=${year}&division=${division}`}
-              className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
             >
               Kembali ke Dashboard
             </Link>
@@ -394,7 +394,7 @@ export default async function DivisionDetailPage({
             {description} Periode {getMonthLabel(month)} {year}.
           </p>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <div className="rounded-md border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
           Kode Divisi: <span className="font-semibold text-gray-900 dark:text-white">{division}</span>
         </div>
       </div>
@@ -407,7 +407,7 @@ export default async function DivisionDetailPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {summaryCards.map((card) => (
-          <div key={card.label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{card.label}</div>
             <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{card.value}</div>
             <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{card.hint}</div>
@@ -415,15 +415,15 @@ export default async function DivisionDetailPage({
         ))}
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Shortcut Operasional</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Shortcut Operasional</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Akses cepat ke modul yang paling relevan untuk divisi ini.
             </p>
           </div>
-          <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:bg-gray-900/30 dark:text-gray-300">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-300">
             {focusNote}
           </div>
         </div>
@@ -432,7 +432,7 @@ export default async function DivisionDetailPage({
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 transition hover:border-blue-200 hover:bg-blue-50/60 dark:border-gray-700 dark:bg-gray-900/30 dark:hover:border-blue-900/40 dark:hover:bg-blue-900/10"
+              className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/30 dark:hover:bg-gray-800"
             >
               <div className="text-sm font-semibold text-gray-900 dark:text-white">{link.label}</div>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{link.description}</p>
@@ -441,13 +441,13 @@ export default async function DivisionDetailPage({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Anggota Divisi</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Anggota Divisi</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Mapping role ke division yang saat ini aktif.</p>
           </div>
-          <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 dark:bg-gray-900/30 dark:text-gray-200">
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200">
             Total {members.length} user
           </div>
         </div>
@@ -458,10 +458,10 @@ export default async function DivisionDetailPage({
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {members.map((member) => (
-              <div key={member.id} className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/30">
+              <div key={member.id} className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
                 <div className="font-semibold text-gray-900 dark:text-white">{member.name}</div>
                 <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">@{member.username}</div>
-                <div className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm dark:bg-gray-800 dark:text-gray-200">
+                <div className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
                   {member.role}
                 </div>
               </div>
@@ -472,17 +472,17 @@ export default async function DivisionDetailPage({
 
       {division === 'PENJUALAN' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Performa Marketing</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Performa Marketing</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Rangkuman individu berdasarkan data PSB pada periode ini.</p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700">
                     <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Marketing</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Close</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">On Progress</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Open</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Close</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">On Progress</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Open</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Total</th>
                   </tr>
                 </thead>
@@ -490,9 +490,9 @@ export default async function DivisionDetailPage({
                   {marketingRows.map((row) => (
                     <tr key={row.name}>
                       <td className="px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-200">{row.name}</td>
-                      <td className="px-3 py-2 text-center text-sm text-green-700 dark:text-green-300">{row.close}</td>
-                      <td className="px-3 py-2 text-center text-sm text-blue-700 dark:text-blue-300">{row.on_progress}</td>
-                      <td className="px-3 py-2 text-center text-sm text-red-700 dark:text-red-300">{row.open}</td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-700 dark:text-gray-200">{row.close}</td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-700 dark:text-gray-200">{row.on_progress}</td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-700 dark:text-gray-200">{row.open}</td>
                       <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900 dark:text-white">{row.total}</td>
                     </tr>
                   ))}
@@ -508,12 +508,12 @@ export default async function DivisionDetailPage({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Paket Teratas</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Paket Teratas</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Komposisi paket dengan pemasangan terbanyak.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
@@ -530,8 +530,8 @@ export default async function DivisionDetailPage({
 
       {division === 'CS_ADMIN' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Rekap Status Isolir</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Rekap Status Isolir</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Status aktual data isolir yang dikelola area CS & Admin CS.</p>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -560,12 +560,12 @@ export default async function DivisionDetailPage({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Radboox Dominan</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Radboox Dominan</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Perangkat Radboox yang paling sering muncul pada data isolir.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
@@ -582,16 +582,16 @@ export default async function DivisionDetailPage({
 
       {division === 'NOC_TROUBLESHOOTS' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Rekap Ticket per Type</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Rekap Ticket per Type</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Open dan close ticket pada periode ini.</p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700">
                     <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Type</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Open</th>
-                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Close</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Open</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-300">Close</th>
                     <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Total</th>
                   </tr>
                 </thead>
@@ -599,8 +599,8 @@ export default async function DivisionDetailPage({
                   {ticketTypeRows.map((row) => (
                     <tr key={row.type}>
                       <td className="px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-200">{row.type}</td>
-                      <td className="px-3 py-2 text-center text-sm text-red-700 dark:text-red-300">{row.open}</td>
-                      <td className="px-3 py-2 text-center text-sm text-green-700 dark:text-green-300">{row.close}</td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-700 dark:text-gray-200">{row.open}</td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-700 dark:text-gray-200">{row.close}</td>
                       <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900 dark:text-white">{row.total}</td>
                     </tr>
                   ))}
@@ -616,14 +616,14 @@ export default async function DivisionDetailPage({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               {division === 'NOC_TROUBLESHOOTS' ? 'Top Problem Category' : 'Gangguan Dominan'}
             </h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Top kategori gangguan selama tahun berjalan.</p>
             <div className="space-y-3">
               {problemRows.map((row) => (
-                <div key={row.problemCategory} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/30">
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900/30">
                   <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
                   <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>

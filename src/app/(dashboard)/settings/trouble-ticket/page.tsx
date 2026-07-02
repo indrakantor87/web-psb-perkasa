@@ -18,9 +18,9 @@ export default async function TroubleTicketSettingsPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6">
       <header className="space-y-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Pengaturan Trouble Ticket</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">Pengaturan Trouble Ticket</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Kelola format ID, SLA, dan master data Jenis Gangguan/Tindakan untuk Trouble Ticket.
+          Kelola format ID, SLA, dan master data agar alur ticket lebih rapi dan konsisten.
         </p>
       </header>
       <div className="space-y-4">

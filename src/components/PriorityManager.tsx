@@ -84,36 +84,47 @@ export function PriorityManager() {
   ]
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
-      <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 dark:text-white">Priority Management</h2>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white sm:text-xl">Daftar Prioritas</h2>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Atur nama prioritas dan warna badge yang tampil pada ticket.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 rounded-md flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2" />
+        <div className="mb-4 flex items-center rounded-md border border-red-200 bg-red-50 p-3 text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-200">
+          <AlertCircle className="mr-2 h-5 w-5" />
           {error}
         </div>
       )}
 
-      {/* Add New Form */}
-      <form onSubmit={handleAdd} className="mb-6 sm:mb-8 p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Add New Priority</h3>
+      <form
+        onSubmit={handleAdd}
+        className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/30 sm:mb-8 sm:p-4"
+      >
+        <h3 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-200">Tambah Prioritas</h3>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
           <div className="flex-1 w-full">
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Prioritas</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Nama Prioritas
+            </label>
             <input
               type="text"
               value={newPriority.name}
               onChange={(e) => setNewPriority({ ...newPriority, name: e.target.value })}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-800 dark:text-white sm:text-sm"
               placeholder="Contoh: Urgent"
             />
           </div>
           <div className="flex-1 w-full">
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Warna Badge (Tailwind Class)</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Warna Badge
+            </label>
             <select
               value={newPriority.color}
               onChange={(e) => setNewPriority({ ...newPriority, color: e.target.value })}
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 shadow-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-800 dark:text-white sm:text-sm"
             >
               <option value="">Pilih Warna</option>
               {predefinedColors.map((c) => (
@@ -124,34 +135,33 @@ export function PriorityManager() {
           <button
             type="submit"
             disabled={adding || !newPriority.name || !newPriority.color}
-            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
+            <Plus className="mr-1 h-4 w-4" />
+            Tambah
           </button>
         </div>
       </form>
 
-      {/* List */}
-      <div className="overflow-x-auto shadow-sm ring-1 ring-black/5 dark:ring-gray-700 rounded-2xl w-full">
-        <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-900/40">
             <tr>
-              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Name</th>
+              <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Nama</th>
               <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Preview Badge</th>
               <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">Aksi</span>
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {loading ? (
               <tr>
-                <td colSpan={3} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">Loading...</td>
+                <td colSpan={3} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Memuat...</td>
               </tr>
             ) : priorities.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">No priority data yet</td>
+                <td colSpan={3} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada data prioritas</td>
               </tr>
             ) : (
               priorities.map((priority) => (
@@ -165,7 +175,8 @@ export function PriorityManager() {
                   <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <button
                       onClick={() => handleDelete(priority.id)}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                      title="Hapus prioritas"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

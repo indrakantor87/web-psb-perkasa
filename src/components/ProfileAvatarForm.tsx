@@ -91,7 +91,7 @@ export function ProfileAvatarForm({ initialAvatar, userInitial }: ProfileAvatarF
           className="h-16 w-16 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
         />
       ) : (
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-bold text-lg">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 font-bold text-lg">
           {userInitial}
         </div>
       )}
@@ -100,7 +100,7 @@ export function ProfileAvatarForm({ initialAvatar, userInitial }: ProfileAvatarF
         <input
           type="file"
           accept="image/png,image/jpeg,image/jpg,image/webp"
-          className="block w-full text-sm text-gray-700 dark:text-gray-200 file:mr-4 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-gray-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-200 hover:file:bg-gray-200 dark:hover:file:bg-gray-600"
+          className="block w-full text-sm text-gray-700 dark:text-gray-200 file:mr-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600 file:bg-white dark:file:bg-gray-700 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-200 hover:file:bg-gray-50 dark:hover:file:bg-gray-600"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           disabled={isSaving}
         />
@@ -114,7 +114,7 @@ export function ProfileAvatarForm({ initialAvatar, userInitial }: ProfileAvatarF
               onClick={onRemove}
               disabled={isSaving}
               className={clsx(
-                'inline-flex justify-center rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                'inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2',
                 isSaving && 'opacity-70'
               )}
             >
@@ -126,7 +126,7 @@ export function ProfileAvatarForm({ initialAvatar, userInitial }: ProfileAvatarF
             onClick={onSave}
             disabled={!file || isSaving}
             className={clsx(
-              'inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+              'inline-flex justify-center rounded-md bg-gray-900 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white',
               (!file || isSaving) && 'opacity-70'
             )}
           >
@@ -137,4 +137,3 @@ export function ProfileAvatarForm({ initialAvatar, userInitial }: ProfileAvatarF
     </div>
   )
 }
-
