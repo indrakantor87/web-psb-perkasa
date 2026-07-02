@@ -439,8 +439,14 @@ export async function GET(request: Request) {
   const search = (searchParams.get('search') ?? '').trim()
   const status = (searchParams.get('status') ?? 'ALL').trim().toUpperCase()
   const overdueOnly = (searchParams.get('overdue') ?? '') === '1'
+  const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const { month, year } = parseMonthYear(searchParams)
   const roleUpper = (session.user.role || '').toUpperCase()
+  const divisionFilter =
+    roleUpper === 'ADMIN' &&
+    ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+      ? divisionParam
+      : 'ALL'
 
   if (roleUpper !== 'TROUBLESHOOTS') {
     try {
@@ -482,6 +488,17 @@ export async function GET(request: Request) {
       baseParts.push(
         `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p})`
       )
+    }
+
+    if (roleUpper === 'ADMIN') {
+      if (divisionFilter === 'CS_ADMIN') {
+        baseParts.push(`"status" = 'OPEN'`)
+        baseParts.push(`"temporaryAt" IS NULL`)
+      } else if (divisionFilter === 'NOC_TROUBLESHOOTS') {
+        baseParts.push(`("temporaryAt" IS NOT NULL OR "status" = 'CLOSE')`)
+      } else if (divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
+        baseParts.push(`1 = 0`)
+      }
     }
 
     const whereParts: string[] = [...baseParts]

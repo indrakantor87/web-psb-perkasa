@@ -307,6 +307,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>('ALL')
   const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE'>(
     (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
   )
@@ -364,10 +365,18 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
   const roleUpper = (userRole || '').toUpperCase()
+  const isAdmin = roleUpper === 'ADMIN'
   const isTroubleshoots = roleUpper === 'TROUBLESHOOTS'
   const canCreate = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
   const canDelete = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
   const isPrivileged = useMemo(() => ['ADMIN', 'CS', 'NOC'].includes(roleUpper), [roleUpper])
+  const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
+    ALL: 'Menampilkan seluruh Trouble Ticket pada periode terpilih.',
+    PENJUALAN: 'Belum ada relasi langsung antara divisi Penjualan dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
+    CS_ADMIN: 'Fokus ke ticket OPEN yang belum ditandai Temporary, cocok untuk intake dan follow up CS & Admin CS.',
+    NOC_TROUBLESHOOTS: 'Fokus ke ticket yang sudah Temporary atau sudah CLOSE, cocok untuk perspektif tindak lanjut teknis.',
+    CREATOR_DIGITAL: 'Belum ada relasi langsung antara Creator Digital dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
+  }
 
   const fileInputId = 'trouble-ticket-import-input'
 
@@ -393,7 +402,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
   useEffect(() => {
     if (isTroubleshoots) return
     setPage(1)
-  }, [isTroubleshoots, month, year, status, debouncedSearch, pageSize])
+  }, [division, isTroubleshoots, month, year, status, debouncedSearch, pageSize])
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(search), 300)
@@ -449,6 +458,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
         params.set('limit', status === 'CLOSE' ? '120' : '200')
       }
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
+      if (!isTroubleshoots && isAdmin && division !== 'ALL') params.set('division', division)
       if (!isTroubleshoots && status === 'OVERDUE') params.set('overdue', '1')
       if (status !== 'ALL') params.set('status', status === 'OVERDUE' ? 'OPEN' : status)
       const res = await fetch(`/api/trouble-tickets?${params.toString()}`, { signal })
@@ -500,7 +510,7 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, isTroubleshoots, month, page, pageSize, slaDays, status, year])
+  }, [debouncedSearch, division, isAdmin, isTroubleshoots, month, page, pageSize, slaDays, status, year])
 
   const repeatedUserSet = useMemo(() => {
     const normalizeUserKey = (value: unknown) => String(value ?? '').trim().toLowerCase()
@@ -1215,7 +1225,29 @@ export function TroubleTicketView({ userRole }: { userRole: string }) {
               </select>
             </div>
           )}
+          {!isTroubleshoots && isAdmin && (
+            <div className="flex flex-col">
+              <span className="mb-0.5 text-[11px] leading-none text-gray-500 dark:text-gray-400">Division</span>
+              <select
+                value={division}
+                onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-black dark:text-white md:w-52 md:py-2"
+              >
+                <option value="ALL">Semua Division</option>
+                <option value="PENJUALAN">Penjualan</option>
+                <option value="CS_ADMIN">CS & Admin CS</option>
+                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CREATOR_DIGITAL">Creator Digital</option>
+              </select>
+            </div>
+          )}
         </div>
+
+        {!isTroubleshoots && isAdmin && (
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
+            {divisionDescriptions[division]}
+          </div>
+        )}
 
         {!isTroubleshoots && (
           <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-center">
