@@ -359,17 +359,34 @@ export function InputForm({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Marketing
           </label>
-          <input
-            type="text"
-            name="marketingName"
-            value={formData.marketingName}
-            onChange={handleChange}
-            required
-            readOnly={roleUpper === 'MARKETING'}
-            className={`mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 text-black dark:text-white ${
-              roleUpper === 'MARKETING' ? 'bg-gray-100 dark:bg-gray-600' : 'bg-white dark:bg-gray-700'
-            }`}
-          />
+          {roleUpper === 'MARKETING' ? (
+            <input
+              type="text"
+              name="marketingName"
+              value={formData.marketingName}
+              onChange={handleChange}
+              required
+              readOnly
+              autoComplete="off"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-600 dark:text-white"
+            />
+          ) : (
+            <input
+              type="text"
+              name="marketingName"
+              value={formData.marketingName}
+              onChange={handleChange}
+              required
+              autoComplete="off"
+              placeholder="Masukkan nama marketing"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+          )}
+          {roleUpper !== 'MARKETING' && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Untuk role selain `MARKETING`, kolom ini bisa diisi manual.
+            </p>
+          )}
         </div>
 
         <div className="md:col-span-2">

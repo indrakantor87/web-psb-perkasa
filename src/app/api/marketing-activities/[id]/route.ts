@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
+import { normalizeMarketingName, resolveMarketingName } from '@/lib/marketing-users'
 
 export async function PUT(
   request: Request,
@@ -21,6 +22,17 @@ export async function PUT(
   try {
     const body = await request.json()
     const { date, marketingName, activity, notes, areaId, areaId2, areaId3, areaId4 } = body
+    const resolvedMarketingName =
+      typeof marketingName === 'undefined'
+        ? undefined
+        : session.user.role === 'MARKETING'
+          ? normalizeMarketingName(session.user.name)
+          : await resolveMarketingName(marketingName)
+
+    if (typeof marketingName !== 'undefined' && !resolvedMarketingName) {
+      return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })
+    }
+    const nextMarketingName = resolvedMarketingName ?? undefined
 
     const parseOptionalInt = (v: unknown) => {
       if (v === null || typeof v === 'undefined' || v === '') return null
@@ -39,7 +51,7 @@ export async function PUT(
       where: { id: activityId },
       data: {
         date: date ? new Date(date) : undefined,
-        marketingName,
+        marketingName: nextMarketingName,
         activity,
         notes,
         areaId: areaId !== undefined ? uniquePicked[0] : undefined,

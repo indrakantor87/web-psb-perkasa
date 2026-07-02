@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
+import { resolveMarketingName } from '@/lib/marketing-users'
 
 export const runtime = 'nodejs'
 
@@ -163,10 +164,15 @@ export async function POST(request: Request) {
           matchedAreaIds[3] = unique[3] ?? null
         }
 
+        const finalMarketingName = await resolveMarketingName(mapped.marketingName)
+        if (!finalMarketingName) {
+          throw new Error('Nama marketing tidak valid')
+        }
+
         await prismaUnsafe.marketingActivity.create({
           data: {
             date: parseDate(mapped.date) || new Date(),
-            marketingName: String(mapped.marketingName || '-').trim(),
+            marketingName: finalMarketingName,
             activity: String(mapped.activity || '-').trim(),
             notes: mapped.notes ? String(mapped.notes).trim() : null,
             areaId: matchedAreaIds[0],

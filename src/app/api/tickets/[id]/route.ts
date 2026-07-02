@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { normalizeMarketingName } from '@/lib/marketing-users'
 
 function statusOrderFor(status: string) {
   const s = (status || '').toUpperCase()
@@ -70,7 +71,12 @@ export async function PUT(
       if (typeof pkg === 'string' && pkg) updateData.package = pkg
 
       const marketingName = formData.get('marketingName')
-      if (typeof marketingName === 'string' && marketingName) updateData.marketingName = marketingName
+      if (typeof marketingName === 'string' && marketingName) {
+        updateData.marketingName =
+          role === 'MARKETING'
+            ? normalizeMarketingName(session.user.name)
+            : normalizeMarketingName(marketingName)
+      }
 
       const teknisi = formData.get('teknisi')
       if (typeof teknisi === 'string' && teknisi) updateData.teknisi = teknisi
@@ -111,6 +117,11 @@ export async function PUT(
         if (typeof v === 'undefined' || v === null) continue
         if (k === 'birthDate' || k === 'installedDate') {
           next[k] = new Date(String(v))
+        } else if (k === 'marketingName') {
+          next[k] =
+            role === 'MARKETING'
+              ? normalizeMarketingName(session.user.name)
+              : normalizeMarketingName(v)
         } else {
           next[k] = String(v)
         }

@@ -7,6 +7,7 @@ import { ensureDbOptimizations, ensureUserDivisionColumn } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { ensureOdpTable } from '@/lib/odp-init'
+import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toCanonicalMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,29 @@ type DashboardPayload = {
   divisionSummary: DivisionSummary[]
 }
 
+function aggregateMarketingRows<T extends { name: string }>(
+  rows: T[],
+  nameMap: Map<string, string>
+) {
+  const aggregated = new Map<string, T>()
+  for (const row of rows) {
+    const label = toCanonicalMarketingLabel(row.name, nameMap)
+    const existing = aggregated.get(label)
+    if (existing) {
+      for (const [key, value] of Object.entries(row)) {
+        if (key === 'name') continue
+        if (typeof value === 'number') {
+          ;(existing as Record<string, unknown>)[key] = Number((existing as Record<string, unknown>)[key] || 0) + value
+        }
+      }
+      continue
+    }
+    aggregated.set(label, { ...row, name: label })
+  }
+
+  return Array.from(aggregated.values())
+}
+
 function createEmptyDashboardPayload(): DashboardPayload {
   return {
     packageData: [],
@@ -74,12 +98,12 @@ function createEmptyDashboardPayload(): DashboardPayload {
       {
         code: 'CS_ADMIN',
         label: 'CS & Admin CS',
-        description: 'Fokus pada ticket masuk dan tindak lanjut awal',
+        description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
         members: 0,
         primaryValue: 0,
-        primaryLabel: 'Ticket bulan ini',
+        primaryLabel: 'Isolir aktif',
         secondaryValue: 0,
-        secondaryLabel: 'Perlu follow up',
+        secondaryLabel: 'Riwayat isolir',
       },
       {
         code: 'NOC_TROUBLESHOOTS',
@@ -181,9 +205,13 @@ export default async function DashboardPage({
 
     const marketingRole = session.user.role === 'MARKETING'
     const marketingName = session.user.name || ''
+    const marketingNameFilter = normalizeMarketingName(marketingName)
+    const marketingNameMap = await getMarketingNameMap()
 
     const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
-    const marketingClause = marketingRole ? PrismaSql.sql`AND "marketingName" = ${marketingName}` : PrismaSql.sql``
+    const marketingClause = marketingRole
+      ? PrismaSql.sql`AND LOWER(TRIM("marketingName")) = ${marketingNameFilter.toLowerCase()}`
+      : PrismaSql.sql``
     const carryClause = isSelectedCurrentMonth
       ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN (${statusVals}) AND "requestDate" < ${endDate})`
       : PrismaSql.sql``
@@ -252,13 +280,16 @@ export default async function DashboardPage({
       return a.name.localeCompare(b.name)
     })
 
-    const marketingData = marketingRows.map((r) => ({
-    name: r.name || 'Unknown',
-    count: Number(r.count || 0),
-    open: Number(r.open || 0),
-    on_progress: Number(r.on_progress || 0),
-    close: Number(r.close || 0),
-  }))
+    const marketingData = aggregateMarketingRows(
+      marketingRows.map((r) => ({
+        name: String(r.name || ''),
+        count: Number(r.count || 0),
+        open: Number(r.open || 0),
+        on_progress: Number(r.on_progress || 0),
+        close: Number(r.close || 0),
+      })),
+      marketingNameMap
+    ).sort((a, b) => b.close - a.close || b.count - a.count || a.name.localeCompare(b.name))
 
   // 2b. Monthly recap untuk tahun terpilih (Jan..Dec) – hanya berdasarkan installedDate (pemasangan selesai)
     const yearStart = new Date(Date.UTC(currentYear, 0, 1) - JAKARTA_OFFSET_MS)
@@ -359,7 +390,7 @@ export default async function DashboardPage({
     for (const row of yearMarketingMonthlyRows) {
       const month = Math.max(1, Math.min(12, Number(row.month || 0)))
       const idx = month - 1
-      const name = String(row.name || 'Unknown').trim() || 'Unknown'
+      const name = toCanonicalMarketingLabel(row.name, marketingNameMap)
       const count = Number(row.count || 0)
       const existing = byName.get(name) ?? { total: 0, byMonth: Array.from({ length: 12 }, () => 0) }
       existing.byMonth[idx] = (existing.byMonth[idx] || 0) + count
@@ -382,7 +413,9 @@ export default async function DashboardPage({
     on_progress: onProgressCount,
   }
 
-    const isoRoleClause = marketingRole ? PrismaSql.sql`AND "marketing" = ${marketingName}` : PrismaSql.sql``
+    const isoRoleClause = marketingRole
+      ? PrismaSql.sql`AND LOWER(TRIM("marketing")) = ${marketingNameFilter.toLowerCase()}`
+      : PrismaSql.sql``
     const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
     SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
     FROM "Isolation"
@@ -390,13 +423,25 @@ export default async function DashboardPage({
     ${isoRoleClause}
     GROUP BY COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown')
   `)
-    const isolirByMarketing = new Map<string, number>(isoRows.map((r) => [String(r.name || 'Unknown').trim().toLowerCase(), Number(r.count || 0)]))
+    const isolirByMarketing = new Map<string, number>()
+    for (const row of isoRows) {
+      const label = toCanonicalMarketingLabel(row.name, marketingNameMap)
+      const key = marketingNameKey(label)
+      isolirByMarketing.set(key, (isolirByMarketing.get(key) || 0) + Number(row.count || 0))
+    }
     const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-    const [marketingActivityTotal, odpTotal, ticketingTotal] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, ticketingTotal, isolationClosedCount] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
-        ...(marketingRole ? { marketingName } : {}),
+        ...(marketingRole
+          ? {
+              marketingName: {
+                equals: marketingNameFilter,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
         date: { gte: startDate, lt: endDate },
       },
     }).catch(() => 0),
@@ -422,6 +467,7 @@ export default async function DashboardPage({
       `)
       .then((rows) => Number(rows[0]?.count || 0))
       .catch(() => 0),
+    prisma.isolation.count({ where: { status: 'CLOSED' } }).catch(() => 0),
   ])
 
     const ticketingMonthRecap = await prisma
@@ -479,7 +525,7 @@ export default async function DashboardPage({
   // Merge isolir count into marketingData
     const marketingDataWithIsolir = marketingData.map((m) => ({
       ...m,
-      isolir: isolirByMarketing.get(m.name.toLowerCase()) || 0
+      isolir: isolirByMarketing.get(marketingNameKey(m.name)) || 0
     }))
 
     const divisionCountRows = await prisma
@@ -509,12 +555,12 @@ export default async function DashboardPage({
       {
         code: 'CS_ADMIN',
         label: 'CS & Admin CS',
-        description: 'Fokus pada ticket masuk dan tindak lanjut awal',
+        description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
         members: divisionCounts.get('CS_ADMIN') || 0,
-        primaryValue: ticketingTotal,
-        primaryLabel: 'Ticket bulan ini',
-        secondaryValue: ticketOpenTotal,
-        secondaryLabel: 'Perlu follow up',
+        primaryValue: isolationCount,
+        primaryLabel: 'Isolir aktif',
+        secondaryValue: isolationClosedCount,
+        secondaryLabel: 'Riwayat isolir',
       },
       {
         code: 'NOC_TROUBLESHOOTS',

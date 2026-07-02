@@ -116,7 +116,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -130,8 +130,12 @@ export async function GET() {
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
+    const { searchParams } = new URL(request.url)
+    const roleParam = String(searchParams.get('role') ?? '').trim().toUpperCase()
+    const where = roleParam ? { role: roleParam } : undefined
     const users = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy: roleParam ? { name: 'asc' } : { createdAt: 'desc' },
       select: { id: true, name: true, username: true, role: true, division: true, createdAt: true },
     })
 

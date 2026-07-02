@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
+import { getMarketingNameMap, toCanonicalMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,11 @@ type ProblemRow = {
   total: number
 }
 
+type IsolationStatusRow = {
+  status: string
+  total: number
+}
+
 type QuickLink = {
   label: string
   href: string
@@ -56,7 +62,7 @@ const divisionMeta: Record<DivisionCode, { label: string; description: string }>
   },
   CS_ADMIN: {
     label: 'CS & Admin CS',
-    description: 'Fokus pada ticket masuk, tindak lanjut awal, dan koordinasi layanan.',
+    description: 'Fokus pada isolir aktif, tindak lanjut pelanggan, dan koordinasi layanan.',
   },
   NOC_TROUBLESHOOTS: {
     label: 'NOC & Troubleshoots',
@@ -85,6 +91,24 @@ function toValidPeriod(value: string | string[] | undefined, fallback: number, m
 
 function getMonthLabel(month: number) {
   return ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][month - 1] ?? '-'
+}
+
+function aggregateMarketingRows(rows: MarketingRow[], nameMap: Map<string, string>) {
+  const aggregated = new Map<string, MarketingRow>()
+  for (const row of rows) {
+    const label = toCanonicalMarketingLabel(row.name, nameMap)
+    const existing = aggregated.get(label)
+    if (existing) {
+      existing.total += row.total
+      existing.open += row.open
+      existing.on_progress += row.on_progress
+      existing.close += row.close
+      continue
+    }
+    aggregated.set(label, { ...row, name: label })
+  }
+
+  return Array.from(aggregated.values()).sort((a, b) => b.close - a.close || b.total - a.total || a.name.localeCompare(b.name))
 }
 
 export default async function DivisionDetailPage({
@@ -116,7 +140,7 @@ export default async function DivisionDetailPage({
       return [
         { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus CS & Admin CS.' },
         { label: 'Isolir Aktif', href: '/isolir?division=CS_ADMIN&status=OPEN', description: 'Pantau pelanggan yang masih berstatus isolir aktif.' },
-        { label: 'Trouble Ticket', href: '/trouble-ticket?division=CS_ADMIN', description: 'Masuk ke daftar ticket yang relevan untuk tindak lanjut awal.' },
+        { label: 'PORT ODP', href: '/odp?division=CS_ADMIN', description: 'Akses modul PORT ODP dari perspektif CS & Admin CS sesuai struktur menu terbaru.' },
         { label: 'Manajemen Pengguna', href: '/settings/users', description: 'Rapikan mapping anggota dan role di divisi layanan.' },
       ]
     }
@@ -139,7 +163,7 @@ export default async function DivisionDetailPage({
       return 'Divisi ini paling lengkap saat ini karena sudah terhubung ke PSB, aktivitas marketing, dan list data.'
     }
     if (division === 'CS_ADMIN') {
-      return 'Fokus utama divisi ini ada pada follow up awal pelanggan, ticket masuk, dan monitoring isolir aktif.'
+      return 'Fokus utama divisi ini ada pada follow up pelanggan, monitoring isolir aktif, dan koordinasi layanan tanpa data Trouble Ticket.'
     }
     if (division === 'NOC_TROUBLESHOOTS') {
       return 'Divisi ini memegang area teknis: ODP, ticket teknis, dan penyelesaian gangguan lapangan.'
@@ -151,6 +175,7 @@ export default async function DivisionDetailPage({
   let summaryCards: SummaryCard[] = []
   let marketingRows: MarketingRow[] = []
   let ticketTypeRows: TicketTypeRow[] = []
+  let isolationStatusRows: IsolationStatusRow[] = []
   let problemRows: ProblemRow[] = []
   let localNotice = ''
 
@@ -175,6 +200,7 @@ export default async function DivisionDetailPage({
       : PrismaSql.sql``
     const yearStart = new Date(Date.UTC(year, 0, 1) - JAKARTA_OFFSET_MS)
     const yearEnd = new Date(Date.UTC(year + 1, 0, 1) - JAKARTA_OFFSET_MS)
+    const marketingNameMap = await getMarketingNameMap()
 
     if (division === 'PENJUALAN') {
       const [statusRows, activityTotal, packageRows, marketers] = await Promise.all([
@@ -229,20 +255,59 @@ export default async function DivisionDetailPage({
         { label: 'Aktivitas Marketing', value: Number(activityTotal || 0), hint: 'Input aktivitas pada periode ini' },
         { label: 'Status Close', value: totalClose, hint: `Open tersisa ${totalOpen}` },
       ]
-      marketingRows = marketers.map((row) => ({
-        name: String(row.name || 'Unknown'),
+      marketingRows = aggregateMarketingRows(marketers.map((row) => ({
+        name: String(row.name || ''),
         total: Number(row.total || 0),
         open: Number(row.open || 0),
         on_progress: Number(row.on_progress || 0),
         close: Number(row.close || 0),
-      }))
+      })), marketingNameMap)
       problemRows = packageRows.map((row) => ({
         problemCategory: String(row.package || 'Unknown'),
         total: Number(row.count || 0),
       }))
     }
 
-    if (division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS') {
+    if (division === 'CS_ADMIN') {
+      const [statusRows, radbooxRows] = await Promise.all([
+        prisma.$queryRaw<Array<{ status: string; total: number }>>(PrismaSql.sql`
+          SELECT
+            COALESCE(NULLIF(TRIM(UPPER("status")), ''), 'UNKNOWN') AS status,
+            COUNT(*)::int AS total
+          FROM "Isolation"
+          GROUP BY 1
+          ORDER BY COUNT(*) DESC, status ASC
+        `),
+        prisma.$queryRaw<Array<{ radboox: string; total: number }>>(PrismaSql.sql`
+          SELECT
+            COALESCE(NULLIF(TRIM("radboox"), ''), 'UNKNOWN') AS radboox,
+            COUNT(*)::int AS total
+          FROM "Isolation"
+          GROUP BY 1
+          ORDER BY COUNT(*) DESC, radboox ASC
+          LIMIT 10
+        `),
+      ])
+
+      const totalIsolir = statusRows.reduce((acc, row) => acc + Number(row.total || 0), 0)
+      const totalOpen = Number(statusRows.find((row) => row.status === 'OPEN')?.total || 0)
+      const totalClosed = Number(statusRows.find((row) => row.status === 'CLOSED')?.total || 0)
+      summaryCards = [
+        { label: 'Total Data Isolir', value: totalIsolir, hint: 'Akumulasi data isolir yang tercatat' },
+        { label: 'Isolir Aktif', value: totalOpen, hint: 'Perlu tindak lanjut CS & Admin CS' },
+        { label: 'Riwayat Selesai', value: totalClosed, hint: 'Status CLOSED pada data isolir' },
+      ]
+      isolationStatusRows = statusRows.map((row) => ({
+        status: String(row.status || 'UNKNOWN'),
+        total: Number(row.total || 0),
+      }))
+      problemRows = radbooxRows.map((row) => ({
+        problemCategory: String(row.radboox || 'UNKNOWN'),
+        total: Number(row.total || 0),
+      }))
+    }
+
+    if (division === 'NOC_TROUBLESHOOTS') {
       const [statusRows, typeRows, yearlyProblems] = await Promise.all([
         prisma.$queryRaw<Array<{ status: string; count: number }>>(PrismaSql.sql`
           SELECT COALESCE(NULLIF(TRIM(UPPER("status")), ''), 'UNKNOWN') AS status, COUNT(*)::int AS count
@@ -463,7 +528,59 @@ export default async function DivisionDetailPage({
         </div>
       )}
 
-      {(division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS') && (
+      {division === 'CS_ADMIN' && (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Rekap Status Isolir</h2>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Status aktual data isolir yang dikelola area CS & Admin CS.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-gray-700">
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
+                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-300">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                  {isolationStatusRows.map((row) => (
+                    <tr key={row.status}>
+                      <td className="px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-200">{row.status}</td>
+                      <td className="px-3 py-2 text-center text-sm font-semibold text-gray-900 dark:text-white">{row.total}</td>
+                    </tr>
+                  ))}
+                  {isolationStatusRows.length === 0 && (
+                    <tr>
+                      <td colSpan={2} className="px-3 py-8 text-center text-sm text-gray-400">
+                        Belum ada data isolir yang tercatat.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Radboox Dominan</h2>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Perangkat Radboox yang paling sering muncul pada data isolir.</p>
+            <div className="space-y-3">
+              {problemRows.map((row) => (
+                <div key={row.problemCategory} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-900/30">
+                  <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{row.problemCategory}</div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">{row.total}</div>
+                </div>
+              ))}
+              {problemRows.length === 0 && (
+                <div className="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-400 dark:bg-gray-900/30">
+                  Belum ada data Radboox untuk divisi ini.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {division === 'NOC_TROUBLESHOOTS' && (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Rekap Ticket per Type</h2>

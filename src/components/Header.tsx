@@ -247,7 +247,6 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Monitoring aset jaringan dan tindak lanjut teknis lapangan.',
           items: [
             { href: '/division?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
-            { href: '/odp?division=NOC_TROUBLESHOOTS', label: 'PORT ODP', icon: Wifi },
             { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
           ],
         },

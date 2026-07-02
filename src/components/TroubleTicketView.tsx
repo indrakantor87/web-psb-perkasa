@@ -376,11 +376,12 @@ export function TroubleTicketView({
   const canCreate = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
   const canDelete = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
   const isPrivileged = useMemo(() => ['ADMIN', 'CS', 'NOC'].includes(roleUpper), [roleUpper])
+  const supportsTroubleTicketWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
   const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
     ALL: 'Menampilkan seluruh Trouble Ticket pada periode terpilih.',
     PENJUALAN: 'Belum ada relasi langsung antara divisi Penjualan dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
-    CS_ADMIN: 'Fokus ke ticket OPEN yang belum ditandai Temporary, cocok untuk intake dan follow up CS & Admin CS.',
-    NOC_TROUBLESHOOTS: 'Fokus ke ticket yang sudah Temporary atau sudah CLOSE, cocok untuk perspektif tindak lanjut teknis.',
+    CS_ADMIN: 'Data Trouble Ticket tidak berada di divisi CS & Admin CS. Modul ini hanya aktif untuk perspektif NOC & Troubleshoots.',
+    NOC_TROUBLESHOOTS: 'Seluruh data Trouble Ticket berada di divisi NOC & Troubleshoots, termasuk open dan close ticket.',
     CREATOR_DIGITAL: 'Belum ada relasi langsung antara Creator Digital dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
   }
 
@@ -640,7 +641,7 @@ export function TroubleTicketView({
   const canNextPage = !isTroubleshoots && pageEnd < total
 
   const handleCreate = async () => {
-    if (!canCreate) return
+    if (!canCreate || !supportsTroubleTicketWorkflow) return
     setIsSubmitting(true)
     setError(null)
     try {
@@ -991,7 +992,7 @@ export function TroubleTicketView({
   }
 
   const deleteSelected = async () => {
-    if (!canDelete) return
+    if (!canDelete || !supportsTroubleTicketWorkflow) return
     if (selectedIds.length === 0) return
     if (!confirm(`Hapus ${selectedIds.length} ticket yang dipilih?`)) return
     setIsDeleting(true)
@@ -1014,6 +1015,7 @@ export function TroubleTicketView({
   }
 
   const handleExport = async () => {
+    if (!supportsTroubleTicketWorkflow) return
     setIsExporting(true)
     setError(null)
     try {
@@ -1051,7 +1053,7 @@ export function TroubleTicketView({
   }
 
   const handleImportFileChange = async (file: File | null) => {
-    if (!file) return
+    if (!file || !supportsTroubleTicketWorkflow) return
     setIsImporting(true)
     setError(null)
     try {
@@ -1266,7 +1268,7 @@ export function TroubleTicketView({
             />
             <button
               onClick={handleExport}
-              disabled={isExporting || rows.length === 0}
+              disabled={isExporting || rows.length === 0 || !supportsTroubleTicketWorkflow}
               className="w-full rounded-md bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
             >
               Export Excel
@@ -1276,7 +1278,7 @@ export function TroubleTicketView({
                 htmlFor={fileInputId}
                 className={clsx(
                   'w-full rounded-md px-3 py-2 text-sm font-medium text-white cursor-pointer text-center md:w-auto',
-                  isImporting ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                  isImporting || !supportsTroubleTicketWorkflow ? 'pointer-events-none bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
                 )}
               >
                 {isImporting ? 'Importing...' : 'Import Excel'}
@@ -1285,7 +1287,8 @@ export function TroubleTicketView({
             {canCreate && (
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm font-medium md:w-auto"
+                disabled={!supportsTroubleTicketWorkflow}
+                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
               >
                 Create Ticket
               </button>
@@ -1293,7 +1296,7 @@ export function TroubleTicketView({
             {canDelete && (
               <button
                 onClick={deleteSelected}
-                disabled={isDeleting || selectedIds.length === 0}
+                disabled={isDeleting || selectedIds.length === 0 || !supportsTroubleTicketWorkflow}
                 className="w-full rounded-md bg-red-600 hover:bg-red-700 text-white px-3 py-2 text-sm font-medium disabled:opacity-50 md:w-auto"
               >
                 Hapus Terpilih
@@ -1515,7 +1518,7 @@ export function TroubleTicketView({
             </div>
           ) : rows.length === 0 ? (
             <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
-              Tidak ada data
+              {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
             </div>
           ) : (
             rows.map((r) => {
@@ -1678,7 +1681,7 @@ export function TroubleTicketView({
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                  Tidak ada data
+                  {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
                 </td>
               </tr>
             ) : (

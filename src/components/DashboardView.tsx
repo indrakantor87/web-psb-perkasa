@@ -208,6 +208,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const showSalesFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
   const showSupportFocus =
     !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' || focusedDivision === 'NOC_TROUBLESHOOTS'
+  const showTicketingFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showNocFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showCreatorPlaceholder = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
   const focusDivisionConfig = {
@@ -223,7 +224,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     },
     CS_ADMIN: {
       title: 'CS & Admin CS',
-      description: 'Fokus ke tindak lanjut pelanggan, isolir aktif, dan kebutuhan administratif operasional.',
+      description: 'Fokus ke tindak lanjut pelanggan, isolir aktif, dan kebutuhan administratif operasional tanpa data Trouble Ticket.',
       badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200',
     },
     NOC_TROUBLESHOOTS: {
@@ -372,7 +373,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               color="bg-indigo-50 dark:bg-indigo-900/20"
             />
           )}
-          {!isTeknisi && showNocFocus && (
+          {!isTeknisi && showSupportFocus && (
             <StatCard 
               title="Total Isolir" 
               value={isolationCount} 
@@ -390,7 +391,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               color="bg-emerald-50 dark:bg-emerald-900/20"
             />
           )}
-          {!isMarketing && showSupportFocus && (
+          {!isMarketing && showTicketingFocus && (
             <StatCard 
               title="Total Ticketing" 
               value={ticketingTotal} 
@@ -474,7 +475,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </div>
           )}
 
-          {!isMarketing && showSupportFocus && (
+          {!isMarketing && showTicketingFocus && (
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -604,7 +605,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           </div>
           )}
 
-          {!isMarketing && showSupportFocus && (
+          {!isMarketing && showTicketingFocus && (
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -638,7 +639,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </div>
           )}
 
-          {!isMarketing && showSupportFocus && (
+          {!isMarketing && showTicketingFocus && (
             <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -802,7 +803,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && showSupportFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -895,7 +896,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && showSupportFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
       <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
           <div>

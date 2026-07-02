@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
+import { normalizeMarketingName, resolveMarketingName } from '@/lib/marketing-users'
 
 export const runtime = 'nodejs'
 
@@ -48,7 +49,10 @@ export async function GET(request: Request) {
   }
 
   if (session.user.role === 'MARKETING') {
-    where.marketingName = session.user.name
+    where.marketingName = {
+      equals: normalizeMarketingName(session.user.name),
+      mode: 'insensitive',
+    }
   } else if (marketing && marketing.trim()) {
     where.marketingName = {
       contains: marketing.trim(),
@@ -97,8 +101,17 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { date, marketingName, activity, notes, areaId, areaId2, areaId3, areaId4 } = body
 
-    if (!date || !marketingName) {
+    if (!date || (!marketingName && session.user.role !== 'MARKETING')) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    const finalMarketingName =
+      session.user.role === 'MARKETING'
+        ? normalizeMarketingName(session.user.name)
+        : await resolveMarketingName(marketingName)
+
+    if (!finalMarketingName) {
+      return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })
     }
 
     const parseOptionalInt = (v: unknown) => {
@@ -118,7 +131,7 @@ export async function POST(request: Request) {
     const newActivity = await client.marketingActivity.create({
       data: {
         date: new Date(date),
-        marketingName,
+        marketingName: finalMarketingName,
         activity: activity || '-',
         notes: notes || '',
         areaId: uniquePicked[0],

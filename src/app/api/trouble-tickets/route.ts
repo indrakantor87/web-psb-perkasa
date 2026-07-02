@@ -491,12 +491,7 @@ export async function GET(request: Request) {
     }
 
     if (roleUpper === 'ADMIN') {
-      if (divisionFilter === 'CS_ADMIN') {
-        baseParts.push(`"status" = 'OPEN'`)
-        baseParts.push(`"temporaryAt" IS NULL`)
-      } else if (divisionFilter === 'NOC_TROUBLESHOOTS') {
-        baseParts.push(`("temporaryAt" IS NOT NULL OR "status" = 'CLOSE')`)
-      } else if (divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
+      if (divisionFilter === 'CS_ADMIN' || divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
         baseParts.push(`1 = 0`)
       }
     }

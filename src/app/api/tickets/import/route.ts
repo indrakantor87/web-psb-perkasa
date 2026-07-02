@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-time'
+import { resolveMarketingName } from '@/lib/marketing-users'
 // Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
 export const runtime = 'nodejs'
@@ -145,7 +146,7 @@ export async function POST(request: Request) {
         const req = r.requestDate
         const install = r.installedDate || null
         const paket = r.package || 'HOME BASIC'
-        const marketing = r.marketingName || session.user.name
+        const marketing = r.marketingName
         const pengawalan = r.pengawalan || null
         const kmz = r.kmz || null
         const priority = r.priority || null
@@ -157,6 +158,8 @@ export async function POST(request: Request) {
         const installedDate = parseDate(install)
         if (!installedDate) { fail++; continue }
         const requestDate = parseDate(req) || installedDate
+        const finalMarketingName = await resolveMarketingName(marketing)
+        if (!finalMarketingName) { fail++; continue }
 
         await prisma.ticket.create({
           data: {
@@ -166,7 +169,7 @@ export async function POST(request: Request) {
             requestDate,
             installedDate,
             package: String(paket),
-            marketingName: String(marketing),
+            marketingName: finalMarketingName,
             teknisi: null,
             description: ket ? String(ket) : null,
             phoneNumber: String(phone || ''),

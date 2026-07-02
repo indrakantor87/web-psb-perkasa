@@ -5,6 +5,7 @@ import { ticketCreateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
+import { getMarketingNameMap, normalizeMarketingName, toCanonicalMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,7 +62,12 @@ export async function GET(request: Request) {
 
   // Filter for Marketing role
   if (session.user.role === 'MARKETING') {
-    and.push({ marketingName: session.user.name })
+    and.push({
+      marketingName: {
+        equals: normalizeMarketingName(session.user.name),
+        mode: 'insensitive',
+      },
+    })
   } else {
     const marketingParam = searchParams.get('marketing')
     if (marketingParam && marketingParam.trim()) {
@@ -190,7 +196,13 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(tickets, {
+    const marketingNameMap = await getMarketingNameMap()
+    const normalizedTickets = tickets.map((ticket) => ({
+      ...ticket,
+      marketingName: toCanonicalMarketingLabel(ticket.marketingName, marketingNameMap),
+    }))
+
+    return NextResponse.json(normalizedTickets, {
       headers: {
         'Cache-Control': 'no-store'
       }
@@ -259,7 +271,7 @@ export async function POST(request: Request) {
       birthDate: birthDateStr,
       locationMap,
       package: pkg,
-      marketingName: finalMarketingName,
+      marketingName: submittedMarketingName,
       description,
       phoneNumber,
       pengawalan
@@ -269,7 +281,11 @@ export async function POST(request: Request) {
     const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
-    // Ensure marketingName is present (it should be handled by validation or logic above, but for type safety)
+    const finalMarketingName =
+      session.user.role === 'MARKETING'
+        ? normalizeMarketingName(session.user.name)
+        : normalizeMarketingName(submittedMarketingName)
+
     if (!finalMarketingName) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }

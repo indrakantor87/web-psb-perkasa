@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, Fragment, useMemo } from 'react'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { Plus, Edit2, Trash2, X, Search, Download, Upload, ChevronRight, ChevronDown, BarChart2, Users } from 'lucide-react'
@@ -45,6 +45,9 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   const [submitting, setSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [marketingOptions, setMarketingOptions] = useState<string[]>(userRole === 'MARKETING' && userName ? [userName] : [])
+  const [marketingOptionsLoading, setMarketingOptionsLoading] = useState(userRole !== 'MARKETING')
+  const [marketingOptionsError, setMarketingOptionsError] = useState('')
 
   // Filters
   const now = new Date()
@@ -74,6 +77,74 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
     activity: '',
     notes: '',
   })
+
+  const marketingNameMap = useMemo(
+    () => new Map(marketingOptions.map((name) => [name.trim().toLowerCase(), name])),
+    [marketingOptions]
+  )
+
+  const canonicalizeMarketingName = useCallback(
+    (name: string) => {
+      const normalized = name.trim().replace(/\s+/g, ' ')
+      if (!normalized) return 'Belum Diisi'
+      return marketingNameMap.get(normalized.toLowerCase()) ?? 'Marketing Tidak Valid'
+    },
+    [marketingNameMap]
+  )
+
+  const resolveMarketingOptionValue = useCallback(
+    (name: string) => {
+      const normalized = name.trim().replace(/\s+/g, ' ')
+      if (!normalized) return ''
+      return marketingNameMap.get(normalized.toLowerCase()) ?? ''
+    },
+    [marketingNameMap]
+  )
+
+  useEffect(() => {
+    if (userRole === 'MARKETING') {
+      setMarketingOptions(userName ? [userName] : [])
+      setMarketingOptionsLoading(false)
+      setMarketingOptionsError('')
+      return
+    }
+
+    let mounted = true
+    setMarketingOptionsLoading(true)
+    setMarketingOptionsError('')
+
+    ;(async () => {
+      try {
+        const res = await fetch('/api/users?role=MARKETING', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to fetch marketing users')
+        const data = (await res.json()) as Array<{ name?: string }>
+        const names = Array.from(
+          new Set(
+            data
+              .map((userRow) => String(userRow.name ?? '').trim())
+              .filter((value) => value.length > 0)
+          )
+        )
+
+        if (!mounted) return
+        setMarketingOptions(names)
+        setFormData((prev) => ({
+          ...prev,
+          marketingName: names.includes(prev.marketingName) ? prev.marketingName : names[0] ?? '',
+        }))
+      } catch {
+        if (!mounted) return
+        setMarketingOptions([])
+        setMarketingOptionsError('Daftar marketing gagal dimuat. Tambahkan user marketing yang valid terlebih dahulu.')
+      } finally {
+        if (mounted) setMarketingOptionsLoading(false)
+      }
+    })()
+
+    return () => {
+      mounted = false
+    }
+  }, [userName, userRole])
 
   const fetchActivities = useCallback(async () => {
     setLoading(true)
@@ -129,7 +200,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       setEditingActivity(activity)
       setFormData({
         date: format(new Date(activity.date), 'yyyy-MM-dd'),
-        marketingName: activity.marketingName,
+        marketingName: userRole === 'MARKETING' ? userName : resolveMarketingOptionValue(activity.marketingName),
         areaId: activity.areaId?.toString() || '',
         areaId2: activity.areaId2?.toString() || '',
         areaId3: activity.areaId3?.toString() || '',
@@ -155,6 +226,10 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (userRole !== 'MARKETING' && !formData.marketingName) {
+      alert('Pilih nama marketing dari daftar user marketing yang valid.')
+      return
+    }
     setSubmitting(true)
     try {
       const method = editingActivity ? 'PUT' : 'POST'
@@ -265,7 +340,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
 
   // Grouping logic
   const groupedActivities = activities.reduce((acc, curr) => {
-    const name = curr.marketingName
+    const name = canonicalizeMarketingName(curr.marketingName)
     if (!acc[name]) {
       acc[name] = {
         name,
@@ -458,6 +533,12 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       {isAdmin && (
         <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/30 dark:bg-blue-900/10 dark:text-blue-200">
           {divisionDescriptions[division]}
+        </div>
+      )}
+
+      {marketingOptionsError && isPenjualanFocus && (
+        <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-200">
+          {marketingOptionsError}
         </div>
       )}
 
@@ -708,17 +789,35 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Marketing</label>
-                  <input
-                    type="text"
-                    required
-                    readOnly={userRole === 'MARKETING'}
-                    value={formData.marketingName}
-                    onChange={(e) => setFormData({ ...formData, marketingName: e.target.value })}
-                    className={clsx(
-                      "w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm",
-                      userRole === 'MARKETING' && "bg-gray-50 dark:bg-gray-600 cursor-not-allowed"
-                    )}
-                  />
+                  {userRole === 'MARKETING' ? (
+                    <input
+                      type="text"
+                      required
+                      readOnly
+                      value={formData.marketingName}
+                      className="w-full rounded-md border-gray-300 bg-gray-50 text-sm dark:border-gray-600 dark:bg-gray-600 cursor-not-allowed"
+                    />
+                  ) : (
+                    <select
+                      required
+                      value={formData.marketingName}
+                      onChange={(e) => setFormData({ ...formData, marketingName: e.target.value })}
+                      disabled={marketingOptionsLoading || marketingOptions.length === 0}
+                      className="w-full rounded-md border-gray-300 text-sm disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:disabled:bg-gray-600"
+                    >
+                      {marketingOptionsLoading ? (
+                        <option value="">Memuat daftar marketing...</option>
+                      ) : marketingOptions.length === 0 ? (
+                        <option value="">Belum ada user marketing</option>
+                      ) : (
+                        marketingOptions.map((marketingName) => (
+                          <option key={marketingName} value={marketingName}>
+                            {marketingName}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -805,7 +904,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || (userRole !== 'MARKETING' && (marketingOptionsLoading || marketingOptions.length === 0))}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {submitting ? 'Menyimpan...' : (editingActivity ? 'Simpan Perubahan' : 'Tambah Aktivitas')}
