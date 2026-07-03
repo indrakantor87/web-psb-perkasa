@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { Pencil } from 'lucide-react'
+import { Download, Pencil, Upload } from 'lucide-react'
+import { formatSuspendDuration } from '@/lib/isolation-suspend'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 type TicketFilter = 'ALL' | 'WITH' | 'WITHOUT'
@@ -23,6 +24,12 @@ type DismantleItem = {
     locationMap?: string | null
     description?: string | null
   } | null
+}
+
+type DismantleResponse = {
+  items?: DismantleItem[]
+  total?: number
+  error?: string
 }
 
 function formatDate(value?: string | null) {
@@ -143,6 +150,9 @@ export function DismantleView({
   const [saving, setSaving] = useState(false)
   const [selectedRow, setSelectedRow] = useState<DismantleItem | null>(null)
   const [ticketValue, setTicketValue] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const supportsWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN'
   const divisionDescriptions: Record<DivisionFilter, string> = {
@@ -162,28 +172,45 @@ export function DismantleView({
     setPage(1)
   }, [debouncedSearch, division, limit, radbooxFilter, ticketFilter])
 
-  const fetchRows = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true)
-    setError(null)
-    try {
+  const buildQueryParams = useCallback(
+    (targetPage: number, targetLimit: number) => {
       const params = new URLSearchParams()
       params.set('status', 'OPEN')
-      params.set('page', String(page))
-      params.set('limit', String(limit))
+      params.set('dismantleEligible', 'true')
+      params.set('page', String(targetPage))
+      params.set('limit', String(targetLimit))
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.set('radboox', radbooxFilter)
       if (ticketFilter !== 'ALL') params.set('ticketStatus', ticketFilter)
       if (isAdmin && division !== 'ALL') params.set('division', division)
+      return params
+    },
+    [debouncedSearch, division, isAdmin, radbooxFilter, ticketFilter]
+  )
 
-      const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store', signal })
-      const data = (await res.json().catch(() => ({}))) as {
-        items?: DismantleItem[]
-        total?: number
-        error?: string
-      }
+  const requestRows = useCallback(
+    async (targetPage: number, targetLimit: number, signal?: AbortSignal) => {
+      const res = await fetch(`/api/isolations?${buildQueryParams(targetPage, targetLimit).toString()}`, {
+        cache: 'no-store',
+        signal,
+      })
+      const data = (await res.json().catch(() => ({}))) as DismantleResponse
       if (!res.ok) throw new Error(data.error || 'Gagal memuat data dismantle')
-      setRows(Array.isArray(data.items) ? data.items : [])
-      setTotal(typeof data.total === 'number' ? data.total : 0)
+      return {
+        items: Array.isArray(data.items) ? data.items : [],
+        total: typeof data.total === 'number' ? data.total : 0,
+      }
+    },
+    [buildQueryParams]
+  )
+
+  const fetchRows = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await requestRows(page, limit, signal)
+      setRows(data.items)
+      setTotal(data.total)
     } catch (err) {
       if (signal?.aborted) return
       setError(err instanceof Error ? err.message : String(err))
@@ -192,7 +219,7 @@ export function DismantleView({
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [debouncedSearch, division, isAdmin, limit, page, radbooxFilter, ticketFilter])
+  }, [limit, page, requestRows])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -244,8 +271,92 @@ export function DismantleView({
     }
   }
 
+  const handleExport = async () => {
+    if (!supportsWorkflow) return
+    setIsExporting(true)
+    try {
+      const XLSX = await import('xlsx')
+      const batchLimit = 100
+      const collected: DismantleItem[] = []
+      let exportPage = 1
+      let exportTotal = 0
+
+      while (true) {
+        const data = await requestRows(exportPage, batchLimit)
+        exportTotal = data.total
+        collected.push(...data.items)
+        if (data.items.length < batchLimit || collected.length >= exportTotal) break
+        exportPage += 1
+      }
+
+      const rowsToExport = collected.map((row) => ({
+        'ID Isolir': row.id,
+        'Nomor Ticket': String(row.ticketDismantle ?? '').trim(),
+        'Nama': row.customerName || '',
+        'User': row.userEmail || row.marketing || '',
+        'No. HP': row.customerPhone || '',
+        'Maps': row.ticket?.locationMap || '',
+        'Alamat': row.customerAddress || '',
+        'Keterangan': row.reason || '',
+        'Problem': row.ticket?.description || row.radboox || '',
+        'Status': row.status || '',
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(rowsToExport)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Dismantle')
+      XLSX.writeFile(workbook, `Dismantle_Perangkat_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal export Excel')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleImportClick = () => {
+    if (!canEdit || !supportsWorkflow || isImporting) return
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/isolations/dismantle-import', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string; errors?: string[] }
+      if (!res.ok) {
+        throw new Error(data.error || 'Gagal import Excel')
+      }
+
+      const details = Array.isArray(data.errors) && data.errors.length > 0 ? `\n\n${data.errors.join('\n')}` : ''
+      alert(`${data.message || 'Import selesai'}${details}`)
+      await fetchRows()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal import Excel')
+    } finally {
+      setIsImporting(false)
+      event.target.value = ''
+    }
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={handleImportFile}
+      />
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -275,7 +386,7 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Total Data</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{total}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Pelanggan isolir aktif yang masuk alur dismantle.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Pelanggan isolir aktif dengan suspend minimal 1 bulan.</div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Sudah Ada Ticket</div>
@@ -285,7 +396,7 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Belum Ada Ticket</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{emptyCount}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Bisa langsung diisi dari modul ini tanpa masuk ke halaman Isolir.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Data ini otomatis masuk alur dismantle setelah suspend mencapai minimal 1 bulan.</div>
         </div>
       </div>
 
@@ -338,6 +449,31 @@ export function DismantleView({
               <option value="100">100</option>
             </select>
           </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={handleImportClick}
+            disabled={!canEdit || !supportsWorkflow || isImporting}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          >
+            <Upload className="h-4 w-4" />
+            {isImporting ? 'Import...' : 'Import Excel'}
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={!supportsWorkflow || isExporting || loading}
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Export...' : 'Export Excel'}
+          </button>
+        </div>
+
+        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+          Gunakan hasil `Export Excel` sebagai template import. Kolom utama yang dipakai saat import adalah `ID Isolir` dan `Nomor Ticket`.
         </div>
 
         {!supportsWorkflow && (
@@ -419,7 +555,9 @@ export function DismantleView({
                       </td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>{row.customerAddress || '-'}</td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
-                        <div className="max-w-xs whitespace-pre-wrap break-words">{row.reason || `Isolir sejak ${formatDate(row.isolationDate)}.`}</div>
+                        <div className="max-w-xs whitespace-pre-wrap break-words">
+                          {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
+                        </div>
                       </td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
                         <div className="max-w-xs whitespace-pre-wrap break-words">{problemText || row.radboox || '-'}</div>

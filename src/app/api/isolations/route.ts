@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
+import { isDismantleEligible } from '@/lib/isolation-suspend'
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   const marketing = searchParams.get('marketing')
   const status = searchParams.get('status')
   const ticketStatus = (searchParams.get('ticketStatus') ?? 'ALL').trim().toUpperCase()
+  const dismantleEligible = (searchParams.get('dismantleEligible') ?? '').trim().toLowerCase() === 'true'
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
   const limit = (() => {
@@ -75,6 +77,9 @@ export async function GET(request: Request) {
       OR: [{ ticketDismantle: null }, { ticketDismantle: '' }],
     })
   }
+  if (dismantleEligible) {
+    appendAnd({ status: 'OPEN' })
+  }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privileged = ['ADMIN', 'CS', 'NOC']
   if (!privileged.includes(session.user.role)) {
@@ -97,20 +102,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, ticketStatus, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
+    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, ticketStatus, dismantleEligible, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
     const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' } })
     }
-    const [total, isolations] = await Promise.all([
-      prisma.isolation.count({ where }),
-      prisma.isolation.findMany({
+    const isolationsRaw = await prisma.isolation.findMany({
       where,
       orderBy: {
         isolationDate: 'desc',
       },
-        skip: (page - 1) * limit,
-        take: limit,
       include: {
         ticket: {
           select: {
@@ -119,9 +120,15 @@ export async function GET(request: Request) {
             description: true,
           }
         }
-        }
-      })
-    ])
+      }
+    })
+
+    const filteredIsolations = dismantleEligible
+      ? isolationsRaw.filter((item) => isDismantleEligible(item.isolationDate))
+      : isolationsRaw
+
+    const total = filteredIsolations.length
+    const isolations = filteredIsolations.slice((page - 1) * limit, page * limit)
 
     const payload = {
       items: isolations,

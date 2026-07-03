@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
+import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
 
 interface Isolation {
   id: number
@@ -348,14 +349,6 @@ export function IsolationView({
       if (!res.ok) throw new Error('Gagal mengambil data')
       const data = await res.json()
       const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
-      const now = new Date()
-      const monthDiff = (from: Date, to: Date) => {
-        const fromTotal = from.getFullYear() * 12 + from.getMonth()
-        const toTotal = to.getFullYear() * 12 + to.getMonth()
-        let diff = toTotal - fromTotal
-        if (to.getDate() < from.getDate()) diff -= 1
-        return Math.max(0, diff)
-      }
       const rows = items.map((it, idx) => ({
         'No': idx + 1,
         'Nama Pelanggan': it.customerName,
@@ -366,8 +359,9 @@ export function IsolationView({
         'Keterangan': it.reason || '-',
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
-        'Suspend': it.isolationDate ? `${monthDiff(new Date(it.isolationDate), now)} Bulan` : '-',
+        'Suspend': formatSuspendDuration(it.isolationDate),
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
+        'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
       }))
 
       const wb = XLSX.utils.book_new()
@@ -382,20 +376,8 @@ export function IsolationView({
     }
   }
 
-  const now = new Date()
-  const monthDiff = (from: Date, to: Date) => {
-    const fromTotal = from.getFullYear() * 12 + from.getMonth()
-    const toTotal = to.getFullYear() * 12 + to.getMonth()
-    let diff = toTotal - fromTotal
-    if (to.getDate() < from.getDate()) diff -= 1
-    return Math.max(0, diff)
-  }
-
   const suspendLabel = (isoDate?: string | null) => {
-    if (!isoDate) return '-'
-    const from = new Date(isoDate)
-    if (Number.isNaN(from.getTime())) return '-'
-    return `${monthDiff(from, now)} Bulan`
+    return formatSuspendDuration(isoDate)
   }
 
   const selectedSet = new Set(selectedIds)
@@ -634,7 +616,15 @@ export function IsolationView({
                       {item.reason || '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.ticketDismantle ? String(item.ticketDismantle) : '-'}
+                      {item.ticketDismantle ? (
+                        String(item.ticketDismantle)
+                      ) : isDismantleEligible(item.isolationDate) ? (
+                        <span className="inline-flex rounded-full bg-orange-500 px-2 py-1 text-[10px] font-semibold text-white">
+                          Auto Dismantle
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     {showActions && (
                       <td className="hidden md:table-cell px-2 sm:px-3 py-3 whitespace-nowrap text-sm font-medium">
@@ -707,7 +697,7 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            {item.ticketDismantle ? String(item.ticketDismantle) : '-'}
+                            {item.ticketDismantle ? String(item.ticketDismantle) : isDismantleEligible(item.isolationDate) ? 'Auto Dismantle' : '-'}
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
