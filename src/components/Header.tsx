@@ -293,6 +293,40 @@ export function Header({ user }: { user: SessionUser }) {
       ]
     : []
 
+  const creatorDigitalGroups: HeaderNavGroup[] =
+    roleUpper === 'CREATOR_DIGITAL' && !isTroubleshoots && !isDismantle
+      ? [
+          {
+            key: 'creator-marketing',
+            label: 'Pemasaran',
+            icon: FileInput,
+            description: 'Akses operasional PSB dan tindak lanjut pelanggan.',
+            items: [
+              { href: `/input?division=${roleDivision}`, label: 'Input PSB', icon: FileInput },
+              { href: `/list?division=${roleDivision}`, label: 'List Data', icon: List },
+              { href: `/isolir?division=${roleDivision}`, label: 'Isolir', icon: Ban },
+              { href: `/dismantle?division=${roleDivision}&status=OPEN`, label: 'Dismantle', icon: Wrench },
+              { href: `/odp?division=${roleDivision}`, label: 'PORT ODP', icon: Wifi },
+            ],
+          },
+          {
+            key: 'creator-digital-menu',
+            label: 'Digital',
+            icon: TrendingUp,
+            description: 'Perencanaan konten, campaign, leads, dan analytics digital.',
+            items: [
+              { href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar },
+              { href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target },
+              { href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
+              { href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp },
+            ],
+          },
+        ]
+      : []
+
+  const navGroups = isAdmin ? adminDivisionGroups : creatorDigitalGroups
+  const usesGroupedNavigation = navGroups.length > 0
+
   const hasSettingsAccess = !!user?.role && canAccessMenu(user.role, 'settings')
 
   const settingsGroups: HeaderSettingsGroup[] = hasSettingsAccess ? [
@@ -379,7 +413,7 @@ export function Header({ user }: { user: SessionUser }) {
                 {isNavOpen && (
                   <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
                     <div className="max-h-[60vh] overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-                      {isAdmin && adminDivisionGroups.length > 0 ? (
+                      {usesGroupedNavigation ? (
                         <>
                           <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             Umum
@@ -397,7 +431,7 @@ export function Header({ user }: { user: SessionUser }) {
                           >
                             Dashboard
                           </Link>
-                          {adminDivisionGroups.map((group) => (
+                          {navGroups.map((group) => (
                             <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
                               <div className="px-3 pb-2 pt-2">
                                 <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -538,7 +572,7 @@ export function Header({ user }: { user: SessionUser }) {
 
           {!isTroubleshoots && !isDismantle && (
           <nav className="hidden md:flex items-center space-x-1">
-            {isAdmin && adminDivisionGroups.length > 0 ? (
+            {usesGroupedNavigation ? (
               <>
                 <Link
                   href="/"
@@ -554,7 +588,7 @@ export function Header({ user }: { user: SessionUser }) {
                 </Link>
 
                 <div className="flex items-center space-x-1" ref={divisionNavRef}>
-                  {adminDivisionGroups.map((group) => {
+                  {navGroups.map((group) => {
                     const isActive = group.items.some((item) => matchesLink(item))
                     const isOpenGroup = openDivisionMenu === group.key
                     const tone = getDivisionGroupTone(group.key)
@@ -810,7 +844,7 @@ export function Header({ user }: { user: SessionUser }) {
             {isNavOpen && (
               <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-gray-300 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                  {isAdmin && adminDivisionGroups.length > 0 ? (
+                  {usesGroupedNavigation ? (
                     <>
                       <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                         Umum
@@ -828,7 +862,7 @@ export function Header({ user }: { user: SessionUser }) {
                       >
                         Dashboard
                       </Link>
-                      {adminDivisionGroups.map((group) => (
+                      {navGroups.map((group) => (
                         <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
                           <div className="px-3 pb-2 pt-2">
                             <div className="flex items-center justify-between gap-2">
