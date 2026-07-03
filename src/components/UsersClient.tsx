@@ -25,6 +25,7 @@ const ROLE_OPTIONS = [
   { value: 'ADMIN', label: 'Admin' },
   { value: 'CS', label: 'Customer Service (CS)' },
   { value: 'ADMIN_CS', label: 'Admin CS' },
+  { value: 'DISMANTLE', label: 'Dismantle' },
   { value: 'NOC', label: 'NOC' },
   { value: 'TEKNISI', label: 'Teknisi' },
   { value: 'TROUBLESHOOTS', label: 'Troubleshoots' },
@@ -48,7 +49,7 @@ function formatDivisionLabel(division?: string | null) {
 function mapRoleToDivision(role: string) {
   const roleUpper = String(role ?? '').trim().toUpperCase()
   if (roleUpper === 'MARKETING') return 'PENJUALAN'
-  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') return 'CS_ADMIN'
+  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'DISMANTLE') return 'CS_ADMIN'
   if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
   if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
   return ''
@@ -443,6 +444,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                     <span className={clsx(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                       user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300" :
+                      user.role === 'DISMANTLE' ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" :
                       user.role === 'TEKNISI' || user.role === 'TROUBLESHOOTS' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" :
                       "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                     )}>
@@ -500,6 +502,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <span className={clsx(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
                   user.role === 'ADMIN' ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300" :
+                  user.role === 'DISMANTLE' ? "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300" :
                   user.role === 'TEKNISI' ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300" :
                   "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                 )}>

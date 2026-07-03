@@ -81,7 +81,7 @@ export async function GET(request: Request) {
     appendAnd({ status: 'OPEN' })
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
-  const privileged = ['ADMIN', 'CS', 'NOC']
+  const privileged = ['ADMIN', 'CS', 'NOC', 'DISMANTLE']
   if (!privileged.includes(session.user.role)) {
     const me = session.user.name?.trim()
     if (me) {
@@ -198,7 +198,7 @@ export async function DELETE(request: Request) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  // Only ADMIN can bulk delete
+  // Only ADMIN, CS, NOC can bulk delete
   if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

@@ -95,6 +95,23 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/trouble-ticket', request.url))
       }
     }
+
+    if ((currentUser.role || '').toUpperCase() === 'DISMANTLE') {
+      if (pathname.startsWith('/api')) {
+        return NextResponse.next()
+      }
+
+      const dismantleHome = '/dismantle?division=CS_ADMIN&status=OPEN'
+      if (pathname === '/') {
+        return NextResponse.redirect(new URL(dismantleHome, request.url))
+      }
+
+      const allowedPaths = ['/dismantle', '/profile']
+      const isAllowed = allowedPaths.some((path) => pathname.startsWith(path))
+      if (!isAllowed) {
+        return NextResponse.redirect(new URL(dismantleHome, request.url))
+      }
+    }
   }
 
   const response = NextResponse.next()

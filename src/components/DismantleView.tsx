@@ -7,6 +7,7 @@ import { formatSuspendDuration } from '@/lib/isolation-suspend'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 type TicketFilter = 'ALL' | 'WITH' | 'WITHOUT'
+type DismantleStatusFilter = 'OPEN' | 'CLOSED'
 
 type DismantleItem = {
   id: number
@@ -127,15 +128,19 @@ function Modal({
 export function DismantleView({
   userRole,
   initialDivision = 'CS_ADMIN',
+  initialStatus = 'OPEN',
 }: {
   userRole: string
   initialDivision?: DivisionFilter
+  initialStatus?: DismantleStatusFilter
 }) {
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
-  const canEdit = ['ADMIN', 'CS', 'NOC'].includes(roleUpper)
+  const isDismantleRole = roleUpper === 'DISMANTLE'
+  const canEdit = ['ADMIN', 'CS', 'NOC', 'DISMANTLE'].includes(roleUpper)
 
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
+  const [statusFilter, setStatusFilter] = useState<DismantleStatusFilter>(initialStatus)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>('ALL')
@@ -154,7 +159,7 @@ export function DismantleView({
   const [isImporting, setIsImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const supportsWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN'
+  const supportsWorkflow = (!isAdmin || division === 'ALL' || division === 'CS_ADMIN') && (!isDismantleRole || division === 'CS_ADMIN')
   const divisionDescriptions: Record<DivisionFilter, string> = {
     ALL: 'Menampilkan seluruh data dismantle dari perspektif umum tanpa pembatasan divisi.',
     PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul Dismantle Perangkat.',
@@ -162,6 +167,7 @@ export function DismantleView({
     NOC_TROUBLESHOOTS: 'Divisi NOC & Troubleshoots tidak memakai modul dismantle sebagai alur utama saat ini.',
     CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul Dismantle Perangkat.',
   }
+  const statusLabel = statusFilter === 'OPEN' ? 'Open' : 'Close'
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350)
@@ -169,13 +175,21 @@ export function DismantleView({
   }, [search])
 
   useEffect(() => {
+    setDivision(initialDivision)
+  }, [initialDivision])
+
+  useEffect(() => {
+    setStatusFilter(initialStatus)
+  }, [initialStatus])
+
+  useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, division, limit, radbooxFilter, ticketFilter])
+  }, [debouncedSearch, division, limit, radbooxFilter, statusFilter, ticketFilter])
 
   const buildQueryParams = useCallback(
     (targetPage: number, targetLimit: number) => {
       const params = new URLSearchParams()
-      params.set('status', 'OPEN')
+      params.set('status', statusFilter)
       params.set('dismantleEligible', 'true')
       params.set('page', String(targetPage))
       params.set('limit', String(targetLimit))
@@ -185,7 +199,7 @@ export function DismantleView({
       if (isAdmin && division !== 'ALL') params.set('division', division)
       return params
     },
-    [debouncedSearch, division, isAdmin, radbooxFilter, ticketFilter]
+    [debouncedSearch, division, isAdmin, radbooxFilter, statusFilter, ticketFilter]
   )
 
   const requestRows = useCallback(
@@ -362,6 +376,11 @@ export function DismantleView({
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Konteks Divisi</div>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{divisionDescriptions[division]}</p>
+            {isDismantleRole && (
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-300">
+                Menu aktif: Ticket Dismantle {statusLabel}
+              </p>
+            )}
           </div>
           {isAdmin && (
             <div className="w-full max-w-xs">
@@ -386,7 +405,7 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Total Data</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{total}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Pelanggan isolir aktif dengan suspend minimal 1 bulan.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Pelanggan dengan ticket dismantle status {statusLabel.toLowerCase()} dan suspend minimal 1 bulan.</div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Sudah Ada Ticket</div>
@@ -401,7 +420,7 @@ export function DismantleView({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.7fr]">
+        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_0.7fr]">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</label>
             <input
@@ -434,6 +453,18 @@ export function DismantleView({
               <option value="Radboox 24">Radboox 24</option>
               <option value="Radboox 25">Radboox 25</option>
               <option value="Radboox 26">Radboox 26</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Data</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as DismantleStatusFilter)}
+              disabled={isDismantleRole}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-800"
+            >
+              <option value="OPEN">Open</option>
+              <option value="CLOSED">Close</option>
             </select>
           </div>
           <div>

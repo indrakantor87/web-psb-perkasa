@@ -7,13 +7,21 @@ import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 
+type UserWithOptionalDivision = {
+  division?: string | null
+}
+
 function mapRoleToDivision(role: string) {
   const roleUpper = String(role ?? '').trim().toUpperCase()
   if (roleUpper === 'MARKETING') return 'PENJUALAN'
-  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') return 'CS_ADMIN'
+  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'DISMANTLE') return 'CS_ADMIN'
   if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
   if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
   return null
+}
+
+function readUserDivision(user: UserWithOptionalDivision) {
+  return user.division ?? null
 }
 
 export async function POST(request: Request) {
@@ -35,7 +43,7 @@ export async function POST(request: Request) {
     const result = userCreateSchema.safeParse(body)
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Validasi gagal', details: result.error.flatten() },
+        { error: 'Validasi gagal', details: result.error.issues },
         { status: 400 }
       )
     }
@@ -74,28 +82,24 @@ export async function POST(request: Request) {
       return target === 'id'
     }
 
+    const createData = {
+      name,
+      username: normalizedUsername,
+      password: hashedPassword,
+      role,
+      division,
+    } as Prisma.UserUncheckedCreateInput & UserWithOptionalDivision
+
     let newUser
     try {
       newUser = await prisma.user.create({
-        data: {
-          name,
-          username: normalizedUsername,
-          password: hashedPassword,
-          role,
-          division,
-        },
+        data: createData as Prisma.UserUncheckedCreateInput,
       })
     } catch (e) {
       if (!isUserIdUniqueError(e)) throw e
       await repairUserIdSequence()
       newUser = await prisma.user.create({
-        data: {
-          name,
-          username: normalizedUsername,
-          password: hashedPassword,
-          role,
-          division,
-        },
+        data: createData as Prisma.UserUncheckedCreateInput,
       })
     }
     const safeUser = {
@@ -103,7 +107,7 @@ export async function POST(request: Request) {
       name: newUser.name,
       username: newUser.username,
       role: newUser.role,
-      division: newUser.division,
+      division: readUserDivision(newUser as UserWithOptionalDivision),
       createdAt: newUser.createdAt,
     }
     cache.invalidateByPrefix('users:')
@@ -136,11 +140,18 @@ export async function GET(request: Request) {
     const users = await prisma.user.findMany({
       where,
       orderBy: roleParam ? { name: 'asc' } : { createdAt: 'desc' },
-      select: { id: true, name: true, username: true, role: true, division: true, createdAt: true },
     })
 
-    // Return users. 
-    return NextResponse.json(users)
+    const safeUsers = users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      division: readUserDivision(user as UserWithOptionalDivision),
+      createdAt: user.createdAt,
+    }))
+
+    return NextResponse.json(safeUsers)
   } catch (error) {
     console.error('Fetch users error:', error)
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
@@ -165,7 +176,7 @@ export async function PUT(request: Request) {
     const result = userUpdateSchema.safeParse(body)
     if (!result.success) {
       return NextResponse.json(
-        { error: 'Validasi gagal', details: result.error.flatten() },
+        { error: 'Validasi gagal', details: result.error.issues },
         { status: 400 }
       )
     }

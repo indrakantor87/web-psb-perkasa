@@ -105,6 +105,7 @@ export function Header({ user }: { user: SessionUser }) {
   const roleUpper = (user?.role || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
+  const isDismantle = roleUpper === 'DISMANTLE'
   const divisionLabel = formatDivisionLabel(user?.division)
   const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -205,6 +206,11 @@ export function Header({ user }: { user: SessionUser }) {
 
   const flatLinks: HeaderNavLink[] = isTroubleshoots
     ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
+    : isDismantle
+      ? [
+          { href: '/dismantle?division=CS_ADMIN&status=OPEN', label: 'Dismantle Open', icon: Wrench },
+          { href: '/dismantle?division=CS_ADMIN&status=CLOSED', label: 'Dismantle Close', icon: ClipboardList },
+        ]
     : [
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
         ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
