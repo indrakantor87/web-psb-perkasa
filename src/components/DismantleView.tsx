@@ -21,6 +21,7 @@ type DismantleItem = {
   reason?: string | null
   status: string
   ticketDismantle?: string | null
+  ticketId?: number | null
   ticket?: {
     locationMap?: string | null
     description?: string | null
@@ -205,6 +206,14 @@ export function DismantleView({
   const [selectedRow, setSelectedRow] = useState<DismantleItem | null>(null)
   const [ticketValue, setTicketValue] = useState('')
   const [statusValue, setStatusValue] = useState<DismantleStatusFilter>(initialStatus)
+  const [customerNameValue, setCustomerNameValue] = useState('')
+  const [userEmailValue, setUserEmailValue] = useState('')
+  const [marketingValue, setMarketingValue] = useState('')
+  const [phoneValue, setPhoneValue] = useState('')
+  const [mapsValue, setMapsValue] = useState('')
+  const [addressValue, setAddressValue] = useState('')
+  const [reasonValue, setReasonValue] = useState('')
+  const [problemValue, setProblemValue] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
@@ -317,6 +326,14 @@ export function DismantleView({
     setSelectedRow(row)
     setTicketValue(String(row.ticketDismantle ?? ''))
     setStatusValue(String(row.status ?? '').toUpperCase() === 'CLOSED' ? 'CLOSED' : 'OPEN')
+    setCustomerNameValue(String(row.customerName ?? ''))
+    setUserEmailValue(String(row.userEmail ?? ''))
+    setMarketingValue(String(row.marketing ?? ''))
+    setPhoneValue(String(row.customerPhone ?? ''))
+    setMapsValue(String(row.ticket?.locationMap ?? ''))
+    setAddressValue(String(row.customerAddress ?? ''))
+    setReasonValue(String(row.reason ?? ''))
+    setProblemValue(String(row.ticket?.description ?? row.radboox ?? ''))
     setModalOpen(true)
   }
 
@@ -324,13 +341,42 @@ export function DismantleView({
     if (!selectedRow) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/isolations/${selectedRow.id}`, {
+      const isolationRes = await fetch(`/api/isolations/${selectedRow.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketDismantle: ticketValue, status: statusValue }),
+        body: JSON.stringify({
+          customerName: customerNameValue,
+          userEmail: userEmailValue,
+          marketing: marketingValue,
+          customerPhone: phoneValue,
+          customerAddress: addressValue,
+          reason: reasonValue,
+          radboox: problemValue,
+          ticketDismantle: ticketValue,
+          status: statusValue,
+        }),
       })
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
-      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan ticket dismantle')
+      const isolationData = (await isolationRes.json().catch(() => ({}))) as { error?: string }
+      if (!isolationRes.ok) throw new Error(isolationData.error || 'Gagal menyimpan perubahan')
+
+      const ticketId = selectedRow.ticketId
+      if (typeof ticketId === 'number' && Number.isFinite(ticketId)) {
+        const payload: Record<string, unknown> = {
+          description: problemValue,
+        }
+        if (customerNameValue.trim() !== '') payload.customerName = customerNameValue.trim()
+        if (phoneValue.trim() !== '') payload.phoneNumber = phoneValue.trim()
+        if (marketingValue.trim() !== '') payload.marketingName = marketingValue.trim()
+        if (mapsValue.trim() !== '') payload.locationMap = mapsValue.trim()
+        const ticketRes = await fetch(`/api/tickets/${ticketId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const ticketData = (await ticketRes.json().catch(() => ({}))) as { error?: string }
+        if (!ticketRes.ok) throw new Error(ticketData.error || 'Gagal menyimpan detail ticket')
+      }
+
       setModalOpen(false)
       setSelectedRow(null)
       await fetchRows()
@@ -1102,17 +1148,124 @@ export function DismantleView({
             </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nomor Ticket Dismantle</label>
-            <input
-              value={ticketValue}
-              onChange={(e) => setTicketValue(e.target.value)}
-              placeholder="Contoh: DSM-2026-001"
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            />
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Kosongkan field ini jika ticket dismantle belum dibuat atau ingin dihapus.
-            </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nomor Ticket Dismantle</label>
+              <input
+                value={ticketValue}
+                onChange={(e) => setTicketValue(e.target.value)}
+                placeholder="Contoh: DSM-2026-001"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Kosongkan field ini jika ticket dismantle belum dibuat atau ingin dihapus.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</label>
+              <select
+                value={statusValue}
+                onChange={(e) => setStatusValue(e.target.value as DismantleStatusFilter)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="OPEN">OPEN</option>
+                <option value="CLOSED">CLOSE</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No. HP</label>
+              <input
+                value={phoneValue}
+                onChange={(e) => setPhoneValue(e.target.value)}
+                placeholder="628xxxxxxxxxx"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Pelanggan</label>
+              <input
+                value={customerNameValue}
+                onChange={(e) => setCustomerNameValue(e.target.value)}
+                placeholder="Nama pelanggan"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">User (Email)</label>
+              <input
+                value={userEmailValue}
+                onChange={(e) => setUserEmailValue(e.target.value)}
+                placeholder="user@perkasa.net.id"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Marketing</label>
+              <input
+                value={marketingValue}
+                onChange={(e) => setMarketingValue(e.target.value)}
+                placeholder="Nama marketing"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Maps</label>
+              <input
+                value={mapsValue}
+                onChange={(e) => setMapsValue(e.target.value)}
+                placeholder="https://maps.google.com/?q=-6.7,111.0"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              {selectedRow?.ticketId ? (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maps disimpan ke data Ticket (ticketId: {selectedRow.ticketId}).</p>
+              ) : (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Data ini belum terhubung ke Ticket (ticketId kosong), jadi perubahan Maps tidak bisa disimpan.</p>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Alamat</label>
+              <textarea
+                rows={2}
+                value={addressValue}
+                onChange={(e) => setAddressValue(e.target.value)}
+                placeholder="Alamat pelanggan"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</label>
+              <textarea
+                rows={2}
+                value={reasonValue}
+                onChange={(e) => setReasonValue(e.target.value)}
+                placeholder="Keterangan / catatan"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Problem</label>
+              <textarea
+                rows={2}
+                value={problemValue}
+                onChange={(e) => setProblemValue(e.target.value)}
+                placeholder="Problem / detail kendala"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              {selectedRow?.ticketId ? (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Problem disimpan ke Ticket (description) dan juga ke Isolir (radboox).</p>
+              ) : (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Problem disimpan ke Isolir (radboox).</p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2">
