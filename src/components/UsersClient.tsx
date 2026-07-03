@@ -710,7 +710,6 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       )}
       {/* Reset Password Modal */}
       {isResetModalOpen && (
-      {isResetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
             <div className="mb-4">
