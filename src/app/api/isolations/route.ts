@@ -35,8 +35,8 @@ export async function GET(request: Request) {
       ? divisionParam
       : 'ALL'
 
-  const where: Prisma.IsolationWhereInput = {}
-  const appendAnd = (clause: Prisma.IsolationWhereInput) => {
+  const where: any = {}
+  const appendAnd = (clause: any) => {
     const current = where.AND
     const arr = Array.isArray(current) ? current : current ? [current] : []
     where.AND = [...arr, clause]
