@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench, Calendar, Target, Users, TrendingUp } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -260,10 +260,14 @@ export function Header({ user }: { user: SessionUser }) {
         {
           key: 'creator-digital',
           label: 'Creator Digital',
-          icon: ClipboardList,
-          description: 'Ruang KPI dan pengembangan modul digital.',
+          icon: TrendingUp,
+          description: 'Konten, campaign, leads, dan analytics digital.',
           items: [
             { href: '/division?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
+            { href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar },
+            { href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target },
+            { href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
+            { href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp },
           ],
         },
       ]

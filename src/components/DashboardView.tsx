@@ -206,7 +206,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showTicketingFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showNocFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
-  const showCreatorPlaceholder = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
+  const showCreatorFocus = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
   const focusDivisionConfig = {
     ALL: {
       title: 'Semua Divisi',
@@ -230,7 +230,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     },
     CREATOR_DIGITAL: {
       title: 'Creator Digital',
-      description: 'Slot divisi siap, KPI digital menyusul saat sumber data tersedia.',
+      description: 'Konten, campaign, leads, dan analytics untuk pengembangan digital.',
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
   }[focusedDivision]
@@ -371,13 +371,50 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       )}
 
-      {showCreatorPlaceholder && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-          Fokus `Creator Digital` sudah tersedia, tetapi KPI detailnya belum aktif karena sumber data campaign digital belum dibuat.
+      {showCreatorFocus && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Link href={`/content-calendar?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+                  <Calendar className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Calendar</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola jadwal dan konten marketing digital</p>
+            </Link>
+            <Link href={`/campaigns?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+                  <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Campaign</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola campaign marketing digital</p>
+            </Link>
+            <Link href={`/digital-leads?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+                  <Users className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Digital Leads</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola leads dari channel digital</p>
+            </Link>
+            <Link href={`/analytics?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
+                  <LayoutDashboard className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analytics</h3>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Lihat performa konten dan campaign</p>
+            </Link>
+          </div>
         </div>
       )}
 
-      {!showCreatorPlaceholder && (
+      {!showCreatorFocus && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {showSalesFocus && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
@@ -461,7 +498,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       )}
 
-      {isMobilePortrait && !showCreatorPlaceholder && (
+      {isMobilePortrait && !showCreatorFocus && (
         <div className="space-y-4">
           {showSalesFocus && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -621,7 +658,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Marketing Table */}
-      {!isMobilePortrait && !isTeknisi && !isNoc && showSalesFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -747,7 +784,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorFocus && (
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -840,7 +877,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       </div>
       )}
 
-      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorFocus && (
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -914,7 +951,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && showSalesFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && showSalesFocus && !showCreatorFocus && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -963,7 +1000,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && showSalesFocus && !showCreatorPlaceholder && (
+      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
         <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div className="mb-4 flex items-center justify-between">
             <div>

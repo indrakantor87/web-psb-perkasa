@@ -118,13 +118,12 @@ function createEmptyDashboardPayload(): DashboardPayload {
       {
         code: 'CREATOR_DIGITAL',
         label: 'Creator Digital',
-        description: 'KPI khusus digital menunggu modul aktivitas',
+        description: 'Konten, campaign, leads, dan analytics untuk pengembangan digital',
         members: 0,
         primaryValue: 0,
-        primaryLabel: 'Aktivitas tercatat',
+        primaryLabel: 'Digital leads',
         secondaryValue: 0,
-        secondaryLabel: 'Data campaign',
-        note: 'Modul KPI Creator Digital belum aktif.',
+        secondaryLabel: 'Konten tercatat',
       },
     ],
   }
@@ -426,7 +425,7 @@ export default async function DashboardPage({
     }
     const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-    const [marketingActivityTotal, odpTotal, ticketingTotal, isolationClosedCount] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, ticketingTotal, isolationClosedCount, creatorContentCount, creatorCampaignCount, creatorLeadCount] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
         ...(marketingRole
@@ -463,6 +462,9 @@ export default async function DashboardPage({
       .then((rows) => Number(rows[0]?.count || 0))
       .catch(() => 0),
     prisma.isolation.count({ where: { status: 'CLOSED' } }).catch(() => 0),
+    (prisma as any).contentCalendar?.count().catch(() => 0),
+    (prisma as any).campaign?.count().catch(() => 0),
+    (prisma as any).digitalLead?.count().catch(() => 0),
   ])
 
     const ticketingMonthRecap = await prisma
@@ -570,13 +572,12 @@ export default async function DashboardPage({
       {
         code: 'CREATOR_DIGITAL',
         label: 'Creator Digital',
-        description: 'KPI khusus digital menunggu modul aktivitas',
+        description: 'Konten, campaign, leads, dan analytics untuk pengembangan digital',
         members: divisionCounts.get('CREATOR_DIGITAL') || 0,
-        primaryValue: 0,
-        primaryLabel: 'Aktivitas tercatat',
-        secondaryValue: 0,
-        secondaryLabel: 'Data campaign',
-        note: 'Modul KPI Creator Digital belum aktif.',
+        primaryValue: creatorLeadCount,
+        primaryLabel: 'Digital leads',
+        secondaryValue: creatorContentCount,
+        secondaryLabel: 'Konten tercatat',
       },
     ]
 

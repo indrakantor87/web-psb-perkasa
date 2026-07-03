@@ -369,10 +369,48 @@ export default async function DivisionDetailPage({
     }
 
     if (division === 'CREATOR_DIGITAL') {
+      let contentCount = 0
+      let campaignCount = 0
+      let leadCount = 0
+      let totalReach = 0
+      let totalEngagement = 0
+      
+      try {
+        // Try to fetch Creator Digital data, fall back to 0 if models don't exist yet
+        const [cc, c, l, a] = await Promise.all([
+          (prisma as any).contentCalendar?.count().catch(() => 0),
+          (prisma as any).campaign?.count().catch(() => 0),
+          (prisma as any).digitalLead?.count().catch(() => 0),
+          (prisma as any).contentAnalytics?.aggregate({
+            _sum: {
+              reach: true,
+              impressions: true,
+              likes: true,
+              comments: true,
+              shares: true,
+              saves: true,
+              clicks: true,
+              followersGain: true,
+            }
+          }).catch(() => ({ _sum: {} }))
+        ])
+        
+        contentCount = cc || 0
+        campaignCount = c || 0
+        leadCount = l || 0
+        totalReach = a?._sum?.reach || 0
+        totalEngagement = (a?._sum?.likes || 0) + (a?._sum?.comments || 0) + (a?._sum?.shares || 0)
+      } catch {
+        // Fall back to 0 if anything fails
+      }
+
       summaryCards = [
         { label: 'Member Aktif', value: members.length, hint: 'Sudah terpetakan ke division' },
-        { label: 'Aktivitas Tercatat', value: 0, hint: 'Modul belum aktif' },
-        { label: 'KPI Campaign', value: 0, hint: 'Menunggu sumber data' },
+        { label: 'Total Konten', value: contentCount, hint: 'Content Calendar' },
+        { label: 'Campaign Aktif', value: campaignCount, hint: 'Campaign Tracker' },
+        { label: 'Digital Leads', value: leadCount, hint: 'Total leads masuk' },
+        { label: 'Total Reach', value: totalReach, hint: 'Jangkauan konten' },
+        { label: 'Engagement', value: totalEngagement, hint: 'Likes + Comments + Shares' },
       ]
     }
   } catch (error) {
@@ -645,8 +683,19 @@ export default async function DivisionDetailPage({
       )}
 
       {division === 'CREATOR_DIGITAL' && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-          Detail KPI `Creator Digital` belum diaktifkan karena modul campaign, leads, dan aktivitas konten belum tersedia di sistem. Struktur division dan member sudah siap dipakai untuk fase berikutnya.
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Konten Terbaru</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Daftar konten yang baru ditambahkan ke Content Calendar.
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Leads Terbaru</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Daftar digital leads yang baru masuk ke sistem.
+            </p>
+          </div>
         </div>
       )}
     </div>
