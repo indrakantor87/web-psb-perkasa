@@ -75,6 +75,8 @@ model Isolation {
   reason          String?
   status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)
   restorationDate DateTime?
+  closeNote       String?
+  closePhoto      String?
   teknisi         String?
   ticketDismantle String?
   

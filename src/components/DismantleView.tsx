@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Upload } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Trash2, Upload } from 'lucide-react'
 import { formatSuspendDuration } from '@/lib/isolation-suspend'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -22,6 +22,8 @@ type DismantleItem = {
   status: string
   ticketDismantle?: string | null
   ticketId?: number | null
+  closeNote?: string | null
+  closePhoto?: string | null
   ticket?: {
     locationMap?: string | null
     description?: string | null
@@ -127,6 +129,7 @@ function normalizeMapsLink(input: string) {
 function buildDismantleDetailText(row: DismantleItem) {
   const maps = String(row.ticket?.locationMap ?? '').trim()
   const problem = String(row.ticket?.description ?? row.radboox ?? '').trim()
+  const closeNote = String(row.closeNote ?? '').trim()
   const lines = [
     `ID DATA : ${row.id}`,
     `NO TICKET : ${String(row.ticketDismantle ?? '').trim() || '-'}`,
@@ -138,6 +141,7 @@ function buildDismantleDetailText(row: DismantleItem) {
     `Suspend : ${formatSuspendDuration(row.isolationDate)}`,
     `Problem : ${problem || '-'}`,
     `Keterangan : ${row.reason || `Isolir sejak ${formatDate(row.isolationDate)}`}`,
+    `Keterangan Close : ${closeNote || '-'}`,
     `Status : ${String(row.status || '-').toUpperCase()}`,
   ]
   return lines.join('\n')
@@ -188,6 +192,7 @@ export function DismantleView({
   const isAdmin = roleUpper === 'ADMIN'
   const isDismantleRole = roleUpper === 'DISMANTLE'
   const canEdit = ['ADMIN', 'CS', 'NOC', 'DISMANTLE'].includes(roleUpper)
+  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(roleUpper)
 
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const [statusFilter, setStatusFilter] = useState<DismantleStatusFilter>(initialStatus)
@@ -220,6 +225,13 @@ export function DismantleView({
   const [detailRow, setDetailRow] = useState<DismantleItem | null>(null)
   const [copied, setCopied] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [closeModalOpen, setCloseModalOpen] = useState(false)
+  const [closeRow, setCloseRow] = useState<DismantleItem | null>(null)
+  const [closeNote, setCloseNote] = useState('')
+  const [closePhotoFile, setClosePhotoFile] = useState<File | null>(null)
+  const [isClosing, setIsClosing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const supportsWorkflow = (!isAdmin || division === 'ALL' || division === 'CS_ADMIN') && (!isDismantleRole || division === 'CS_ADMIN')
@@ -321,6 +333,65 @@ export function DismantleView({
   )
   const emptyCount = rows.length - filledCount
   const totalPages = Math.max(1, Math.ceil(total / limit))
+  const showSelection = canBulkDelete && supportsWorkflow
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const allOnPageSelected = showSelection && rows.length > 0 && rows.every((x) => selectedSet.has(x.id))
+
+  useEffect(() => {
+    if (!showSelection) {
+      if (selectedIds.length > 0) setSelectedIds([])
+      return
+    }
+    setSelectedIds((prev) => {
+      if (prev.length === 0) return prev
+      const current = new Set(rows.map((x) => x.id))
+      return prev.filter((id) => current.has(id))
+    })
+  }, [rows, selectedIds.length, showSelection])
+
+  const toggleSelected = (id: number) => {
+    if (!showSelection) return
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const toggleSelectAllOnPage = () => {
+    if (!showSelection) return
+    const pageIds = rows.map((x) => x.id)
+    setSelectedIds((prev) => {
+      const prevSet = new Set(prev)
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => prevSet.has(id))
+      if (allSelected) {
+        return prev.filter((id) => !pageIds.includes(id))
+      }
+      for (const id of pageIds) prevSet.add(id)
+      return Array.from(prevSet)
+    })
+  }
+
+  const deleteSelected = async () => {
+    if (!showSelection) return
+    if (selectedIds.length === 0) return
+    if (!confirm(`Hapus ${selectedIds.length} data yang dipilih?`)) return
+    setIsDeletingSelected(true)
+    try {
+      const ids = [...selectedIds]
+      const res = await fetch('/api/isolations', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { count?: number; error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus data terpilih')
+      alert(`Berhasil menghapus ${data.count ?? ids.length} data`)
+      setSelectedIds([])
+      await fetchRows()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Gagal menghapus data')
+      await fetchRows()
+    } finally {
+      setIsDeletingSelected(false)
+    }
+  }
 
   const openEdit = (row: DismantleItem) => {
     setSelectedRow(row)
@@ -484,6 +555,43 @@ export function DismantleView({
     if (!detailRow) return
     const url = `https://wa.me/?text=${encodeURIComponent(buildDismantleDetailText(detailRow))}`
     window.open(url, '_blank', 'noreferrer')
+  }
+
+  const openCloseForm = (row: DismantleItem) => {
+    setCloseRow(row)
+    setCloseNote('')
+    setClosePhotoFile(null)
+    setCloseModalOpen(true)
+  }
+
+  const submitClose = async () => {
+    if (!closeRow) return
+    setIsClosing(true)
+    try {
+      const form = new FormData()
+      form.append('status', 'CLOSED')
+      form.append('closeNote', closeNote)
+      const existingTicket = String(closeRow.ticketDismantle ?? '').trim()
+      if (existingTicket) form.append('ticketDismantle', existingTicket)
+      if (closePhotoFile) form.append('closePhoto', closePhotoFile)
+
+      const res = await fetch(`/api/isolations/${closeRow.id}`, {
+        method: 'PUT',
+        body: form,
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal close ticket')
+
+      setCloseModalOpen(false)
+      setCloseRow(null)
+      setCloseNote('')
+      setClosePhotoFile(null)
+      await fetchRows()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Gagal close ticket')
+    } finally {
+      setIsClosing(false)
+    }
   }
 
   const handleQuickStatusUpdate = async (row: DismantleItem, nextStatus: DismantleStatusFilter) => {
@@ -667,7 +775,13 @@ export function DismantleView({
                         </a>
                         <button
                           type="button"
-                          onClick={() => handleQuickStatusUpdate(row, isClosed ? 'OPEN' : 'CLOSED')}
+                          onClick={() => {
+                            if (isClosed) {
+                              void handleQuickStatusUpdate(row, 'OPEN')
+                              return
+                            }
+                            openCloseForm(row)
+                          }}
                           disabled={actionLoadingId === row.id}
                           className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
                         >
@@ -698,7 +812,7 @@ export function DismantleView({
                         {!isClosed && (
                           <button
                             type="button"
-                            onClick={() => handleQuickStatusUpdate(row, 'CLOSED')}
+                            onClick={() => openCloseForm(row)}
                             disabled={actionLoadingId === row.id}
                             className="inline-flex items-center gap-2 rounded-md border border-green-800 bg-green-950 px-3 py-2 text-xs font-semibold text-green-200 hover:bg-green-900 disabled:opacity-50"
                           >
@@ -751,6 +865,15 @@ export function DismantleView({
               value={detailRow ? buildDismantleDetailText(detailRow) : ''}
               className="min-h-[220px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
             />
+            {detailRow?.closePhoto && (
+              <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
+                <img
+                  src={detailRow.closePhoto}
+                  alt="Foto Close"
+                  className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
+                />
+              </a>
+            )}
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
               <button
                 type="button"
@@ -766,6 +889,64 @@ export function DismantleView({
               >
                 <Clipboard className="h-4 w-4" />
                 {copied ? 'Tercopy' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          open={closeModalOpen}
+          title={closeRow ? `Close Ticket: ${closeRow.customerName}` : 'Close Ticket'}
+          onClose={() => {
+            if (isClosing) return
+            setCloseModalOpen(false)
+            setCloseRow(null)
+            setCloseNote('')
+            setClosePhotoFile(null)
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan Close</label>
+              <textarea
+                rows={3}
+                value={closeNote}
+                onChange={(e) => setCloseNote(e.target.value)}
+                placeholder="Contoh: Sudah diambil perangkat / sudah selesai / dll"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Upload Foto</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={(e) => setClosePhotoFile(e.target.files?.[0] || null)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 3MB (jpg/png).</p>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCloseModalOpen(false)
+                  setCloseRow(null)
+                  setCloseNote('')
+                  setClosePhotoFile(null)
+                }}
+                disabled={isClosing}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={submitClose}
+                disabled={isClosing || !closeRow}
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+              >
+                {isClosing ? 'Menyimpan...' : 'Close Ticket'}
               </button>
             </div>
           </div>
@@ -798,7 +979,7 @@ export function DismantleView({
               <input
                 value={ticketValue}
                 onChange={(e) => setTicketValue(e.target.value)}
-                placeholder="Contoh: DSM-2026-001"
+                placeholder="Contoh: DT/PKN/019/21.02.2026"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -962,6 +1143,18 @@ export function DismantleView({
         </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          {showSelection && (
+            <button
+              type="button"
+              onClick={deleteSelected}
+              disabled={selectedIds.length === 0 || isDeletingSelected}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              title="Hapus data terpilih"
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleImportClick}
@@ -1002,6 +1195,17 @@ export function DismantleView({
           <table className="min-w-full border-collapse">
             <thead className="bg-green-700 dark:bg-green-800">
               <tr>
+                {showSelection && (
+                  <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={toggleSelectAllOnPage}
+                      className="h-4 w-4 rounded border-green-200 text-white focus:ring-0"
+                      aria-label="Pilih semua pada halaman ini"
+                    />
+                  </th>
+                )}
                 <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Nomor Ticket</th>
                 <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Nama</th>
                 <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">User</th>
@@ -1017,13 +1221,13 @@ export function DismantleView({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     Memuat data dismantle...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     {supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
                   </td>
                 </tr>
@@ -1032,10 +1236,22 @@ export function DismantleView({
                   const hasTicket = String(row.ticketDismantle ?? '').trim() !== ''
                   const mapsUrl = String(row.ticket?.locationMap ?? '').trim()
                   const problemText = String(row.ticket?.description ?? row.radboox ?? '').trim()
+                  const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
                   const rowTone = getRowTone(row)
                   const textTone = getCellTextTone(row)
                   return (
                     <tr key={row.id} className={clsx('align-top', rowTone)}>
+                      {showSelection && (
+                        <td className="border border-green-900 px-2 py-2 text-center text-xs">
+                          <input
+                            type="checkbox"
+                            checked={selectedSet.has(row.id)}
+                            onChange={() => toggleSelected(row.id)}
+                            className="h-4 w-4 rounded border-green-200 text-white focus:ring-0"
+                            aria-label={`Pilih ${row.customerName || `ID ${row.id}`}`}
+                          />
+                        </td>
+                      )}
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
                         <span
                           className={clsx(
@@ -1046,7 +1262,15 @@ export function DismantleView({
                           {hasTicket ? row.ticketDismantle : 'Belum diisi'}
                         </span>
                       </td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs font-medium', textTone)}>{row.customerName || '-'}</td>
+                      <td className={clsx('border border-green-900 px-2 py-2 text-xs font-medium', textTone)}>
+                        <button
+                          type="button"
+                          onClick={() => openDetail(row)}
+                          className="text-left font-semibold text-blue-700 hover:underline dark:text-blue-200"
+                        >
+                          {row.customerName || '-'}
+                        </button>
+                      </td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>{row.userEmail || row.marketing || '-'}</td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs font-semibold text-green-900 dark:text-green-100')}>{row.customerPhone || '-'}</td>
                       <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
@@ -1083,15 +1307,28 @@ export function DismantleView({
                         </span>
                       </td>
                       <td className="border border-green-900 px-2 py-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(row)}
-                          disabled={!canEdit || !supportsWorkflow}
-                          className="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(row)}
+                            disabled={!canEdit || !supportsWorkflow}
+                            className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
+                          </button>
+                          {!isClosed && (
+                            <button
+                              type="button"
+                              onClick={() => openCloseForm(row)}
+                              disabled={!canEdit || !supportsWorkflow}
+                              className="inline-flex items-center justify-center gap-2 rounded-md border border-green-700 bg-green-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-600 dark:bg-green-600 dark:hover:bg-green-500"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Close
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -1127,6 +1364,104 @@ export function DismantleView({
       </div>
 
       <Modal
+        open={!!detailRow}
+        title={detailRow ? `Rincian Dismantle: ${detailRow.customerName}` : 'Rincian Dismantle'}
+        onClose={() => setDetailRow(null)}
+      >
+        <div className="space-y-3">
+          <textarea
+            readOnly
+            value={detailRow ? buildDismantleDetailText(detailRow) : ''}
+            className="min-h-[220px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          />
+          {detailRow?.closePhoto && (
+            <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
+              <img
+                src={detailRow.closePhoto}
+                alt="Foto Close"
+                className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
+              />
+            </a>
+          )}
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+            <button
+              type="button"
+              onClick={handleShareWa}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            >
+              Kirim ke WA
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyDetail}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            >
+              <Clipboard className="h-4 w-4" />
+              {copied ? 'Tercopy' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={closeModalOpen}
+        title={closeRow ? `Close Ticket: ${closeRow.customerName}` : 'Close Ticket'}
+        onClose={() => {
+          if (isClosing) return
+          setCloseModalOpen(false)
+          setCloseRow(null)
+          setCloseNote('')
+          setClosePhotoFile(null)
+        }}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan Close</label>
+            <textarea
+              rows={3}
+              value={closeNote}
+              onChange={(e) => setCloseNote(e.target.value)}
+              placeholder="Contoh: Sudah diambil perangkat / sudah selesai / dll"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Upload Foto</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              onChange={(e) => setClosePhotoFile(e.target.files?.[0] || null)}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            />
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 3MB (jpg/png).</p>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCloseModalOpen(false)
+                setCloseRow(null)
+                setCloseNote('')
+                setClosePhotoFile(null)
+              }}
+              disabled={isClosing}
+              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={submitClose}
+              disabled={isClosing || !closeRow}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+            >
+              {isClosing ? 'Menyimpan...' : 'Close Ticket'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         open={modalOpen}
         title={selectedRow ? `Ticket Dismantle: ${selectedRow.customerName}` : 'Ticket Dismantle'}
         onClose={() => {
@@ -1154,7 +1489,7 @@ export function DismantleView({
               <input
                 value={ticketValue}
                 onChange={(e) => setTicketValue(e.target.value)}
-                placeholder="Contoh: DSM-2026-001"
+                placeholder="Contoh: DT/PKN/019/21.02.2026"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">

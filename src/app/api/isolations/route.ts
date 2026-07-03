@@ -100,16 +100,16 @@ export async function GET(request: Request) {
     }
   }
 
-  const isMissingPriceColumn = (e: unknown) => {
+  const isMissingColumn = (e: unknown, column: string) => {
     if (typeof e !== 'object' || !e) return false
     const anyErr = e as { code?: unknown; message?: unknown }
     const code = typeof anyErr.code === 'string' ? anyErr.code : ''
     const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
-    return code === 'P2022' && msg.toLowerCase().includes('price')
+    return code === 'P2022' && msg.toLowerCase().includes(column.toLowerCase())
   }
 
   try {
-    const selectWithPrice: any = {
+    const selectAll: any = {
       id: true,
       customerName: true,
       customerAddress: true,
@@ -123,6 +123,8 @@ export async function GET(request: Request) {
       reason: true,
       status: true,
       restorationDate: true,
+      closeNote: true,
+      closePhoto: true,
       teknisi: true,
       ticketDismantle: true,
       ticketId: true,
@@ -134,7 +136,7 @@ export async function GET(request: Request) {
         },
       },
     }
-    const selectWithoutPrice: any = {
+    const selectNoPrice: any = {
       id: true,
       customerName: true,
       customerAddress: true,
@@ -147,6 +149,8 @@ export async function GET(request: Request) {
       reason: true,
       status: true,
       restorationDate: true,
+      closeNote: true,
+      closePhoto: true,
       teknisi: true,
       ticketDismantle: true,
       ticketId: true,
@@ -158,6 +162,16 @@ export async function GET(request: Request) {
         },
       },
     }
+    const selectNoClose: any = {
+      ...selectAll,
+    }
+    delete selectNoClose.closeNote
+    delete selectNoClose.closePhoto
+    const selectNoPriceNoClose: any = {
+      ...selectNoPrice,
+    }
+    delete selectNoPriceNoClose.closeNote
+    delete selectNoPriceNoClose.closePhoto
 
     let isolationsRaw: any[]
     try {
@@ -166,18 +180,35 @@ export async function GET(request: Request) {
         orderBy: {
           isolationDate: 'desc',
         },
-        select: selectWithPrice,
+        select: selectAll,
       })
     } catch (e) {
-      if (!isMissingPriceColumn(e)) throw e
+      const missingPrice = isMissingColumn(e, 'price')
+      const missingCloseNote = isMissingColumn(e, 'closeNote')
+      const missingClosePhoto = isMissingColumn(e, 'closePhoto')
+
+      if (!missingPrice && !missingCloseNote && !missingClosePhoto) throw e
+
+      const selectFallback = missingPrice
+        ? missingCloseNote || missingClosePhoto
+          ? selectNoPriceNoClose
+          : selectNoPrice
+        : selectNoClose
+
       isolationsRaw = await (prisma as any).isolation.findMany({
         where,
         orderBy: {
           isolationDate: 'desc',
         },
-        select: selectWithoutPrice,
+        select: selectFallback,
       })
-      isolationsRaw = isolationsRaw.map((x: any) => ({ ...x, price: null }))
+
+      isolationsRaw = isolationsRaw.map((x: any) => ({
+        ...x,
+        ...(missingPrice ? { price: null } : {}),
+        ...(missingCloseNote ? { closeNote: null } : {}),
+        ...(missingClosePhoto ? { closePhoto: null } : {}),
+      }))
     }
 
     const filteredIsolations = dismantleEligible

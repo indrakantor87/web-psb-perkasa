@@ -116,7 +116,8 @@ export async function POST(request: Request) {
       if (['TGL ISOLASI', 'TANGGAL ISOLASI', 'ISOLATION DATE', 'TGL SUSPEND', 'TANGGAL SUSPEND'].includes(k)) return 'isolationDate'
       if (['TGL RESTORASI', 'TANGGAL RESTORASI', 'RESTORATION DATE', 'TGL NORMAL', 'TANGGAL NORMAL'].includes(k)) return 'restorationDate'
       if (['SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)', 'LAMA SUSPEND', 'LAMA SUSPEND (BULAN)'].includes(k)) return 'suspendMonths'
-      if (['TICKET', 'TIKET', 'ID TICKET', 'TICKET ID', 'IDTICKET'].includes(k)) return 'ticketDismantle'
+      if (['NOMOR TICKET', 'NOMOR TIKET', 'NO TICKET', 'NO TIKET', 'TICKET DISMANTLE', 'NOMOR TICKET DISMANTLE', 'NOMOR TIKET DISMANTLE'].includes(k)) return 'ticketDismantle'
+      if (['TICKET', 'TIKET', 'STATUS TICKET', 'STATUS'].includes(k)) return 'status'
       if (['HARGA', 'PRICE', 'BIAYA', 'TARIF', 'HARGA PAKET'].includes(k)) return 'price'
       return ''
     }
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
       suspendMonths?: unknown
       ticketDismantle?: unknown
       price?: unknown
+      status?: unknown
     }
 
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
@@ -163,6 +165,8 @@ export async function POST(request: Request) {
         const marketing = r.marketing ? String(r.marketing) : null
         const radboox = r.radboox ? String(r.radboox) : null
         const price = parsePrice(r.price)
+        const statusRaw = typeof r.status === 'string' || typeof r.status === 'number' ? String(r.status) : ''
+        const statusNorm = statusRaw.trim().toUpperCase()
         const isoDateRaw = r.isolationDate
         const isoDateParsed = parseDate(typeof isoDateRaw === 'number' || typeof isoDateRaw === 'string' ? isoDateRaw : String(isoDateRaw ?? ''))
         const restorationRaw = r.restorationDate
@@ -196,6 +200,12 @@ export async function POST(request: Request) {
                   ? null
                   : String(ticketDismantleRaw).trim()
 
+        const isClosedFromStatus =
+          statusNorm === 'CLOSE' ||
+          statusNorm === 'CLOSED' ||
+          statusNorm === 'SELESAI' ||
+          statusNorm === 'DONE'
+
         toCreate.push({
           customerName: customerNameStr,
           userEmail,
@@ -206,10 +216,10 @@ export async function POST(request: Request) {
           marketing,
           radboox,
           price,
-          status: restorationDate ? 'CLOSED' : 'OPEN',
+          status: isClosedFromStatus || restorationDate ? 'CLOSED' : 'OPEN',
           isolationDate,
           teknisi: session.user.name ?? null,
-          restorationDate: restorationDate || null,
+          restorationDate: isClosedFromStatus ? restorationDate || new Date() : restorationDate || null,
           ticketDismantle,
         })
       } catch (e) {
