@@ -80,17 +80,19 @@ export function IsolationView({
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
     try {
+      const roleUpper = (userRole || '').toUpperCase()
+      const isAdmin = roleUpper === 'ADMIN'
       const params = new URLSearchParams(window.location.search)
       const m = params.get('marketing') || ''
       const s = params.get('status') || ''
       const d = getDivisionFromUrl()
-      if (m && m !== marketingFilter) setMarketingFilter(m)
+      if (!isAdmin && m && m !== marketingFilter) setMarketingFilter(m)
       if (s && !statusPreset) {
         // statusPreset hanya preset, tidak perlu setState lain
       }
       if (d && d !== division) setDivision(d)
     } catch {}
-  }, [division, marketingFilter, statusPreset])
+  }, [division, marketingFilter, statusPreset, userRole])
 
   // Role Permissions
   const roleUpper = (userRole || '').toUpperCase()
@@ -131,7 +133,7 @@ export function IsolationView({
       const urlMarketing = (() => {
         try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
       })()
-      const effectiveMarketing = (marketingFilter || urlMarketing).trim()
+      const effectiveMarketing = (isAdmin ? marketingFilter : marketingFilter || urlMarketing).trim()
       if (debouncedSearch) params.append('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
@@ -147,6 +149,8 @@ export function IsolationView({
         const totalRemote: number = Array.isArray(data) ? data.length : (data.total || 0)
         setIsolations(items)
         setTotal(totalRemote)
+      } else {
+        console.error('Gagal mengambil data isolir', await res.text().catch(() => ''))
       }
     } catch (error) {
       console.error('Failed to fetch isolations', error)

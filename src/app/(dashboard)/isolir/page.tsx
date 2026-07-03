@@ -14,6 +14,15 @@ export default async function IsolirPage({
   if (session.user.role === 'TEKNISI') redirect('/')
   const params = await searchParams
 
+  const initialDivision =
+    params?.division === 'ALL' ||
+    params?.division === 'PENJUALAN' ||
+    params?.division === 'CS_ADMIN' ||
+    params?.division === 'NOC_TROUBLESHOOTS' ||
+    params?.division === 'CREATOR_DIGITAL'
+      ? params.division
+      : 'ALL'
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="space-y-1">
@@ -26,8 +35,9 @@ export default async function IsolirPage({
       <IsolationView 
         userRole={session.user.role} 
         initialSearch={params?.search || ''} 
-        initialMarketing={params?.marketing || ''} 
+        initialMarketing={session.user.role === 'ADMIN' ? '' : params?.marketing || ''} 
         initialStatus={params?.status || ''} 
+        initialDivision={initialDivision}
       />
     </div>
   )
