@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' } })
     }
-    const isolationsRaw = await prisma.isolation.findMany({
+    const isolationsRaw = await (prisma as any).isolation.findMany({
       where,
       orderBy: {
         isolationDate: 'desc',
