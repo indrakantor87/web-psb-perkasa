@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   const radboox = searchParams.get('radboox')
   const marketing = searchParams.get('marketing')
   const status = searchParams.get('status')
+  const ticketStatus = (searchParams.get('ticketStatus') ?? 'ALL').trim().toUpperCase()
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
   const limit = (() => {
@@ -60,6 +61,20 @@ export async function GET(request: Request) {
       OR: [{ marketing: { equals: mk } }, { marketing: { contains: mk, mode: 'insensitive' } }],
     })
   }
+  if (ticketStatus === 'WITH') {
+    appendAnd({
+      ticketDismantle: { not: null },
+    })
+    appendAnd({
+      NOT: {
+        ticketDismantle: '',
+      },
+    })
+  } else if (ticketStatus === 'WITHOUT') {
+    appendAnd({
+      OR: [{ ticketDismantle: null }, { ticketDismantle: '' }],
+    })
+  }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privileged = ['ADMIN', 'CS', 'NOC']
   if (!privileged.includes(session.user.role)) {
@@ -82,7 +97,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
+    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, ticketStatus, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
     const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
     if (cached) {
       return NextResponse.json(cached, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' } })
@@ -101,6 +116,7 @@ export async function GET(request: Request) {
           select: {
             package: true,
             locationMap: true,
+            description: true,
           }
         }
         }

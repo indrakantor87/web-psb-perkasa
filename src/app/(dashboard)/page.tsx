@@ -7,7 +7,7 @@ import { ensureDbOptimizations, ensureUserDivisionColumn } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { ensureOdpTable } from '@/lib/odp-init'
-import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toCanonicalMarketingLabel } from '@/lib/marketing-users'
+import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +53,7 @@ function aggregateMarketingRows<T extends { name: string }>(
 ) {
   const aggregated = new Map<string, T>()
   for (const row of rows) {
-    const label = toCanonicalMarketingLabel(row.name, nameMap)
+    const label = toDashboardMarketingLabel(row.name, nameMap)
     const existing = aggregated.get(label)
     if (existing) {
       for (const [key, value] of Object.entries(row)) {
@@ -385,7 +385,7 @@ export default async function DashboardPage({
     for (const row of yearMarketingMonthlyRows) {
       const month = Math.max(1, Math.min(12, Number(row.month || 0)))
       const idx = month - 1
-      const name = toCanonicalMarketingLabel(row.name, marketingNameMap)
+      const name = toDashboardMarketingLabel(row.name, marketingNameMap)
       const count = Number(row.count || 0)
       const existing = byName.get(name) ?? { total: 0, byMonth: Array.from({ length: 12 }, () => 0) }
       existing.byMonth[idx] = (existing.byMonth[idx] || 0) + count
@@ -420,7 +420,7 @@ export default async function DashboardPage({
   `)
     const isolirByMarketing = new Map<string, number>()
     for (const row of isoRows) {
-      const label = toCanonicalMarketingLabel(row.name, marketingNameMap)
+      const label = toDashboardMarketingLabel(row.name, marketingNameMap)
       const key = marketingNameKey(label)
       isolirByMarketing.set(key, (isolirByMarketing.get(key) || 0) + Number(row.count || 0))
     }

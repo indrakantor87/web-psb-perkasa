@@ -28,10 +28,29 @@ interface CoveredArea {
   name: string
 }
 
-interface MarketingActivityViewProps {
+export type MarketingActivityDivision = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
+export interface MarketingActivityViewProps {
   userRole: string
   userName: string
-  initialDivision?: 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+  initialDivision?: MarketingActivityDivision
+}
+
+function getDivisionFromUrl(): MarketingActivityDivision | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('division')
+    if (
+      raw === 'ALL' ||
+      raw === 'PENJUALAN' ||
+      raw === 'CS_ADMIN' ||
+      raw === 'NOC_TROUBLESHOOTS' ||
+      raw === 'CREATOR_DIGITAL'
+    ) {
+      return raw
+    }
+  } catch {}
+
+  return null
 }
 
 export function MarketingActivityView({ userRole, userName, initialDivision = 'ALL' }: MarketingActivityViewProps) {
@@ -54,11 +73,11 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [marketingSearch, setMarketingSearch] = useState('')
-  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>(initialDivision)
+  const [division, setDivision] = useState<MarketingActivityDivision>(initialDivision)
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
-  const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
+  const divisionDescriptions: Record<MarketingActivityDivision, string> = {
     ALL: 'Modul Aktivitas Marketing saat ini merepresentasikan operasional divisi Penjualan.',
     PENJUALAN: 'Menampilkan aktivitas asli tim Penjualan/Marketing pada periode terpilih.',
     CS_ADMIN: 'Belum ada relasi langsung antara divisi CS & Admin CS dan modul Aktivitas Marketing, jadi tampilan ini masih placeholder.',
@@ -100,6 +119,13 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
     },
     [marketingNameMap]
   )
+
+  useEffect(() => {
+    const urlDivision = getDivisionFromUrl()
+    if (urlDivision) {
+      setDivision(urlDivision)
+    }
+  }, [])
 
   useEffect(() => {
     if (userRole === 'MARKETING') {

@@ -30,7 +30,24 @@ interface IsolationViewProps {
   initialDivision?: DivisionFilter
 }
 
-type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+export type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
+function getDivisionFromUrl(): DivisionFilter | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('division')
+    if (
+      raw === 'ALL' ||
+      raw === 'PENJUALAN' ||
+      raw === 'CS_ADMIN' ||
+      raw === 'NOC_TROUBLESHOOTS' ||
+      raw === 'CREATOR_DIGITAL'
+    ) {
+      return raw
+    }
+  } catch {}
+
+  return null
+}
 
 export function IsolationView({
   userRole,
@@ -64,12 +81,14 @@ export function IsolationView({
       const params = new URLSearchParams(window.location.search)
       const m = params.get('marketing') || ''
       const s = params.get('status') || ''
+      const d = getDivisionFromUrl()
       if (m && m !== marketingFilter) setMarketingFilter(m)
       if (s && !statusPreset) {
         // statusPreset hanya preset, tidak perlu setState lain
       }
+      if (d && d !== division) setDivision(d)
     } catch {}
-  }, [marketingFilter, statusPreset])
+  }, [division, marketingFilter, statusPreset])
 
   // Role Permissions
   const roleUpper = (userRole || '').toUpperCase()

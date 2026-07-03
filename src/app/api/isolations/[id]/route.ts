@@ -73,6 +73,7 @@ export async function PUT(
         radboox: normalizeOptionalString(body.radboox),
         reason: normalizeOptionalString(body.reason),
         teknisi: normalizeOptionalString(body.teknisi),
+        ticketDismantle: normalizeOptionalString(body.ticketDismantle),
         ticketId: Number.isFinite(ticketId as number) ? (ticketId as number) : ticketId === null ? null : undefined,
         status,
         restorationDate: status === 'CLOSED' ? new Date() : status === 'OPEN' ? null : undefined,

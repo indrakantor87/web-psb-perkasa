@@ -70,3 +70,9 @@ export function toCanonicalMarketingLabel(value: unknown, nameMap: Map<string, s
   if (!normalized) return EMPTY_MARKETING_LABEL
   return nameMap.get(marketingNameKey(normalized)) ?? INVALID_MARKETING_LABEL
 }
+
+export function toDashboardMarketingLabel(value: unknown, nameMap: Map<string, string>) {
+  const normalized = normalizeMarketingName(value)
+  if (!normalized) return EMPTY_MARKETING_LABEL
+  return nameMap.get(marketingNameKey(normalized)) ?? normalized
+}

@@ -4,13 +4,6 @@ import { IsolationView } from '@/components/IsolationView'
 
 export const dynamic = 'force-dynamic'
 
-function toValidDivision(value?: string) {
-  if (value === 'PENJUALAN' || value === 'CS_ADMIN' || value === 'NOC_TROUBLESHOOTS' || value === 'CREATOR_DIGITAL') {
-    return value
-  }
-  return 'ALL'
-}
-
 export default async function IsolirPage({
   searchParams,
 }: {
@@ -35,7 +28,6 @@ export default async function IsolirPage({
         initialSearch={params?.search || ''} 
         initialMarketing={params?.marketing || ''} 
         initialStatus={params?.status || ''} 
-        initialDivision={toValidDivision(params?.division)}
       />
     </div>
   )

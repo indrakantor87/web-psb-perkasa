@@ -237,6 +237,7 @@ export function Header({ user }: { user: SessionUser }) {
           items: [
             { href: '/division?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
             { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
+            { href: '/dismantle?division=CS_ADMIN', label: 'Dismantle Perangkat', icon: Wrench },
             { href: '/odp?division=CS_ADMIN', label: 'PORT ODP', icon: Wifi },
           ],
         },

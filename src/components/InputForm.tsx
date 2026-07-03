@@ -3,15 +3,34 @@
 import { useEffect, useState } from 'react'
 
 const FALLBACK_PACKAGES = ['HOME LITE', 'HOME BASIC', 'HOME STREAM', 'HOME ENTERTAIN', 'HOME SMALL', 'HOME ADVAN']
-type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+export type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
+export type InputFormProps = {
+  user?: { name: string; role: string }
+  initialDivision?: DivisionFilter
+}
+
+function getDivisionFromUrl(): DivisionFilter | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('division')
+    if (
+      raw === 'ALL' ||
+      raw === 'PENJUALAN' ||
+      raw === 'CS_ADMIN' ||
+      raw === 'NOC_TROUBLESHOOTS' ||
+      raw === 'CREATOR_DIGITAL'
+    ) {
+      return raw
+    }
+  } catch {}
+
+  return null
+}
 
 export function InputForm({
   user,
   initialDivision = 'ALL',
-}: {
-  user?: { name: string; role: string }
-  initialDivision?: DivisionFilter
-}) {
+}: InputFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
@@ -38,6 +57,13 @@ export function InputForm({
   const [fotoRumah, setFotoRumah] = useState<File | null>(null)
 
   const [packageOptions, setPackageOptions] = useState<string[]>(FALLBACK_PACKAGES)
+
+  useEffect(() => {
+    const urlDivision = getDivisionFromUrl()
+    if (urlDivision) {
+      setDivision(urlDivision)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true

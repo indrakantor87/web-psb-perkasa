@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
-import { getMarketingNameMap, toCanonicalMarketingLabel } from '@/lib/marketing-users'
+import { getMarketingNameMap, toDashboardMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,7 +96,7 @@ function getMonthLabel(month: number) {
 function aggregateMarketingRows(rows: MarketingRow[], nameMap: Map<string, string>) {
   const aggregated = new Map<string, MarketingRow>()
   for (const row of rows) {
-    const label = toCanonicalMarketingLabel(row.name, nameMap)
+    const label = toDashboardMarketingLabel(row.name, nameMap)
     const existing = aggregated.get(label)
     if (existing) {
       existing.total += row.total
@@ -140,6 +140,7 @@ export default async function DivisionDetailPage({
       return [
         { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus CS & Admin CS.' },
         { label: 'Isolir Aktif', href: '/isolir?division=CS_ADMIN&status=OPEN', description: 'Pantau pelanggan yang masih berstatus isolir aktif.' },
+        { label: 'Dismantle Perangkat', href: '/dismantle?division=CS_ADMIN', description: 'Siapkan alur pembongkaran perangkat dari perspektif CS & Admin CS.' },
         { label: 'PORT ODP', href: '/odp?division=CS_ADMIN', description: 'Akses modul PORT ODP dari perspektif CS & Admin CS sesuai struktur menu terbaru.' },
         { label: 'Manajemen Pengguna', href: '/settings/users', description: 'Rapikan mapping anggota dan role di divisi layanan.' },
       ]
@@ -182,11 +183,16 @@ export default async function DivisionDetailPage({
   try {
     await ensureUserDivisionColumn().catch(() => {})
 
-    members = await prisma.user.findMany({
-      where: { division },
-      select: { id: true, name: true, username: true, role: true },
-      orderBy: [{ role: 'asc' }, { name: 'asc' }],
-    })
+    members = await prisma.$queryRaw<MemberRow[]>(PrismaSql.sql`
+      SELECT
+        id,
+        name,
+        username,
+        role
+      FROM "User"
+      WHERE "division" = ${division}
+      ORDER BY role ASC, name ASC
+    `)
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
     const isSelectedCurrentMonth = (() => {
