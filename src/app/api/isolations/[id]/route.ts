@@ -44,6 +44,22 @@ export async function PUT(
     await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
     await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
     await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
+    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
+    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
+    await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
+  }
+
+  const hasDismantleHistory = (item: {
+    ticketDismantle?: unknown
+    closeNote?: unknown
+    closePhoto?: unknown
+    status?: unknown
+  }) => {
+    const ticket = String(item.ticketDismantle ?? '').trim()
+    const note = String(item.closeNote ?? '').trim()
+    const photo = String(item.closePhoto ?? '').trim()
+    const statusValue = String(item.status ?? '').trim().toUpperCase()
+    return ticket !== '' || note !== '' || photo !== '' || statusValue === 'CLOSED'
   }
 
   const isMissingColumn = (e: unknown, column: string) => {
@@ -194,10 +210,44 @@ export async function DELETE(
   }
 
   const { id } = await params
+  const isolationId = parseInt(id, 10)
+  const { searchParams } = new URL(request.url)
+  const preserveDismantleHistory = searchParams.get('preserveDismantleHistory') === 'true'
 
   try {
+    await ensureIsolationColumns()
+
+    if (preserveDismantleHistory) {
+      const existing = await (prisma as any).isolation.findUnique({
+        where: { id: isolationId },
+        select: {
+          id: true,
+          ticketDismantle: true,
+          closeNote: true,
+          closePhoto: true,
+          status: true,
+        },
+      })
+
+      if (!existing) {
+        return NextResponse.json({ error: 'Data isolir tidak ditemukan' }, { status: 404 })
+      }
+
+      if (hasDismantleHistory(existing)) {
+        await (prisma as any).isolation.update({
+          where: { id: isolationId },
+          data: {
+            isArchived: true,
+            archivedAt: new Date(),
+          },
+        })
+
+        return NextResponse.json({ success: true, archived: true })
+      }
+    }
+
     await (prisma as any).isolation.delete({
-      where: { id: parseInt(id) },
+      where: { id: isolationId },
     })
 
     return NextResponse.json({ success: true })

@@ -10,6 +10,29 @@ import {
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
+async function ensureIsolationColumns() {
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
+  await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
+}
+
+function hasDismantleHistory(item: {
+  ticketDismantle?: unknown
+  closeNote?: unknown
+  closePhoto?: unknown
+  status?: unknown
+}) {
+  const ticket = String(item.ticketDismantle ?? '').trim()
+  const closeNote = String(item.closeNote ?? '').trim()
+  const closePhoto = String(item.closePhoto ?? '').trim()
+  const status = String(item.status ?? '').trim().toUpperCase()
+  return ticket !== '' || closeNote !== '' || closePhoto !== '' || status === 'CLOSED'
+}
+
 function normalizeDismantleKeyPart(value: unknown) {
   return String(value ?? '')
     .trim()
@@ -18,11 +41,22 @@ function normalizeDismantleKeyPart(value: unknown) {
 }
 
 function buildDismantleIdentity(item: {
+  id?: unknown
   userEmail?: unknown
   customerPhone?: unknown
   customerName?: unknown
   customerAddress?: unknown
+  isArchived?: unknown
+  ticketDismantle?: unknown
+  closeNote?: unknown
+  closePhoto?: unknown
+  status?: unknown
 }) {
+  const archived = item.isArchived === true
+  if (archived && hasDismantleHistory(item)) {
+    return `archive:${typeof item.id === 'number' ? item.id : String(item.id ?? '')}`
+  }
+
   const userEmail = normalizeDismantleKeyPart(item.userEmail)
   if (userEmail) return `user:${userEmail}`
 
@@ -86,6 +120,8 @@ export async function GET(request: Request) {
   if (!canAccessMenu(session.user.role, 'isolir') && !canAccessMenu(session.user.role, 'dismantle')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  await ensureIsolationColumns()
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
@@ -153,6 +189,11 @@ export async function GET(request: Request) {
   if (dismantleEligible && !status) {
     appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
   }
+  if (!dismantleEligible) {
+    appendAnd({
+      OR: [{ isArchived: false }, { isArchived: null }],
+    })
+  }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privileged = ['ADMIN', 'CS', 'NOC', 'DISMANTLE']
   if (!privileged.includes(session.user.role)) {
@@ -201,6 +242,8 @@ export async function GET(request: Request) {
       closePhoto: true,
       teknisi: true,
       ticketDismantle: true,
+      isArchived: true,
+      archivedAt: true,
       ticketId: true,
       ticket: {
         select: {
@@ -227,6 +270,8 @@ export async function GET(request: Request) {
       closePhoto: true,
       teknisi: true,
       ticketDismantle: true,
+      isArchived: true,
+      archivedAt: true,
       ticketId: true,
       ticket: {
         select: {
@@ -286,7 +331,12 @@ export async function GET(request: Request) {
     }
 
     const filteredIsolations = dismantleEligible
-      ? buildSmartDismantleRows(isolationsRaw.filter((item: any) => isDismantleEligible(item.isolationDate)))
+      ? buildSmartDismantleRows(
+          isolationsRaw.filter((item: any) => {
+            if (item?.isArchived) return hasDismantleHistory(item)
+            return isDismantleEligible(item.isolationDate)
+          })
+        )
       : isolationsRaw
 
     const total = filteredIsolations.length
@@ -311,6 +361,8 @@ export async function POST(request: Request) {
   if (!canMutateIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  await ensureIsolationColumns()
 
   const isMissingPriceColumn = (e: unknown) => {
     if (typeof e !== 'object' || !e) return false
@@ -375,12 +427,57 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    const body = (await request.json().catch(() => ({}))) as { ids?: unknown }
+    await ensureIsolationColumns()
+    const body = (await request.json().catch(() => ({}))) as { ids?: unknown; preserveDismantleHistory?: unknown }
     const idsRaw = body?.ids
+    const preserveDismantleHistory = body?.preserveDismantleHistory === true
     const ids =
       Array.isArray(idsRaw)
         ? idsRaw.map((x) => (typeof x === 'number' ? x : typeof x === 'string' ? parseInt(x, 10) : NaN)).filter((n) => Number.isFinite(n)) as number[]
         : null
+
+    if (preserveDismantleHistory) {
+      const targets = await (prisma as any).isolation.findMany({
+        where: ids && ids.length > 0 ? { id: { in: ids } } : undefined,
+        select: {
+          id: true,
+          ticketDismantle: true,
+          closeNote: true,
+          closePhoto: true,
+          status: true,
+        },
+      })
+
+      const archivedIds = targets
+        .filter((item: any) => hasDismantleHistory(item))
+        .map((item: any) => Number(item.id))
+        .filter((id: number) => Number.isFinite(id))
+      const deletedIds = targets
+        .filter((item: any) => !hasDismantleHistory(item))
+        .map((item: any) => Number(item.id))
+        .filter((id: number) => Number.isFinite(id))
+
+      if (archivedIds.length > 0) {
+        await (prisma as any).isolation.updateMany({
+          where: { id: { in: archivedIds } },
+          data: {
+            isArchived: true,
+            archivedAt: new Date(),
+          },
+        })
+      }
+
+      const deleted = deletedIds.length > 0
+        ? await (prisma as any).isolation.deleteMany({ where: { id: { in: deletedIds } } })
+        : { count: 0 }
+
+      return NextResponse.json({
+        success: true,
+        count: archivedIds.length + deleted.count,
+        archivedCount: archivedIds.length,
+        deletedCount: deleted.count,
+      })
+    }
 
     const deleted = ids && ids.length > 0
       ? await (prisma as any).isolation.deleteMany({ where: { id: { in: ids } } })

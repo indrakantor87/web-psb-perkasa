@@ -274,7 +274,7 @@ export function IsolationView({
       const res = await fetch('/api/isolations', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ ids, preserveDismantleHistory: true }),
       })
       const data = (await res.json().catch(() => ({}))) as { count?: number; error?: string }
       if (!res.ok) {

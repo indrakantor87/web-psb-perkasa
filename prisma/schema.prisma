@@ -79,6 +79,8 @@ model Isolation {
   closePhoto      String?
   teknisi         String?
   ticketDismantle String?
+  isArchived      Boolean  @default(false)
+  archivedAt      DateTime?
   
   ticketId        Int?
   ticket          Ticket?  @relation(fields: [ticketId], references: [id])
@@ -91,6 +93,7 @@ model Isolation {
   @@index([marketing])
   @@index([isolationDate])
   @@index([radboox])
+  @@index([isArchived])
 }
 
 model Priority {

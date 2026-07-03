@@ -222,6 +222,7 @@ export async function POST(request: Request) {
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
     let successCount = 0
+    let skippedCount = 0
     let errorCount = 0
     const errors: string[] = []
 
@@ -254,36 +255,8 @@ export async function POST(request: Request) {
         })
 
         if (targetId != null) {
-          const updateData = {
-            ticketDismantle,
-            customerName: customerName ?? undefined,
-            userEmail: userEmail ?? undefined,
-            customerPhone: customerPhone ?? undefined,
-            activeDate: activeDate ?? undefined,
-            customerAddress: customerAddress ?? undefined,
-            reason: reason ?? undefined,
-            marketing: marketing ?? undefined,
-            radboox: radboox ?? undefined,
-            status,
-            restorationDate: status === 'CLOSED' ? new Date() : null,
-          } as const
-
-          try {
-            await prisma.isolation.update({
-              where: { id: targetId },
-              data: updateData,
-            })
-          } catch (e) {
-            if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price')) {
-              await ensureIsolationColumns()
-              await prisma.isolation.update({
-                where: { id: targetId },
-                data: updateData,
-              })
-            } else {
-              throw e
-            }
-          }
+          skippedCount += 1
+          continue
         } else {
           if (!customerName) {
             throw new Error('Nama pelanggan wajib diisi untuk data baru')
@@ -329,8 +302,9 @@ export async function POST(request: Request) {
 
     cache.invalidateByPrefix('isolations:')
     return NextResponse.json({
-      message: `Import selesai. Berhasil: ${successCount}, Gagal: ${errorCount}`,
+      message: `Import selesai. Ditambahkan: ${successCount}, Diabaikan: ${skippedCount}, Gagal: ${errorCount}`,
       successCount,
+      skippedCount,
       errorCount,
       errors,
     })
