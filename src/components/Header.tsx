@@ -317,7 +317,7 @@ export function Header({ user }: { user: SessionUser }) {
             <div className="flex items-center gap-3">
               <div className={clsx(
                 "flex items-center justify-center bg-white rounded-lg shadow-sm border border-white overflow-hidden",
-                isTroubleshoots ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
+                isTroubleshoots || isDismantle ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
               )}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -326,14 +326,14 @@ export function Header({ user }: { user: SessionUser }) {
               className="h-full w-full object-contain"
             />
             </div>
-            {isTroubleshoots && (
+            {(isTroubleshoots || isDismantle) && (
               <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                Ticketing Perkasa Networks
+                {isDismantle ? 'Dismantle Perkasa Networks' : 'Ticketing Perkasa Networks'}
               </div>
             )}
           </div>
 
-          {!isTroubleshoots && isMobilePortrait && (
+          {!isTroubleshoots && !isDismantle && isMobilePortrait && (
             <nav className="flex min-w-0 items-center gap-2">
               <div className="relative" ref={navRefMobile}>
                 <button
@@ -512,7 +512,7 @@ export function Header({ user }: { user: SessionUser }) {
             </nav>
           )}
 
-          {!isTroubleshoots && (
+          {!isTroubleshoots && !isDismantle && (
           <nav className="hidden md:flex items-center space-x-1">
             {isAdmin && adminDivisionGroups.length > 0 ? (
               <>
@@ -762,7 +762,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isTroubleshoots && !isMobilePortrait && (
+        {!isTroubleshoots && !isDismantle && !isMobilePortrait && (
         <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
           <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>

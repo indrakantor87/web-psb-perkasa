@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { Download, Pencil, Upload } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Upload } from 'lucide-react'
 import { formatSuspendDuration } from '@/lib/isolation-suspend'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -93,6 +93,55 @@ function getStatusBadgeTone(status: string) {
     : 'bg-green-700 text-white dark:bg-green-600'
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function normalizeWaNumber(input: string) {
+  const digits = String(input || '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  if (digits.startsWith('62')) return digits
+  return digits
+}
+
+function normalizeMapsLink(input: string) {
+  const raw = String(input ?? '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw)) return raw
+  const coord = raw.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/)
+  if (coord) return `https://www.google.com/maps?q=${coord[1]},${coord[2]}`
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(raw)}`
+}
+
+function buildDismantleDetailText(row: DismantleItem) {
+  const maps = String(row.ticket?.locationMap ?? '').trim()
+  const problem = String(row.ticket?.description ?? row.radboox ?? '').trim()
+  const lines = [
+    `ID DATA : ${row.id}`,
+    `NO TICKET : ${String(row.ticketDismantle ?? '').trim() || '-'}`,
+    `Nama : ${row.customerName || '-'}`,
+    `User : ${row.userEmail || row.marketing || '-'}`,
+    `No WA : ${row.customerPhone || '-'}`,
+    `In Maps : ${maps || '-'}`,
+    `Alamat : ${row.customerAddress || '-'}`,
+    `Suspend : ${formatSuspendDuration(row.isolationDate)}`,
+    `Problem : ${problem || '-'}`,
+    `Keterangan : ${row.reason || `Isolir sejak ${formatDate(row.isolationDate)}`}`,
+    `Status : ${String(row.status || '-').toUpperCase()}`,
+  ]
+  return lines.join('\n')
+}
+
 function Modal({
   open,
   title,
@@ -155,8 +204,13 @@ export function DismantleView({
   const [saving, setSaving] = useState(false)
   const [selectedRow, setSelectedRow] = useState<DismantleItem | null>(null)
   const [ticketValue, setTicketValue] = useState('')
+  const [statusValue, setStatusValue] = useState<DismantleStatusFilter>(initialStatus)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [detailRow, setDetailRow] = useState<DismantleItem | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const supportsWorkflow = (!isAdmin || division === 'ALL' || division === 'CS_ADMIN') && (!isDismantleRole || division === 'CS_ADMIN')
@@ -180,6 +234,7 @@ export function DismantleView({
 
   useEffect(() => {
     setStatusFilter(initialStatus)
+    setStatusValue(initialStatus)
   }, [initialStatus])
 
   useEffect(() => {
@@ -261,6 +316,7 @@ export function DismantleView({
   const openEdit = (row: DismantleItem) => {
     setSelectedRow(row)
     setTicketValue(String(row.ticketDismantle ?? ''))
+    setStatusValue(String(row.status ?? '').toUpperCase() === 'CLOSED' ? 'CLOSED' : 'OPEN')
     setModalOpen(true)
   }
 
@@ -271,7 +327,7 @@ export function DismantleView({
       const res = await fetch(`/api/isolations/${selectedRow.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticketDismantle: ticketValue }),
+        body: JSON.stringify({ ticketDismantle: ticketValue, status: statusValue }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan ticket dismantle')
@@ -360,6 +416,383 @@ export function DismantleView({
       setIsImporting(false)
       event.target.value = ''
     }
+  }
+
+  const openDetail = (row: DismantleItem) => {
+    setDetailRow(row)
+    setCopied(false)
+  }
+
+  const handleCopyDetail = async () => {
+    if (!detailRow) return
+    try {
+      await navigator.clipboard.writeText(buildDismantleDetailText(detailRow))
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1200)
+    } catch {
+      alert('Gagal copy ke clipboard')
+    }
+  }
+
+  const handleShareWa = () => {
+    if (!detailRow) return
+    const url = `https://wa.me/?text=${encodeURIComponent(buildDismantleDetailText(detailRow))}`
+    window.open(url, '_blank', 'noreferrer')
+  }
+
+  const handleQuickStatusUpdate = async (row: DismantleItem, nextStatus: DismantleStatusFilter) => {
+    if (!canEdit) return
+    setActionLoadingId(row.id)
+    try {
+      const res = await fetch(`/api/isolations/${row.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketDismantle: String(row.ticketDismantle ?? '').trim() || null,
+          status: nextStatus,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status dismantle')
+      await fetchRows()
+      if (detailRow?.id === row.id) {
+        setDetailRow({ ...row, status: nextStatus })
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal memperbarui status')
+    } finally {
+      setActionLoadingId(null)
+    }
+  }
+
+  if (isDismantleRole) {
+    return (
+      <div className="space-y-4 overflow-x-hidden">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="hidden"
+          onChange={handleImportFile}
+        />
+
+        <div className="rounded-xl border border-gray-800 bg-black p-3 text-white">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div className="grid grid-cols-1 gap-3 md:flex md:flex-row md:items-end">
+              <div className="flex flex-col">
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Cari</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-80"
+                  placeholder="Nama / WA / alamat / problem"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Status</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as DismantleStatusFilter)}
+                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-40"
+                >
+                  <option value="OPEN">OPEN</option>
+                  <option value="CLOSED">CLOSE</option>
+                </select>
+              </div>
+              <div className="flex flex-col">
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Ticket</span>
+                <select
+                  value={ticketFilter}
+                  onChange={(e) => setTicketFilter(e.target.value as TicketFilter)}
+                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-48"
+                >
+                  <option value="ALL">SEMUA</option>
+                  <option value="WITHOUT">BELUM ADA TICKET</option>
+                  <option value="WITH">SUDAH ADA TICKET</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-300">
+              Fokus role dismantle: ticket open dan close dengan pola kerja seperti role troubleshoots.
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="rounded-md border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {loading ? (
+            <div className="rounded-lg bg-black px-4 py-6 text-center text-sm text-white">Memuat...</div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-lg bg-black px-4 py-6 text-center text-sm text-white">Tidak ada data</div>
+          ) : (
+            rows.map((row) => {
+              const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
+              const ticketCode = String(row.ticketDismantle ?? '').trim() || `DSM-${row.id}`
+              const mapsLink = String(row.ticket?.locationMap ?? '').trim()
+              const normalizedWa = normalizeWaNumber(String(row.customerPhone ?? ''))
+              const mapsHref = normalizeMapsLink(mapsLink)
+              const detailText = String(row.ticket?.description ?? row.radboox ?? '').trim()
+
+              return (
+                <div key={row.id} className="rounded-lg border border-gray-800 bg-black text-white">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId((prev) => (prev === row.id ? null : row.id))}
+                    className="w-full px-4 py-3 text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Info className="mt-0.5 h-6 w-6 text-orange-400" />
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-wide">
+                          <span>DSM - {formatDateTime(row.isolationDate)} - {ticketCode} - {isClosed ? 'Close' : 'New'}</span>
+                        </div>
+                        <div className="mt-1 text-sm text-gray-200">{row.customerName || '-'}</div>
+                        <div className="mt-1 text-xs text-gray-400">
+                          {(detailText || '-')} {' • '} Suspend {formatSuspendDuration(row.isolationDate)}
+                        </div>
+                      </div>
+                      <div className="pt-0.5 text-gray-300">
+                        {expandedId === row.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </div>
+                    </div>
+                  </button>
+
+                  {expandedId === row.id && (
+                    <div className="px-4 pb-4">
+                      <div className="mt-2 space-y-2 text-sm">
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">Nama Pelanggan</div>
+                          <button
+                            type="button"
+                            onClick={() => openDetail(row)}
+                            className="text-left font-semibold text-blue-300 hover:underline"
+                          >
+                            {row.customerName || '-'}
+                          </button>
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">No Ticket</div>
+                          <div className="font-semibold">{ticketCode}</div>
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">No WA</div>
+                          {normalizedWa ? (
+                            <a
+                              href={`https://wa.me/${normalizedWa}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="break-words font-semibold text-blue-300 hover:underline"
+                            >
+                              {row.customerPhone}
+                            </a>
+                          ) : (
+                            <div>{row.customerPhone || '-'}</div>
+                          )}
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">Problem</div>
+                          <div className="whitespace-pre-wrap break-words">{detailText || '-'}</div>
+                        </div>
+                        <div className="rounded-md bg-gray-900 px-3 py-2">
+                          <div className="text-xs text-gray-400">Keterangan</div>
+                          <div className="whitespace-pre-wrap break-words">
+                            {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <a
+                          href={mapsHref || '#'}
+                          target={mapsHref ? '_blank' : undefined}
+                          rel={mapsHref ? 'noreferrer' : undefined}
+                          className={clsx(
+                            'rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900',
+                            !mapsHref && 'pointer-events-none opacity-50'
+                          )}
+                        >
+                          View Location
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickStatusUpdate(row, isClosed ? 'OPEN' : 'CLOSED')}
+                          disabled={actionLoadingId === row.id}
+                          className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
+                        >
+                          {actionLoadingId === row.id ? 'Menyimpan...' : isClosed ? 'Open Kembali' : 'Close'}
+                        </button>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openDetail(row)}
+                          className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
+                        >
+                          <Info className="h-4 w-4" />
+                          Rincian
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedId(null)
+                            openEdit(row)
+                          }}
+                          className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </button>
+                        {!isClosed && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickStatusUpdate(row, 'CLOSED')}
+                            disabled={actionLoadingId === row.id}
+                            className="inline-flex items-center gap-2 rounded-md border border-green-800 bg-green-950 px-3 py-2 text-xs font-semibold text-green-200 hover:bg-green-900 disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Close
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="rounded-lg border border-gray-800 bg-black px-3 py-3 text-sm text-white">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>{total > 0 ? `Menampilkan ${rows.length} dari total ${total} data` : 'Tidak ada data'}</div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1}
+                className="rounded-md border border-gray-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              >
+                Sebelumnya
+              </button>
+              <div>Halaman {page}</div>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages}
+                className="rounded-md border border-gray-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Modal
+          open={!!detailRow}
+          title={detailRow ? `Rincian Dismantle: ${detailRow.customerName}` : 'Rincian Dismantle'}
+          onClose={() => setDetailRow(null)}
+        >
+          <div className="space-y-3">
+            <textarea
+              readOnly
+              value={detailRow ? buildDismantleDetailText(detailRow) : ''}
+              className="min-h-[220px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            />
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+              <button
+                type="button"
+                onClick={handleShareWa}
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+              >
+                Kirim ke WA
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyDetail}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                <Clipboard className="h-4 w-4" />
+                {copied ? 'Tercopy' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          open={modalOpen}
+          title={selectedRow ? `Ticket Dismantle: ${selectedRow.customerName}` : 'Ticket Dismantle'}
+          onClose={() => {
+            setModalOpen(false)
+            setSelectedRow(null)
+          }}
+        >
+          <div className="space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pelanggan</div>
+                  <div className="mt-1 text-sm text-gray-800 dark:text-gray-200">{selectedRow?.customerName || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No WA</div>
+                  <div className="mt-1 text-sm text-gray-800 dark:text-gray-200">{selectedRow?.customerPhone || '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nomor Ticket Dismantle</label>
+              <input
+                value={ticketValue}
+                onChange={(e) => setTicketValue(e.target.value)}
+                placeholder="Contoh: DSM-2026-001"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Ticket</label>
+              <select
+                value={statusValue}
+                onChange={(e) => setStatusValue(e.target.value as DismantleStatusFilter)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="OPEN">OPEN</option>
+                <option value="CLOSED">CLOSE</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalOpen(false)
+                  setSelectedRow(null)
+                }}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={saveTicket}
+                disabled={saving}
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+              >
+                {saving ? 'Menyimpan...' : 'Simpan Ticket'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    )
   }
 
   return (
