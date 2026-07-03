@@ -202,10 +202,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   }, [divisionSummary, focusedDivision, isAdmin])
 
   const showSalesFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
-  const showSupportFocus =
-    !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showTicketingFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
-  const showNocFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showCreatorFocus = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
   const focusDivisionConfig = {
     ALL: {
@@ -364,7 +361,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <DivisionCard
                 key={division.code}
                 division={division}
-                detailHref={`/division?division=${division.code}&month=${month}&year=${year}`}
+                detailHref={`/division-performance?division=${division.code}&mode=MONTHLY&month=${month}&year=${year}`}
               />
             ))}
           </div>

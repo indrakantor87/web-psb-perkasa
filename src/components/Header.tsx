@@ -236,7 +236,7 @@ export function Header({ user }: { user: SessionUser }) {
           icon: FileInput,
           description: 'PSB baru dan aktivitas marketing.',
           items: [
-            { href: '/division?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
+            { href: '/division-performance?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
             { href: '/input?division=PENJUALAN', label: 'Input PSB', icon: FileInput },
             { href: '/list?division=PENJUALAN', label: 'List Data', icon: List },
             { href: '/marketing-activities?division=PENJUALAN', label: 'Aktivitas Marketing', icon: ClipboardList },
@@ -251,7 +251,7 @@ export function Header({ user }: { user: SessionUser }) {
           icon: Ban,
           description: 'Follow up pelanggan dan administrasi CS.',
           items: [
-            { href: '/division?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
+            { href: '/division-performance?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
             { href: '/input?division=CS_ADMIN', label: 'Input PSB', icon: FileInput },
             { href: '/list?division=CS_ADMIN', label: 'List Data', icon: List },
             { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
@@ -266,7 +266,7 @@ export function Header({ user }: { user: SessionUser }) {
           icon: Wrench,
           description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
-            { href: '/division?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
+            { href: '/division-performance?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
             { href: '/list?division=NOC_TROUBLESHOOTS', label: 'List Data', icon: List },
             { href: '/odp?division=NOC_TROUBLESHOOTS', label: 'PORT ODP', icon: Wifi },
             { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
@@ -278,7 +278,7 @@ export function Header({ user }: { user: SessionUser }) {
           icon: TrendingUp,
           description: 'Konten, campaign, leads, dan analytics digital.',
           items: [
-            { href: '/division?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
+            { href: '/division-performance?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
             { href: '/input?division=CREATOR_DIGITAL', label: 'Input PSB', icon: FileInput },
             { href: '/list?division=CREATOR_DIGITAL', label: 'List Data', icon: List },
             { href: '/isolir?division=CREATOR_DIGITAL', label: 'Isolir', icon: Ban },
