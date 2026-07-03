@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
+import { Prisma } from '@prisma/client'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -32,6 +33,32 @@ function parseDate(dateStr: string | number): Date | null {
   return new Date(dateStr)
 }
 
+function parsePrice(value: unknown): Prisma.Decimal | null {
+  if (value == null) return null
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null
+    return new Prisma.Decimal(value)
+  }
+  if (typeof value === 'bigint') return new Prisma.Decimal(value.toString())
+  if (typeof value !== 'string') return null
+
+  const raw = value.trim()
+  if (!raw) return null
+
+  const cleaned = raw
+    .replace(/rp/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d.,-]/g, '')
+
+  if (!cleaned) return null
+
+  const hasComma = cleaned.includes(',')
+  const normalized = hasComma ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\./g, '')
+  const num = parseFloat(normalized)
+  if (Number.isNaN(num) || !Number.isFinite(num)) return null
+  return new Prisma.Decimal(num)
+}
+
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -47,6 +74,9 @@ export async function POST(request: Request) {
   try {
     try {
       await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT')
+    } catch {}
+    try {
+      await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)')
     } catch {}
 
     const XLSX = await import('xlsx')
@@ -87,6 +117,7 @@ export async function POST(request: Request) {
       if (['TGL RESTORASI', 'TANGGAL RESTORASI', 'RESTORATION DATE', 'TGL NORMAL', 'TANGGAL NORMAL'].includes(k)) return 'restorationDate'
       if (['SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)', 'LAMA SUSPEND', 'LAMA SUSPEND (BULAN)'].includes(k)) return 'suspendMonths'
       if (['TICKET', 'TIKET', 'ID TICKET', 'TICKET ID', 'IDTICKET'].includes(k)) return 'ticketDismantle'
+      if (['HARGA', 'PRICE', 'BIAYA', 'TARIF', 'HARGA PAKET'].includes(k)) return 'price'
       return ''
     }
 
@@ -103,6 +134,7 @@ export async function POST(request: Request) {
       restorationDate?: unknown
       suspendMonths?: unknown
       ticketDismantle?: unknown
+      price?: unknown
     }
 
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
@@ -114,21 +146,7 @@ export async function POST(request: Request) {
       return out
     }
 
-    const toCreate: Array<{
-      customerName: string
-      userEmail: string | null
-      customerPhone: string | null
-      activeDate: Date | null
-      customerAddress: string | null
-      reason: string | null
-      marketing: string | null
-      radboox: string | null
-      status: string
-      isolationDate: Date
-      teknisi: string | null
-      restorationDate?: Date | null
-      ticketDismantle?: string | null
-    }> = []
+    const toCreate: any[] = []
 
     for (const [idx, row] of jsonData.entries()) {
       const r = toIsoRow(row)
@@ -144,6 +162,7 @@ export async function POST(request: Request) {
         const reason = r.reason ? String(r.reason) : null
         const marketing = r.marketing ? String(r.marketing) : null
         const radboox = r.radboox ? String(r.radboox) : null
+        const price = parsePrice(r.price)
         const isoDateRaw = r.isolationDate
         const isoDateParsed = parseDate(typeof isoDateRaw === 'number' || typeof isoDateRaw === 'string' ? isoDateRaw : String(isoDateRaw ?? ''))
         const restorationRaw = r.restorationDate
@@ -186,6 +205,7 @@ export async function POST(request: Request) {
           reason,
           marketing,
           radboox,
+          price,
           status: restorationDate ? 'CLOSED' : 'OPEN',
           isolationDate,
           teknisi: session.user.name ?? null,
@@ -204,7 +224,7 @@ export async function POST(request: Request) {
       const chunk = toCreate.slice(i, i + batchSize)
       if (chunk.length === 0) continue
       try {
-        const result = await prisma.isolation.createMany({
+        const result = await (prisma as any).isolation.createMany({
           data: chunk,
           skipDuplicates: false,
         })
@@ -213,7 +233,7 @@ export async function POST(request: Request) {
         // Fallback: try per-row create to salvage partial failures
         for (let j = 0; j < chunk.length; j++) {
           try {
-            await prisma.isolation.create({ data: chunk[j] })
+            await (prisma as any).isolation.create({ data: chunk[j] })
             successCount++
           } catch (err) {
             errorCount++
