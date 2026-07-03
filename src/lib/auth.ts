@@ -2,15 +2,24 @@ import { jwtVerify, SignJWT } from 'jose'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
-const ENV_SECRET = String(process.env.JWT_SECRET_KEY ?? '').trim()
-const SECRET_KEY =
-  ENV_SECRET ||
-  (process.env.NODE_ENV === 'production'
-    ? (() => {
-        throw new Error('JWT_SECRET_KEY is required in production')
-      })()
-    : 'rahasia-perkasa-networks-2026')
-const key = new TextEncoder().encode(SECRET_KEY)
+let cachedKey: Uint8Array | null = null
+const encoder = new TextEncoder()
+
+function getJwtKey() {
+  if (cachedKey) return cachedKey
+
+  const envSecret = String(process.env.JWT_SECRET_KEY ?? '').trim()
+  if (!envSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET_KEY is required in production')
+    }
+    cachedKey = encoder.encode('rahasia-perkasa-networks-2026')
+    return cachedKey
+  }
+
+  cachedKey = encoder.encode(envSecret)
+  return cachedKey
+}
 
 export type SessionUser = {
   id: number
@@ -31,11 +40,11 @@ export async function encrypt(payload: Record<string, unknown>, expiresIn: strin
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(expiresIn)
-    .sign(key)
+    .sign(getJwtKey())
 }
 
 export async function decrypt(input: string): Promise<SessionData> {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify(input, getJwtKey(), {
     algorithms: ['HS256'],
   })
   return payload as unknown as SessionData
