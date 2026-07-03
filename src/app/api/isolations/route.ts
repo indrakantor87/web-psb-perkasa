@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
+import {
+  canAccessMenu,
+  canDeleteIsolationRecords,
+  canMutateIsolationRecords,
+} from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 
 function normalizeDismantleKeyPart(value: unknown) {
   return String(value ?? '')
@@ -76,10 +82,8 @@ function buildSmartDismantleRows(items: any[]) {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
+  if (!session) return unauthorizedResponse()
+  if (!canAccessMenu(session.user.role, 'isolir') && !canAccessMenu(session.user.role, 'dismantle')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -303,12 +307,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Restrict MARKETING from creating isolations
-  if (session.user.role === 'MARKETING') {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -370,11 +370,8 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  // Only ADMIN, CS, NOC can bulk delete
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+  if (!session) return unauthorizedResponse()
+  if (!canDeleteIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {

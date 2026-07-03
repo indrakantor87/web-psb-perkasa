@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
+import { canDeleteIsolationRecords, canMutateIsolationRecords } from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -10,16 +12,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (session.user.role === 'TEKNISI') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  // Restrict MARKETING from updating isolations
-  if (session.user.role === 'MARKETING') {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -194,15 +188,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-  
-  // Allow ADMIN, CS, NOC to delete
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+  if (!session) return unauthorizedResponse()
+  if (!canDeleteIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

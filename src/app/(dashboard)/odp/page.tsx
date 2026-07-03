@@ -1,5 +1,6 @@
 import { OdpManager } from '@/components/OdpManager'
 import { getSession } from '@/lib/auth'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 function toValidDivision(value?: string) {
@@ -16,9 +17,10 @@ export default async function OdpPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (!canAccessMenu(session.user.role, 'odp')) redirect('/')
   const params = await searchParams
 
-  const canEdit = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(session.user.role)
+  const canEdit = canMutateMenu(session.user.role, 'odp')
 
   return <OdpManager canEdit={canEdit} userRole={session.user.role} initialDivision={toValidDivision(params?.division)} />
 }

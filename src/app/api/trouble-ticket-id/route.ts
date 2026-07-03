@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 type TicketCategory = 'TT' | 'PV'
 type ConfigRow = { id: number; category: TicketCategory; prefix: string; nextNumber: number }
@@ -156,12 +157,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const privileged = ['ADMIN', 'CS', 'NOC']
-  if (!privileged.includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     const { month, year, category } = getPeriodFromRequest(request)

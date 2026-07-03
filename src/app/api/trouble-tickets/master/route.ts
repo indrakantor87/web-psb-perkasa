@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -131,9 +132,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   await ensureMasterTableOnce().catch(() => {})
 
@@ -162,9 +162,8 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   await ensureMasterTableOnce().catch(() => {})
 

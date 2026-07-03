@@ -8,6 +8,7 @@ export type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOO
 export type InputFormProps = {
   user?: { name: string; role: string }
   initialDivision?: DivisionFilter
+  readOnly?: boolean
 }
 
 function getDivisionFromUrl(): DivisionFilter | null {
@@ -30,6 +31,7 @@ function getDivisionFromUrl(): DivisionFilter | null {
 export function InputForm({
   user,
   initialDivision = 'ALL',
+  readOnly = false,
 }: InputFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -101,6 +103,7 @@ export function InputForm({
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (readOnly) return
     const { name, value } = e.target
     // Sanitasi input nomor WA: hanya angka
     if (name === 'phoneNumber') {
@@ -113,6 +116,7 @@ export function InputForm({
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       
@@ -160,6 +164,7 @@ export function InputForm({
   }
 
   const handlePhonePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (readOnly) return
     e.preventDefault()
     const text = e.clipboardData.getData('text')
     let digits = text.replace(/\D/g, '')
@@ -222,6 +227,7 @@ export function InputForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
     
     // Validation: Check mandatory fields
     if (!formData.customerName || !formData.phoneNumber || !formData.package || !formData.marketingName || !formData.locationMap || !formData.birthDate) {
@@ -318,6 +324,11 @@ export function InputForm({
               {error}
             </div>
           )}
+          {readOnly && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+              Mode hanya lihat aktif. Form ini bisa dibuka oleh role Anda, tetapi tidak bisa disimpan.
+            </div>
+          )}
           
           <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <div>
@@ -330,6 +341,7 @@ export function InputForm({
             value={formData.customerName}
             onChange={handleChange}
             required
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
@@ -344,6 +356,7 @@ export function InputForm({
             value={formData.birthDate}
             onChange={handleChange}
             required
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
@@ -363,6 +376,7 @@ export function InputForm({
             inputMode="numeric"
             placeholder="08xxxxxxxxxx"
             maxLength={13}
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
@@ -375,6 +389,7 @@ export function InputForm({
             name="package"
             value={formData.package}
             onChange={handleChange}
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             {packageOptions.map((pkg) => (
@@ -397,6 +412,7 @@ export function InputForm({
               onChange={handleChange}
               required
               readOnly
+              disabled={readOnly}
               autoComplete="off"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-600 dark:text-white"
             />
@@ -409,6 +425,7 @@ export function InputForm({
               required
               autoComplete="off"
               placeholder="Masukkan nama marketing"
+              disabled={readOnly}
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             />
           )}
@@ -427,6 +444,7 @@ export function InputForm({
             type="file"
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleFileChange}
+            disabled={readOnly}
             className="mt-2 block w-full text-sm text-gray-500 dark:text-gray-400
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600
@@ -448,6 +466,7 @@ export function InputForm({
             value={formData.locationMap}
             onChange={handleChange}
             required
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="https://maps.google.com/..."
           />
@@ -462,19 +481,22 @@ export function InputForm({
             value={formData.description}
             onChange={handleChange}
             rows={3}
+            disabled={readOnly}
             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
         </div>
       </div>
 
           <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white md:w-auto"
-            >
-              {loading ? 'Menyimpan...' : 'Kirim'}
-            </button>
+            {!readOnly && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white md:w-auto"
+              >
+                {loading ? 'Menyimpan...' : 'Kirim'}
+              </button>
+            )}
           </div>
         </form>
       ) : (

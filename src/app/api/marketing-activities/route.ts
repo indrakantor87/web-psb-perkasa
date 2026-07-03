@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { normalizeMarketingName, resolveMarketingName } from '@/lib/marketing-users'
+import { canMutateMarketingActivities } from '@/lib/access'
+import { ensureMenuAccess, requireSession, unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -14,19 +16,16 @@ type MarketingActivityDelegate = {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuAccess(session, 'marketing-activities')
+  if (accessError) return accessError
+  const activeSession = requireSession(session)
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
   const year = searchParams.get('year')
   const marketing = searchParams.get('marketing')
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
-  const roleUpper = (session.user.role || '').toUpperCase()
+  const roleUpper = (activeSession.user.role || '').toUpperCase()
   const divisionFilter =
     roleUpper === 'ADMIN' &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
@@ -48,9 +47,9 @@ export async function GET(request: Request) {
     }
   }
 
-  if (session.user.role === 'MARKETING') {
+  if (activeSession.user.role === 'MARKETING') {
     where.marketingName = {
-      equals: normalizeMarketingName(session.user.name),
+      equals: normalizeMarketingName(activeSession.user.name),
       mode: 'insensitive',
     }
   } else if (marketing && marketing.trim()) {
@@ -90,24 +89,23 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateMarketingActivities(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const activeSession = requireSession(session)
 
   try {
     const body = await request.json()
     const { date, marketingName, activity, notes, areaId, areaId2, areaId3, areaId4 } = body
 
-    if (!date || (!marketingName && session.user.role !== 'MARKETING')) {
+    if (!date || (!marketingName && activeSession.user.role !== 'MARKETING')) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const finalMarketingName =
-      session.user.role === 'MARKETING'
-        ? normalizeMarketingName(session.user.name)
+      activeSession.user.role === 'MARKETING'
+        ? normalizeMarketingName(activeSession.user.name)
         : await resolveMarketingName(marketingName)
 
     if (!finalMarketingName) {

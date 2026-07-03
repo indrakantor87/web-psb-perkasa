@@ -1,5 +1,6 @@
 import { CoveredAreaManager } from '@/components/CoveredAreaManager'
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export const metadata = {
@@ -10,8 +11,7 @@ export default async function CoveredAreaPage() {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const isAuthorized = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
-  if (!isAuthorized) redirect('/')
+  if (!canAccessMenu(session.user.role, 'settings')) redirect('/')
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6">

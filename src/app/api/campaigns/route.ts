@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuAccess(session, 'campaigns')
+    if (accessError) return accessError
+    requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
@@ -33,9 +34,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuMutation(session, 'campaigns')
+    if (accessError) return accessError
+    const activeSession = requireSession(session)
 
     const data = await request.json()
     const { name, description, startDate, endDate, budget, status, objectives, platforms } = data
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
         status,
         objectives: objectives || [],
         platforms: platforms || [],
-        createdById: session.user.id
+        createdById: activeSession.user.id
       },
       include: {
         createdBy: { select: { id: true, name: true, username: true } }

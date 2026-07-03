@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 type CoveredAreaDelegate = {
   update: (args: unknown) => Promise<unknown>
@@ -15,13 +16,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   const { id } = await params
   const areaId = parseInt(id)
@@ -62,13 +58,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   const { id } = await params
   const areaId = parseInt(id)

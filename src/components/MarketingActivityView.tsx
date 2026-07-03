@@ -34,6 +34,7 @@ export interface MarketingActivityViewProps {
   userRole: string
   userName: string
   initialDivision?: MarketingActivityDivision
+  readOnly?: boolean
 }
 
 function getDivisionFromUrl(): MarketingActivityDivision | null {
@@ -53,7 +54,7 @@ function getDivisionFromUrl(): MarketingActivityDivision | null {
   return null
 }
 
-export function MarketingActivityView({ userRole, userName, initialDivision = 'ALL' }: MarketingActivityViewProps) {
+export function MarketingActivityView({ userRole, userName, initialDivision = 'ALL', readOnly = false }: MarketingActivityViewProps) {
   const [activities, setActivities] = useState<MarketingActivity[]>([])
   const [coveredAreas, setCoveredAreas] = useState<CoveredArea[]>([])
   const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
@@ -77,6 +78,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
+  const canMutate = !readOnly && isPenjualanFocus
   const divisionDescriptions: Record<MarketingActivityDivision, string> = {
     ALL: 'Modul Aktivitas Marketing saat ini merepresentasikan operasional divisi Penjualan.',
     PENJUALAN: 'Menampilkan aktivitas asli tim Penjualan/Marketing pada periode terpilih.',
@@ -222,6 +224,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   }, [fetchActivities])
 
   const handleOpenModal = (activity: MarketingActivity | null = null) => {
+    if (!canMutate) return
     if (activity) {
       setEditingActivity(activity)
       setFormData({
@@ -252,6 +255,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!canMutate) return
     if (userRole !== 'MARKETING' && !formData.marketingName) {
       alert('Pilih nama marketing dari daftar user marketing yang valid.')
       return
@@ -285,6 +289,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   }
 
   const handleDelete = async (id: number) => {
+    if (!canMutate) return
     if (!confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) return
 
     try {
@@ -328,6 +333,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canMutate) return
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -518,7 +524,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
         </div>
         
         <div className="flex gap-2 w-full lg:w-auto mt-4 lg:mt-0">
-          {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+          {canMutate && (
             <>
               <button
                 disabled={isImporting || !isPenjualanFocus}
@@ -547,7 +553,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
           </button>
           <button
             onClick={() => handleOpenModal()}
-            disabled={!isPenjualanFocus}
+            disabled={!canMutate}
             className="flex flex-1 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white lg:flex-none"
           >
             <Plus className="h-4 w-4" />
@@ -559,6 +565,12 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       {isAdmin && (
         <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
+        </div>
+      )}
+
+      {readOnly && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          Role Anda hanya dapat melihat aktivitas marketing tanpa tambah, edit, import, atau hapus.
         </div>
       )}
 
@@ -657,14 +669,16 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
                                         </td>
                                         <td className="px-4 py-3 whitespace-nowrap text-xs text-center">
                                           <div className="flex justify-center gap-1">
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); handleOpenModal(activity); }}
-                                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
-                                              title="Edit"
-                                            >
-                                              <Edit2 className="h-3.5 w-3.5" />
-                                            </button>
-                                            {['ADMIN', 'CS', 'NOC'].includes(userRole) && (
+                                            {canMutate && (
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); handleOpenModal(activity); }}
+                                                className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                title="Edit"
+                                              >
+                                                <Edit2 className="h-3.5 w-3.5" />
+                                              </button>
+                                            )}
+                                            {canMutate && (
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(activity.id); }}
                                                 className="text-red-600 hover:text-red-900 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950"

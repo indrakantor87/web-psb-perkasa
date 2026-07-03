@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { IsolationView } from '@/components/IsolationView'
 
@@ -11,7 +12,7 @@ export default async function IsolirPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (session.user.role === 'TEKNISI') redirect('/')
+  if (!canAccessMenu(session.user.role, 'isolir')) redirect('/')
   const params = await searchParams
 
   const initialDivision =

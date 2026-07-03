@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getDefaultTemplate } from '@/lib/data'
 import { ensureDbOptimizations } from '@/lib/db-init'
 import { getTicketsListData } from '@/lib/tickets-list-cache'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default async function ListPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (!canAccessMenu(session.user.role, 'list')) redirect('/')
   await ensureDbOptimizations()
 
   const resolvedSearchParams = await searchParams
@@ -93,6 +95,7 @@ export default async function ListPage({
           <TicketList 
             tickets={formattedTickets} 
             userRole={session.user.role}
+            readOnly={!canMutateMenu(session.user.role, 'list')}
             initialPeriod={{ month: currentMonth, year: currentYear }}
             initialStatus={currentStatus}
             initialMarketing={currentMarketing}

@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
+import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,9 +31,9 @@ function isTicketIdUniqueError(error: unknown) {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const accessError = ensureMenuAccess(session, 'list')
+  if (accessError) return accessError
+  const activeSession = requireSession(session)
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
@@ -61,10 +62,10 @@ export async function GET(request: Request) {
   }
 
   // Filter for Marketing role
-  if (session.user.role === 'MARKETING') {
+  if (activeSession.user.role === 'MARKETING') {
     and.push({
       marketingName: {
-        equals: normalizeMarketingName(session.user.name),
+        equals: normalizeMarketingName(activeSession.user.name),
         mode: 'insensitive',
       },
     })
@@ -213,14 +214,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // All roles can create tickets EXCEPT TEKNISI
-  if (session.user.role === 'TEKNISI') {
-    return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'input')
+  if (accessError) return accessError
+  const activeSession = requireSession(session)
   
   try {
     const formData = await request.formData()
@@ -250,7 +246,7 @@ export async function POST(request: Request) {
       birthDate: formData.get('birthDate'),
       locationMap: formData.get('locationMap'),
       package: formData.get('package'),
-      marketingName: session.user.role === 'MARKETING' ? session.user.name : (formData.get('marketingName') || undefined),
+      marketingName: activeSession.user.role === 'MARKETING' ? activeSession.user.name : (formData.get('marketingName') || undefined),
       description: formData.get('description') || undefined,
       phoneNumber: formData.get('phoneNumber'),
       pengawalan: formData.get('pengawalan') || undefined,
@@ -277,15 +273,15 @@ export async function POST(request: Request) {
     } = result.data
 
     // Only allow authorized roles to set pengawalan initially
-    const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
+    const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(activeSession.user.role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
     const finalMarketingName =
-      session.user.role === 'MARKETING'
-        ? normalizeMarketingName(session.user.name)
+      activeSession.user.role === 'MARKETING'
+        ? normalizeMarketingName(activeSession.user.name)
         : normalizeMarketingName(submittedMarketingName)
 
-    if (!finalMarketingName || (session.user.role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
+    if (!finalMarketingName || (activeSession.user.role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }
 

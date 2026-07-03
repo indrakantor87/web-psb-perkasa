@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { TroubleTicketView } from '@/components/TroubleTicketView'
 
@@ -18,6 +19,7 @@ export default async function TroubleTicketPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (!canAccessMenu(session.user.role, 'trouble-ticket')) redirect('/')
   const params = await searchParams
 
   const isTroubleshoots = (session.user.role || '').toUpperCase() === 'TROUBLESHOOTS'

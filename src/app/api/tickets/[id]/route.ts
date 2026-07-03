@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketing-users'
+import { canDeleteListTickets, canMutateMenu } from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 
 function statusOrderFor(status: string) {
   const s = (status || '').toUpperCase()
@@ -26,10 +28,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  if (!session) return unauthorizedResponse()
   const role = (session.user.role || '').toUpperCase()
+  const canMutateTicket = canMutateMenu(role, 'list') || canMutateMenu(role, 'dismantle')
+  if (!canMutateTicket) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { id } = await params
   const ticketId = parseInt(id)
@@ -257,12 +261,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const allowedDeleteRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedDeleteRoles.includes(session.user.role)) {
+  if (!session) return unauthorizedResponse()
+  if (!canDeleteListTickets(session.user.role)) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }
 

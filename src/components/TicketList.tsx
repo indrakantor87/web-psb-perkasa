@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
 import { toDisplayMarketingName } from '@/lib/marketing-users'
+import { canDeleteListTickets, canManageListTickets } from '@/lib/access'
 
 interface Ticket {
   id: number
@@ -36,6 +37,7 @@ function getVisibleMarketingName(value: string | null | undefined) {
 interface TicketListProps {
   tickets: Ticket[]
   userRole: string
+  readOnly?: boolean
   initialPeriod: { month: number; year: number }
   initialStatus?: string
   initialMarketing?: string
@@ -55,7 +57,7 @@ interface TicketListProps {
   defaultTemplateContent?: string
 }
 
-export function TicketList({ tickets, userRole, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
+export function TicketList({ tickets, userRole, readOnly = false, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
   const isAdmin = (userRole || '').toUpperCase() === 'ADMIN'
@@ -314,11 +316,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   ]
 
   const role = (userRole || '').toUpperCase()
-  const canClose = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
-  const canEditKmz = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
-  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
-  const canEditStatus = ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)
-  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(role)
+  const canManageRows = !readOnly && canManageListTickets(role)
+  const canClose = canManageRows
+  const canEditKmz = canManageRows
+  const canDelete = !readOnly && canDeleteListTickets(role)
+  const canEditStatus = canManageRows
+  const canBulkDelete = !readOnly && canDeleteListTickets(role)
   const divisionDescriptions: Record<string, string> = {
     ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
     PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
@@ -335,6 +338,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
   const handleEditTicket = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!canManageRows) return
     // Find the ticket to edit
     const ticketToEdit = ticketsState.find(t => t.id === id)
     if (ticketToEdit) {
@@ -692,7 +696,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
             />
           </div>
           <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:flex md:items-end md:pt-3 md:space-x-2 md:justify-end">
-            {userRole !== 'MARKETING' && (
+            {canManageRows && (
               <>
                 <input
                   id={fileInputId}
@@ -741,6 +745,12 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
         </div>
       )}
 
+      {readOnly && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          Role Anda hanya dapat melihat data PSB tanpa edit, close, import, atau hapus.
+        </div>
+      )}
+
       {importError && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {importError}
@@ -758,7 +768,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Request</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Pasang</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
-              {userRole !== 'MARKETING' && (
+              {canManageRows && (
                 <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               )}
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
@@ -991,7 +1001,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           </div>
                           <div className="space-y-1">
                             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pembayaran</label>
-                            {userRole === 'MARKETING' ? (
+                            {!canManageRows ? (
                               <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.pembayaran || '-'}</div>
                             ) : (
                               <select
@@ -1007,7 +1017,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                           </div>
                         </div>
 
-                        {userRole !== 'MARKETING' && (
+                        {canManageRows && (
                           <div className="space-y-3">
                             <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
@@ -1046,7 +1056,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
                           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Action</label>
                           <div className="flex flex-wrap gap-3">
-                            {userRole !== 'MARKETING' ? (
+                            {canManageRows ? (
                               <>
                                 {ticket.status !== 'OPEN' && canClose && (
                                   <button
@@ -1092,7 +1102,6 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                                 )}
                               </>
                             ) : (
-                              // Marketing View for Actions
                               ticket.status === 'CLOSE' && (
                                 <div className="text-xs text-green-600 dark:text-green-400 font-medium px-2 py-1 bg-green-50 dark:bg-green-950 rounded border border-green-100 dark:border-green-800">
                                   by {ticket.closedBy?.name}
@@ -1375,7 +1384,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                   <p className="mt-1 text-xs text-gray-500">Maks. 3MB (.jpg, .png)</p>
                 </div>
                 
-                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
+                {canManageListTickets(role) && (
                     <div>
                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pengawalan</label>
                      <select
@@ -1390,7 +1399,7 @@ export function TicketList({ tickets, userRole, initialPeriod, initialStatus, in
                    </div>
                  )}
 
-                {['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role) && (
+                {canManageListTickets(role) && (
                    <div className="md:col-span-2">
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">KMZ</label>
                     <input

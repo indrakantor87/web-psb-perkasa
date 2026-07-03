@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { resolveMarketingName } from '@/lib/marketing-users'
+import { canMutateMarketingActivities } from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -36,10 +38,8 @@ function parseDate(value: unknown): Date | null {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  
-  const isAuthorized = ['ADMIN', 'CS', 'NOC'].includes(session.user.role)
-  if (!isAuthorized) {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateMarketingActivities(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

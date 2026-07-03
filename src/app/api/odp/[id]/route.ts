@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { ensureOdpTable } from '@/lib/odp-init'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -40,10 +41,8 @@ function normalizeStatusTiang(s: string) {
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'odp')
+  if (accessError) return accessError
 
   await ensureOdpTable()
 
@@ -122,10 +121,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'odp')
+  if (accessError) return accessError
 
   await ensureOdpTable()
 

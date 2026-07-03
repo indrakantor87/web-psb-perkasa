@@ -1,5 +1,6 @@
 import { DismantleView } from '@/components/DismantleView'
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -23,7 +24,7 @@ export default async function DismantlePage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (session.user.role === 'TEKNISI') redirect('/')
+  if (!canAccessMenu(session.user.role, 'dismantle')) redirect('/')
 
   const params = await searchParams
   const roleUpper = (session.user.role || '').toUpperCase()

@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { ContentCalendarView } from '@/components/ContentCalendarView'
 
@@ -11,6 +12,7 @@ export default async function ContentCalendarPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  if (!canAccessMenu(session.user.role, 'content-calendar')) redirect('/')
   const params = await searchParams
 
   return (

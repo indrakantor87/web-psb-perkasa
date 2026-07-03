@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuAccess(session, 'analytics')
+    if (accessError) return accessError
+    requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const platform = searchParams.get('platform')
@@ -61,9 +62,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuMutation(session, 'analytics')
+    if (accessError) return accessError
+    requireSession(session)
 
     const data = await request.json()
     const { contentId, campaignId, platform, date, reach, impressions, likes, comments, shares, saves, clicks, followersGain } = data

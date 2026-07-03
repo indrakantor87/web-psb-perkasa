@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 type Row = { id: number; type: string; durationDays: number }
 
@@ -69,12 +70,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const privileged = ['ADMIN', 'CS', 'NOC']
-  if (!privileged.includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     await ensureDefaults()
@@ -109,4 +106,3 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: msg || 'Failed to update SLA' }, { status: 500 })
   }
 }
-

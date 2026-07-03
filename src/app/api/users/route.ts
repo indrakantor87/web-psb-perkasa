@@ -6,6 +6,7 @@ import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
+import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 type UserWithOptionalDivision = {
   division?: string | null
@@ -26,14 +27,8 @@ function readUserDivision(user: UserWithOptionalDivision) {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Restrict to ADMIN only
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
@@ -122,15 +117,8 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Restrict to ADMIN, CS, NOC
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuAccess(session, 'settings')
+  if (accessError) return accessError
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
@@ -160,14 +148,8 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Restrict to ADMIN only
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     const body = await request.json()
@@ -200,14 +182,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // Restrict to ADMIN only
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     const { searchParams } = new URL(request.url)

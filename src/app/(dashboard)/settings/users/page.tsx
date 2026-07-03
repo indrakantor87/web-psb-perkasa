@@ -1,4 +1,5 @@
 import { getSession } from '@/lib/auth'
+import { canAccessMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { UsersClient } from '@/components/UsersClient'
 
@@ -9,9 +10,7 @@ export default async function UsersPage() {
     redirect('/login')
   }
 
-  // Double check RBAC (though middleware should handle it)
-  const allowedRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedRoles.includes(session.user.role)) {
+  if (!canAccessMenu(session.user.role, 'settings')) {
     redirect('/')
   }
 

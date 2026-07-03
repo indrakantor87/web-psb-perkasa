@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuMutation(session, 'campaigns')
+    if (accessError) return accessError
 
     const { id } = await params
     const data = await request.json()
@@ -40,9 +40,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuMutation(session, 'campaigns')
+    if (accessError) return accessError
 
     const { id } = await params
     await (prisma as any).campaign.delete({

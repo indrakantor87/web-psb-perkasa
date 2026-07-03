@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
+import { ensureMenuMutation, unauthorizedResponse } from '@/lib/access-server'
 
 type CoveredAreaDelegate = {
   findMany: (args?: unknown) => Promise<unknown>
@@ -12,9 +13,7 @@ const prismaUnsafe = prisma as unknown as { coveredArea: CoveredAreaDelegate }
 
 export async function GET() {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  if (!session) return unauthorizedResponse()
 
   try {
     const areas = await prismaUnsafe.coveredArea.findMany({
@@ -29,13 +28,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const accessError = ensureMenuMutation(session, 'settings')
+  if (accessError) return accessError
 
   try {
     const body = await request.json()

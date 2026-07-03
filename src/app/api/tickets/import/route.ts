@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-time'
 import { resolveMarketingName } from '@/lib/marketing-users'
+import { canImportListTickets } from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 // Note: use dynamic import for 'xlsx' to avoid bundling issues on Vercel
 
 export const runtime = 'nodejs'
@@ -31,8 +33,8 @@ function parseDate(value: unknown): Date | null {
 
 export async function POST(request: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!['ADMIN', 'CS', 'NOC'].includes(session.user.role)) {
+  if (!session) return unauthorizedResponse()
+  if (!canImportListTickets(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
+import { canDeleteIsolationRecords, canMutateIsolationRecords } from '@/lib/access'
 
 interface Isolation {
   id: number
@@ -97,8 +98,8 @@ export function IsolationView({
   // Role Permissions
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
-  const canEdit = ['ADMIN', 'CS', 'NOC'].includes(userRole)
-  const canDelete = ['ADMIN', 'CS', 'NOC'].includes(userRole)
+  const canEdit = canMutateIsolationRecords(roleUpper)
+  const canDelete = canDeleteIsolationRecords(roleUpper)
   const supportsIsolationWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS'
   const canMutate = canEdit && supportsIsolationWorkflow
   const canBulkDelete = canDelete && supportsIsolationWorkflow

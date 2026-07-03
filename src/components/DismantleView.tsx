@@ -1,9 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Trash2, Upload } from 'lucide-react'
 import { formatSuspendDuration } from '@/lib/isolation-suspend'
+import { canDeleteIsolationRecords, canMutateMenu } from '@/lib/access'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 type TicketFilter = 'ALL' | 'WITH' | 'WITHOUT'
@@ -191,8 +193,8 @@ export function DismantleView({
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isDismantleRole = roleUpper === 'DISMANTLE'
-  const canEdit = ['ADMIN', 'CS', 'NOC', 'DISMANTLE'].includes(roleUpper)
-  const canBulkDelete = ['ADMIN', 'CS', 'NOC'].includes(roleUpper)
+  const canEdit = canMutateMenu(roleUpper, 'dismantle')
+  const canBulkDelete = canDeleteIsolationRecords(roleUpper)
 
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const [statusFilter, setStatusFilter] = useState<DismantleStatusFilter>(initialStatus)
@@ -867,9 +869,12 @@ export function DismantleView({
             />
             {detailRow?.closePhoto && (
               <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
-                <img
+                <Image
                   src={detailRow.closePhoto}
                   alt="Foto Close"
+                  width={1200}
+                  height={800}
+                  unoptimized
                   className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
                 />
               </a>
@@ -1376,9 +1381,12 @@ export function DismantleView({
           />
           {detailRow?.closePhoto && (
             <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
-              <img
+              <Image
                 src={detailRow.closePhoto}
                 alt="Foto Close"
+                width={1200}
+                height={800}
+                unoptimized
                 className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
               />
             </a>

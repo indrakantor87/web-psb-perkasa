@@ -4,15 +4,14 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { ensureOdpTable } from '@/lib/odp-init'
+import { ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'odp')
+  if (accessError) return accessError
 
   await ensureOdpTable()
 

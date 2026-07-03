@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuAccess(session, 'content-calendar')
+    if (accessError) return accessError
+    requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
@@ -43,9 +44,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const accessError = ensureMenuMutation(session, 'content-calendar')
+    if (accessError) return accessError
+    const activeSession = requireSession(session)
 
     const data = await request.json()
     const { title, content, contentType, platform, status, publishDate, notes, tags } = data
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
         platform,
         status,
         publishDate: publishDate ? new Date(publishDate) : null,
-        creatorId: session.user.id,
+        creatorId: activeSession.user.id,
         notes,
         tags: tags || []
       },

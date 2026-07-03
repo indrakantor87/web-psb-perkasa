@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
+import { canAccessMenu, getDivisionFromRole } from '@/lib/access'
 
 function formatDivisionLabel(division?: string | null) {
   switch ((division || '').toUpperCase()) {
@@ -106,6 +107,7 @@ export function Header({ user }: { user: SessionUser }) {
   const isAdmin = roleUpper === 'ADMIN'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const isDismantle = roleUpper === 'DISMANTLE'
+  const roleDivision = getDivisionFromRole(user?.role)
   const divisionLabel = formatDivisionLabel(user?.division)
   const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -211,14 +213,19 @@ export function Header({ user }: { user: SessionUser }) {
           { href: '/dismantle?division=CS_ADMIN&status=OPEN', label: 'Dismantle Open', icon: Wrench },
           { href: '/dismantle?division=CS_ADMIN&status=CLOSED', label: 'Dismantle Close', icon: ClipboardList },
         ]
-    : [
+      : [
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-        ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
-        { href: '/list', label: 'List Data', icon: List },
-        ...(!['TEKNISI', 'NOC'].includes(user?.role || '') ? [{ href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
-        ...(user?.role !== 'TEKNISI' ? [{ href: '/isolir', label: 'Isolir', icon: Ban }] : []),
-        { href: '/odp', label: 'PORT ODP', icon: Wifi },
-        ...(user?.role !== 'MARKETING' ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }] : []),
+        ...(canAccessMenu(user?.role, 'input') ? [{ href: `/input${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Input PSB', icon: FileInput }] : []),
+        ...(canAccessMenu(user?.role, 'list') ? [{ href: `/list${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'List Data', icon: List }] : []),
+        ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: `/marketing-activities${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+        ...(canAccessMenu(user?.role, 'isolir') ? [{ href: `/isolir${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Isolir', icon: Ban }] : []),
+        ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: `/dismantle${roleDivision !== 'ALL' ? `?division=${roleDivision}&status=OPEN` : '?status=OPEN'}`, label: 'Dismantle', icon: Wrench }] : []),
+        ...(canAccessMenu(user?.role, 'odp') ? [{ href: `/odp${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'PORT ODP', icon: Wifi }] : []),
+        ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: `/trouble-ticket${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Trouble Ticket', icon: Wrench }] : []),
+        ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar }] : []),
+        ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target }] : []),
+        ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users }] : []),
+        ...(canAccessMenu(user?.role, 'analytics') ? [{ href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp }] : []),
       ]
 
   const adminDivisionGroups: HeaderNavGroup[] = isAdmin && !isTroubleshoots
@@ -233,6 +240,9 @@ export function Header({ user }: { user: SessionUser }) {
             { href: '/input?division=PENJUALAN', label: 'Input PSB', icon: FileInput },
             { href: '/list?division=PENJUALAN', label: 'List Data', icon: List },
             { href: '/marketing-activities?division=PENJUALAN', label: 'Aktivitas Marketing', icon: ClipboardList },
+            { href: '/isolir?division=PENJUALAN', label: 'Isolir', icon: Ban },
+            { href: '/dismantle?division=PENJUALAN&status=OPEN', label: 'Dismantle', icon: Wrench },
+            { href: '/odp?division=PENJUALAN', label: 'PORT ODP', icon: Wifi },
           ],
         },
         {
@@ -242,9 +252,12 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Follow up pelanggan dan administrasi CS.',
           items: [
             { href: '/division?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
+            { href: '/input?division=CS_ADMIN', label: 'Input PSB', icon: FileInput },
+            { href: '/list?division=CS_ADMIN', label: 'List Data', icon: List },
             { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
             { href: '/dismantle?division=CS_ADMIN', label: 'Dismantle Perangkat', icon: Wrench },
             { href: '/odp?division=CS_ADMIN', label: 'PORT ODP', icon: Wifi },
+            { href: '/trouble-ticket?division=CS_ADMIN', label: 'Trouble Ticket', icon: ClipboardList },
           ],
         },
         {
@@ -254,6 +267,8 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
             { href: '/division?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
+            { href: '/list?division=NOC_TROUBLESHOOTS', label: 'List Data', icon: List },
+            { href: '/odp?division=NOC_TROUBLESHOOTS', label: 'PORT ODP', icon: Wifi },
             { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
           ],
         },
@@ -264,6 +279,11 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Konten, campaign, leads, dan analytics digital.',
           items: [
             { href: '/division?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
+            { href: '/input?division=CREATOR_DIGITAL', label: 'Input PSB', icon: FileInput },
+            { href: '/list?division=CREATOR_DIGITAL', label: 'List Data', icon: List },
+            { href: '/isolir?division=CREATOR_DIGITAL', label: 'Isolir', icon: Ban },
+            { href: '/dismantle?division=CREATOR_DIGITAL&status=OPEN', label: 'Dismantle', icon: Wrench },
+            { href: '/odp?division=CREATOR_DIGITAL', label: 'PORT ODP', icon: Wifi },
             { href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar },
             { href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target },
             { href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
@@ -273,7 +293,7 @@ export function Header({ user }: { user: SessionUser }) {
       ]
     : []
 
-  const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
+  const hasSettingsAccess = !!user?.role && canAccessMenu(user.role, 'settings')
 
   const settingsGroups: HeaderSettingsGroup[] = hasSettingsAccess ? [
     {

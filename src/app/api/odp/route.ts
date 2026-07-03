@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { ensureOdpTable } from '@/lib/odp-init'
+import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -56,7 +57,9 @@ function normalizeStatusTiang(s: string) {
 
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const accessError = ensureMenuAccess(session, 'odp')
+  if (accessError) return accessError
+  const activeSession = requireSession(session)
 
   try {
     await ensureOdpTable()
@@ -76,7 +79,7 @@ export async function GET(req: Request) {
   const offset = (page - 1) * pageSize
   const like = q ? `%${q}%` : ''
   const bypassCache = (url.searchParams.get('bypassCache') ?? '').trim() === '1'
-  const roleUpper = (session.user.role || '').toUpperCase()
+  const roleUpper = (activeSession.user.role || '').toUpperCase()
   const divisionFilter =
     roleUpper === 'ADMIN' &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
@@ -176,10 +179,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const accessError = ensureMenuMutation(session, 'odp')
+  if (accessError) return accessError
 
   await ensureOdpTable()
 

@@ -3,16 +3,16 @@ import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 import { normalizeMarketingName, resolveMarketingName } from '@/lib/marketing-users'
+import { canMutateMarketingActivities } from '@/lib/access'
+import { unauthorizedResponse } from '@/lib/access-server'
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateMarketingActivities(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -74,15 +74,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-  if (session.user.role === 'TEKNISI') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const allowedDeleteRoles = ['ADMIN', 'CS', 'NOC']
-  if (!allowedDeleteRoles.includes(session.user.role)) {
+  if (!session) return unauthorizedResponse()
+  if (!canMutateMarketingActivities(session.user.role)) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }
 
