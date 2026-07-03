@@ -61,11 +61,11 @@ const divisionMeta: Record<DivisionCode, { label: string; description: string }>
     description: 'Fokus pada PSB, aktivitas marketing, dan performa pemasangan.',
   },
   CS_ADMIN: {
-    label: 'CS & Admin CS',
+    label: 'CS',
     description: 'Fokus pada isolir aktif, tindak lanjut pelanggan, dan koordinasi layanan.',
   },
   NOC_TROUBLESHOOTS: {
-    label: 'NOC & Troubleshoots',
+    label: 'NOC',
     description: 'Fokus pada penanganan gangguan, open-close ticket, dan problem teknis.',
   },
   CREATOR_DIGITAL: {
@@ -138,10 +138,10 @@ export default async function DivisionDetailPage({
     }
     if (division === 'CS_ADMIN') {
       return [
-        { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus CS & Admin CS.' },
+        { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus CS.' },
         { label: 'Isolir Aktif', href: '/isolir?division=CS_ADMIN&status=OPEN', description: 'Pantau pelanggan yang masih berstatus isolir aktif.' },
-        { label: 'Dismantle Perangkat', href: '/dismantle?division=CS_ADMIN', description: 'Siapkan alur pembongkaran perangkat dari perspektif CS & Admin CS.' },
-        { label: 'PORT ODP', href: '/odp?division=CS_ADMIN', description: 'Akses modul PORT ODP dari perspektif CS & Admin CS sesuai struktur menu terbaru.' },
+        { label: 'Dismantle Perangkat', href: '/dismantle?division=CS_ADMIN', description: 'Siapkan alur pembongkaran perangkat dari perspektif CS.' },
+        { label: 'PORT ODP', href: '/odp?division=CS_ADMIN', description: 'Akses modul PORT ODP dari perspektif CS sesuai struktur menu terbaru.' },
         { label: 'Manajemen Pengguna', href: '/settings/users', description: 'Rapikan mapping anggota dan role di divisi layanan.' },
       ]
     }
@@ -300,7 +300,7 @@ export default async function DivisionDetailPage({
       const totalClosed = Number(statusRows.find((row) => row.status === 'CLOSED')?.total || 0)
       summaryCards = [
         { label: 'Total Data Isolir', value: totalIsolir, hint: 'Akumulasi data isolir yang tercatat' },
-        { label: 'Isolir Aktif', value: totalOpen, hint: 'Perlu tindak lanjut CS & Admin CS' },
+        { label: 'Isolir Aktif', value: totalOpen, hint: 'Perlu tindak lanjut CS' },
         { label: 'Riwayat Selesai', value: totalClosed, hint: 'Status CLOSED pada data isolir' },
       ]
       isolationStatusRows = statusRows.map((row) => ({
@@ -576,7 +576,7 @@ export default async function DivisionDetailPage({
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Rekap Status Isolir</h2>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Status aktual data isolir yang dikelola area CS & Admin CS.</p>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">Status aktual data isolir yang dikelola area CS.</p>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>

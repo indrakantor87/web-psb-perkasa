@@ -216,12 +216,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     CS_ADMIN: {
-      title: 'CS & Admin CS',
-      description: 'Follow up pelanggan, isolir aktif, dan proses administratif.',
+      title: 'CS',
+      description: 'Follow up pelanggan, isolir aktif, dan proses layanan pelanggan.',
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
     NOC_TROUBLESHOOTS: {
-      title: 'NOC & Troubleshoots',
+      title: 'NOC',
       description: 'Aset jaringan, ODP, dan penyelesaian gangguan teknis.',
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     },
@@ -297,8 +297,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               >
                 <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
-                <option value="CS_ADMIN">CS & Admin CS</option>
-                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CS_ADMIN">CS</option>
+                <option value="NOC_TROUBLESHOOTS">NOC</option>
                 <option value="CREATOR_DIGITAL">Creator Digital</option>
               </select>
             </div>
@@ -328,13 +328,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 </div>
               </div>
               <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">CS & Admin</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">CS</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
                   {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Tampil' : 'Disembunyikan'}
                 </div>
               </div>
               <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Teknis</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">NOC</div>
                 <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
                   {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Tampil' : 'Disembunyikan'}
                 </div>
@@ -1078,18 +1078,22 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
     PENJUALAN: {
       icon: <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      badgeLabel: 'Penjualan',
     },
     CS_ADMIN: {
       icon: <Headset className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      badgeLabel: 'CS',
     },
     NOC_TROUBLESHOOTS: {
       icon: <ShieldCheck className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      badgeLabel: 'NOC',
     },
     CREATOR_DIGITAL: {
       icon: <Clapperboard className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      badgeLabel: 'Creator Digital',
     },
   }[division.code]
 
@@ -1104,7 +1108,7 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
           </div>
         </div>
         <div className={clsx('rounded-md px-2.5 py-1 text-[11px] font-semibold', config.badge)}>
-          {division.code}
+          {config.badgeLabel}
         </div>
       </div>
 

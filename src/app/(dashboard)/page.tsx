@@ -97,7 +97,7 @@ function createEmptyDashboardPayload(): DashboardPayload {
       },
       {
         code: 'CS_ADMIN',
-        label: 'CS & Admin CS',
+        label: 'CS',
         description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
         members: 0,
         primaryValue: 0,
@@ -107,7 +107,7 @@ function createEmptyDashboardPayload(): DashboardPayload {
       },
       {
         code: 'NOC_TROUBLESHOOTS',
-        label: 'NOC & Troubleshoots',
+        label: 'NOC',
         description: 'Fokus pada penanganan dan penyelesaian gangguan',
         members: 0,
         primaryValue: 0,
@@ -551,7 +551,7 @@ export default async function DashboardPage({
       },
       {
         code: 'CS_ADMIN',
-        label: 'CS & Admin CS',
+        label: 'CS',
         description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
         members: divisionCounts.get('CS_ADMIN') || 0,
         primaryValue: isolationCount,
@@ -561,7 +561,7 @@ export default async function DashboardPage({
       },
       {
         code: 'NOC_TROUBLESHOOTS',
-        label: 'NOC & Troubleshoots',
+        label: 'NOC',
         description: 'Fokus pada penanganan dan penyelesaian gangguan',
         members: divisionCounts.get('NOC_TROUBLESHOOTS') || 0,
         primaryValue: ticketCloseTotal,

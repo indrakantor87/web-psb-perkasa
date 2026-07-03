@@ -9,9 +9,9 @@ function formatDivisionLabel(division?: string | null) {
     case 'PENJUALAN':
       return 'Penjualan'
     case 'CS_ADMIN':
-      return 'CS & Admin CS'
+      return 'CS'
     case 'NOC_TROUBLESHOOTS':
-      return 'NOC & Troubleshoots'
+      return 'NOC'
     case 'CREATOR_DIGITAL':
       return 'Creator Digital'
     default:

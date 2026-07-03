@@ -14,9 +14,9 @@ function formatDivisionLabel(division?: string | null) {
     case 'PENJUALAN':
       return 'Penjualan'
     case 'CS_ADMIN':
-      return 'CS & Admin CS'
+      return 'CS'
     case 'NOC_TROUBLESHOOTS':
-      return 'NOC & Troubleshoots'
+      return 'NOC'
     case 'CREATOR_DIGITAL':
       return 'Creator Digital'
     default:
@@ -247,9 +247,9 @@ export function Header({ user }: { user: SessionUser }) {
         },
         {
           key: 'cs-admin',
-          label: 'CS & Admin CS',
+          label: 'CS',
           icon: Ban,
-          description: 'Follow up pelanggan dan administrasi CS.',
+          description: 'Follow up pelanggan, isolir, dan administrasi layanan.',
           items: [
             { href: '/division-performance?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
             { href: '/input?division=CS_ADMIN', label: 'Input PSB', icon: FileInput },
@@ -262,7 +262,7 @@ export function Header({ user }: { user: SessionUser }) {
         },
         {
           key: 'noc-troubleshoots',
-          label: 'NOC & Troubleshoots',
+          label: 'NOC',
           icon: Wrench,
           description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
@@ -350,7 +350,7 @@ export function Header({ user }: { user: SessionUser }) {
     },
     {
       key: 'noc-ticketing',
-      label: 'NOC & Ticketing',
+      label: 'NOC',
       description: 'Konfigurasi trouble ticket dan operasional teknis.',
       items: [
         { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },

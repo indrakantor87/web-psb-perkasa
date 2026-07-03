@@ -91,11 +91,11 @@ const divisionMeta: Record<DivisionCode, { label: string; description: string }>
     description: 'Mengukur input PSB, pemasangan, follow up marketing, dan backlog prospek.',
   },
   CS_ADMIN: {
-    label: 'CS & Admin CS',
+    label: 'CS',
     description: 'Mengukur pembukaan isolir, pemulihan layanan, dan beban tindak lanjut pelanggan.',
   },
   NOC_TROUBLESHOOTS: {
-    label: 'NOC & Troubleshoots',
+    label: 'NOC',
     description: 'Mengukur trouble ticket, penyelesaian gangguan, dan stabilitas operasional teknis.',
   },
   CREATOR_DIGITAL: {
@@ -320,7 +320,7 @@ export default async function DivisionPerformancePage({
         {
           label: 'Dismantle',
           href: '/dismantle?division=CS_ADMIN&status=OPEN',
-          description: 'Akses data dismantle yang perlu ditangani oleh CS & Admin CS.',
+          description: 'Akses data dismantle yang perlu ditangani oleh tim CS.',
         },
         {
           label: 'Trouble Ticket',
