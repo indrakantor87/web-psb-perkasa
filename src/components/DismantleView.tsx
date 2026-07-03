@@ -1176,7 +1176,7 @@ export function DismantleView({
         </div>
 
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-          Gunakan hasil `Export Excel` sebagai template import. Kolom utama yang dipakai saat import adalah `ID Isolir` dan `Nomor Ticket`.
+          Menu ini sinkron otomatis dari data `Isolir`. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. Data yang terdeteksi duplikat akan diabaikan, dan `Import Excel` dipakai untuk melengkapi/update data seperti nomor ticket.
         </div>
 
         {!supportsWorkflow && (

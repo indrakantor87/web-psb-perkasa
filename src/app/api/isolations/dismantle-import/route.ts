@@ -12,6 +12,16 @@ type ImportRow = {
   customerName?: unknown
   userEmail?: unknown
   customerPhone?: unknown
+  activeDate?: unknown
+  maps?: unknown
+  address?: unknown
+  reason?: unknown
+  problem?: unknown
+  marketing?: unknown
+  radboox?: unknown
+  status?: unknown
+  suspend?: unknown
+  isolationDate?: unknown
 }
 
 function normalizeHeader(value: unknown) {
@@ -29,6 +39,16 @@ function mapField(key: string) {
   if (['NAMA', 'NAMA PELANGGAN', 'CUSTOMER NAME'].includes(normalized)) return 'customerName'
   if (['USER', 'USER EMAIL', 'EMAIL', 'ID PELANGGAN'].includes(normalized)) return 'userEmail'
   if (['NO HP', 'NOHP', 'NO HP AKTIF', 'NO HANDPHONE', 'NO TELP', 'NO TELPON'].includes(normalized)) return 'customerPhone'
+  if (['ACTIVE DATE', 'AKTIF', 'TANGGAL AKTIF', 'TGL AKTIF'].includes(normalized)) return 'activeDate'
+  if (['MAPS', 'LINK MAPS', 'LOKASI MAPS', 'IN MAPS', 'MAP'].includes(normalized)) return 'maps'
+  if (['ALAMAT', 'ADDRESS', 'ALAMAT PELANGGAN'].includes(normalized)) return 'address'
+  if (['KETERANGAN', 'ALASAN', 'REASON', 'CATATAN'].includes(normalized)) return 'reason'
+  if (['PROBLEM', 'MASALAH', 'DESKRIPSI'].includes(normalized)) return 'problem'
+  if (['MARKETING', 'SALES', 'PIC MARKETING', 'PIC'].includes(normalized)) return 'marketing'
+  if (['RADBOOX', 'RADBOX', 'RADBOOK'].includes(normalized)) return 'radboox'
+  if (['STATUS', 'STATUS DATA', 'STATUS TICKET'].includes(normalized)) return 'status'
+  if (['SUSPEND', 'LAMA SUSPEND', 'SUSPEND BULAN', 'SUSPEND (BULAN)'].includes(normalized)) return 'suspend'
+  if (['TGL ISOLASI', 'TANGGAL ISOLASI', 'ISOLATION DATE'].includes(normalized)) return 'isolationDate'
   return ''
 }
 
@@ -56,6 +76,109 @@ function toImportRow(row: Record<string, unknown>) {
     }
   }
   return mapped
+}
+
+function parseDateValue(value: unknown) {
+  if (value == null || value === '') return null
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return new Date(Math.round((value - 25569) * 86400 * 1000))
+  }
+
+  const raw = String(value).trim()
+  if (!raw) return null
+
+  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (slash) {
+    const [, d, m, y] = slash
+    return new Date(Number(y), Number(m) - 1, Number(d))
+  }
+
+  const dash = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)
+  if (dash) {
+    const [, d, m, y] = dash
+    return new Date(Number(y), Number(m) - 1, Number(d))
+  }
+
+  const parsed = new Date(raw)
+  return Number.isFinite(parsed.getTime()) ? parsed : null
+}
+
+function deriveIsolationDate(suspendValue: unknown, isolationValue: unknown, activeValue: unknown) {
+  const explicitIsolation = parseDateValue(isolationValue)
+  if (explicitIsolation) return explicitIsolation
+
+  const now = new Date()
+  const suspendRaw = String(suspendValue ?? '').trim().toLowerCase()
+  if (suspendRaw) {
+    const monthsMatch = suspendRaw.match(/(\d+)\s*bulan/)
+    const daysMatch = suspendRaw.match(/(\d+)\s*hari/)
+    const months = monthsMatch ? Number.parseInt(monthsMatch[1], 10) : 0
+    const days = daysMatch ? Number.parseInt(daysMatch[1], 10) : 0
+    const derived = new Date(now)
+    if (months > 0) derived.setMonth(derived.getMonth() - months)
+    if (days > 0) derived.setDate(derived.getDate() - days)
+    if (months > 0 || days > 0) return derived
+  }
+
+  const activeDate = parseDateValue(activeValue)
+  if (activeDate) return activeDate
+
+  const fallback = new Date(now)
+  fallback.setMonth(fallback.getMonth() - 1)
+  fallback.setDate(fallback.getDate() - 1)
+  return fallback
+}
+
+function normalizeStatus(value: unknown) {
+  const raw = String(value ?? '').trim().toUpperCase()
+  if (!raw) return 'OPEN' as const
+  if (['CLOSE', 'CLOSED', 'SELESAI', 'DONE'].includes(raw)) return 'CLOSED' as const
+  return 'OPEN' as const
+}
+
+async function findExistingIsolationId(input: {
+  isolationId: number | null
+  customerName: string | null
+  userEmail: string | null
+  customerPhone: string | null
+}) {
+  if (input.isolationId != null) return input.isolationId
+
+  if (input.userEmail) {
+    const row = await prisma.isolation.findFirst({
+      where: { userEmail: { equals: input.userEmail, mode: 'insensitive' } },
+      select: { id: true },
+      orderBy: { isolationDate: 'desc' },
+    })
+    if (row) return row.id
+  }
+
+  if (input.customerPhone) {
+    const row = await prisma.isolation.findFirst({
+      where: { customerPhone: input.customerPhone },
+      select: { id: true },
+      orderBy: { isolationDate: 'desc' },
+    })
+    if (row) return row.id
+  }
+
+  if (input.customerName) {
+    const clauses: Prisma.IsolationWhereInput[] = [
+      { customerName: { equals: input.customerName, mode: 'insensitive' } },
+    ]
+    if (input.userEmail) clauses.push({ userEmail: { equals: input.userEmail, mode: 'insensitive' } })
+    if (input.customerPhone) clauses.push({ customerPhone: input.customerPhone })
+
+    const row = await prisma.isolation.findFirst({
+      where: { OR: clauses },
+      select: { id: true },
+      orderBy: { isolationDate: 'desc' },
+    })
+    if (row) return row.id
+  }
+
+  return null
 }
 
 export async function POST(request: Request) {
@@ -94,50 +217,66 @@ export async function POST(request: Request) {
         const customerName = normalizeOptionalString(row.customerName)
         const userEmail = normalizeOptionalString(row.userEmail)
         const customerPhone = normalizeOptionalString(row.customerPhone)
+        const activeDate = parseDateValue(row.activeDate)
+        const customerAddress = normalizeOptionalString(row.address) ?? normalizeOptionalString(row.maps)
+        const reason = normalizeOptionalString(row.reason)
+        const problem = normalizeOptionalString(row.problem)
+        const marketing = normalizeOptionalString(row.marketing)
+        const radboox = normalizeOptionalString(row.radboox) ?? problem
+        const status = normalizeStatus(row.status)
+        const isolationDate = deriveIsolationDate(row.suspend, row.isolationDate, row.activeDate)
 
         if (isolationId == null && !customerName && !userEmail && !customerPhone) {
           continue
         }
 
-        let targetId: number | null = isolationId
-
-        if (targetId == null) {
-          const clauses: Prisma.IsolationWhereInput[] = []
-          if (customerName) {
-            clauses.push({ customerName: { equals: customerName, mode: 'insensitive' } })
-          }
-          if (userEmail) {
-            clauses.push({ userEmail: { equals: userEmail, mode: 'insensitive' } })
-          }
-          if (customerPhone) {
-            clauses.push({ customerPhone: { equals: customerPhone } })
-          }
-
-          if (clauses.length === 0) {
-            throw new Error('Data pencocokan tidak lengkap')
-          }
-
-          const matches = await prisma.isolation.findMany({
-            where: { AND: clauses },
-            select: { id: true },
-            orderBy: { isolationDate: 'desc' },
-            take: 2,
-          })
-
-          if (matches.length === 0) {
-            throw new Error('Data isolir tidak ditemukan')
-          }
-          if (matches.length > 1) {
-            throw new Error('Data ganda ditemukan, gunakan kolom ID Isolir')
-          }
-
-          targetId = matches[0].id
-        }
-
-        await prisma.isolation.update({
-          where: { id: targetId },
-          data: { ticketDismantle },
+        const targetId = await findExistingIsolationId({
+          isolationId,
+          customerName,
+          userEmail,
+          customerPhone,
         })
+
+        if (targetId != null) {
+          await prisma.isolation.update({
+            where: { id: targetId },
+            data: {
+              ticketDismantle,
+              customerName: customerName ?? undefined,
+              userEmail: userEmail ?? undefined,
+              customerPhone: customerPhone ?? undefined,
+              activeDate: activeDate ?? undefined,
+              customerAddress: customerAddress ?? undefined,
+              reason: reason ?? undefined,
+              marketing: marketing ?? undefined,
+              radboox: radboox ?? undefined,
+              status,
+              restorationDate: status === 'CLOSED' ? new Date() : null,
+            },
+          })
+        } else {
+          if (!customerName) {
+            throw new Error('Nama pelanggan wajib diisi untuk data baru')
+          }
+
+          await prisma.isolation.create({
+            data: {
+              customerName,
+              userEmail,
+              customerPhone,
+              activeDate,
+              customerAddress,
+              reason,
+              marketing,
+              radboox,
+              status,
+              isolationDate,
+              restorationDate: status === 'CLOSED' ? new Date() : null,
+              teknisi: session.user.name ?? null,
+              ticketDismantle,
+            },
+          })
+        }
 
         successCount += 1
       } catch (error) {

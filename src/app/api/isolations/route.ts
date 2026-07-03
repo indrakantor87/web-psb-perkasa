@@ -4,6 +4,76 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
 
+function normalizeDismantleKeyPart(value: unknown) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function buildDismantleIdentity(item: {
+  userEmail?: unknown
+  customerPhone?: unknown
+  customerName?: unknown
+  customerAddress?: unknown
+}) {
+  const userEmail = normalizeDismantleKeyPart(item.userEmail)
+  if (userEmail) return `user:${userEmail}`
+
+  const phone = String(item.customerPhone ?? '').replace(/\D/g, '')
+  if (phone) return `phone:${phone}`
+
+  const name = normalizeDismantleKeyPart(item.customerName)
+  const address = normalizeDismantleKeyPart(item.customerAddress)
+  if (name && address) return `name-address:${name}|${address}`
+  if (name) return `name:${name}`
+
+  return ''
+}
+
+function compareDismantlePriority(a: { ticketDismantle?: unknown; isolationDate?: unknown; id?: unknown }, b: { ticketDismantle?: unknown; isolationDate?: unknown; id?: unknown }) {
+  const aHasTicket = String(a.ticketDismantle ?? '').trim() !== ''
+  const bHasTicket = String(b.ticketDismantle ?? '').trim() !== ''
+  if (aHasTicket !== bHasTicket) return aHasTicket ? 1 : -1
+
+  const aTime = new Date(String(a.isolationDate ?? '')).getTime()
+  const bTime = new Date(String(b.isolationDate ?? '')).getTime()
+  if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+    return aTime > bTime ? 1 : -1
+  }
+
+  const aId = typeof a.id === 'number' ? a.id : 0
+  const bId = typeof b.id === 'number' ? b.id : 0
+  if (aId !== bId) return aId > bId ? 1 : -1
+
+  return 0
+}
+
+function buildSmartDismantleRows(items: any[]) {
+  const map = new Map<string, any>()
+  const passthrough: any[] = []
+
+  for (const item of items) {
+    const key = buildDismantleIdentity(item)
+    if (!key) {
+      passthrough.push(item)
+      continue
+    }
+
+    const existing = map.get(key)
+    if (!existing || compareDismantlePriority(item, existing) > 0) {
+      map.set(key, item)
+    }
+  }
+
+  return [...map.values(), ...passthrough].sort((a, b) => {
+    const aTime = new Date(String(a.isolationDate ?? '')).getTime()
+    const bTime = new Date(String(b.isolationDate ?? '')).getTime()
+    if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) return bTime - aTime
+    return (typeof b.id === 'number' ? b.id : 0) - (typeof a.id === 'number' ? a.id : 0)
+  })
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -76,7 +146,7 @@ export async function GET(request: Request) {
       OR: [{ ticketDismantle: null }, { ticketDismantle: '' }],
     })
   }
-  if (dismantleEligible) {
+  if (dismantleEligible && !status) {
     appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
@@ -91,9 +161,9 @@ export async function GET(request: Request) {
   }
 
   if (roleUpper === 'ADMIN') {
-    if (divisionFilter === 'CS_ADMIN') {
+    if (divisionFilter === 'CS_ADMIN' && !status) {
       appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
-    } else if (divisionFilter === 'NOC_TROUBLESHOOTS') {
+    } else if (divisionFilter === 'NOC_TROUBLESHOOTS' && !status) {
       appendAnd({ status: { equals: 'CLOSED', mode: 'insensitive' } })
     } else if (divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
       appendAnd({ id: { lt: 0 } })
@@ -212,7 +282,7 @@ export async function GET(request: Request) {
     }
 
     const filteredIsolations = dismantleEligible
-      ? isolationsRaw.filter((item: any) => isDismantleEligible(item.isolationDate))
+      ? buildSmartDismantleRows(isolationsRaw.filter((item: any) => isDismantleEligible(item.isolationDate)))
       : isolationsRaw
 
     const total = filteredIsolations.length
