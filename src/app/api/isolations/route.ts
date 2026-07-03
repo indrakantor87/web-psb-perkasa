@@ -124,7 +124,7 @@ export async function GET(request: Request) {
     })
 
     const filteredIsolations = dismantleEligible
-      ? isolationsRaw.filter((item) => isDismantleEligible(item.isolationDate))
+      ? isolationsRaw.filter((item: any) => isDismantleEligible(item.isolationDate))
       : isolationsRaw
 
     const total = filteredIsolations.length
