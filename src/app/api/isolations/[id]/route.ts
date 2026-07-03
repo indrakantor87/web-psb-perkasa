@@ -75,7 +75,7 @@ export async function PUT(
   }
 
   try {
-    const isolation = await prisma.isolation.update({
+    const isolation = await (prisma as any).isolation.update({
       where: { id: isolationId },
       data: {
         customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
@@ -128,7 +128,7 @@ export async function DELETE(
   const { id } = await params
 
   try {
-    await prisma.isolation.delete({
+    await (prisma as any).isolation.delete({
       where: { id: parseInt(id) },
     })
 

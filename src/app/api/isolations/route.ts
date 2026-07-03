@@ -214,8 +214,8 @@ export async function DELETE(request: Request) {
         : null
 
     const deleted = ids && ids.length > 0
-      ? await prisma.isolation.deleteMany({ where: { id: { in: ids } } })
-      : await prisma.isolation.deleteMany({})
+      ? await (prisma as any).isolation.deleteMany({ where: { id: { in: ids } } })
+      : await (prisma as any).isolation.deleteMany({})
 
     cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true, count: deleted.count })
