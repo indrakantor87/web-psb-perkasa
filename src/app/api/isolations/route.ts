@@ -166,6 +166,8 @@ export async function POST(request: Request) {
     const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
+    const priceRaw = body.price
+    const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== '' ? new Prisma.Decimal(String(priceRaw)) : null
     const ticketIdRaw = body.ticketId
     const ticketId = typeof ticketIdRaw === 'number' ? Math.trunc(ticketIdRaw) : typeof ticketIdRaw === 'string' ? parseInt(ticketIdRaw, 10) : null
 
@@ -177,6 +179,7 @@ export async function POST(request: Request) {
       activeDate,
       marketing,
       radboox,
+      price,
       reason,
       teknisi: teknisi || session.user.name,
       ticketId,

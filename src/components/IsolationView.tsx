@@ -15,6 +15,7 @@ interface Isolation {
   activeDate?: string | null
   marketing?: string | null
   radboox?: string | null
+  price?: number | null
   isolationDate: string
   reason: string | null
   status: string
@@ -118,6 +119,7 @@ export function IsolationView({
     activeDate: '',
     marketing: '',
     radboox: '',
+    price: '',
     reason: '',
   })
 
@@ -204,7 +206,7 @@ export function IsolationView({
       if (res.ok) {
         setIsModalOpen(false)
         setEditId(null)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', reason: '' })
+        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', price: '', reason: '' })
         fetchIsolations()
       } else {
         alert('Gagal menyimpan data isolir')
@@ -227,6 +229,7 @@ export function IsolationView({
       activeDate: item.activeDate ? new Date(item.activeDate).toISOString().split('T')[0] : '',
       marketing: item.marketing || '',
       radboox: item.radboox || '',
+      price: item.price ? String(item.price) : '',
       reason: item.reason || '',
     })
     setIsModalOpen(true)
@@ -354,12 +357,12 @@ export function IsolationView({
         'Nama Pelanggan': it.customerName,
         'Active Date': it.activeDate ? format(new Date(it.activeDate), 'dd/MM/yyyy') : '-',
         'User': it.userEmail || '-',
-        'Maps': it.customerAddress || '-',
         'No. HP': it.customerPhone || '-',
         'Keterangan': it.reason || '-',
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
+        'Harga': it.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
         'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
       }))
@@ -383,7 +386,7 @@ export function IsolationView({
   const selectedSet = new Set(selectedIds)
   const allOnPageSelected = isolations.length > 0 && isolations.every((x) => selectedSet.has(x.id))
   const someOnPageSelected = isolations.some((x) => selectedSet.has(x.id))
-  const desktopColumns = 11 + (showSelection ? 1 : 0) + (showActions ? 1 : 0)
+  const desktopColumns = 10 + (showSelection ? 1 : 0) + (showActions ? 1 : 0)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -474,6 +477,7 @@ export function IsolationView({
                   activeDate: '',
                   marketing: '',
                   radboox: '',
+                  price: '',
                   reason: '',
                 })
                 setIsModalOpen(true)
@@ -519,11 +523,11 @@ export function IsolationView({
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Nama Pelanggan</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Active Date</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">User</th>
-                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Maps</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">No. HP</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Marketing</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Radboox</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Suspend</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Harga</th>
                 <th className="w-[240px] px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Keterangan</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Ticket</th>
                 {showActions && (
@@ -568,21 +572,6 @@ export function IsolationView({
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {item.userEmail || '-'}
                     </td>
-                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm">
-                      {item.customerAddress ? (
-                        <a
-                          href={item.customerAddress}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                          title={item.customerAddress}
-                        >
-                          Maps
-                        </a>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400">-</span>
-                      )}
-                    </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.customerPhone ? (
                         <a
@@ -603,6 +592,9 @@ export function IsolationView({
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {suspendLabel(item.isolationDate)}
+                    </td>
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
                     </td>
                     <td
                       className={clsx(
@@ -862,6 +854,17 @@ export function IsolationView({
                   <option value="Radboox 25">Radboox 25</option>
                   <option value="Radboox 26">Radboox 26</option>
                 </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Harga</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="150000"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Link Maps</label>

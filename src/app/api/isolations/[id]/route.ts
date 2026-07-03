@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
+import { Prisma } from '@prisma/client'
 
 export async function PUT(
   request: Request,
@@ -60,6 +61,19 @@ export async function PUT(
         ? parseInt(ticketIdRaw, 10)
         : undefined
 
+  const priceRaw = body.price
+  let price: Prisma.Decimal | null | undefined
+  if (priceRaw === null || priceRaw === '') {
+    price = null
+  } else if (priceRaw !== undefined) {
+    const num = parseFloat(String(priceRaw))
+    if (!isNaN(num)) {
+      price = new Prisma.Decimal(num)
+    }
+  } else {
+    price = undefined
+  }
+
   try {
     const isolation = await prisma.isolation.update({
       where: { id: isolationId },
@@ -71,6 +85,7 @@ export async function PUT(
         activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
         marketing: normalizeOptionalString(body.marketing),
         radboox: normalizeOptionalString(body.radboox),
+        price,
         reason: normalizeOptionalString(body.reason),
         teknisi: normalizeOptionalString(body.teknisi),
         ticketDismantle: normalizeOptionalString(body.ticketDismantle),

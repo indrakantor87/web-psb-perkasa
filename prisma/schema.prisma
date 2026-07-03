@@ -70,6 +70,7 @@ model Isolation {
   activeDate      DateTime?
   marketing       String?
   radboox         String?
+  price           Decimal? @db.Decimal(15, 2) // Harga paket
   isolationDate   DateTime @default(now())
   reason          String?
   status          String   @default("OPEN") // OPEN (Isolated), CLOSED (Restored)
