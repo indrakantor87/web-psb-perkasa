@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 
 export async function PUT(
@@ -75,25 +74,46 @@ export async function PUT(
   }
 
   try {
-    const isolation = await (prisma as any).isolation.update({
-      where: { id: isolationId },
-      data: {
-        customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
-        customerAddress: normalizeOptionalString(body.customerAddress),
-        customerPhone: normalizeOptionalString(body.customerPhone),
-        userEmail: normalizeOptionalString(body.userEmail),
-        activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
-        marketing: normalizeOptionalString(body.marketing),
-        radboox: normalizeOptionalString(body.radboox),
-        price,
-        reason: normalizeOptionalString(body.reason),
-        teknisi: normalizeOptionalString(body.teknisi),
-        ticketDismantle: normalizeOptionalString(body.ticketDismantle),
-        ticketId: Number.isFinite(ticketId as number) ? (ticketId as number) : ticketId === null ? null : undefined,
-        status,
-        restorationDate: status === 'CLOSED' ? new Date() : status === 'OPEN' ? null : undefined,
-      },
-    })
+    const isMissingPriceColumn = (e: unknown) => {
+      if (typeof e !== 'object' || !e) return false
+      const anyErr = e as { code?: unknown; message?: unknown }
+      const code = typeof anyErr.code === 'string' ? anyErr.code : ''
+      const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
+      return code === 'P2022' && msg.toLowerCase().includes('price')
+    }
+
+    const data: any = {
+      customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
+      customerAddress: normalizeOptionalString(body.customerAddress),
+      customerPhone: normalizeOptionalString(body.customerPhone),
+      userEmail: normalizeOptionalString(body.userEmail),
+      activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
+      marketing: normalizeOptionalString(body.marketing),
+      radboox: normalizeOptionalString(body.radboox),
+      price,
+      reason: normalizeOptionalString(body.reason),
+      teknisi: normalizeOptionalString(body.teknisi),
+      ticketDismantle: normalizeOptionalString(body.ticketDismantle),
+      ticketId: Number.isFinite(ticketId as number) ? (ticketId as number) : ticketId === null ? null : undefined,
+      status,
+      restorationDate: status === 'CLOSED' ? new Date() : status === 'OPEN' ? null : undefined,
+    }
+
+    let isolation: any
+    try {
+      isolation = await (prisma as any).isolation.update({
+        where: { id: isolationId },
+        data,
+      })
+    } catch (e) {
+      if (!isMissingPriceColumn(e)) throw e
+      const dataNoPrice: any = { ...data }
+      delete dataNoPrice.price
+      isolation = await (prisma as any).isolation.update({
+        where: { id: isolationId },
+        data: dataNoPrice,
+      })
+    }
 
     return NextResponse.json(isolation)
   } catch (error) {

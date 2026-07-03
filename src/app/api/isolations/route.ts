@@ -100,22 +100,85 @@ export async function GET(request: Request) {
     }
   }
 
+  const isMissingPriceColumn = (e: unknown) => {
+    if (typeof e !== 'object' || !e) return false
+    const anyErr = e as { code?: unknown; message?: unknown }
+    const code = typeof anyErr.code === 'string' ? anyErr.code : ''
+    const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
+    return code === 'P2022' && msg.toLowerCase().includes('price')
+  }
+
   try {
-    const isolationsRaw = await (prisma as any).isolation.findMany({
-      where,
-      orderBy: {
-        isolationDate: 'desc',
+    const selectWithPrice: any = {
+      id: true,
+      customerName: true,
+      customerAddress: true,
+      customerPhone: true,
+      userEmail: true,
+      activeDate: true,
+      marketing: true,
+      radboox: true,
+      price: true,
+      isolationDate: true,
+      reason: true,
+      status: true,
+      restorationDate: true,
+      teknisi: true,
+      ticketDismantle: true,
+      ticketId: true,
+      ticket: {
+        select: {
+          package: true,
+          locationMap: true,
+          description: true,
+        },
       },
-      include: {
-        ticket: {
-          select: {
-            package: true,
-            locationMap: true,
-            description: true,
-          }
-        }
-      }
-    })
+    }
+    const selectWithoutPrice: any = {
+      id: true,
+      customerName: true,
+      customerAddress: true,
+      customerPhone: true,
+      userEmail: true,
+      activeDate: true,
+      marketing: true,
+      radboox: true,
+      isolationDate: true,
+      reason: true,
+      status: true,
+      restorationDate: true,
+      teknisi: true,
+      ticketDismantle: true,
+      ticketId: true,
+      ticket: {
+        select: {
+          package: true,
+          locationMap: true,
+          description: true,
+        },
+      },
+    }
+
+    let isolationsRaw: any[]
+    try {
+      isolationsRaw = await (prisma as any).isolation.findMany({
+        where,
+        orderBy: {
+          isolationDate: 'desc',
+        },
+        select: selectWithPrice,
+      })
+    } catch (e) {
+      if (!isMissingPriceColumn(e)) throw e
+      isolationsRaw = await (prisma as any).isolation.findMany({
+        where,
+        orderBy: {
+          isolationDate: 'desc',
+        },
+        select: selectWithoutPrice,
+      })
+      isolationsRaw = isolationsRaw.map((x: any) => ({ ...x, price: null }))
+    }
 
     const filteredIsolations = dismantleEligible
       ? isolationsRaw.filter((item: any) => isDismantleEligible(item.isolationDate))
@@ -146,6 +209,14 @@ export async function POST(request: Request) {
   // Restrict MARKETING from creating isolations
   if (session.user.role === 'MARKETING') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const isMissingPriceColumn = (e: unknown) => {
+    if (typeof e !== 'object' || !e) return false
+    const anyErr = e as { code?: unknown; message?: unknown }
+    const code = typeof anyErr.code === 'string' ? anyErr.code : ''
+    const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
+    return code === 'P2022' && msg.toLowerCase().includes('price')
   }
 
   try {
@@ -179,7 +250,15 @@ export async function POST(request: Request) {
       status: 'OPEN',
     }
 
-    const isolation = await (prisma as any).isolation.create({ data: createData })
+    let isolation: any
+    try {
+      isolation = await (prisma as any).isolation.create({ data: createData })
+    } catch (e) {
+      if (!isMissingPriceColumn(e)) throw e
+      const dataNoPrice: any = { ...createData }
+      delete dataNoPrice.price
+      isolation = await (prisma as any).isolation.create({ data: dataNoPrice })
+    }
 
     return NextResponse.json(isolation)
   } catch (error) {
