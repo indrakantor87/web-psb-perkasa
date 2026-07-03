@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   }
 
   if (status && status.trim() !== '') {
-    where.status = status.trim().toUpperCase()
+    where.status = { equals: status.trim().toUpperCase(), mode: 'insensitive' }
   }
   if (search) {
     where.OR = [
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     })
   }
   if (dismantleEligible) {
-    appendAnd({ status: 'OPEN' })
+    appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privileged = ['ADMIN', 'CS', 'NOC', 'DISMANTLE']
@@ -92,9 +92,9 @@ export async function GET(request: Request) {
 
   if (roleUpper === 'ADMIN') {
     if (divisionFilter === 'CS_ADMIN') {
-      appendAnd({ status: 'OPEN' })
+      appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
     } else if (divisionFilter === 'NOC_TROUBLESHOOTS') {
-      appendAnd({ status: 'CLOSED' })
+      appendAnd({ status: { equals: 'CLOSED', mode: 'insensitive' } })
     } else if (divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
       appendAnd({ id: { lt: 0 } })
     }
