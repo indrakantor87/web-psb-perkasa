@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
-import { cache } from '@/lib/cache'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
 
 export async function GET(request: Request) {
@@ -102,11 +101,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cacheKey = `isolations:${JSON.stringify({ search, radboox, marketing, status, ticketStatus, dismantleEligible, divisionFilter, page, limit, role: session.user.role, user: session.user.name })}`
-    const cached = cache.get<{ items: Array<{ id: number }>; total: number; page: number; limit: number }>(cacheKey)
-    if (cached) {
-      return NextResponse.json(cached, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'HIT' } })
-    }
     const isolationsRaw = await (prisma as any).isolation.findMany({
       where,
       orderBy: {
@@ -136,8 +130,7 @@ export async function GET(request: Request) {
       page,
       limit
     }
-    cache.set(cacheKey, payload, 15_000)
-    return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store', 'X-Cache': 'MISS' } })
+    return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Failed to fetch isolations:', error)
     return NextResponse.json({ error: 'Failed to fetch isolations' }, { status: 500 })
@@ -188,7 +181,6 @@ export async function POST(request: Request) {
 
     const isolation = await (prisma as any).isolation.create({ data: createData })
 
-    cache.invalidateByPrefix('isolations:')
     return NextResponse.json(isolation)
   } catch (error) {
     console.error('Failed to create isolation:', error)
@@ -217,7 +209,6 @@ export async function DELETE(request: Request) {
       ? await (prisma as any).isolation.deleteMany({ where: { id: { in: ids } } })
       : await (prisma as any).isolation.deleteMany({})
 
-    cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true, count: deleted.count })
   } catch (error) {
     console.error('Failed to bulk delete isolations:', error)

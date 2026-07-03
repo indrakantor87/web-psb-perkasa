@@ -95,7 +95,6 @@ export async function PUT(
       },
     })
 
-    cache.invalidateByPrefix('isolations:')
     return NextResponse.json(isolation)
   } catch (error) {
     console.error('Failed to update isolation:', error)
@@ -132,7 +131,6 @@ export async function DELETE(
       where: { id: parseInt(id) },
     })
 
-    cache.invalidateByPrefix('isolations:')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete isolation:', error)
