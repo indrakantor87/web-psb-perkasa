@@ -6,6 +6,21 @@ import { cache } from '@/lib/cache'
 
 export const runtime = 'nodejs'
 
+async function ensureIsolationColumns() {
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
+}
+
+function isMissingColumnError(e: unknown, column: string) {
+  if (typeof e !== 'object' || !e) return false
+  const anyErr = e as { code?: unknown; message?: unknown }
+  const code = typeof anyErr.code === 'string' ? anyErr.code : ''
+  const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
+  return code === 'P2022' && msg.toLowerCase().includes(column.toLowerCase())
+}
+
 type ImportRow = {
   isolationId?: unknown
   ticketDismantle?: unknown
@@ -191,6 +206,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await ensureIsolationColumns()
     const XLSX = await import('xlsx')
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -238,44 +254,67 @@ export async function POST(request: Request) {
         })
 
         if (targetId != null) {
-          await prisma.isolation.update({
-            where: { id: targetId },
-            data: {
-              ticketDismantle,
-              customerName: customerName ?? undefined,
-              userEmail: userEmail ?? undefined,
-              customerPhone: customerPhone ?? undefined,
-              activeDate: activeDate ?? undefined,
-              customerAddress: customerAddress ?? undefined,
-              reason: reason ?? undefined,
-              marketing: marketing ?? undefined,
-              radboox: radboox ?? undefined,
-              status,
-              restorationDate: status === 'CLOSED' ? new Date() : null,
-            },
-          })
+          const updateData = {
+            ticketDismantle,
+            customerName: customerName ?? undefined,
+            userEmail: userEmail ?? undefined,
+            customerPhone: customerPhone ?? undefined,
+            activeDate: activeDate ?? undefined,
+            customerAddress: customerAddress ?? undefined,
+            reason: reason ?? undefined,
+            marketing: marketing ?? undefined,
+            radboox: radboox ?? undefined,
+            status,
+            restorationDate: status === 'CLOSED' ? new Date() : null,
+          } as const
+
+          try {
+            await prisma.isolation.update({
+              where: { id: targetId },
+              data: updateData,
+            })
+          } catch (e) {
+            if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price')) {
+              await ensureIsolationColumns()
+              await prisma.isolation.update({
+                where: { id: targetId },
+                data: updateData,
+              })
+            } else {
+              throw e
+            }
+          }
         } else {
           if (!customerName) {
             throw new Error('Nama pelanggan wajib diisi untuk data baru')
           }
 
-          await prisma.isolation.create({
-            data: {
-              customerName,
-              userEmail,
-              customerPhone,
-              activeDate,
-              customerAddress,
-              reason,
-              marketing,
-              radboox,
-              status,
-              isolationDate,
-              restorationDate: status === 'CLOSED' ? new Date() : null,
-              teknisi: session.user.name ?? null,
-              ticketDismantle,
-            },
-          })
+          const createData = {
+            customerName,
+            userEmail,
+            customerPhone,
+            activeDate,
+            customerAddress,
+            reason,
+            marketing,
+            radboox,
+            status,
+            isolationDate,
+            restorationDate: status === 'CLOSED' ? new Date() : null,
+            teknisi: session.user.name ?? null,
+            ticketDismantle,
+          } as const
+
+          try {
+            await prisma.isolation.create({ data: createData })
+          } catch (e) {
+            if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price')) {
+              await ensureIsolationColumns()
+              await prisma.isolation.create({ data: createData })
+            } else {
+              throw e
+            }
+          }
         }
 
         successCount += 1
