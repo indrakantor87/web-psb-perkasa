@@ -7,6 +7,29 @@ import { unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
+async function ensureIsolationColumns() {
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
+  await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
+}
+
+function hasDismantleHistory(item: {
+  ticketDismantle?: unknown
+  closeNote?: unknown
+  closePhoto?: unknown
+  status?: unknown
+}) {
+  const ticket = String(item.ticketDismantle ?? '').trim()
+  const note = String(item.closeNote ?? '').trim()
+  const photo = String(item.closePhoto ?? '').trim()
+  const statusValue = String(item.status ?? '').trim().toUpperCase()
+  return ticket !== '' || note !== '' || photo !== '' || statusValue === 'CLOSED'
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,29 +60,6 @@ export async function PUT(
     const d = new Date(s)
     if (!Number.isFinite(d.getTime())) return 'INVALID'
     return d
-  }
-
-  const ensureIsolationColumns = async () => {
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
-    await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
-    await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
-  }
-
-  const hasDismantleHistory = (item: {
-    ticketDismantle?: unknown
-    closeNote?: unknown
-    closePhoto?: unknown
-    status?: unknown
-  }) => {
-    const ticket = String(item.ticketDismantle ?? '').trim()
-    const note = String(item.closeNote ?? '').trim()
-    const photo = String(item.closePhoto ?? '').trim()
-    const statusValue = String(item.status ?? '').trim().toUpperCase()
-    return ticket !== '' || note !== '' || photo !== '' || statusValue === 'CLOSED'
   }
 
   const isMissingColumn = (e: unknown, column: string) => {
