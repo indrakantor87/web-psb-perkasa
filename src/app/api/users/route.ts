@@ -152,6 +152,7 @@ export async function PUT(request: Request) {
   if (accessError) return accessError
 
   try {
+    await ensureUserDivisionColumn().catch(() => {})
     const body = await request.json()
 
     // Validate input
@@ -163,20 +164,50 @@ export async function PUT(request: Request) {
       )
     }
 
-    const { id, password } = result.data
+    const { id, password, name, username, role } = result.data
+    const normalizedUsername = username ? username.toLowerCase().replace(/\s+/g, '') : undefined
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    if (normalizedUsername) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          username: normalizedUsername,
+          NOT: { id },
+        },
+      })
+
+      if (existingUser) {
+        return NextResponse.json({ error: 'Username already exists' }, { status: 400 })
+      }
+    }
+
+    const updateData: Prisma.UserUncheckedUpdateInput & UserWithOptionalDivision = {}
+    if (typeof name === 'string') updateData.name = name
+    if (typeof normalizedUsername === 'string') updateData.username = normalizedUsername
+    if (typeof role === 'string') {
+      updateData.role = role
+      updateData.division = mapRoleToDivision(role)
+    }
+    if (typeof password === 'string') {
+      updateData.password = await bcrypt.hash(password, 10)
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: { password: hashedPassword },
+      data: updateData as Prisma.UserUncheckedUpdateInput,
     })
-    const safeUser = { id: updatedUser.id, name: updatedUser.name, username: updatedUser.username, role: updatedUser.role, createdAt: updatedUser.createdAt }
+    const safeUser = {
+      id: updatedUser.id,
+      name: updatedUser.name,
+      username: updatedUser.username,
+      role: updatedUser.role,
+      division: readUserDivision(updatedUser as UserWithOptionalDivision),
+      createdAt: updatedUser.createdAt,
+    }
     cache.invalidateByPrefix('users:')
     return NextResponse.json(safeUser)
   } catch (error) {
-    console.error('Reset password error:', error)
-    return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 })
+    console.error('Update user error:', error)
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
   }
 }
 

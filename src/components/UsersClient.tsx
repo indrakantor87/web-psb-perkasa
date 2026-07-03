@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Eye, EyeOff, KeyRound, Trash2, UserPlus, Shield } from 'lucide-react'
+import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 
 interface User {
@@ -73,6 +73,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   // Delete User states
   const [deleteUserId, setDeleteUserId] = useState<number | null>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [editUserId, setEditUserId] = useState<number | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [divisionFilter, setDivisionFilter] = useState<(typeof DIVISION_OPTIONS)[number]['value']>('ALL')
   
@@ -80,6 +82,11 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     name: '',
     username: '',
     password: '',
+    role: 'MARKETING'
+  })
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    username: '',
     role: 'MARKETING'
   })
 
@@ -103,6 +110,9 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setEditFormData({ ...editFormData, [e.target.name]: e.target.value })
   }
 
   const fetchUsers = useCallback(async () => {
@@ -187,6 +197,28 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     setSuccess('')
   }
 
+  const handleOpenEditModal = (user: User) => {
+    setEditUserId(user.id)
+    setEditFormData({
+      name: user.name,
+      username: user.username,
+      role: user.role,
+    })
+    setIsEditModalOpen(true)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditUserId(null)
+    setEditFormData({
+      name: '',
+      username: '',
+      role: 'MARKETING',
+    })
+  }
+
   const handleCloseResetModal = () => {
     setIsResetModalOpen(false)
     setResetPasswordId(null)
@@ -265,6 +297,44 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       setLoading(false)
     }
   }
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editUserId) return
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editUserId,
+          name: editFormData.name,
+          username: editFormData.username,
+          role: editFormData.role,
+        }),
+      })
+
+      const data = (await res.json()) as { error?: string }
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update user')
+      }
+
+      setSuccess('User berhasil diperbarui!')
+      handleCloseEditModal()
+      fetchUsers()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const editDerivedDivision = mapRoleToDivision(editFormData.role)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -458,6 +528,14 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex space-x-3">
                         <button
+                          onClick={() => handleOpenEditModal(user)}
+                          className="inline-flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+                          title="Edit User"
+                        >
+                          <Pencil className="mr-1 h-4 w-4" />
+                          Edit
+                        </button>
+                        <button
                           onClick={() => handleOpenResetModal(user.id)}
                           className="inline-flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
                           title="Reset Password"
@@ -513,6 +591,13 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               {isAdmin && (
                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
                   <button
+                    onClick={() => handleOpenEditModal(user)}
+                    className="flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200"
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </button>
+                  <button
                     onClick={() => handleOpenResetModal(user.id)}
                     className="flex items-center text-sm text-gray-700 hover:text-gray-900 dark:text-gray-200"
                   >
@@ -538,7 +623,93 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         </div>
       </div>
 
+
+      {/* Edit User Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Perbarui data dasar user tanpa mengubah password.</p>
+            </div>
+            <form onSubmit={handleEditUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Lengkap</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={editFormData.name}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="Contoh: Budi Santoso"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Username</label>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  value={editFormData.username}
+                  onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value.toLowerCase().replace(/\s+/g, '') })}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="username_login"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Role</label>
+                <select
+                  name="role"
+                  value={editFormData.role}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  {ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
+                <input
+                  type="text"
+                  value={editDerivedDivision || '-'}
+                  readOnly
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-black sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Divisi diisi otomatis dari mapping role.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="w-full sm:w-auto rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="inline-flex w-full justify-center rounded-md bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:w-auto"
+                >
+                  {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Reset Password Modal */}
+      {isResetModalOpen && (
       {isResetModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
