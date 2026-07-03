@@ -171,7 +171,7 @@ export async function POST(request: Request) {
     const ticketIdRaw = body.ticketId
     const ticketId = typeof ticketIdRaw === 'number' ? Math.trunc(ticketIdRaw) : typeof ticketIdRaw === 'string' ? parseInt(ticketIdRaw, 10) : null
 
-    const createData: Prisma.IsolationUncheckedCreateInput = {
+    const createData = {
       customerName,
       customerAddress,
       customerPhone,
@@ -186,7 +186,7 @@ export async function POST(request: Request) {
       status: 'OPEN',
     }
 
-    const isolation = await prisma.isolation.create({ data: createData })
+    const isolation = await (prisma as any).isolation.create({ data: createData })
 
     cache.invalidateByPrefix('isolations:')
     return NextResponse.json(isolation)
