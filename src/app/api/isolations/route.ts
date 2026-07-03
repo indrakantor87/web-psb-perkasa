@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
 
