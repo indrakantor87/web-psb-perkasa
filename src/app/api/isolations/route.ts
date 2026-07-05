@@ -163,6 +163,12 @@ export async function GET(request: Request) {
     const arr = Array.isArray(current) ? current : current ? [current] : []
     where.AND = [...arr, clause]
   }
+  const archiveVisibilityClause =
+    !dismantleEligible
+      ? {
+          OR: [{ isArchived: false }, { isArchived: null }],
+        }
+      : null
 
   if (status && status.trim() !== '') {
     where.status = { equals: status.trim().toUpperCase(), mode: 'insensitive' }
@@ -202,10 +208,8 @@ export async function GET(request: Request) {
   if (dismantleEligible && !status) {
     appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
   }
-  if (!dismantleEligible) {
-    appendAnd({
-      OR: [{ isArchived: false }, { isArchived: null }],
-    })
+  if (archiveVisibilityClause) {
+    appendAnd(archiveVisibilityClause)
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
@@ -304,6 +308,16 @@ export async function GET(request: Request) {
     }
     delete selectNoPriceNoClose.closeNote
     delete selectNoPriceNoClose.closePhoto
+    const selectNoArchive: any = {
+      ...selectAll,
+    }
+    delete selectNoArchive.isArchived
+    delete selectNoArchive.archivedAt
+    const selectLegacy: any = {
+      ...selectNoPriceNoClose,
+    }
+    delete selectLegacy.isArchived
+    delete selectLegacy.archivedAt
 
     let isolationsRaw: any[]
     try {
@@ -318,17 +332,40 @@ export async function GET(request: Request) {
       const missingPrice = isMissingColumn(e, 'price')
       const missingCloseNote = isMissingColumn(e, 'closeNote')
       const missingClosePhoto = isMissingColumn(e, 'closePhoto')
+      const missingIsArchived = isMissingColumn(e, 'isArchived')
+      const missingArchivedAt = isMissingColumn(e, 'archivedAt')
 
-      if (!missingPrice && !missingCloseNote && !missingClosePhoto) throw e
+      if (!missingPrice && !missingCloseNote && !missingClosePhoto && !missingIsArchived && !missingArchivedAt) throw e
 
-      const selectFallback = missingPrice
-        ? missingCloseNote || missingClosePhoto
-          ? selectNoPriceNoClose
-          : selectNoPrice
-        : selectNoClose
+      const whereFallback =
+        missingIsArchived || missingArchivedAt
+          ? {
+              ...where,
+              AND: Array.isArray(where.AND)
+                ? where.AND.filter((clause: any) => clause !== archiveVisibilityClause)
+                : where.AND === archiveVisibilityClause
+                  ? undefined
+                  : where.AND,
+            }
+          : where
+
+      if (whereFallback.AND === undefined) {
+        delete whereFallback.AND
+      }
+
+      const selectFallback =
+        missingIsArchived || missingArchivedAt
+          ? missingPrice || missingCloseNote || missingClosePhoto
+            ? selectLegacy
+            : selectNoArchive
+          : missingPrice
+            ? missingCloseNote || missingClosePhoto
+              ? selectNoPriceNoClose
+              : selectNoPrice
+            : selectNoClose
 
       isolationsRaw = await (prisma as any).isolation.findMany({
-        where,
+        where: whereFallback,
         orderBy: {
           isolationDate: 'desc',
         },
@@ -340,6 +377,8 @@ export async function GET(request: Request) {
         ...(missingPrice ? { price: null } : {}),
         ...(missingCloseNote ? { closeNote: null } : {}),
         ...(missingClosePhoto ? { closePhoto: null } : {}),
+        ...(missingIsArchived ? { isArchived: false } : {}),
+        ...(missingArchivedAt ? { archivedAt: null } : {}),
       }))
     }
 
