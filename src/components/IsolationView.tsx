@@ -82,13 +82,11 @@ export function IsolationView({
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
     try {
-      const roleUpper = (userRole || '').toUpperCase()
-      const isAdmin = roleUpper === 'ADMIN'
       const params = new URLSearchParams(window.location.search)
       const m = params.get('marketing') || ''
       const s = params.get('status') || ''
       const d = getDivisionFromUrl()
-      if (!isAdmin && m && m !== marketingFilter) setMarketingFilter(m)
+      if (m !== marketingFilter) setMarketingFilter(m)
       if (s && !statusPreset) {
         // statusPreset hanya preset, tidak perlu setState lain
       }
@@ -136,7 +134,7 @@ export function IsolationView({
       const urlMarketing = (() => {
         try { return new URLSearchParams(window.location.search).get('marketing') || '' } catch { return '' }
       })()
-      const effectiveMarketing = (isAdmin ? marketingFilter : marketingFilter || urlMarketing).trim()
+      const effectiveMarketing = (marketingFilter || urlMarketing).trim()
       if (debouncedSearch) params.append('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)

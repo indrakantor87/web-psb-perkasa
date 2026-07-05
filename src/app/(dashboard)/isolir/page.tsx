@@ -36,7 +36,7 @@ export default async function IsolirPage({
       <IsolationView 
         userRole={session.user.role} 
         initialSearch={params?.search || ''} 
-        initialMarketing={session.user.role === 'ADMIN' ? '' : params?.marketing || ''} 
+        initialMarketing={params?.marketing || ''} 
         initialStatus={params?.status || ''} 
         initialDivision={initialDivision}
       />
