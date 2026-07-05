@@ -1,0 +1,216 @@
+import { prisma } from '@/lib/prisma'
+
+export type DismantleHistoryListParams = {
+  search?: string | null
+  radboox?: string | null
+  ticketStatus?: 'ALL' | 'WITH' | 'WITHOUT'
+  page: number
+  limit: number
+}
+
+export type DismantleHistoryRow = {
+  id: number
+  sourceIsolationId: number | null
+  customerName: string
+  customerAddress: string | null
+  customerPhone: string | null
+  userEmail: string | null
+  marketing: string | null
+  radboox: string | null
+  isolationDate: Date | string
+  reason: string | null
+  ticketDismantle: string | null
+  ticketId: number | null
+  ticketLocationMap: string | null
+  ticketDescription: string | null
+  closeNote: string | null
+  closePhoto: string | null
+  closedAt: Date | string | null
+  closedBy: string | null
+}
+
+export async function ensureDismantleHistoryTable() {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "DismantleHistory" (
+      "id" SERIAL PRIMARY KEY,
+      "sourceIsolationId" INTEGER,
+      "customerName" TEXT NOT NULL,
+      "customerAddress" TEXT,
+      "customerPhone" TEXT,
+      "userEmail" TEXT,
+      "marketing" TEXT,
+      "radboox" TEXT,
+      "isolationDate" TIMESTAMP(3),
+      "reason" TEXT,
+      "ticketDismantle" TEXT,
+      "ticketId" INTEGER,
+      "ticketLocationMap" TEXT,
+      "ticketDescription" TEXT,
+      "closeNote" TEXT,
+      "closePhoto" TEXT,
+      "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "closedBy" TEXT,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "sourceIsolationId" INTEGER`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerAddress" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerPhone" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "userEmail" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "marketing" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "radboox" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "isolationDate" TIMESTAMP(3)`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "reason" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketId" INTEGER`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketLocationMap" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDescription" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closeNote" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3)`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedBy" TEXT`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
+  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_closedAt_idx" ON "DismantleHistory" ("closedAt")`).catch(() => {})
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_sourceIsolationId_idx" ON "DismantleHistory" ("sourceIsolationId")`).catch(() => {})
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_ticketDismantle_idx" ON "DismantleHistory" ("ticketDismantle")`).catch(() => {})
+}
+
+export function mapDismantleHistoryRow(row: DismantleHistoryRow) {
+  return {
+    id: Number(row.id),
+    sourceIsolationId: row.sourceIsolationId == null ? null : Number(row.sourceIsolationId),
+    customerName: row.customerName,
+    customerAddress: row.customerAddress ?? null,
+    customerPhone: row.customerPhone ?? null,
+    userEmail: row.userEmail ?? null,
+    marketing: row.marketing ?? null,
+    radboox: row.radboox ?? null,
+    isolationDate: row.isolationDate ? new Date(row.isolationDate).toISOString() : new Date().toISOString(),
+    reason: row.reason ?? null,
+    status: 'CLOSED',
+    ticketDismantle: row.ticketDismantle ?? null,
+    ticketId: row.ticketId == null ? null : Number(row.ticketId),
+    closeNote: row.closeNote ?? null,
+    closePhoto: row.closePhoto ?? null,
+    closedAt: row.closedAt ? new Date(row.closedAt).toISOString() : null,
+    closedBy: row.closedBy ?? null,
+    ticket: {
+      locationMap: row.ticketLocationMap ?? null,
+      description: row.ticketDescription ?? null,
+    },
+  }
+}
+
+export async function listDismantleHistory(params: DismantleHistoryListParams) {
+  const whereParts: string[] = []
+  const values: unknown[] = []
+  const push = (value: unknown) => {
+    values.push(value)
+    return `$${values.length}`
+  }
+
+  if (params.search && params.search.trim() !== '') {
+    const slot = push(`%${params.search.trim()}%`)
+    whereParts.push(`(
+      "customerName" ILIKE ${slot}
+      OR COALESCE("customerAddress", '') ILIKE ${slot}
+      OR COALESCE("customerPhone", '') ILIKE ${slot}
+      OR COALESCE("userEmail", '') ILIKE ${slot}
+      OR COALESCE("marketing", '') ILIKE ${slot}
+      OR COALESCE("ticketDismantle", '') ILIKE ${slot}
+      OR COALESCE("ticketDescription", '') ILIKE ${slot}
+    )`)
+  }
+
+  if (params.radboox && params.radboox !== 'ALL') {
+    whereParts.push(`COALESCE("radboox", '') = ${push(params.radboox)}`)
+  }
+
+  if (params.ticketStatus === 'WITH') {
+    whereParts.push(`COALESCE(TRIM("ticketDismantle"), '') <> ''`)
+  } else if (params.ticketStatus === 'WITHOUT') {
+    whereParts.push(`COALESCE(TRIM("ticketDismantle"), '') = ''`)
+  }
+
+  const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : ''
+  const offset = Math.max(0, (params.page - 1) * params.limit)
+  const limitSlot = push(params.limit)
+  const offsetSlot = push(offset)
+
+  const rows = await prisma.$queryRawUnsafe<DismantleHistoryRow[]>(
+    `
+      SELECT
+        "id",
+        "sourceIsolationId",
+        "customerName",
+        "customerAddress",
+        "customerPhone",
+        "userEmail",
+        "marketing",
+        "radboox",
+        "isolationDate",
+        "reason",
+        "ticketDismantle",
+        "ticketId",
+        "ticketLocationMap",
+        "ticketDescription",
+        "closeNote",
+        "closePhoto",
+        "closedAt",
+        "closedBy"
+      FROM "DismantleHistory"
+      ${whereSql}
+      ORDER BY COALESCE("closedAt", "createdAt") DESC, "id" DESC
+      LIMIT ${limitSlot}
+      OFFSET ${offsetSlot}
+    `,
+    ...values,
+  )
+
+  const countRows = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
+    `
+      SELECT COUNT(*)::int AS count
+      FROM "DismantleHistory"
+      ${whereSql}
+    `,
+    ...values.slice(0, values.length - 2),
+  )
+
+  return {
+    items: rows.map(mapDismantleHistoryRow),
+    total: Number(countRows[0]?.count ?? 0),
+  }
+}
+
+export async function getDismantleHistoryById(id: number) {
+  const rows = await prisma.$queryRawUnsafe<DismantleHistoryRow[]>(
+    `
+      SELECT
+        "id",
+        "sourceIsolationId",
+        "customerName",
+        "customerAddress",
+        "customerPhone",
+        "userEmail",
+        "marketing",
+        "radboox",
+        "isolationDate",
+        "reason",
+        "ticketDismantle",
+        "ticketId",
+        "ticketLocationMap",
+        "ticketDescription",
+        "closeNote",
+        "closePhoto",
+        "closedAt",
+        "closedBy"
+      FROM "DismantleHistory"
+      WHERE "id" = $1
+      LIMIT 1
+    `,
+    id,
+  )
+  return rows[0] ?? null
+}

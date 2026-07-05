@@ -13,6 +13,7 @@ type DismantleStatusFilter = 'OPEN' | 'CLOSED'
 
 type DismantleItem = {
   id: number
+  sourceIsolationId?: number | null
   customerName: string
   customerAddress: string | null
   customerPhone: string | null
@@ -26,6 +27,8 @@ type DismantleItem = {
   ticketId?: number | null
   closeNote?: string | null
   closePhoto?: string | null
+  closedAt?: string | null
+  closedBy?: string | null
   ticket?: {
     locationMap?: string | null
     description?: string | null
@@ -144,6 +147,8 @@ function buildDismantleDetailText(row: DismantleItem) {
     `Problem : ${problem || '-'}`,
     `Keterangan : ${row.reason || `Isolir sejak ${formatDate(row.isolationDate)}`}`,
     `Keterangan Close : ${closeNote || '-'}`,
+    `Ditutup : ${formatDateTime(row.closedAt)}`,
+    `Closed By : ${String(row.closedBy ?? '').trim() || '-'}`,
     `Status : ${String(row.status || '-').toUpperCase()}`,
   ]
   return lines.join('\n')
@@ -245,6 +250,7 @@ export function DismantleView({
     CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul Dismantle Perangkat.',
   }
   const statusLabel = statusFilter === 'OPEN' ? 'Open' : 'Close'
+  const isClosedView = statusFilter === 'CLOSED'
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350)
@@ -267,22 +273,25 @@ export function DismantleView({
   const buildQueryParams = useCallback(
     (targetPage: number, targetLimit: number) => {
       const params = new URLSearchParams()
-      params.set('status', statusFilter)
-      params.set('dismantleEligible', 'true')
       params.set('page', String(targetPage))
       params.set('limit', String(targetLimit))
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.set('radboox', radbooxFilter)
       if (ticketFilter !== 'ALL') params.set('ticketStatus', ticketFilter)
-      if (isAdmin && division !== 'ALL') params.set('division', division)
+      if (!isClosedView) {
+        params.set('status', statusFilter)
+        params.set('dismantleEligible', 'true')
+        if (isAdmin && division !== 'ALL') params.set('division', division)
+      }
       return params
     },
-    [debouncedSearch, division, isAdmin, radbooxFilter, statusFilter, ticketFilter]
+    [debouncedSearch, division, isAdmin, isClosedView, radbooxFilter, statusFilter, ticketFilter]
   )
 
   const requestRows = useCallback(
     async (targetPage: number, targetLimit: number, signal?: AbortSignal) => {
-      const res = await fetch(`/api/isolations?${buildQueryParams(targetPage, targetLimit).toString()}`, {
+      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/isolations'
+      const res = await fetch(`${endpoint}?${buildQueryParams(targetPage, targetLimit).toString()}`, {
         cache: 'no-store',
         signal,
       })
@@ -293,7 +302,7 @@ export function DismantleView({
         total: typeof data.total === 'number' ? data.total : 0,
       }
     },
-    [buildQueryParams]
+    [buildQueryParams, isClosedView]
   )
 
   const fetchRows = useCallback(async (signal?: AbortSignal) => {
@@ -335,7 +344,7 @@ export function DismantleView({
   )
   const emptyCount = rows.length - filledCount
   const totalPages = Math.max(1, Math.ceil(total / limit))
-  const showSelection = canBulkDelete && supportsWorkflow
+  const showSelection = canBulkDelete && supportsWorkflow && !isClosedView
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
   const allOnPageSelected = showSelection && rows.length > 0 && rows.every((x) => selectedSet.has(x.id))
 
@@ -398,7 +407,7 @@ export function DismantleView({
   const openEdit = (row: DismantleItem) => {
     setSelectedRow(row)
     setTicketValue(String(row.ticketDismantle ?? ''))
-    setStatusValue(String(row.status ?? '').toUpperCase() === 'CLOSED' ? 'CLOSED' : 'OPEN')
+    setStatusValue('OPEN')
     setCustomerNameValue(String(row.customerName ?? ''))
     setUserEmailValue(String(row.userEmail ?? ''))
     setMarketingValue(String(row.marketing ?? ''))
@@ -426,7 +435,7 @@ export function DismantleView({
           reason: reasonValue,
           radboox: problemValue,
           ticketDismantle: ticketValue,
-          status: statusValue,
+          status: 'OPEN',
         }),
       })
       const isolationData = (await isolationRes.json().catch(() => ({}))) as { error?: string }
@@ -479,7 +488,8 @@ export function DismantleView({
       }
 
       const rowsToExport = collected.map((row) => ({
-        'ID Isolir': row.id,
+        'ID Histori': row.id,
+        'Referensi Isolir': row.sourceIsolationId ?? (isClosedView ? '-' : row.id),
         'Nomor Ticket': String(row.ticketDismantle ?? '').trim(),
         'Nama': row.customerName || '',
         'User': row.userEmail || row.marketing || '',
@@ -489,6 +499,8 @@ export function DismantleView({
         'Keterangan': row.reason || '',
         'Problem': row.ticket?.description || row.radboox || '',
         'Status': row.status || '',
+        'Ditutup Pada': row.closedAt ? formatDateTime(row.closedAt) : '-',
+        'Closed By': row.closedBy || '-',
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(rowsToExport)
@@ -503,7 +515,7 @@ export function DismantleView({
   }
 
   const handleImportClick = () => {
-    if (!canEdit || !supportsWorkflow || isImporting) return
+    if (!canEdit || !supportsWorkflow || isImporting || isClosedView) return
     fileInputRef.current?.click()
   }
 
@@ -571,14 +583,14 @@ export function DismantleView({
     setIsClosing(true)
     try {
       const form = new FormData()
-      form.append('status', 'CLOSED')
+      form.append('isolationId', String(closeRow.id))
       form.append('closeNote', closeNote)
       const existingTicket = String(closeRow.ticketDismantle ?? '').trim()
       if (existingTicket) form.append('ticketDismantle', existingTicket)
       if (closePhotoFile) form.append('closePhoto', closePhotoFile)
 
-      const res = await fetch(`/api/isolations/${closeRow.id}`, {
-        method: 'PUT',
+      const res = await fetch('/api/dismantle-history/close', {
+        method: 'POST',
         body: form,
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
@@ -596,26 +608,21 @@ export function DismantleView({
     }
   }
 
-  const handleQuickStatusUpdate = async (row: DismantleItem, nextStatus: DismantleStatusFilter) => {
+  const reopenHistory = async (row: DismantleItem) => {
     if (!canEdit) return
     setActionLoadingId(row.id)
     try {
-      const res = await fetch(`/api/isolations/${row.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticketDismantle: String(row.ticketDismantle ?? '').trim() || null,
-          status: nextStatus,
-        }),
+      const res = await fetch(`/api/dismantle-history/${row.id}/reopen`, {
+        method: 'POST',
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
-      if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status dismantle')
+      if (!res.ok) throw new Error(data.error || 'Gagal membuka kembali histori dismantle')
       await fetchRows()
       if (detailRow?.id === row.id) {
-        setDetailRow({ ...row, status: nextStatus })
+        setDetailRow(null)
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Gagal memperbarui status')
+      alert(err instanceof Error ? err.message : 'Gagal membuka kembali histori dismantle')
     } finally {
       setActionLoadingId(null)
     }
@@ -670,7 +677,9 @@ export function DismantleView({
             </div>
 
             <div className="rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-300">
-              Fokus role dismantle: ticket open dan close dengan pola kerja seperti role troubleshoots.
+              {isClosedView
+                ? 'Riwayat close dismantle dibaca dari histori terpisah agar tidak terpengaruh penghapusan massal Isolir.'
+                : 'Ticket dismantle open tetap tersambung ke data Isolir aktif.'}
             </div>
           </div>
         </div>
@@ -775,20 +784,25 @@ export function DismantleView({
                         >
                           View Location
                         </a>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isClosed) {
-                              void handleQuickStatusUpdate(row, 'OPEN')
-                              return
-                            }
-                            openCloseForm(row)
-                          }}
-                          disabled={actionLoadingId === row.id}
-                          className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
-                        >
-                          {actionLoadingId === row.id ? 'Menyimpan...' : isClosed ? 'Open Kembali' : 'Close'}
-                        </button>
+                        {isClosed ? (
+                          <button
+                            type="button"
+                            onClick={() => void reopenHistory(row)}
+                            disabled={actionLoadingId === row.id}
+                            className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
+                          >
+                            {actionLoadingId === row.id ? 'Menyimpan...' : 'Open Kembali'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openCloseForm(row)}
+                            disabled={actionLoadingId === row.id}
+                            className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
+                          >
+                            {actionLoadingId === row.id ? 'Menyimpan...' : 'Close'}
+                          </button>
+                        )}
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -800,17 +814,19 @@ export function DismantleView({
                           <Info className="h-4 w-4" />
                           Rincian
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExpandedId(null)
-                            openEdit(row)
-                          }}
-                          className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Edit
-                        </button>
+                        {!isClosed && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExpandedId(null)
+                              openEdit(row)
+                            }}
+                            className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                        )}
                         {!isClosed && (
                           <button
                             type="button"
@@ -994,11 +1010,12 @@ export function DismantleView({
               <select
                 value={statusValue}
                 onChange={(e) => setStatusValue(e.target.value as DismantleStatusFilter)}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                disabled
+                className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               >
                 <option value="OPEN">OPEN</option>
-                <option value="CLOSED">CLOSE</option>
               </select>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Close ticket dilakukan dari tombol `Close`, agar histori close selalu masuk ke menu terpisah.</p>
             </div>
 
             <div className="flex items-center justify-end gap-2">
@@ -1070,7 +1087,11 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Total Data</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{total}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Pelanggan dengan ticket dismantle status {statusLabel.toLowerCase()} dan suspend minimal 1 bulan.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {isClosedView
+              ? 'Riwayat ticket dismantle yang sudah ditutup dan dipisahkan dari Isolir aktif.'
+              : `Pelanggan dengan ticket dismantle status ${statusLabel.toLowerCase()} dan suspend minimal 1 bulan.`}
+          </div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Sudah Ada Ticket</div>
@@ -1080,7 +1101,11 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Belum Ada Ticket</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{emptyCount}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Data ini otomatis masuk alur dismantle setelah suspend mencapai minimal 1 bulan.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {isClosedView
+              ? 'Histori close tetap aman walau data Isolir aktif dibersihkan atau di-import ulang.'
+              : 'Data ini otomatis masuk alur dismantle setelah suspend mencapai minimal 1 bulan.'}
+          </div>
         </div>
       </div>
 
@@ -1163,7 +1188,7 @@ export function DismantleView({
           <button
             type="button"
             onClick={handleImportClick}
-            disabled={!canEdit || !supportsWorkflow || isImporting}
+            disabled={!canEdit || !supportsWorkflow || isImporting || isClosedView}
             className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
             <Upload className="h-4 w-4" />
@@ -1181,7 +1206,9 @@ export function DismantleView({
         </div>
 
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-          Menu ini sinkron otomatis dari data `Isolir`. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. `Import Excel` dipakai untuk menambahkan data yang belum ada, sedangkan data duplikat akan diabaikan.
+          {isClosedView
+            ? 'Menu close memakai histori dismantle terpisah. Data di sini tidak lagi bergantung pada list Isolir aktif, jadi histori close tidak ikut hilang saat penghapusan massal Isolir.'
+            : 'Menu open tetap sinkron otomatis dari data Isolir. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. Import Excel dipakai untuk menambahkan data yang belum ada, sedangkan data duplikat akan diabaikan.'}
         </div>
 
         {!supportsWorkflow && (
@@ -1291,15 +1318,27 @@ export function DismantleView({
                       <Info className="h-4 w-4" />
                       Rincian
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(row)}
-                      disabled={!canEdit || !supportsWorkflow}
-                      className="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
-                    </button>
+                    {!isClosed ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(row)}
+                        disabled={!canEdit || !supportsWorkflow}
+                        className="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void reopenHistory(row)}
+                        disabled={!canEdit || !supportsWorkflow || actionLoadingId === row.id}
+                        className="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        {actionLoadingId === row.id ? 'Menyimpan...' : 'Open Kembali'}
+                      </button>
+                    )}
                     {!isClosed && (
                       <button
                         type="button"
@@ -1435,15 +1474,27 @@ export function DismantleView({
                       </td>
                       <td className="border border-green-900 px-2 py-2">
                         <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(row)}
-                            disabled={!canEdit || !supportsWorkflow}
-                            className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
-                          </button>
+                          {!isClosed ? (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(row)}
+                              disabled={!canEdit || !supportsWorkflow}
+                              className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => void reopenHistory(row)}
+                              disabled={!canEdit || !supportsWorkflow || actionLoadingId === row.id}
+                              className="inline-flex items-center justify-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {actionLoadingId === row.id ? 'Menyimpan...' : 'Open Kembali'}
+                            </button>
+                          )}
                           {!isClosed && (
                             <button
                               type="button"

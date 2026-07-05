@@ -35,8 +35,10 @@ export default async function DismantlePage({
     roleUpper === 'DISMANTLE'
       ? status === 'OPEN'
         ? 'Fokus ke data dismantle yang masih terbuka untuk ditindaklanjuti.'
-        : 'Pantau riwayat data dismantle yang sudah ditutup.'
-      : 'Pantau pelanggan isolir aktif dan kelola nomor ticket dismantle dari satu halaman.'
+        : 'Pantau riwayat data dismantle yang sudah ditutup dan dipisahkan dari data Isolir aktif.'
+      : status === 'CLOSED'
+        ? 'Pantau histori ticket dismantle yang sudah ditutup tanpa bergantung pada penghapusan data Isolir.'
+        : 'Pantau pelanggan isolir aktif dan kelola nomor ticket dismantle dari satu halaman.'
 
   return (
     <div className="space-y-4 sm:space-y-6">
