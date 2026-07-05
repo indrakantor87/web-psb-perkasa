@@ -7,4 +7,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 **/.DS_Store
-**/Thumbs.db
+android
+mobile-build
+.gradle
+.idea
+dev.db
+database_dump.sql
+debug-isolations-fetch-abort.md
+build_apk.ps1
+README_MOBILE.md
+supabase_fixes.sql
+tsconfig.tsbuildinfo
+*.log
