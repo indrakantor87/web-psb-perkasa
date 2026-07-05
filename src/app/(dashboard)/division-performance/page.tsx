@@ -425,7 +425,7 @@ export default async function DivisionPerformancePage({
         }),
         prisma.ticket.count({
           where: {
-            requestDate: { lt: end },
+            requestDate: { gte: start, lt: end },
             status: { in: ['OPEN', 'ON_PROGRESS', 'PENDING'] },
           },
         }),
@@ -456,8 +456,11 @@ export default async function DivisionPerformancePage({
             COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
             SUM(CASE WHEN "requestDate" >= ${start} AND "requestDate" < ${end} THEN 1 ELSE 0 END)::int AS input_total,
             SUM(CASE WHEN "installedDate" IS NOT NULL AND "installedDate" >= ${start} AND "installedDate" < ${end} THEN 1 ELSE 0 END)::int AS installed_total,
-            SUM(CASE WHEN "requestDate" < ${end} AND "status" IN ('OPEN', 'ON_PROGRESS', 'PENDING') THEN 1 ELSE 0 END)::int AS backlog_total
+            SUM(CASE WHEN "requestDate" >= ${start} AND "requestDate" < ${end} AND "status" IN ('OPEN', 'ON_PROGRESS', 'PENDING') THEN 1 ELSE 0 END)::int AS backlog_total
           FROM "Ticket"
+          WHERE
+            ("requestDate" >= ${start} AND "requestDate" < ${end})
+            OR ("installedDate" IS NOT NULL AND "installedDate" >= ${start} AND "installedDate" < ${end})
           GROUP BY 1
           ORDER BY installed_total DESC, input_total DESC, name ASC
           LIMIT 15
@@ -488,20 +491,33 @@ export default async function DivisionPerformancePage({
 
       const avgLeadTime = Number(avgLeadRows[0]?.avg_days || 0)
       const conversionRate = inputCount > 0 ? (installedCount / inputCount) * 100 : 0
-      const activityByMarketing = new Map(
-        marketingActivityRows.map((row) => [String(row.name || ''), Number(row.activity_total || 0)])
-      )
+      const salesByMarketing = new Map<string, SalesMarketingRow>()
 
-      salesRows = mergeMarketingNames(
-        marketingTicketRows.map((row) => ({
-          name: String(row.name || ''),
+      for (const row of marketingTicketRows) {
+        const rawName = String(row.name || '')
+        salesByMarketing.set(rawName, {
+          name: rawName,
           inputTotal: Number(row.input_total || 0),
           installedTotal: Number(row.installed_total || 0),
           backlogTotal: Number(row.backlog_total || 0),
-          activityTotal: activityByMarketing.get(String(row.name || '')) || 0,
-        })),
-        marketingNameMap
-      )
+          activityTotal: 0,
+        })
+      }
+
+      for (const row of marketingActivityRows) {
+        const rawName = String(row.name || '')
+        const existing = salesByMarketing.get(rawName) ?? {
+          name: rawName,
+          inputTotal: 0,
+          installedTotal: 0,
+          backlogTotal: 0,
+          activityTotal: 0,
+        }
+        existing.activityTotal += Number(row.activity_total || 0)
+        salesByMarketing.set(rawName, existing)
+      }
+
+      salesRows = mergeMarketingNames(Array.from(salesByMarketing.values()), marketingNameMap)
 
       summaryCards = [
         { label: 'Input PSB', value: inputCount, hint: `Data masuk pada ${periodRange.badge.toLowerCase()} ini` },
