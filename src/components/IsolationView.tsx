@@ -75,6 +75,7 @@ export function IsolationView({
   const [editId, setEditId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
 
@@ -126,8 +127,9 @@ export function IsolationView({
     reason: '',
   })
 
-  const fetchIsolations = useCallback(async () => {
+  const fetchIsolations = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
+    setError(null)
     try {
       const params = new URLSearchParams()
       // Pastikan baca ulang dari URL jika ada
@@ -143,7 +145,7 @@ export function IsolationView({
       params.append('page', String(page))
       params.append('limit', String(limit))
       
-      const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store' })
+      const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store', signal })
       if (res.ok) {
         const data = await res.json()
         const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
@@ -151,12 +153,21 @@ export function IsolationView({
         setIsolations(items)
         setTotal(totalRemote)
       } else {
-        console.error('Gagal mengambil data isolir', await res.text().catch(() => ''))
+        const payload = (await res.json().catch(() => ({}))) as { error?: string }
+        const message = payload.error || 'Gagal mengambil data isolir'
+        setError(message)
+        setIsolations([])
+        setTotal(0)
       }
     } catch (error) {
+      if (signal?.aborted) return
+      if (error instanceof DOMException && error.name === 'AbortError') return
       console.error('Failed to fetch isolations', error)
+      setError(error instanceof Error ? error.message : 'Gagal mengambil data isolir')
+      setIsolations([])
+      setTotal(0)
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [debouncedSearch, division, isAdmin, limit, marketingFilter, page, radbooxFilter, statusPreset])
 
@@ -180,7 +191,9 @@ export function IsolationView({
   }, [debouncedSearch, division, limit, marketingFilter, radbooxFilter])
 
   useEffect(() => {
-    fetchIsolations()
+    const controller = new AbortController()
+    void fetchIsolations(controller.signal)
+    return () => controller.abort()
   }, [fetchIsolations])
 
   useEffect(() => {
@@ -503,6 +516,12 @@ export function IsolationView({
         </div>
       )}
 
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="mp-desktop-table mp-table-enhanced overflow-x-auto">
@@ -693,6 +712,10 @@ export function IsolationView({
                             {suspendLabel(item.isolationDate)}
                           </div>
                           <div>
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
+                            {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
+                          </div>
+                          <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
                             {item.ticketDismantle ? String(item.ticketDismantle) : isDismantleEligible(item.isolationDate) ? 'Auto Dismantle' : '-'}
                           </div>
@@ -711,6 +734,10 @@ export function IsolationView({
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Marketing:</span>
                             {item.marketing || '-'}
+                          </div>
+                          <div className="col-span-2">
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Radboox:</span>
+                            {item.radboox || '-'}
                           </div>
                         </div>
 

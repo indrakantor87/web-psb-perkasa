@@ -148,6 +148,14 @@ export function canImportListTickets(role: string | null | undefined) {
   return canDeleteListTickets(role)
 }
 
+export function canAccessTroubleTicketRecords(role: string | null | undefined) {
+  return canAccessMenu(role, 'trouble-ticket')
+}
+
+export function canMutateTroubleTicketRecords(role: string | null | undefined) {
+  return canMutateMenu(role, 'trouble-ticket')
+}
+
 export function canMutateIsolationRecords(role: string | null | undefined) {
   return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS', 'DISMANTLE'])
 }

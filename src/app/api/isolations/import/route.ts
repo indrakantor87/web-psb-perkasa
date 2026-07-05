@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
+import { canMutateIsolationRecords } from '@/lib/access'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -64,12 +65,9 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (session.user.role === 'TEKNISI') {
+  if (!canMutateIsolationRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  // Allow only ADMIN, NOC, CS? Or anyone with access?
-  // Let's allow those who can access Isolir page usually.
   
   try {
     try {

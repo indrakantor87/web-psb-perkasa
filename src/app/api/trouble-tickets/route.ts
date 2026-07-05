@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords } from '@/lib/access'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -424,6 +425,9 @@ async function allocateTicketCode(month: number, year: number, category: TicketC
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!canAccessTroubleTicketRecords(session.user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   try {
     await ensureTroubleTicketTableOnce()
@@ -666,8 +670,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  if (!['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS'].includes(session.user.role)) {
+  if (!canMutateTroubleTicketRecords(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -803,7 +806,7 @@ export async function POST(request: Request) {
     const createdCustomer = String(row.customerName ?? '').trim()
     const title = 'Trouble Ticket Baru'
     const body = [createdCode, createdCustomer].filter(Boolean).join(' - ') || 'Ada trouble ticket baru'
-    const rolesToNotify = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
+    const rolesToNotify = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
     const tokens = await listPushTokensForRoles(rolesToNotify)
     try {
       await sendFcmV1(tokens, {

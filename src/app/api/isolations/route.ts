@@ -10,6 +10,19 @@ import {
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
+function getIsolationFetchErrorMessage(error: unknown) {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    return 'Koneksi database Isolir gagal. Periksa DATABASE_URL / DIRECT_URL atau kredensial database.'
+  }
+
+  const message = String(error instanceof Error ? error.message : error)
+  if (message.includes('tenant/user') || message.includes('PrismaClientInitializationError')) {
+    return 'Koneksi database Isolir gagal. Periksa DATABASE_URL / DIRECT_URL atau kredensial database.'
+  }
+
+  return 'Failed to fetch isolations'
+}
+
 async function ensureIsolationColumns() {
   await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
   await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
@@ -195,8 +208,8 @@ export async function GET(request: Request) {
     })
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
-  const privileged = ['ADMIN', 'CS', 'NOC', 'DISMANTLE']
-  if (!privileged.includes(session.user.role)) {
+  const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
+  if (!privilegedRoles.includes(roleUpper)) {
     const me = session.user.name?.trim()
     if (me) {
       appendAnd({
@@ -351,7 +364,9 @@ export async function GET(request: Request) {
     return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     console.error('Failed to fetch isolations:', error)
-    return NextResponse.json({ error: 'Failed to fetch isolations' }, { status: 500 })
+    const errorMessage = getIsolationFetchErrorMessage(error)
+    const status = errorMessage === 'Failed to fetch isolations' ? 500 : 503
+    return NextResponse.json({ error: errorMessage }, { status })
   }
 }
 

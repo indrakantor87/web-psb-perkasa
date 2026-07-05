@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { deletePhotosForTicket, ensurePhotoTableOnce, listTicketPhotoIds } from '@/lib/trouble-ticket-photo-store'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -76,9 +77,7 @@ export async function GET(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canAccessTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
   await ensurePhotoTableOnce().catch(() => {})
@@ -172,9 +171,7 @@ export async function PUT(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -248,9 +245,7 @@ export async function DELETE(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -280,9 +275,7 @@ export async function PATCH(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 

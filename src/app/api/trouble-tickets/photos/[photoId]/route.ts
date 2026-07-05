@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/auth'
 import { getPhotoRow, readPhotoFile } from '@/lib/trouble-ticket-photo-store'
+import { canAccessTroubleTicketRecords } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -14,9 +15,7 @@ export async function GET(
 ) {
   const session = await getSession()
   if (!session) return new Response('Unauthorized', { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return new Response('Forbidden', { status: 403 })
+  if (!canAccessTroubleTicketRecords(session.user.role)) return new Response('Forbidden', { status: 403 })
 
   const { photoId } = await params
   const id = toInt(photoId)
@@ -36,4 +35,3 @@ export async function GET(
     },
   })
 }
-

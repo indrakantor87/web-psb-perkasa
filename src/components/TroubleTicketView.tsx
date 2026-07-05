@@ -5,6 +5,7 @@ import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
+import { canMutateTroubleTicketRecords } from '@/lib/access'
 
 type TroubleTicketRow = {
   id: number
@@ -373,9 +374,9 @@ export function TroubleTicketView({
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isTroubleshoots = roleUpper === 'TROUBLESHOOTS'
-  const canCreate = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
-  const canDelete = useMemo(() => ['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(roleUpper), [roleUpper])
-  const isPrivileged = useMemo(() => ['ADMIN', 'CS', 'NOC'].includes(roleUpper), [roleUpper])
+  const canCreate = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
+  const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
+  const isPrivileged = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const supportsTroubleTicketWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
   const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
     ALL: 'Menampilkan seluruh Trouble Ticket pada periode terpilih.',
@@ -1531,6 +1532,11 @@ export function TroubleTicketView({
               const mapsLink = (r.mapsUrl || '').trim()
               const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
               const code = getDisplayTicketId(r)
+              const openedAtMs = new Date(r.openedAt).getTime()
+              const closedAtMs = r.closedAt ? new Date(r.closedAt).getTime() : null
+              const temporaryAtMs = r.temporaryAt ? new Date(r.temporaryAt).getTime() : null
+              const endAtMs = closedAtMs ?? temporaryAtMs
+              const durationMs = Number.isFinite(openedAtMs) ? (endAtMs ?? now) - openedAtMs : NaN
 
               return (
                 <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
@@ -1593,6 +1599,22 @@ export function TroubleTicketView({
                     <div className="col-span-2 min-w-0">
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">Gangguan</div>
                       <div className="font-semibold break-words">{(r.problemCategory || '').trim() || '-'}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">ONT</div>
+                      <div className="font-semibold break-words">{(r.ont || '').trim() || '-'}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Durasi</div>
+                      <div className="font-semibold break-words">{formatDurationMs(durationMs)}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Open</div>
+                      <div className="font-semibold break-words">{formatDateTime(r.openedAt)}</div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Close</div>
+                      <div className="font-semibold break-words">{formatDateTime(r.closedAt || r.temporaryAt)}</div>
                     </div>
                     <div className="col-span-2 min-w-0">
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">Tindakan</div>

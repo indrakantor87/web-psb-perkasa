@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
+import { canMutateMenu } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -201,7 +202,7 @@ export async function POST(request: Request) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (!['ADMIN', 'CS', 'NOC', 'DISMANTLE'].includes(session.user.role)) {
+  if (!canMutateMenu(session.user.role, 'dismantle')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

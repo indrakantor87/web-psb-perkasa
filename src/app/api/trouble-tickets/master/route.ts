@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { canAccessTroubleTicketRecords } from '@/lib/access'
 import { ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
@@ -104,9 +105,7 @@ async function ensureMasterTableOnce() {
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const allowedRoles = ['ADMIN', 'CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
-  if (!allowedRoles.includes(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canAccessTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureMasterTableOnce().catch(() => {})
 

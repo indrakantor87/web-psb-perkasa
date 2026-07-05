@@ -1196,7 +1196,129 @@ export function DismantleView({
           </div>
         )}
 
-        <div className="mt-4 overflow-x-auto rounded-lg border border-green-700 dark:border-green-700">
+        <div className="mt-4 space-y-3 md:hidden">
+          {loading ? (
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+              Memuat data dismantle...
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+              {supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
+            </div>
+          ) : (
+            rows.map((row) => {
+              const hasTicket = String(row.ticketDismantle ?? '').trim() !== ''
+              const mapsUrl = String(row.ticket?.locationMap ?? '').trim()
+              const problemText = String(row.ticket?.description ?? row.radboox ?? '').trim()
+              const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
+              const rowTone = getRowTone(row)
+              const textTone = getCellTextTone(row)
+
+              return (
+                <div key={row.id} className={clsx('rounded-lg border border-gray-200 p-3 dark:border-gray-700', rowTone)}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => openDetail(row)}
+                        className={clsx('block text-left text-sm font-semibold hover:underline break-words', textTone)}
+                      >
+                        {row.customerName || '-'}
+                      </button>
+                      <div className={clsx('mt-0.5 text-xs break-words', textTone)}>
+                        {row.userEmail || row.marketing || '-'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {showSelection && (
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(row.id)}
+                          onChange={() => toggleSelected(row.id)}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                          aria-label={`Pilih ${row.customerName || `ID ${row.id}`}`}
+                        />
+                      )}
+                      <span className={clsx('inline-flex rounded-md px-2 py-1 text-[11px] font-semibold', getStatusBadgeTone(row.status))}>
+                        {row.status || '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Ticket</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>
+                        {hasTicket ? row.ticketDismantle : 'Belum diisi'}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">No. HP</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>{row.customerPhone || '-'}</div>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Alamat</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>{row.customerAddress || '-'}</div>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Keterangan</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>
+                        {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
+                      </div>
+                    </div>
+                    <div className="col-span-2 min-w-0">
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Problem</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>{problemText || row.radboox || '-'}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {mapsUrl && (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200"
+                      >
+                        View Maps
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openDetail(row)}
+                      className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+                    >
+                      <Info className="h-4 w-4" />
+                      Rincian
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(row)}
+                      disabled={!canEdit || !supportsWorkflow}
+                      className="inline-flex items-center gap-2 rounded-md border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      {hasTicket ? 'Edit Ticket' : 'Isi Ticket'}
+                    </button>
+                    {!isClosed && (
+                      <button
+                        type="button"
+                        onClick={() => openCloseForm(row)}
+                        disabled={!canEdit || !supportsWorkflow}
+                        className="inline-flex items-center gap-2 rounded-md border border-green-700 bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-600 dark:bg-green-600 dark:hover:bg-green-500"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Close
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="mt-4 hidden overflow-x-auto rounded-lg border border-green-700 dark:border-green-700 md:block">
           <table className="min-w-full border-collapse">
             <thead className="bg-green-700 dark:bg-green-800">
               <tr>
