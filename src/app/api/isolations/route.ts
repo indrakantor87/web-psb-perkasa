@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
+import { normalizeMarketingName } from '@/lib/marketing-users'
 import {
   canAccessMenu,
   canDeleteIsolationRecords,
@@ -159,19 +160,17 @@ function buildLegacyIsolationWhere(params: {
     where.radboox = params.radboox
   }
   if (params.marketing && params.marketing.trim() !== '') {
-    const mk = params.marketing.trim()
-    appendAnd({
-      OR: [{ marketing: { equals: mk } }, { marketing: { contains: mk, mode: 'insensitive' } }],
-    })
+    const exactMarketingClause = buildExactMarketingClause(params.marketing)
+    if (exactMarketingClause) {
+      appendAnd(exactMarketingClause)
+    }
   }
 
   const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
   if (!privilegedRoles.includes(params.roleUpper)) {
-    const me = params.userName?.trim()
-    if (me) {
-      appendAnd({
-        OR: [{ marketing: { equals: me } }, { marketing: { contains: me, mode: 'insensitive' } }],
-      })
+    const ownMarketingClause = buildExactMarketingClause(params.userName)
+    if (ownMarketingClause) {
+      appendAnd(ownMarketingClause)
     }
   }
 
@@ -186,6 +185,18 @@ function buildLegacyIsolationWhere(params: {
   }
 
   return where
+}
+
+function buildExactMarketingClause(value: unknown) {
+  const normalized = normalizeMarketingName(value)
+  if (!normalized) return null
+
+  return {
+    marketing: {
+      equals: normalized,
+      mode: 'insensitive' as const,
+    },
+  }
 }
 
 export async function GET(request: Request) {
@@ -247,10 +258,10 @@ export async function GET(request: Request) {
     where.radboox = radboox
   }
   if (marketing && marketing.trim() !== '') {
-    const mk = marketing.trim()
-    appendAnd({
-      OR: [{ marketing: { equals: mk } }, { marketing: { contains: mk, mode: 'insensitive' } }],
-    })
+    const exactMarketingClause = buildExactMarketingClause(marketing)
+    if (exactMarketingClause) {
+      appendAnd(exactMarketingClause)
+    }
   }
   if (ticketStatus === 'WITH') {
     appendAnd({
@@ -275,11 +286,9 @@ export async function GET(request: Request) {
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
   const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
   if (!privilegedRoles.includes(roleUpper)) {
-    const me = session.user.name?.trim()
-    if (me) {
-      appendAnd({
-        OR: [{ marketing: { equals: me } }, { marketing: { contains: me, mode: 'insensitive' } }],
-      })
+    const ownMarketingClause = buildExactMarketingClause(session.user.name)
+    if (ownMarketingClause) {
+      appendAnd(ownMarketingClause)
     }
   }
 
