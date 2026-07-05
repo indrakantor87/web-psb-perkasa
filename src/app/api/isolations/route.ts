@@ -241,6 +241,20 @@ export async function GET(request: Request) {
   }
 
   try {
+    const ticketSelect =
+      dismantleEligible
+        ? {
+            ticketId: true,
+            ticket: {
+              select: {
+                package: true,
+                locationMap: true,
+                description: true,
+              },
+            },
+          }
+        : {}
+
     const selectAll: any = {
       id: true,
       customerName: true,
@@ -261,14 +275,7 @@ export async function GET(request: Request) {
       ticketDismantle: true,
       isArchived: true,
       archivedAt: true,
-      ticketId: true,
-      ticket: {
-        select: {
-          package: true,
-          locationMap: true,
-          description: true,
-        },
-      },
+      ...ticketSelect,
     }
     const selectNoPrice: any = {
       id: true,
@@ -289,14 +296,7 @@ export async function GET(request: Request) {
       ticketDismantle: true,
       isArchived: true,
       archivedAt: true,
-      ticketId: true,
-      ticket: {
-        select: {
-          package: true,
-          locationMap: true,
-          description: true,
-        },
-      },
+      ...ticketSelect,
     }
     const selectNoClose: any = {
       ...selectAll,
