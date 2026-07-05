@@ -4,28 +4,25 @@ import { decrypt } from '@/lib/auth'
 
 const rateLimit = new Map<string, { count: number; lastReset: number }>()
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   if (/\.[^/]+$/.test(pathname)) {
     return NextResponse.next()
   }
 
-  // Simple Rate Limiting (In-Memory)
-  // Note: This is per-instance. For distributed environments (Vercel), 
-  // this is not a strict global limit but helps mitigate spam.
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     '127.0.0.1'
-  const limit = 100 // requests
-  const windowMs = 60 * 1000 // 1 minute
+  const limit = 100
+  const windowMs = 60 * 1000
 
   if (!rateLimit.has(ip)) {
     rateLimit.set(ip, { count: 0, lastReset: Date.now() })
   }
 
   const ipData = rateLimit.get(ip)
-  
+
   if (ipData) {
     if (Date.now() - ipData.lastReset > windowMs) {
       ipData.count = 0
@@ -51,7 +48,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Define paths that don't require authentication
   const publicPaths = ['/login', '/api/auth/login']
   const isPublicPath = publicPaths.includes(pathname)
 
@@ -63,19 +59,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Role-based access control
   if (currentUser) {
-    // Block MARKETING from settings (all settings pages)
     if (currentUser.role === 'MARKETING') {
       if (pathname.startsWith('/settings')) {
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
 
-    // Block TEKNISI from input and settings
     if (currentUser.role === 'TEKNISI') {
       const restrictedPaths = ['/input', '/settings', '/marketing-activities', '/isolir']
-      if (restrictedPaths.some(path => pathname.startsWith(path))) {
+      if (restrictedPaths.some((path) => pathname.startsWith(path))) {
         return NextResponse.redirect(new URL('/', request.url))
       }
     }
@@ -116,7 +109,6 @@ export async function middleware(request: NextRequest) {
 
   const response = NextResponse.next()
 
-  // Add Security Headers
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
