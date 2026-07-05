@@ -586,22 +586,6 @@ export async function GET(request: Request) {
       ? `FROM "TroubleTicket" LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"`
       : `FROM "TroubleTicket"`
 
-    const dupWhereSql = whereSql
-      ? `${whereSql} AND COALESCE(TRIM("TroubleTicket"."user"), '') <> ''`
-      : `WHERE COALESCE(TRIM("TroubleTicket"."user"), '') <> ''`
-
-    const duplicatedUsersSql = `
-      SELECT LOWER(TRIM("TroubleTicket"."user")) AS "userKey"
-      ${fromSql}
-      ${dupWhereSql}
-      GROUP BY "userKey"
-      HAVING COUNT(*) > 1;
-    `
-    const duplicatedUserRows = await prisma
-      .$queryRawUnsafe<Array<{ userKey: string }>>(duplicatedUsersSql, ...params)
-      .catch(() => [])
-    const repeatedUsers = duplicatedUserRows.map((r) => String(r.userKey ?? '').trim()).filter(Boolean)
-
     const take = pageSize
     params.push(take)
     const limitToken = `$${params.length}`
@@ -650,27 +634,81 @@ export async function GET(request: Request) {
       return rest
     })
 
-    const summarySql = `
+    const summarySourceSql = `
       SELECT
-        COUNT(*) FILTER (WHERE ${openStatusExpr})::int AS "open",
-        COUNT(*) FILTER (
-          WHERE ${openStatusExpr}
-            AND (
-              COALESCE(UPPER(TRIM("category")), '') = 'PV'
-              OR COALESCE(UPPER(TRIM("type")), '') = 'PREVENTIVE'
-            )
-        )::int AS "preventiveOpen",
-        COUNT(*) FILTER (WHERE ${closeStatusExpr})::int AS "close",
-        COUNT(*) FILTER (
-          WHERE ${openStatusExpr}
-            AND NOW() - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
-        )::int AS "overdue"
+        "user",
+        "status",
+        "openedAt",
+        "closedAt",
+        "category",
+        "type"
       FROM "TroubleTicket"
-      LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"
       ${summaryWhereSql};
     `
-    const summaryRows = await prisma.$queryRawUnsafe<Array<{ open: number; preventiveOpen: number; close: number; overdue: number }>>(summarySql, ...baseParams).catch(() => [])
-    const summary = summaryRows[0] ?? { open: 0, preventiveOpen: 0, close: 0, overdue: 0 }
+    const summarySourceRows = await prisma.$queryRawUnsafe<
+      Array<{
+        user: string | null
+        status: string | null
+        openedAt: Date | string | null
+        closedAt: Date | string | null
+        category: string | null
+        type: string | null
+      }>
+    >(summarySourceSql, ...baseParams).catch(() => [])
+
+    const slaRows = await prisma.$queryRawUnsafe<Array<{ type: string | null; durationDays: number | null }>>(
+      `SELECT "type", "durationDays" FROM "TroubleTicketSla";`
+    ).catch(() => [])
+
+    const slaMap = new Map<string, number>()
+    for (const row of slaRows) {
+      const key = normalizeTypeKey(row.type)
+      const days = Math.trunc(Number(row.durationDays))
+      if (!key || !Number.isFinite(days) || days < 1) continue
+      slaMap.set(key, days)
+    }
+
+    const repeatedUserCounts = new Map<string, number>()
+    const nowMs = Date.now()
+    let open = 0
+    let preventiveOpen = 0
+    let close = 0
+    let overdue = 0
+
+    for (const row of summarySourceRows) {
+      const userKey = String(row.user ?? '').trim().toLowerCase()
+      if (userKey) {
+        repeatedUserCounts.set(userKey, (repeatedUserCounts.get(userKey) ?? 0) + 1)
+      }
+
+      const statusKey = String(row.status ?? '').trim().toUpperCase()
+      const isClose = row.closedAt != null || statusKey === 'CLOSE' || statusKey === 'CLOSED'
+      if (isClose) {
+        close += 1
+        continue
+      }
+
+      open += 1
+
+      const categoryKey = String(row.category ?? '').trim().toUpperCase()
+      const typeKey = normalizeTypeKey(row.type)
+      if (categoryKey === 'PV' || typeKey === 'PREVENTIVE') {
+        preventiveOpen += 1
+      }
+
+      const openedAtMs = row.openedAt ? new Date(row.openedAt).getTime() : Number.NaN
+      const limitDays = slaMap.get(typeKey) ?? 1
+      const limitMs = limitDays * 24 * 60 * 60 * 1000
+      if (Number.isFinite(openedAtMs) && nowMs - openedAtMs > limitMs) {
+        overdue += 1
+      }
+    }
+
+    const repeatedUsers = Array.from(repeatedUserCounts.entries())
+      .filter(([, count]) => count > 1)
+      .map(([userKey]) => userKey)
+
+    const summary = { open, preventiveOpen, close, overdue }
 
     return NextResponse.json(
       { items, total, page, limit: pageSize, summary, repeatedUsers },
