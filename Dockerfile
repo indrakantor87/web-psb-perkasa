@@ -10,8 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DATABASE_URL=postgresql://build:build@localhost:5432/build?schema=public
-ENV DIRECT_URL=postgresql://build:build@localhost:5432/build?schema=public
 RUN npm run build
 # Standalone output already bundles minimal runtime deps under .next/standalone
 
