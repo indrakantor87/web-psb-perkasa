@@ -205,33 +205,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const showSalesFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
   const showTicketingFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showCreatorFocus = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
-  const focusDivisionConfig = {
-    ALL: {
-      title: 'Semua Divisi',
-      description: 'Pantau kondisi operasional secara menyeluruh.',
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    },
-    PENJUALAN: {
-      title: 'Penjualan',
-      description: 'PSB baru, aktivitas marketing, dan progres closing.',
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    },
-    CS_ADMIN: {
-      title: 'CS',
-      description: 'Follow up pelanggan, isolir aktif, dan proses layanan pelanggan.',
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    },
-    NOC_TROUBLESHOOTS: {
-      title: 'NOC',
-      description: 'Aset jaringan, ODP, dan penyelesaian gangguan teknis.',
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    },
-    CREATOR_DIGITAL: {
-      title: 'Creator Digital',
-      description: 'Konten, campaign, leads, dan analytics untuk pengembangan digital.',
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-    },
-  }[focusedDivision]
 
   return (
     <div className="space-y-6 pb-10">
@@ -306,44 +279,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           )}
         </div>
       </div>
-
-      {isAdmin && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Fokus tampilan
-                </span>
-                <span className={clsx('inline-flex rounded-full px-3 py-1 text-xs font-semibold', focusDivisionConfig.badge)}>
-                  {focusDivisionConfig.title}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{focusDivisionConfig.description}</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:min-w-[420px]">
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Penjualan</div>
-                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN' ? 'Tampil' : 'Disembunyikan'}
-                </div>
-              </div>
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">CS</div>
-                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'CS_ADMIN' ? 'Tampil' : 'Disembunyikan'}
-                </div>
-              </div>
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">NOC</div>
-                <div className="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS' ? 'Tampil' : 'Disembunyikan'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isAdmin && visibleDivisionSummary.length > 0 && (
         <div className="space-y-3">
