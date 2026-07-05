@@ -502,10 +502,18 @@ export async function GET(request: Request) {
 
     const whereParts: string[] = [...baseParts]
     const params: unknown[] = [...baseParams]
+    const closeStatusExpr = `("closedAt" IS NOT NULL OR COALESCE(UPPER(TRIM("status")), '') IN ('CLOSE', 'CLOSED'))`
+    const openStatusExpr = `(NOT ${closeStatusExpr})`
 
     if (statusFilter) {
-      params.push(statusFilter)
-      whereParts.push(`"status" = $${params.length}`)
+      if (statusFilter === 'OPEN') {
+        whereParts.push(openStatusExpr)
+      } else if (statusFilter === 'CLOSE') {
+        whereParts.push(closeStatusExpr)
+      } else {
+        params.push(statusFilter)
+        whereParts.push(`COALESCE(UPPER(TRIM("status")), '') = $${params.length}`)
+      }
     }
 
     const useSlaJoin = roleUpper !== 'TROUBLESHOOTS' && overdueOnly
@@ -644,17 +652,17 @@ export async function GET(request: Request) {
 
     const summarySql = `
       SELECT
-        COUNT(*) FILTER (WHERE "status" = 'OPEN')::int AS "open",
+        COUNT(*) FILTER (WHERE ${openStatusExpr})::int AS "open",
         COUNT(*) FILTER (
-          WHERE "status" = 'OPEN'
+          WHERE ${openStatusExpr}
             AND (
               COALESCE(UPPER(TRIM("category")), '') = 'PV'
               OR COALESCE(UPPER(TRIM("type")), '') = 'PREVENTIVE'
             )
         )::int AS "preventiveOpen",
-        COUNT(*) FILTER (WHERE "status" = 'CLOSE')::int AS "close",
+        COUNT(*) FILTER (WHERE ${closeStatusExpr})::int AS "close",
         COUNT(*) FILTER (
-          WHERE "status" = 'OPEN'
+          WHERE ${openStatusExpr}
             AND NOW() - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
         )::int AS "overdue"
       FROM "TroubleTicket"
