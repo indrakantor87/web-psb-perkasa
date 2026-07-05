@@ -14,6 +14,7 @@ import {
 import { getMarketingNameMap, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { DivisionPerformanceControls } from '@/components/DivisionPerformanceControls'
 import { DivisionPerformanceExportButton } from '@/components/DivisionPerformanceExportButton'
+import { getMenuHref } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -314,17 +315,17 @@ export default async function DivisionPerformancePage({
       return [
         {
           label: 'Isolir',
-          href: '/isolir?division=CS_ADMIN',
+          href: getMenuHref('isolir', 'CS_ADMIN'),
           description: 'Pantau data isolir, pemulihan, dan tindak lanjut pelanggan.',
         },
         {
           label: 'Dismantle',
-          href: '/dismantle?division=CS_ADMIN&status=OPEN',
+          href: getMenuHref('dismantle', 'CS_ADMIN'),
           description: 'Akses data dismantle yang perlu ditangani oleh tim CS.',
         },
         {
           label: 'Trouble Ticket',
-          href: '/trouble-ticket?division=CS_ADMIN',
+          href: getMenuHref('trouble-ticket', 'CS_ADMIN'),
           description: 'Lihat pekerjaan layanan yang berhubungan dengan pelanggan aktif.',
         },
       ]
@@ -334,17 +335,17 @@ export default async function DivisionPerformancePage({
       return [
         {
           label: 'Trouble Ticket',
-          href: '/trouble-ticket?division=NOC_TROUBLESHOOTS',
+          href: getMenuHref('trouble-ticket', 'NOC_TROUBLESHOOTS'),
           description: 'Pantau ticket teknis masuk, close, dan backlog gangguan.',
         },
         {
           label: 'PORT ODP',
-          href: '/odp?division=NOC_TROUBLESHOOTS',
+          href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'),
           description: 'Monitor aset jaringan dan kapasitas ODP aktif.',
         },
         {
           label: 'List Data',
-          href: '/list?division=NOC_TROUBLESHOOTS',
+          href: getMenuHref('list', 'NOC_TROUBLESHOOTS'),
           description: 'Lihat data pelanggan yang berhubungan dengan operasi teknis.',
         },
       ]

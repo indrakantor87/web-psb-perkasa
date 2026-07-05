@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { getMarketingNameMap, toDashboardMarketingLabel } from '@/lib/marketing-users'
+import { getMenuHref } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -148,9 +149,9 @@ export default async function DivisionDetailPage({
     if (division === 'NOC_TROUBLESHOOTS') {
       return [
         { label: 'Dashboard Divisi', href: dashboardHref, description: 'Kembali ke dashboard admin dengan fokus area teknis.' },
-        { label: 'PORT ODP', href: '/odp?division=NOC_TROUBLESHOOTS', description: 'Lihat kapasitas ODP dan aset jaringan dari perspektif teknis.' },
-        { label: 'Trouble Ticket', href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', description: 'Masuk ke ticket teknis dan progres penanganannya.' },
-        { label: 'Riwayat Isolir', href: '/isolir?division=NOC_TROUBLESHOOTS', description: 'Pantau data isolir yang sudah kembali normal.' },
+        { label: 'PORT ODP', href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'), description: 'Lihat kapasitas ODP dan aset jaringan dari menu operasional yang tersedia.' },
+        { label: 'Trouble Ticket', href: getMenuHref('trouble-ticket', 'NOC_TROUBLESHOOTS'), description: 'Masuk ke ticket teknis dan progres penanganannya.' },
+        { label: 'Riwayat Isolir', href: getMenuHref('isolir', 'NOC_TROUBLESHOOTS'), description: 'Pantau data isolir yang sudah kembali normal.' },
       ]
     }
     return [

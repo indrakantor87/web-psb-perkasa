@@ -13,8 +13,23 @@ export type AppMenuKey =
   | 'analytics'
   | 'settings'
 
+export type AppDivisionCode = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
 export function normalizeRole(role?: string | null) {
   return String(role ?? '').trim().toUpperCase()
+}
+
+export function normalizeDivision(division?: string | null): AppDivisionCode {
+  const divisionUpper = String(division ?? '').trim().toUpperCase()
+  if (
+    divisionUpper === 'PENJUALAN' ||
+    divisionUpper === 'CS_ADMIN' ||
+    divisionUpper === 'NOC_TROUBLESHOOTS' ||
+    divisionUpper === 'CREATOR_DIGITAL'
+  ) {
+    return divisionUpper
+  }
+  return 'ALL'
 }
 
 export function getDivisionFromRole(role?: string | null) {
@@ -24,6 +39,62 @@ export function getDivisionFromRole(role?: string | null) {
   if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
   if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
   return 'ALL'
+}
+
+export function getMenuDataDivision(menu: AppMenuKey, perspectiveDivision?: string | null): AppDivisionCode {
+  const division = normalizeDivision(perspectiveDivision)
+
+  switch (menu) {
+    case 'input':
+    case 'marketing-activities':
+      return 'PENJUALAN'
+    case 'list':
+      if (division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS' || division === 'PENJUALAN') return division
+      return 'PENJUALAN'
+    case 'isolir':
+      return division === 'NOC_TROUBLESHOOTS' ? 'NOC_TROUBLESHOOTS' : 'CS_ADMIN'
+    case 'dismantle':
+    case 'odp':
+      return 'CS_ADMIN'
+    case 'trouble-ticket':
+      return 'NOC_TROUBLESHOOTS'
+    case 'content-calendar':
+    case 'campaigns':
+    case 'digital-leads':
+    case 'analytics':
+      return 'CREATOR_DIGITAL'
+    default:
+      return division
+  }
+}
+
+export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>, perspectiveDivision?: string | null) {
+  const division = getMenuDataDivision(menu, perspectiveDivision)
+
+  switch (menu) {
+    case 'input':
+      return `/input?division=${division}`
+    case 'list':
+      return `/list?division=${division}`
+    case 'marketing-activities':
+      return `/marketing-activities?division=${division}`
+    case 'isolir':
+      return `/isolir?division=${division}`
+    case 'dismantle':
+      return `/dismantle?division=${division}&status=OPEN`
+    case 'odp':
+      return `/odp?division=${division}`
+    case 'trouble-ticket':
+      return `/trouble-ticket?division=${division}`
+    case 'content-calendar':
+      return '/content-calendar?division=CREATOR_DIGITAL'
+    case 'campaigns':
+      return '/campaigns?division=CREATOR_DIGITAL'
+    case 'digital-leads':
+      return '/digital-leads?division=CREATOR_DIGITAL'
+    case 'analytics':
+      return '/analytics?division=CREATOR_DIGITAL'
+  }
 }
 
 function menuSet(items: AppMenuKey[]) {

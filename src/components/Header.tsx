@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
-import { canAccessMenu, getDivisionFromRole } from '@/lib/access'
+import { canAccessMenu, getDivisionFromRole, getMenuHref } from '@/lib/access'
 
 function formatDivisionLabel(division?: string | null) {
   switch ((division || '').toUpperCase()) {
@@ -215,17 +215,17 @@ export function Header({ user }: { user: SessionUser }) {
         ]
       : [
         { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-        ...(canAccessMenu(user?.role, 'input') ? [{ href: `/input${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Input PSB', icon: FileInput }] : []),
-        ...(canAccessMenu(user?.role, 'list') ? [{ href: `/list${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'List Data', icon: List }] : []),
-        ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: `/marketing-activities${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
-        ...(canAccessMenu(user?.role, 'isolir') ? [{ href: `/isolir${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Isolir', icon: Ban }] : []),
-        ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: `/dismantle${roleDivision !== 'ALL' ? `?division=${roleDivision}&status=OPEN` : '?status=OPEN'}`, label: 'Dismantle', icon: Wrench }] : []),
-        ...(canAccessMenu(user?.role, 'odp') ? [{ href: `/odp${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'PORT ODP', icon: Wifi }] : []),
-        ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: `/trouble-ticket${roleDivision !== 'ALL' ? `?division=${roleDivision}` : ''}`, label: 'Trouble Ticket', icon: Wrench }] : []),
-        ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar }] : []),
-        ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target }] : []),
-        ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users }] : []),
-        ...(canAccessMenu(user?.role, 'analytics') ? [{ href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp }] : []),
+        ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
+        ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
+        ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+        ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
+        ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench }] : []),
+        ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),
+        ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
+        ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: getMenuHref('content-calendar', roleDivision), label: 'Content Calendar', icon: Calendar }] : []),
+        ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target }] : []),
+        ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users }] : []),
+        ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
       ]
 
   const adminDivisionGroups: HeaderNavGroup[] = isAdmin && !isTroubleshoots
@@ -237,12 +237,12 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'PSB baru dan aktivitas marketing.',
           items: [
             { href: '/division-performance?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
-            { href: '/input?division=PENJUALAN', label: 'Input PSB', icon: FileInput },
-            { href: '/list?division=PENJUALAN', label: 'List Data', icon: List },
-            { href: '/marketing-activities?division=PENJUALAN', label: 'Aktivitas Marketing', icon: ClipboardList },
-            { href: '/isolir?division=PENJUALAN', label: 'Isolir', icon: Ban },
-            { href: '/dismantle?division=PENJUALAN&status=OPEN', label: 'Dismantle', icon: Wrench },
-            { href: '/odp?division=PENJUALAN', label: 'PORT ODP', icon: Wifi },
+            { href: getMenuHref('input', 'PENJUALAN'), label: 'Input PSB', icon: FileInput },
+            { href: getMenuHref('list', 'PENJUALAN'), label: 'List Data', icon: List },
+            { href: getMenuHref('marketing-activities', 'PENJUALAN'), label: 'Aktivitas Marketing', icon: ClipboardList },
+            { href: getMenuHref('isolir', 'PENJUALAN'), label: 'Isolir', icon: Ban },
+            { href: getMenuHref('dismantle', 'PENJUALAN'), label: 'Dismantle', icon: Wrench },
+            { href: getMenuHref('odp', 'PENJUALAN'), label: 'PORT ODP', icon: Wifi },
           ],
         },
         {
@@ -252,12 +252,12 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Follow up pelanggan, isolir, dan administrasi layanan.',
           items: [
             { href: '/division-performance?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
-            { href: '/input?division=CS_ADMIN', label: 'Input PSB', icon: FileInput },
-            { href: '/list?division=CS_ADMIN', label: 'List Data', icon: List },
-            { href: '/isolir?division=CS_ADMIN', label: 'Isolir', icon: Ban },
-            { href: '/dismantle?division=CS_ADMIN', label: 'Dismantle Perangkat', icon: Wrench },
-            { href: '/odp?division=CS_ADMIN', label: 'PORT ODP', icon: Wifi },
-            { href: '/trouble-ticket?division=CS_ADMIN', label: 'Trouble Ticket', icon: ClipboardList },
+            { href: getMenuHref('input', 'CS_ADMIN'), label: 'Input PSB', icon: FileInput },
+            { href: getMenuHref('list', 'CS_ADMIN'), label: 'List Data', icon: List },
+            { href: getMenuHref('isolir', 'CS_ADMIN'), label: 'Isolir', icon: Ban },
+            { href: getMenuHref('dismantle', 'CS_ADMIN'), label: 'Dismantle Perangkat', icon: Wrench },
+            { href: getMenuHref('odp', 'CS_ADMIN'), label: 'PORT ODP', icon: Wifi },
+            { href: getMenuHref('trouble-ticket', 'CS_ADMIN'), label: 'Trouble Ticket', icon: ClipboardList },
           ],
         },
         {
@@ -267,9 +267,9 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
             { href: '/division-performance?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
-            { href: '/list?division=NOC_TROUBLESHOOTS', label: 'List Data', icon: List },
-            { href: '/odp?division=NOC_TROUBLESHOOTS', label: 'PORT ODP', icon: Wifi },
-            { href: '/trouble-ticket?division=NOC_TROUBLESHOOTS', label: 'Trouble Ticket', icon: Wrench },
+            { href: getMenuHref('list', 'NOC_TROUBLESHOOTS'), label: 'List Data', icon: List },
+            { href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'), label: 'PORT ODP', icon: Wifi },
+            { href: getMenuHref('trouble-ticket', 'NOC_TROUBLESHOOTS'), label: 'Trouble Ticket', icon: Wrench },
           ],
         },
         {
@@ -279,15 +279,15 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Konten, campaign, leads, dan analytics digital.',
           items: [
             { href: '/division-performance?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
-            { href: '/input?division=CREATOR_DIGITAL', label: 'Input PSB', icon: FileInput },
-            { href: '/list?division=CREATOR_DIGITAL', label: 'List Data', icon: List },
-            { href: '/isolir?division=CREATOR_DIGITAL', label: 'Isolir', icon: Ban },
-            { href: '/dismantle?division=CREATOR_DIGITAL&status=OPEN', label: 'Dismantle', icon: Wrench },
-            { href: '/odp?division=CREATOR_DIGITAL', label: 'PORT ODP', icon: Wifi },
-            { href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar },
-            { href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target },
-            { href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
-            { href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp },
+            { href: getMenuHref('input', 'CREATOR_DIGITAL'), label: 'Input PSB', icon: FileInput },
+            { href: getMenuHref('list', 'CREATOR_DIGITAL'), label: 'List Data', icon: List },
+            { href: getMenuHref('isolir', 'CREATOR_DIGITAL'), label: 'Isolir', icon: Ban },
+            { href: getMenuHref('dismantle', 'CREATOR_DIGITAL'), label: 'Dismantle', icon: Wrench },
+            { href: getMenuHref('odp', 'CREATOR_DIGITAL'), label: 'PORT ODP', icon: Wifi },
+            { href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Content Calendar', icon: Calendar },
+            { href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target },
+            { href: getMenuHref('digital-leads', 'CREATOR_DIGITAL'), label: 'Digital Leads', icon: Users },
+            { href: getMenuHref('analytics', 'CREATOR_DIGITAL'), label: 'Analytics', icon: TrendingUp },
           ],
         },
       ]
@@ -302,11 +302,11 @@ export function Header({ user }: { user: SessionUser }) {
             icon: FileInput,
             description: 'Akses operasional PSB dan tindak lanjut pelanggan.',
             items: [
-              { href: `/input?division=${roleDivision}`, label: 'Input PSB', icon: FileInput },
-              { href: `/list?division=${roleDivision}`, label: 'List Data', icon: List },
-              { href: `/isolir?division=${roleDivision}`, label: 'Isolir', icon: Ban },
-              { href: `/dismantle?division=${roleDivision}&status=OPEN`, label: 'Dismantle', icon: Wrench },
-              { href: `/odp?division=${roleDivision}`, label: 'PORT ODP', icon: Wifi },
+              { href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput },
+              { href: getMenuHref('list', roleDivision), label: 'List Data', icon: List },
+              { href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban },
+              { href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench },
+              { href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi },
             ],
           },
           {
@@ -315,10 +315,10 @@ export function Header({ user }: { user: SessionUser }) {
             icon: TrendingUp,
             description: 'Perencanaan konten, campaign, leads, dan analytics digital.',
             items: [
-              { href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: Calendar },
-              { href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Target },
-              { href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
-              { href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: TrendingUp },
+              { href: getMenuHref('content-calendar', roleDivision), label: 'Content Calendar', icon: Calendar },
+              { href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target },
+              { href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users },
+              { href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp },
             ],
           },
         ]
