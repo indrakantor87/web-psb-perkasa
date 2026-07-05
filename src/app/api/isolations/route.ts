@@ -127,6 +127,67 @@ function buildSmartDismantleRows(items: any[]) {
   })
 }
 
+function buildLegacyIsolationWhere(params: {
+  search: string | null
+  radboox: string | null
+  marketing: string | null
+  status: string | null
+  roleUpper: string
+  userName?: string | null
+  divisionFilter: string
+}) {
+  const where: any = {}
+  const appendAnd = (clause: any) => {
+    const current = where.AND
+    const arr = Array.isArray(current) ? current : current ? [current] : []
+    where.AND = [...arr, clause]
+  }
+
+  if (params.status && params.status.trim() !== '') {
+    where.status = params.status.trim().toUpperCase()
+  }
+  if (params.search) {
+    where.OR = [
+      { customerName: { contains: params.search, mode: 'insensitive' } },
+      { customerAddress: { contains: params.search, mode: 'insensitive' } },
+      { customerPhone: { contains: params.search, mode: 'insensitive' } },
+      { userEmail: { contains: params.search, mode: 'insensitive' } },
+      { marketing: { contains: params.search, mode: 'insensitive' } },
+    ]
+  }
+  if (params.radboox && params.radboox !== 'ALL') {
+    where.radboox = params.radboox
+  }
+  if (params.marketing && params.marketing.trim() !== '') {
+    const mk = params.marketing.trim()
+    appendAnd({
+      OR: [{ marketing: { equals: mk } }, { marketing: { contains: mk, mode: 'insensitive' } }],
+    })
+  }
+
+  const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
+  if (!privilegedRoles.includes(params.roleUpper)) {
+    const me = params.userName?.trim()
+    if (me) {
+      appendAnd({
+        OR: [{ marketing: { equals: me } }, { marketing: { contains: me, mode: 'insensitive' } }],
+      })
+    }
+  }
+
+  if (params.roleUpper === 'ADMIN') {
+    if (params.divisionFilter === 'CS_ADMIN' && !params.status) {
+      where.status = 'OPEN'
+    } else if (params.divisionFilter === 'NOC_TROUBLESHOOTS' && !params.status) {
+      where.status = 'CLOSED'
+    } else if (params.divisionFilter === 'PENJUALAN' || params.divisionFilter === 'CREATOR_DIGITAL') {
+      appendAnd({ id: { lt: 0 } })
+    }
+  }
+
+  return where
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
@@ -402,10 +463,73 @@ export async function GET(request: Request) {
     }
     return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
+    if (!dismantleEligible) {
+      try {
+        const legacyWhere = buildLegacyIsolationWhere({
+          search,
+          radboox,
+          marketing,
+          status,
+          roleUpper,
+          userName: session.user.name,
+          divisionFilter,
+        })
+
+        const legacySelect = {
+          id: true,
+          customerName: true,
+          customerAddress: true,
+          customerPhone: true,
+          userEmail: true,
+          activeDate: true,
+          marketing: true,
+          radboox: true,
+          isolationDate: true,
+          reason: true,
+          status: true,
+          restorationDate: true,
+          teknisi: true,
+        }
+
+        const [total, items] = await Promise.all([
+          prisma.isolation.count({ where: legacyWhere }),
+          (prisma as any).isolation.findMany({
+            where: legacyWhere,
+            orderBy: { isolationDate: 'desc' },
+            skip: (page - 1) * limit,
+            take: limit,
+            select: legacySelect,
+          }),
+        ])
+
+        const payload = {
+          items: items.map((item: any) => ({
+            ...item,
+            price: null,
+            ticketDismantle: null,
+            closeNote: null,
+            closePhoto: null,
+            isArchived: false,
+            archivedAt: null,
+            ticketId: null,
+            ticket: null,
+          })),
+          total,
+          page,
+          limit,
+        }
+
+        console.warn('GET /api/isolations fell back to legacy query path', error)
+        return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
+      } catch (legacyError) {
+        console.error('Legacy isolation fallback failed:', legacyError)
+      }
+    }
+
     console.error('Failed to fetch isolations:', error)
     const errorMessage = getIsolationFetchErrorMessage(error)
-    const status = errorMessage === 'Failed to fetch isolations' ? 500 : 503
-    return NextResponse.json({ error: errorMessage }, { status })
+    const httpStatus = errorMessage === 'Failed to fetch isolations' ? 500 : 503
+    return NextResponse.json({ error: errorMessage }, { status: httpStatus })
   }
 }
 
