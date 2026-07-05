@@ -552,7 +552,6 @@ export default async function DivisionPerformancePage({
         avgRestoreRows,
         rawStatusRows,
         rawMarketingRows,
-        rawRadbooxRows,
       ] = await Promise.all([
         prisma.isolation.count({
           where: {
@@ -603,18 +602,34 @@ export default async function DivisionPerformancePage({
           ORDER BY total DESC, label ASC
           LIMIT 10
         `),
-        prisma.$queryRaw<Array<{ label: string; total: number }>>(PrismaSql.sql`
+      ])
+
+      let rawRadbooxRows = await prisma.$queryRaw<Array<{ label: string; total: number }>>(PrismaSql.sql`
+        SELECT
+          TRIM("radboox") AS label,
+          COUNT(*)::int AS total
+        FROM "Isolation"
+        WHERE "status" = 'OPEN'
+          AND NULLIF(TRIM("radboox"), '') IS NOT NULL
+        GROUP BY 1
+        ORDER BY total DESC, label ASC
+        LIMIT 10
+      `)
+
+      if (rawRadbooxRows.length === 0) {
+        rawRadbooxRows = await prisma.$queryRaw<Array<{ label: string; total: number }>>(PrismaSql.sql`
           SELECT
-            COALESCE(NULLIF(TRIM("radboox"), ''), 'UNKNOWN') AS label,
+            TRIM("radboox") AS label,
             COUNT(*)::int AS total
           FROM "Isolation"
-          WHERE "isolationDate" >= ${start}
+          WHERE NULLIF(TRIM("radboox"), '') IS NOT NULL
+            AND "isolationDate" >= ${start}
             AND "isolationDate" < ${end}
           GROUP BY 1
           ORDER BY total DESC, label ASC
           LIMIT 10
-        `),
-      ])
+        `)
+      }
 
       const avgRestoreDays = Number(avgRestoreRows[0]?.avg_days || 0)
       const closeRate = newIsolationCount > 0 ? (restoredCount / newIsolationCount) * 100 : 0
@@ -1333,7 +1348,7 @@ export default async function DivisionPerformancePage({
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800 xl:col-span-2">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Radboox Dominan</h2>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              Perangkat atau identifier yang paling sering muncul pada data isolir periode aktif.
+              Radboox dengan jumlah isolir aktif terbanyak dari data Isolir saat ini.
             </p>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {problemRows.map((row) => (
@@ -1345,6 +1360,11 @@ export default async function DivisionPerformancePage({
                   <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{row.total}</div>
                 </div>
               ))}
+              {problemRows.length === 0 && (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 md:col-span-2 xl:col-span-3">
+                  Belum ada data radboox pada Isolir aktif untuk periode ini.
+                </div>
+              )}
             </div>
           </div>
         </div>
