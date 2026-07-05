@@ -16,6 +16,7 @@ type DivisionSummary = {
   primaryLabel: string
   secondaryValue: number
   secondaryLabel: string
+  extraStats?: Array<{ label: string; value: number }>
   note?: string
 }
 
@@ -1129,6 +1130,22 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
           <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.secondaryValue}</div>
         </div>
       </div>
+
+      {!!division.extraStats?.length && (
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {division.extraStats.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                {item.label}
+              </div>
+              <div className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{item.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {division.note && (
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">

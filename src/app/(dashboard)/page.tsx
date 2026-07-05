@@ -7,6 +7,7 @@ import { ensureDbOptimizations, ensureUserDivisionColumn } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { ensureOdpTable } from '@/lib/odp-init'
+import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,7 @@ type DivisionSummary = {
   primaryLabel: string
   secondaryValue: number
   secondaryLabel: string
+  extraStats?: Array<{ label: string; value: number }>
   note?: string
 }
 
@@ -425,7 +427,7 @@ export default async function DashboardPage({
     }
     const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-    const [marketingActivityTotal, odpTotal, ticketingTotal, isolationClosedCount, creatorContentCount, creatorCampaignCount, creatorLeadCount] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, ticketingTotal, isolationClosedCount, creatorContentCount, creatorCampaignCount, creatorLeadCount, dismantleOpenCount, dismantleHistoryCount] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
         ...(marketingRole
@@ -465,7 +467,34 @@ export default async function DashboardPage({
     (prisma as any).contentCalendar?.count().catch(() => 0),
     (prisma as any).campaign?.count().catch(() => 0),
     (prisma as any).digitalLead?.count().catch(() => 0),
+    (async () => {
+      try {
+        await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT')
+        const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
+          SELECT COUNT(*)::int AS count
+          FROM "Isolation"
+          WHERE "status" = 'OPEN'
+            AND COALESCE(TRIM("ticketDismantle"), '') <> ''
+        `)
+        return Number(rows[0]?.count || 0)
+      } catch {
+        return 0
+      }
+    })(),
+    (async () => {
+      try {
+        await ensureDismantleHistoryTable()
+        const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
+          SELECT COUNT(*)::int AS count
+          FROM "DismantleHistory"
+        `)
+        return Number(rows[0]?.count || 0)
+      } catch {
+        return 0
+      }
+    })(),
   ])
+    const dismantleTotal = dismantleOpenCount + dismantleHistoryCount
 
     const ticketingMonthRecap = await prisma
     .$queryRaw<Array<{ type: string; total: number; open: number; close: number }>>(PrismaSql.sql`
@@ -558,6 +587,11 @@ export default async function DashboardPage({
         primaryLabel: 'Isolir aktif',
         secondaryValue: isolationClosedCount,
         secondaryLabel: 'Riwayat isolir',
+        extraStats: [
+          { label: 'Port ODP', value: odpTotal },
+          { label: 'Isolir', value: isolationCount },
+          { label: 'Dismantle', value: dismantleTotal },
+        ],
       },
       {
         code: 'NOC_TROUBLESHOOTS',
