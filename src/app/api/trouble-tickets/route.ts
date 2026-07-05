@@ -645,6 +645,13 @@ export async function GET(request: Request) {
     const summarySql = `
       SELECT
         COUNT(*) FILTER (WHERE "status" = 'OPEN')::int AS "open",
+        COUNT(*) FILTER (
+          WHERE "status" = 'OPEN'
+            AND (
+              COALESCE(UPPER(TRIM("category")), '') = 'PV'
+              OR COALESCE(UPPER(TRIM("type")), '') = 'PREVENTIVE'
+            )
+        )::int AS "preventiveOpen",
         COUNT(*) FILTER (WHERE "status" = 'CLOSE')::int AS "close",
         COUNT(*) FILTER (
           WHERE "status" = 'OPEN'
@@ -654,8 +661,8 @@ export async function GET(request: Request) {
       LEFT JOIN "TroubleTicketSla" s ON s."type" = "TroubleTicket"."type"
       ${summaryWhereSql};
     `
-    const summaryRows = await prisma.$queryRawUnsafe<Array<{ open: number; close: number; overdue: number }>>(summarySql, ...baseParams).catch(() => [])
-    const summary = summaryRows[0] ?? { open: 0, close: 0, overdue: 0 }
+    const summaryRows = await prisma.$queryRawUnsafe<Array<{ open: number; preventiveOpen: number; close: number; overdue: number }>>(summarySql, ...baseParams).catch(() => [])
+    const summary = summaryRows[0] ?? { open: 0, preventiveOpen: 0, close: 0, overdue: 0 }
 
     return NextResponse.json(
       { items, total, page, limit: pageSize, summary, repeatedUsers },

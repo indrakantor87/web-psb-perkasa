@@ -321,7 +321,12 @@ export function TroubleTicketView({
   const [pageSize, setPageSize] = useState(25)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const [summaryRemote, setSummaryRemote] = useState<{ open: number; close: number; overdue: number }>({ open: 0, close: 0, overdue: 0 })
+  const [summaryRemote, setSummaryRemote] = useState<{ open: number; preventiveOpen: number; close: number; overdue: number }>({
+    open: 0,
+    preventiveOpen: 0,
+    close: 0,
+    overdue: 0,
+  })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -487,9 +492,10 @@ export function TroubleTicketView({
       if (!isTroubleshoots) {
         const t = Math.trunc(Number((data as { total?: unknown }).total))
         setTotal(Number.isFinite(t) && t >= 0 ? t : 0)
-        const s = (data as { summary?: { open?: unknown; close?: unknown; overdue?: unknown } }).summary
+        const s = (data as { summary?: { open?: unknown; preventiveOpen?: unknown; close?: unknown; overdue?: unknown } }).summary
         setSummaryRemote({
           open: Math.trunc(Number(s?.open ?? 0)) || 0,
+          preventiveOpen: Math.trunc(Number(s?.preventiveOpen ?? 0)) || 0,
           close: Math.trunc(Number(s?.close ?? 0)) || 0,
           overdue: Math.trunc(Number(s?.overdue ?? 0)) || 0,
         })
@@ -617,13 +623,18 @@ export function TroubleTicketView({
   const summary = useMemo(() => {
     if (!isTroubleshoots) return summaryRemote
     let open = 0
+    let preventiveOpen = 0
     let close = 0
     let overdue = 0
     for (const r of rows) {
       const st = (r.status || '').toUpperCase()
       const isClose = st === 'CLOSE' || !!r.closedAt
+      const isPreventive = normalizeCategory(r.category) === 'PV' || normalizeTypeKey(r.type) === 'PREVENTIVE'
       if (isClose) close += 1
-      else open += 1
+      else {
+        open += 1
+        if (isPreventive) preventiveOpen += 1
+      }
 
       if (!isClose) {
         const t = new Date(r.openedAt).getTime()
@@ -633,8 +644,10 @@ export function TroubleTicketView({
         if (Number.isFinite(t) && now - t > limitMs) overdue += 1
       }
     }
-    return { open, close, overdue }
+    return { open, preventiveOpen, close, overdue }
   }, [isTroubleshoots, rows, now, slaDays, summaryRemote])
+
+  const repeatedTicketCount = useMemo(() => repeatedUserSet.size, [repeatedUserSet])
 
   const pageStart = !isTroubleshoots && total > 0 ? (page - 1) * pageSize + 1 : 0
   const pageEnd = !isTroubleshoots && total > 0 ? Math.min((page - 1) * pageSize + rows.length, total) : 0
@@ -1143,13 +1156,21 @@ export function TroubleTicketView({
   return (
     <div className="space-y-4 overflow-x-hidden">
       {!isTroubleshoots && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
           <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center dark:border-red-800 dark:bg-red-950">
             <div className="flex flex-col items-center justify-center leading-tight">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300 md:hidden">Open</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-300 md:hidden">Trouble Open</span>
               <span className="text-base font-semibold text-red-800 dark:text-red-200 md:hidden">{summary.open}</span>
-              <span className="hidden text-xs font-medium text-red-700 dark:text-red-300 md:inline">Open</span>
+              <span className="hidden text-xs font-medium text-red-700 dark:text-red-300 md:inline">Trouble Open</span>
               <span className="hidden text-lg font-semibold text-red-800 dark:text-red-200 md:inline">{summary.open}</span>
+            </div>
+          </div>
+          <div className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-center dark:border-sky-800 dark:bg-sky-950">
+            <div className="flex flex-col items-center justify-center leading-tight">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 md:hidden">Preventive Open</span>
+              <span className="text-base font-semibold text-sky-800 dark:text-sky-200 md:hidden">{summary.preventiveOpen}</span>
+              <span className="hidden text-xs font-medium text-sky-700 dark:text-sky-300 md:inline">Preventive Open</span>
+              <span className="hidden text-lg font-semibold text-sky-800 dark:text-sky-200 md:inline">{summary.preventiveOpen}</span>
             </div>
           </div>
           <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-center dark:border-green-800 dark:bg-green-950">
@@ -1166,6 +1187,14 @@ export function TroubleTicketView({
               <span className="text-base font-semibold text-orange-800 dark:text-orange-200 md:hidden">{summary.overdue}</span>
               <span className="hidden text-xs font-medium text-orange-700 dark:text-orange-300 md:inline">Overdue</span>
               <span className="hidden text-lg font-semibold text-orange-800 dark:text-orange-200 md:inline">{summary.overdue}</span>
+            </div>
+          </div>
+          <div className="rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-center dark:border-violet-800 dark:bg-violet-950">
+            <div className="flex flex-col items-center justify-center leading-tight">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300 md:hidden">Ticket Berulang</span>
+              <span className="text-base font-semibold text-violet-800 dark:text-violet-200 md:hidden">{repeatedTicketCount}</span>
+              <span className="hidden text-xs font-medium text-violet-700 dark:text-violet-300 md:inline">Ticket Berulang</span>
+              <span className="hidden text-lg font-semibold text-violet-800 dark:text-violet-200 md:inline">{repeatedTicketCount}</span>
             </div>
           </div>
         </div>
