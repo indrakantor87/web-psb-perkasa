@@ -1098,6 +1098,27 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
     },
   }[division.code]
 
+  const statCards = division.extraStats?.length
+    ? division.extraStats.map((item) => ({
+        label: item.label,
+        value: item.value,
+      }))
+    : [
+        {
+          label: 'Member',
+          value: division.members,
+          icon: <Users className="h-4 w-4" />,
+        },
+        {
+          label: division.primaryLabel,
+          value: division.primaryValue,
+        },
+        {
+          label: division.secondaryLabel,
+          value: division.secondaryValue,
+        },
+      ]
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
       <div className="flex items-start justify-between gap-3">
@@ -1114,38 +1135,19 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            <Users className="h-4 w-4" />
-            Member
-          </div>
-          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.members}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.primaryLabel}</div>
-          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.primaryValue}</div>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900">
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{division.secondaryLabel}</div>
-          <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{division.secondaryValue}</div>
-        </div>
-      </div>
-
-      {!!division.extraStats?.length && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {division.extraStats.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-800"
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                {item.label}
-              </div>
-              <div className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{item.value}</div>
+        {statCards.map((item) => (
+          <div
+            key={item.label}
+            className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900"
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              {item.icon}
+              {item.label}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{item.value}</div>
+          </div>
+        ))}
+      </div>
 
       {division.note && (
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">

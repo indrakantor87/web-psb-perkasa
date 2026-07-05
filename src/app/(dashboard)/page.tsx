@@ -589,8 +589,8 @@ export default async function DashboardPage({
         secondaryLabel: 'Riwayat isolir',
         extraStats: [
           { label: 'Port ODP', value: odpTotal },
-          { label: 'Isolir', value: isolationCount },
-          { label: 'Dismantle', value: dismantleTotal },
+          { label: 'Total Isolir', value: isolationCount },
+          { label: 'Total Dismantle', value: dismantleTotal },
         ],
       },
       {
