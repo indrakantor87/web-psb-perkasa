@@ -327,6 +327,7 @@ export function TroubleTicketView({
     close: 0,
     overdue: 0,
   })
+  const [repeatedCountRemote, setRepeatedCountRemote] = useState(0)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -483,8 +484,10 @@ export function TroubleTicketView({
       if (!isTroubleshoots) {
         const dupe = (data as { repeatedUsers?: unknown }).repeatedUsers
         setRepeatedUsers(Array.isArray(dupe) ? dupe.map((v) => String(v ?? '').trim()).filter(Boolean) : [])
+        setRepeatedCountRemote(Math.trunc(Number((data as { repeatedCount?: unknown }).repeatedCount ?? 0)) || 0)
       } else {
         setRepeatedUsers([])
+        setRepeatedCountRemote(0)
       }
       const nextRows = (isTroubleshoots
         ? (Array.isArray(data) ? data : [])
@@ -647,7 +650,27 @@ export function TroubleTicketView({
     return { open, preventiveOpen, close, overdue }
   }, [isTroubleshoots, rows, now, slaDays, summaryRemote])
 
-  const repeatedTicketCount = useMemo(() => repeatedUserSet.size, [repeatedUserSet])
+  const repeatedTicketCount = useMemo(() => {
+    if (!isTroubleshoots) return repeatedCountRemote
+
+    const repeatedKeys = new Set(
+      Array.from(repeatedUserSet).filter(Boolean)
+    )
+
+    let totalRepeatedTickets = 0
+    for (const row of rows) {
+      const userKey = String(row.user ?? '').trim().toLowerCase()
+      if (!userKey || !repeatedKeys.has(userKey)) continue
+
+      const categoryKey = normalizeCategory(row.category)
+      const typeKey = normalizeTypeKey(row.type)
+      if (categoryKey === 'PV' || typeKey === 'PREVENTIVE') continue
+
+      totalRepeatedTickets += 1
+    }
+
+    return totalRepeatedTickets
+  }, [isTroubleshoots, repeatedCountRemote, repeatedUserSet, rows])
 
   const pageStart = !isTroubleshoots && total > 0 ? (page - 1) * pageSize + 1 : 0
   const pageEnd = !isTroubleshoots && total > 0 ? Math.min((page - 1) * pageSize + rows.length, total) : 0

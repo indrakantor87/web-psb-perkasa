@@ -707,11 +707,24 @@ export async function GET(request: Request) {
     const repeatedUsers = Array.from(repeatedUserCounts.entries())
       .filter(([, count]) => count > 1)
       .map(([userKey]) => userKey)
+    const repeatedUserSet = new Set(repeatedUsers)
+
+    let repeatedCount = 0
+    for (const row of summarySourceRows) {
+      const userKey = String(row.user ?? '').trim().toLowerCase()
+      if (!userKey || !repeatedUserSet.has(userKey)) continue
+
+      const categoryKey = String(row.category ?? '').trim().toUpperCase()
+      const typeKey = normalizeTypeKey(row.type)
+      if (categoryKey === 'PV' || typeKey === 'PREVENTIVE') continue
+
+      repeatedCount += 1
+    }
 
     const summary = { open, preventiveOpen, close, overdue }
 
     return NextResponse.json(
-      { items, total, page, limit: pageSize, summary, repeatedUsers },
+      { items, total, page, limit: pageSize, summary, repeatedUsers, repeatedCount },
       { headers: { 'Cache-Control': 'no-store' } }
     )
   } catch (e: unknown) {
