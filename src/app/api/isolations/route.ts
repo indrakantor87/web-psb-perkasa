@@ -128,6 +128,37 @@ function buildSmartDismantleRows(items: any[]) {
   })
 }
 
+function normalizePriceValue(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string') {
+    const cleaned = value.trim().replace(/[^\d.,-]/g, '')
+    if (!cleaned) return null
+    const hasComma = cleaned.includes(',')
+    const normalized = hasComma ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\./g, '')
+    const num = parseFloat(normalized)
+    return Number.isFinite(num) ? num : null
+  }
+  if (typeof value === 'object' && typeof (value as { toString?: unknown }).toString === 'function') {
+    try {
+      return normalizePriceValue(String(value))
+    } catch {}
+  }
+  return null
+}
+
+function normalizeSortIndexValue(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : null
+  if (typeof value === 'string') {
+    const s = value.trim()
+    if (!s) return null
+    const n = parseInt(s, 10)
+    return Number.isFinite(n) ? Math.trunc(n) : null
+  }
+  return null
+}
+
 function buildLegacyIsolationWhere(params: {
   search: string | null
   radboox: string | null
@@ -483,10 +514,16 @@ export async function GET(request: Request) {
         )
       : isolationsRaw
 
-    const total = filteredIsolations.length
+    const normalizedIsolations = filteredIsolations.map((row: any) => ({
+      ...row,
+      price: normalizePriceValue(row?.price),
+      sortIndex: normalizeSortIndexValue(row?.sortIndex),
+    }))
+
+    const total = normalizedIsolations.length
     const isolations = exportAll
-      ? filteredIsolations
-      : filteredIsolations.slice((page - 1) * limit, page * limit)
+      ? normalizedIsolations
+      : normalizedIsolations.slice((page - 1) * limit, page * limit)
 
     const payload = {
       items: isolations,
