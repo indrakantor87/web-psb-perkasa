@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
-import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
+import { Search, Plus, X, Edit3, Trash2, Upload, Download, ArrowUpDown } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
 import {
@@ -83,6 +83,11 @@ export function IsolationView({
   const [error, setError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [reorderOpen, setReorderOpen] = useState(false)
+  const [reorderText, setReorderText] = useState('')
+  const [reorderAppendUnlisted, setReorderAppendUnlisted] = useState(true)
+  const [reorderMode, setReorderMode] = useState<'AUTO' | 'EMAIL' | 'PHONE'>('AUTO')
+  const [isReordering, setIsReordering] = useState(false)
 
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
@@ -407,6 +412,57 @@ export function IsolationView({
     }
   }
 
+  const handleSyncOrder = async () => {
+    if (!canMutate) return
+    if (radbooxFilter === 'ALL') {
+      alert('Pilih Radboox terlebih dahulu agar urutan bisa disinkronkan.')
+      return
+    }
+    const lines = reorderText.trim()
+    if (!lines) {
+      alert('Daftar urutan masih kosong.')
+      return
+    }
+
+    try {
+      setIsReordering(true)
+      const res = await fetch('/api/isolations/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          radboox: radbooxFilter,
+          lines,
+          mode: reorderMode,
+          appendUnlisted: reorderAppendUnlisted,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        updated?: number
+        appended?: number
+        missingCount?: number
+        missing?: string[]
+      }
+      if (!res.ok) {
+        alert(data.error || 'Gagal sync urutan')
+        return
+      }
+      const missingPreview =
+        Array.isArray(data.missing) && data.missing.length > 0
+          ? `\n\nTidak ditemukan (${data.missingCount}):\n${data.missing.join('\n')}`
+          : ''
+      alert(`Urutan tersimpan. Update: ${data.updated ?? 0}, Tambahan: ${data.appended ?? 0}${missingPreview}`)
+      setReorderOpen(false)
+      setReorderText('')
+      await fetchIsolations()
+    } catch (e) {
+      console.error(e)
+      alert('Gagal sync urutan')
+    } finally {
+      setIsReordering(false)
+    }
+  }
+
   const suspendLabel = (isoDate?: string | null) => {
     return formatSuspendDuration(isoDate)
   }
@@ -493,6 +549,19 @@ export function IsolationView({
                 {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                if (!canMutate) return
+                setReorderOpen(true)
+              }}
+              disabled={!canMutate}
+              className="w-full flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-60 sm:w-auto"
+              title="Paste urutan dari Radboox"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              Sync Urutan
+            </button>
             <button
               onClick={() => {
                 if (!canMutate) return
@@ -965,6 +1034,82 @@ export function IsolationView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {reorderOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 p-4">
+          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sync Urutan Radboox</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Paste daftar dari Radboox (boleh hasil copy tabel). Sistem akan ambil email/no HP dari tiap baris dan mengisi Urutan 10,20,30...
+                </p>
+              </div>
+              <button onClick={() => setReorderOpen(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Radboox</label>
+                  <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                    {radbooxFilter === 'ALL' ? '-' : radbooxFilter}
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Mode</label>
+                  <select
+                    value={reorderMode}
+                    onChange={(e) => setReorderMode(e.target.value as 'AUTO' | 'EMAIL' | 'PHONE')}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="AUTO">Auto (Email/No HP)</option>
+                    <option value="EMAIL">Email saja</option>
+                    <option value="PHONE">No HP saja</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Daftar Urutan</label>
+                <textarea
+                  rows={10}
+                  value={reorderText}
+                  onChange={(e) => setReorderText(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="Contoh:\nama240384@perkasa.net.id\n62859xxxxxxx\natau paste hasil copy tabel Radboox..."
+                />
+              </div>
+              <label className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={reorderAppendUnlisted}
+                  onChange={(e) => setReorderAppendUnlisted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                />
+                <span>Taruh data lain (yang tidak ada di daftar) setelah urutan ini.</span>
+              </label>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReorderOpen(false)}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSyncOrder}
+                  disabled={!canMutate || isReordering}
+                  className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                >
+                  {isReordering ? 'Menyimpan...' : 'Simpan Urutan'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
