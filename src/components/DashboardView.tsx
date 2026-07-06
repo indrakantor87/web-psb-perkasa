@@ -6,6 +6,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { getDivisionFromRole } from '@/lib/access'
 
 type DivisionSummary = {
   code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -75,7 +76,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
   const isAdmin = userRole === 'ADMIN'
-  const focusedDivision = isAdmin ? selectedDivision : 'ALL'
+  const roleDivision = getDivisionFromRole(userRole)
+  const focusedDivision = isAdmin ? selectedDivision : roleDivision
 
   const defaultMonthShort = useMemo(() => ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], [])
 
@@ -198,13 +200,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   }
 
   const visibleDivisionSummary = useMemo(() => {
-    if (!isAdmin || focusedDivision === 'ALL') return divisionSummary
+    if (focusedDivision === 'ALL') return divisionSummary
     return divisionSummary.filter((division) => division.code === focusedDivision)
-  }, [divisionSummary, focusedDivision, isAdmin])
+  }, [divisionSummary, focusedDivision])
 
-  const showSalesFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
-  const showTicketingFocus = !isAdmin || focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
-  const showCreatorFocus = isAdmin && focusedDivision === 'CREATOR_DIGITAL'
+  const showSalesFocus = focusedDivision === 'ALL' || focusedDivision === 'PENJUALAN'
+  const showTicketingFocus = focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
+  const showCreatorFocus = focusedDivision === 'CREATOR_DIGITAL'
 
   return (
     <div className="space-y-6 pb-10">
@@ -280,15 +282,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       </div>
 
-      {isAdmin && visibleDivisionSummary.length > 0 && (
+      {visibleDivisionSummary.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">Performa Divisi</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {focusedDivision === 'ALL'
+                {isAdmin && focusedDivision === 'ALL'
                   ? 'Ringkasan per divisi dari data yang sudah aktif'
-                  : 'Tampilan disesuaikan dengan divisi yang dipilih'}
+                  : 'Ringkasan disesuaikan dengan divisi akun yang sedang aktif'}
               </p>
             </div>
           </div>

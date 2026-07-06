@@ -142,21 +142,9 @@ export async function POST(
     }
     const joinedResolution = resolutionActions.join(' + ')
     const rawFiles = formData.getAll('photos')
-    const files: File[] = []
-    for (const entry of rawFiles) {
-      if (typeof entry === 'string') continue
-      const maybe = entry as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; name?: unknown; type?: unknown; size?: unknown }
-      if (typeof maybe.arrayBuffer !== 'function') continue
-      const buf = await maybe.arrayBuffer()
-      const name = typeof maybe.name === 'string' && maybe.name.trim() ? maybe.name.trim() : 'photo.jpg'
-      const type = typeof maybe.type === 'string' && maybe.type.trim() ? maybe.type.trim() : 'application/octet-stream'
-      const f = new File([buf], name, { type })
-      const size = Number(maybe.size ?? f.size)
-      if (Number.isFinite(size) && size !== f.size) {
-        Object.defineProperty(f, 'size', { value: size })
-      }
-      files.push(f)
-    }
+    const files = rawFiles.filter((entry): entry is File => {
+      return typeof entry !== 'string' && typeof (entry as File).arrayBuffer === 'function'
+    })
     const normalized = normalizePhotos(files)
     if (resolutionActions.length === 0) return NextResponse.json({ error: 'Tindakan wajib dipilih minimal 1' }, { status: 400 })
     if (!closeNotes) return NextResponse.json({ error: 'Penanganan wajib diisi' }, { status: 400 })

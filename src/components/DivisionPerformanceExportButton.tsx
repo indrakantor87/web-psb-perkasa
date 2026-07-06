@@ -1,6 +1,6 @@
 'use client'
 
-import * as XLSX from 'xlsx'
+import { useState } from 'react'
 import { Download } from 'lucide-react'
 
 type ExportCell = string | number | null
@@ -17,8 +17,13 @@ export function DivisionPerformanceExportButton({
   fileName: string
   sheets: ExportSheet[]
 }) {
-  const handleExport = () => {
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    if (exporting) return
+    setExporting(true)
     try {
+      const XLSX = await import('xlsx')
       const workbook = XLSX.utils.book_new()
 
       for (const sheet of sheets) {
@@ -32,6 +37,8 @@ export function DivisionPerformanceExportButton({
       XLSX.writeFile(workbook, fileName)
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Gagal export Excel')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -39,10 +46,11 @@ export function DivisionPerformanceExportButton({
     <button
       type="button"
       onClick={handleExport}
+      disabled={exporting}
       className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
     >
       <Download className="h-4 w-4" />
-      Export Excel
+      {exporting ? 'Menyiapkan Export...' : 'Export Excel'}
     </button>
   )
 }

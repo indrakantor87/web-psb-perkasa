@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { canMutateIsolationRecords } from '@/lib/access'
+import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -70,12 +71,7 @@ export async function POST(request: Request) {
   }
   
   try {
-    try {
-      await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT')
-    } catch {}
-    try {
-      await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)')
-    } catch {}
+    await ensureIsolationColumnsOnce()
 
     const XLSX = await import('xlsx')
     const formData = await request.formData()

@@ -132,6 +132,24 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   const [actionQuery, setActionQuery] = useState('')
   const [files, setFiles] = useState<File[]>([])
 
+  const filePreviews = useMemo(
+    () =>
+      files.map((file, index) => ({
+        key: `${file.name}-${index}-${file.lastModified}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+      })),
+    [files]
+  )
+
+  useEffect(() => {
+    return () => {
+      for (const preview of filePreviews) {
+        URL.revokeObjectURL(preview.url)
+      }
+    }
+  }, [filePreviews])
+
   useEffect(() => {
     const controller = new AbortController()
     ;(async () => {
@@ -214,10 +232,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
 
     setSaving(true)
     try {
-      const compressed: File[] = []
-      for (const f of incoming) {
-        compressed.push(await compressImage(f))
-      }
+      const compressed = await Promise.all(incoming.map((f) => compressImage(f)))
       setFiles((prev) => [...prev, ...compressed].slice(0, 10))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e))
@@ -387,18 +402,16 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
           />
           {files.length > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              {files.map((f, idx) => {
-                const url = URL.createObjectURL(f)
+              {filePreviews.map((preview, idx) => {
                 return (
-                  <div key={`${f.name}-${idx}`} className="rounded-md bg-gray-900 border border-gray-800 overflow-hidden">
+                  <div key={preview.key} className="rounded-md bg-gray-900 border border-gray-800 overflow-hidden">
                     <NextImage
-                      src={url}
-                      alt={f.name}
+                      src={preview.url}
+                      alt={preview.name}
                       width={400}
                       height={200}
                       unoptimized
                       className="h-24 w-full object-cover"
-                      onLoad={() => URL.revokeObjectURL(url)}
                     />
                     <button
                       type="button"

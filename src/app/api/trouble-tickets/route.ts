@@ -11,6 +11,7 @@ export const runtime = 'nodejs'
 let ensuredPromise: Promise<void> | null = null
 let ensuredSlaPromise: Promise<void> | null = null
 let ensuredTempColumnPromise: Promise<void> | null = null
+let ensuredPeriodBackfillPromise: Promise<void> | null = null
 
 async function ensureTemporaryColumn() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
@@ -24,6 +25,28 @@ async function ensureTemporaryColumnOnce() {
     })
   }
   await ensuredTempColumnPromise
+}
+
+async function backfillTicketPeriods() {
+  await prisma.$executeRawUnsafe(
+    `UPDATE "TroubleTicket"
+     SET "periodMonth" = EXTRACT(MONTH FROM "openedAt")::int,
+         "periodYear" = EXTRACT(YEAR FROM "openedAt")::int
+     WHERE "periodMonth" != EXTRACT(MONTH FROM "openedAt")::int
+        OR "periodYear" != EXTRACT(YEAR FROM "openedAt")::int
+        OR "periodYear" IS NULL
+        OR "periodMonth" IS NULL;`
+  )
+}
+
+async function ensureTicketPeriodsBackfilledOnce() {
+  if (!ensuredPeriodBackfillPromise) {
+    ensuredPeriodBackfillPromise = backfillTicketPeriods().catch((e) => {
+      ensuredPeriodBackfillPromise = null
+      throw e
+    })
+  }
+  await ensuredPeriodBackfillPromise
 }
 
 async function listPushTokensForRoles(roles: string[]) {
@@ -453,18 +476,7 @@ export async function GET(request: Request) {
       : 'ALL'
 
   if (roleUpper !== 'TROUBLESHOOTS') {
-    try {
-      // Perbaiki SEMUA ticket (OPEN & CLOSE) agar periodMonth/periodYear sesuai dengan tanggal openedAt
-      await prisma.$executeRawUnsafe(
-        `UPDATE "TroubleTicket"
-         SET "periodMonth" = EXTRACT(MONTH FROM "openedAt")::int,
-             "periodYear" = EXTRACT(YEAR FROM "openedAt")::int
-         WHERE "periodMonth" != EXTRACT(MONTH FROM "openedAt")::int
-            OR "periodYear" != EXTRACT(YEAR FROM "openedAt")::int
-            OR "periodYear" IS NULL
-            OR "periodMonth" IS NULL;`
-      )
-    } catch {}
+    await ensureTicketPeriodsBackfilledOnce().catch(() => {})
   }
 
   try {

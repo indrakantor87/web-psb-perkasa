@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { isDismantleEligible } from '@/lib/isolation-suspend'
 import { normalizeMarketingName } from '@/lib/marketing-users'
+import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import {
   canAccessMenu,
   canDeleteIsolationRecords,
@@ -23,16 +24,6 @@ function getIsolationFetchErrorMessage(error: unknown) {
   }
 
   return 'Failed to fetch isolations'
-}
-
-async function ensureIsolationColumns() {
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
-  await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
 }
 
 function hasDismantleHistory(item: {
@@ -207,7 +198,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await ensureIsolationColumns()
+  await ensureIsolationColumnsOnce()
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
@@ -550,7 +541,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await ensureIsolationColumns()
+  await ensureIsolationColumnsOnce()
 
   const isMissingPriceColumn = (e: unknown) => {
     if (typeof e !== 'object' || !e) return false
@@ -615,7 +606,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
-    await ensureIsolationColumns()
+    await ensureIsolationColumnsOnce()
     const body = (await request.json().catch(() => ({}))) as { ids?: unknown; preserveDismantleHistory?: unknown }
     const idsRaw = body?.ids
     const preserveDismantleHistory = body?.preserveDismantleHistory === true

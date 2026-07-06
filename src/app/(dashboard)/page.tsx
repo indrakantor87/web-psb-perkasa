@@ -9,6 +9,8 @@ import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
+import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
+import { getDivisionFromRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,15 +170,18 @@ export default async function DashboardPage({
   const monthParam = resolvedSearchParams.month
   const yearParam = resolvedSearchParams.year
   const divisionParam = resolvedSearchParams.division
+  const roleDivision = getDivisionFromRole(session.user.role) as DivisionFilter
 
   const now = jakartaNow()
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
   const selectedDivision: DivisionFilter =
-    typeof divisionParam === 'string' &&
-    ['PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
-      ? (divisionParam as DivisionSummary['code'])
-      : 'ALL'
+    session.user.role === 'ADMIN'
+      ? typeof divisionParam === 'string' &&
+        ['PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
+        ? (divisionParam as DivisionSummary['code'])
+        : 'ALL'
+      : roleDivision
 
   const cacheKey = `dashboard:${JSON.stringify({
     role: session.user.role,
@@ -533,7 +538,7 @@ export default async function DashboardPage({
     (prisma as any).digitalLead?.count().catch(() => 0),
     (async () => {
       try {
-        await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT')
+        await ensureIsolationColumnsOnce()
         const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
           SELECT COUNT(*)::int AS count
           FROM "Isolation"

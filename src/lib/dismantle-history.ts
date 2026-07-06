@@ -1,5 +1,11 @@
 import { prisma } from '@/lib/prisma'
 
+type GlobalState = {
+  __ensureDismantleHistoryTablePromise?: Promise<void>
+}
+
+const g = globalThis as unknown as GlobalState
+
 export type DismantleHistoryListParams = {
   search?: string | null
   radboox?: string | null
@@ -30,51 +36,60 @@ export type DismantleHistoryRow = {
 }
 
 export async function ensureDismantleHistoryTable() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "DismantleHistory" (
-      "id" SERIAL PRIMARY KEY,
-      "sourceIsolationId" INTEGER,
-      "customerName" TEXT NOT NULL,
-      "customerAddress" TEXT,
-      "customerPhone" TEXT,
-      "userEmail" TEXT,
-      "marketing" TEXT,
-      "radboox" TEXT,
-      "isolationDate" TIMESTAMP(3),
-      "reason" TEXT,
-      "ticketDismantle" TEXT,
-      "ticketId" INTEGER,
-      "ticketLocationMap" TEXT,
-      "ticketDescription" TEXT,
-      "closeNote" TEXT,
-      "closePhoto" TEXT,
-      "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "closedBy" TEXT,
-      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "sourceIsolationId" INTEGER`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerAddress" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerPhone" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "userEmail" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "marketing" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "radboox" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "isolationDate" TIMESTAMP(3)`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "reason" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketId" INTEGER`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketLocationMap" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDescription" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closeNote" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3)`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedBy" TEXT`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
-  await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_closedAt_idx" ON "DismantleHistory" ("closedAt")`).catch(() => {})
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_sourceIsolationId_idx" ON "DismantleHistory" ("sourceIsolationId")`).catch(() => {})
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_ticketDismantle_idx" ON "DismantleHistory" ("ticketDismantle")`).catch(() => {})
+  if (!g.__ensureDismantleHistoryTablePromise) {
+    g.__ensureDismantleHistoryTablePromise = (async () => {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "DismantleHistory" (
+          "id" SERIAL PRIMARY KEY,
+          "sourceIsolationId" INTEGER,
+          "customerName" TEXT NOT NULL,
+          "customerAddress" TEXT,
+          "customerPhone" TEXT,
+          "userEmail" TEXT,
+          "marketing" TEXT,
+          "radboox" TEXT,
+          "isolationDate" TIMESTAMP(3),
+          "reason" TEXT,
+          "ticketDismantle" TEXT,
+          "ticketId" INTEGER,
+          "ticketLocationMap" TEXT,
+          "ticketDescription" TEXT,
+          "closeNote" TEXT,
+          "closePhoto" TEXT,
+          "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "closedBy" TEXT,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `)
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "sourceIsolationId" INTEGER`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerAddress" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "customerPhone" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "userEmail" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "marketing" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "radboox" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "isolationDate" TIMESTAMP(3)`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "reason" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketId" INTEGER`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketLocationMap" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDescription" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closeNote" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3)`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedBy" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_closedAt_idx" ON "DismantleHistory" ("closedAt")`).catch(() => {})
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_sourceIsolationId_idx" ON "DismantleHistory" ("sourceIsolationId")`).catch(() => {})
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleHistory_ticketDismantle_idx" ON "DismantleHistory" ("ticketDismantle")`).catch(() => {})
+    })().catch((error) => {
+      g.__ensureDismantleHistoryTablePromise = undefined
+      throw error
+    })
+  }
+
+  await g.__ensureDismantleHistoryTablePromise
 }
 
 export function mapDismantleHistoryRow(row: DismantleHistoryRow) {

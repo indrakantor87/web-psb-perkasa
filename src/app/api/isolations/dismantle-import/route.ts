@@ -4,15 +4,9 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { canMutateMenu } from '@/lib/access'
+import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 
 export const runtime = 'nodejs'
-
-async function ensureIsolationColumns() {
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "price" DECIMAL(15,2)').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
-}
 
 function isMissingColumnError(e: unknown, column: string) {
   if (typeof e !== 'object' || !e) return false
@@ -207,7 +201,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await ensureIsolationColumns()
+    await ensureIsolationColumnsOnce()
     const XLSX = await import('xlsx')
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -283,7 +277,7 @@ export async function POST(request: Request) {
             await prisma.isolation.create({ data: createData })
           } catch (e) {
             if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price')) {
-              await ensureIsolationColumns()
+              await ensureIsolationColumnsOnce()
               await prisma.isolation.create({ data: createData })
             } else {
               throw e

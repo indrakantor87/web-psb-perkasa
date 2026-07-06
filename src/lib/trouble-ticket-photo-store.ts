@@ -59,8 +59,7 @@ export async function saveTicketPhotos(ticketId: number, files: File[]) {
   const ticketDir = path.join(baseDir, String(ticketId))
   await mkdir(ticketDir, { recursive: true })
 
-  const ids: number[] = []
-  for (const f of files) {
+  const ids = await Promise.all(files.map(async (f) => {
     const mimeType = String(f.type || 'application/octet-stream')
     const ext = extFromMime(mimeType)
     const name = `${Date.now()}-${randomUUID()}.${ext}`
@@ -80,10 +79,10 @@ export async function saveTicketPhotos(ticketId: number, files: File[]) {
       buf.length,
       rel
     )
-    const id = rows[0]?.id
-    if (id) ids.push(id)
-  }
-  return ids
+    return rows[0]?.id ?? null
+  }))
+
+  return ids.filter((id): id is number => Number.isFinite(id))
 }
 
 export async function listTicketPhotoIds(ticketId: number) {

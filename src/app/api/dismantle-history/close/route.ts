@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { canMutateMenu } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
+import { prisma } from '@/lib/prisma'
+import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 
 export const runtime = 'nodejs'
-
-async function ensureIsolationColumns() {
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "ticketDismantle" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closeNote" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "isArchived" BOOLEAN DEFAULT FALSE').catch(() => {})
-  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
-  await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
-}
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -23,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await ensureIsolationColumns()
+  await ensureIsolationColumnsOnce()
   await ensureDismantleHistoryTable()
 
   try {
