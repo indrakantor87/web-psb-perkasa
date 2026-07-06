@@ -301,7 +301,6 @@ export function IsolationView({
   const openEdit = (item: Isolation) => {
     setEditId(item.id)
     const suspendParts = getSuspendParts(item.isolationDate)
-    const priceValue = toPriceNumber((item as any).price)
     setFormData({
       customerName: item.customerName || '',
       customerAddress: item.customerAddress || '',
@@ -313,7 +312,7 @@ export function IsolationView({
       sortIndex: typeof item.sortIndex === 'number' ? String(item.sortIndex) : '',
       suspendMonths: suspendParts.months,
       suspendDays: suspendParts.days,
-      price: priceValue == null ? '' : String(priceValue),
+      price: typeof item.price === 'number' ? String(item.price) : '',
       reason: item.reason || '',
     })
     setIsModalOpen(true)
@@ -452,12 +451,7 @@ export function IsolationView({
         'Radboox': it.radboox || '-',
         'Urutan': typeof it.sortIndex === 'number' ? it.sortIndex : '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
-        'Harga': (() => {
-          const priceValue = toPriceNumber((it as any).price)
-          return priceValue == null
-            ? '-'
-            : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(priceValue)
-        })(),
+        'Harga': typeof it.price === 'number' ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
         'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
       }))
@@ -769,12 +763,9 @@ export function IsolationView({
                       {suspendLabel(item.isolationDate)}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {(() => {
-                        const priceValue = toPriceNumber((item as any).price)
-                        return priceValue == null
-                          ? '-'
-                          : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(priceValue)
-                      })()}
+                      {typeof item.price === 'number'
+                        ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price)
+                        : '-'}
                     </td>
                     <td
                       className={clsx(
@@ -869,12 +860,9 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
-                            {(() => {
-                              const priceValue = toPriceNumber((item as any).price)
-                              return priceValue == null
-                                ? '-'
-                                : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(priceValue)
-                            })()}
+                            {typeof item.price === 'number'
+                              ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price)
+                              : '-'}
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
