@@ -209,7 +209,6 @@ export async function POST(request: Request) {
           reason,
           marketing,
           radboox,
-          sortIndex: (idx + 1) * 10,
           price,
           status: isClosedFromStatus || restorationDate ? 'CLOSED' : 'OPEN',
           isolationDate,

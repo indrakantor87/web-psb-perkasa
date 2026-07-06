@@ -113,14 +113,6 @@ function buildSmartDismantleRows(items: any[]) {
   }
 
   return [...map.values(), ...passthrough].sort((a, b) => {
-    const aRad = String(a?.radboox ?? '').trim().toLowerCase()
-    const bRad = String(b?.radboox ?? '').trim().toLowerCase()
-    if (aRad !== bRad) return aRad.localeCompare(bRad, 'id')
-
-    const aSort = typeof a?.sortIndex === 'number' ? a.sortIndex : Number.POSITIVE_INFINITY
-    const bSort = typeof b?.sortIndex === 'number' ? b.sortIndex : Number.POSITIVE_INFINITY
-    if (Number.isFinite(aSort) && Number.isFinite(bSort) && aSort !== bSort) return aSort - bSort
-
     const aTime = new Date(String(a.isolationDate ?? '')).getTime()
     const bTime = new Date(String(b.isolationDate ?? '')).getTime()
     if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) return bTime - aTime
@@ -336,7 +328,6 @@ export async function GET(request: Request) {
       activeDate: true,
       marketing: true,
       radboox: true,
-      sortIndex: true,
       price: true,
       isolationDate: true,
       reason: true,
@@ -359,7 +350,6 @@ export async function GET(request: Request) {
       activeDate: true,
       marketing: true,
       radboox: true,
-      sortIndex: true,
       isolationDate: true,
       reason: true,
       status: true,
@@ -395,27 +385,19 @@ export async function GET(request: Request) {
 
     let isolationsRaw: any[]
     try {
-      const orderBy = [
-        { radboox: 'asc' },
-        { sortIndex: 'asc' },
-        { activeDate: 'desc' },
-        { isolationDate: 'desc' },
-        { id: 'desc' },
-      ]
       isolationsRaw = await (prisma as any).isolation.findMany({
         where,
-        orderBy,
+        orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
         select: selectAll,
       })
     } catch (e) {
       const missingPrice = isMissingColumn(e, 'price')
       const missingCloseNote = isMissingColumn(e, 'closeNote')
       const missingClosePhoto = isMissingColumn(e, 'closePhoto')
-      const missingSortIndex = isMissingColumn(e, 'sortIndex')
       const missingIsArchived = isMissingColumn(e, 'isArchived')
       const missingArchivedAt = isMissingColumn(e, 'archivedAt')
 
-      if (!missingPrice && !missingCloseNote && !missingClosePhoto && !missingSortIndex && !missingIsArchived && !missingArchivedAt) throw e
+      if (!missingPrice && !missingCloseNote && !missingClosePhoto && !missingIsArchived && !missingArchivedAt) throw e
 
       const whereFallback =
         missingIsArchived || missingArchivedAt
@@ -444,23 +426,10 @@ export async function GET(request: Request) {
               : selectNoPrice
             : selectNoClose
 
-      const selectFallbackWithSort: any = { ...selectFallback }
-      if (missingSortIndex) delete selectFallbackWithSort.sortIndex
-
-      const orderByFallback = missingSortIndex
-        ? [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }]
-        : [
-            { radboox: 'asc' },
-            { sortIndex: 'asc' },
-            { activeDate: 'desc' },
-            { isolationDate: 'desc' },
-            { id: 'desc' },
-          ]
-
       isolationsRaw = await (prisma as any).isolation.findMany({
         where: whereFallback,
-        orderBy: orderByFallback,
-        select: selectFallbackWithSort,
+        orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+        select: selectFallback,
       })
 
       isolationsRaw = isolationsRaw.map((x: any) => ({
@@ -468,7 +437,6 @@ export async function GET(request: Request) {
         ...(missingPrice ? { price: null } : {}),
         ...(missingCloseNote ? { closeNote: null } : {}),
         ...(missingClosePhoto ? { closePhoto: null } : {}),
-        ...(missingSortIndex ? { sortIndex: null } : {}),
         ...(missingIsArchived ? { isArchived: false } : {}),
         ...(missingArchivedAt ? { archivedAt: null } : {}),
       }))
@@ -541,7 +509,6 @@ export async function GET(request: Request) {
             ticketDismantle: null,
             closeNote: null,
             closePhoto: null,
-            sortIndex: null,
             isArchived: false,
             archivedAt: null,
             ticketId: null,
@@ -575,12 +542,12 @@ export async function POST(request: Request) {
 
   await ensureIsolationColumnsOnce()
 
-  const isMissingColumn = (e: unknown, column: string) => {
+  const isMissingPriceColumn = (e: unknown) => {
     if (typeof e !== 'object' || !e) return false
     const anyErr = e as { code?: unknown; message?: unknown }
     const code = typeof anyErr.code === 'string' ? anyErr.code : ''
     const msg = typeof anyErr.message === 'string' ? anyErr.message : ''
-    return code === 'P2022' && msg.toLowerCase().includes(column.toLowerCase())
+    return code === 'P2022' && msg.toLowerCase().includes('price')
   }
 
   try {
@@ -594,32 +561,10 @@ export async function POST(request: Request) {
     const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
-    const sortIndexRaw = body.sortIndex
-    const sortIndexParsed =
-      typeof sortIndexRaw === 'number'
-        ? Math.trunc(sortIndexRaw)
-        : typeof sortIndexRaw === 'string' && sortIndexRaw.trim() !== ''
-          ? Math.trunc(parseInt(sortIndexRaw, 10))
-          : null
     const priceRaw = body.price
     const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== '' ? new Prisma.Decimal(String(priceRaw)) : null
     const ticketIdRaw = body.ticketId
     const ticketId = typeof ticketIdRaw === 'number' ? Math.trunc(ticketIdRaw) : typeof ticketIdRaw === 'string' ? parseInt(ticketIdRaw, 10) : null
-
-    const normalizedRadbooxKey = String(radboox ?? '').trim() || 'UNASSIGNED'
-    let nextSortIndex: number | null =
-      Number.isFinite(sortIndexParsed) && (sortIndexParsed as number) > 0 ? (sortIndexParsed as number) : null
-    if (nextSortIndex == null) {
-      const rows = await prisma.$queryRaw<Array<{ max: number }>>(
-        Prisma.sql`
-          SELECT COALESCE(MAX("sortIndex"), 0)::int AS max
-          FROM "Isolation"
-          WHERE COALESCE(NULLIF(TRIM("radboox"), ''), 'UNASSIGNED') = ${normalizedRadbooxKey};
-        `
-      )
-      const maxValue = typeof rows?.[0]?.max === 'number' ? rows[0].max : 0
-      nextSortIndex = (Number.isFinite(maxValue) ? maxValue : 0) + 10
-    }
 
     const createData = {
       customerName,
@@ -629,7 +574,6 @@ export async function POST(request: Request) {
       activeDate,
       marketing,
       radboox,
-      sortIndex: nextSortIndex,
       price,
       reason,
       teknisi: teknisi || session.user.name,
@@ -641,12 +585,9 @@ export async function POST(request: Request) {
     try {
       isolation = await (prisma as any).isolation.create({ data: createData })
     } catch (e) {
-      const missingPrice = isMissingColumn(e, 'price')
-      const missingSortIndex = isMissingColumn(e, 'sortIndex')
-      if (!missingPrice && !missingSortIndex) throw e
+      if (!isMissingPriceColumn(e)) throw e
       const dataNoPrice: any = { ...createData }
-      if (missingPrice) delete dataNoPrice.price
-      if (missingSortIndex) delete dataNoPrice.sortIndex
+      delete dataNoPrice.price
       isolation = await (prisma as any).isolation.create({ data: dataNoPrice })
     }
 

@@ -85,7 +85,6 @@ export async function PUT(
       activeDate: getStr('activeDate'),
       marketing: getStr('marketing'),
       radboox: getStr('radboox'),
-      sortIndex: getStr('sortIndex'),
       price: getStr('price'),
       reason: getStr('reason'),
       teknisi: getStr('teknisi'),
@@ -139,14 +138,6 @@ export async function PUT(
     price = undefined
   }
 
-  const sortIndexRaw = (body as any).sortIndex
-  const sortIndex =
-    typeof sortIndexRaw === 'number'
-      ? Math.trunc(sortIndexRaw)
-      : typeof sortIndexRaw === 'string' && sortIndexRaw.trim() !== ''
-        ? Math.trunc(parseInt(sortIndexRaw, 10))
-        : undefined
-
   try {
     const data: any = {
       customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
@@ -156,7 +147,6 @@ export async function PUT(
       activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
       marketing: normalizeOptionalString(body.marketing),
       radboox: normalizeOptionalString(body.radboox),
-      sortIndex: Number.isFinite(sortIndex as number) && (sortIndex as number) > 0 ? (sortIndex as number) : undefined,
       price,
       reason: normalizeOptionalString(body.reason),
       teknisi: normalizeOptionalString(body.teknisi),
@@ -176,24 +166,10 @@ export async function PUT(
       })
     } catch (e) {
       const dataFallback: any = { ...data }
-      const removed: string[] = []
-      if (isMissingColumn(e, 'price')) {
-        delete dataFallback.price
-        removed.push('price')
-      }
-      if (isMissingColumn(e, 'closeNote')) {
-        delete dataFallback.closeNote
-        removed.push('closeNote')
-      }
-      if (isMissingColumn(e, 'closePhoto')) {
-        delete dataFallback.closePhoto
-        removed.push('closePhoto')
-      }
-      if (isMissingColumn(e, 'sortIndex')) {
-        delete dataFallback.sortIndex
-        removed.push('sortIndex')
-      }
-      if (removed.length === 0) {
+      if (isMissingColumn(e, 'price')) delete dataFallback.price
+      if (isMissingColumn(e, 'closeNote')) delete dataFallback.closeNote
+      if (isMissingColumn(e, 'closePhoto')) delete dataFallback.closePhoto
+      if (dataFallback.price === data.price && dataFallback.closeNote === data.closeNote && dataFallback.closePhoto === data.closePhoto) {
         throw e
       }
       isolation = await (prisma as any).isolation.update({
