@@ -1058,7 +1058,6 @@ export function DismantleView({
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Konteks Divisi</div>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{divisionDescriptions[division]}</p>
             {isDismantleRole && (
               <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-300">
@@ -1112,7 +1111,7 @@ export function DismantleView({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_0.7fr]">
+        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_auto] lg:items-end">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</label>
             <input
@@ -1159,52 +1158,38 @@ export function DismantleView({
               <option value="CLOSED">Close</option>
             </select>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tampil</label>
-            <select
-              value={String(limit)}
-              onChange={(e) => setLimit(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="75">75</option>
-              <option value="100">100</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          {showSelection && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            {showSelection && (
+              <button
+                type="button"
+                onClick={deleteSelected}
+                disabled={selectedIds.length === 0 || isDeletingSelected}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+                title="Hapus data terpilih"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
+              </button>
+            )}
             <button
               type="button"
-              onClick={deleteSelected}
-              disabled={selectedIds.length === 0 || isDeletingSelected}
+              onClick={handleImportClick}
+              disabled={!canEdit || !supportsWorkflow || isImporting || isClosedView}
               className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-              title="Hapus data terpilih"
             >
-              <Trash2 className="h-4 w-4" />
-              {isDeletingSelected ? 'Menghapus...' : `Hapus Terpilih (${selectedIds.length})`}
+              <Upload className="h-4 w-4" />
+              {isImporting ? 'Import...' : 'Import Excel'}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={handleImportClick}
-            disabled={!canEdit || !supportsWorkflow || isImporting || isClosedView}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-          >
-            <Upload className="h-4 w-4" />
-            {isImporting ? 'Import...' : 'Import Excel'}
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={!supportsWorkflow || isExporting || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-          >
-            <Download className="h-4 w-4" />
-            {isExporting ? 'Export...' : 'Export Excel'}
-          </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!supportsWorkflow || isExporting || loading}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+            >
+              <Download className="h-4 w-4" />
+              {isExporting ? 'Export...' : 'Export Excel'}
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
@@ -1519,8 +1504,23 @@ export function DismantleView({
         </div>
 
         <div className="mt-4 flex flex-col gap-3 text-sm text-gray-500 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            Halaman {page} / {totalPages} · Total {total}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <div>
+              Halaman {page} / {totalPages} · Total {total}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tampil</span>
+              <select
+                value={String(limit)}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                className="w-24 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="75">75</option>
+                <option value="100">100</option>
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
