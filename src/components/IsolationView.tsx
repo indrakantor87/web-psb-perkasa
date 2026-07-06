@@ -56,6 +56,30 @@ function getDivisionFromUrl(): DivisionFilter | null {
   return null
 }
 
+function normalizePriceNumber(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'bigint') return Number(value)
+  const raw = String(value).trim()
+  if (!raw) return null
+  const cleaned = raw
+    .replace(/rp/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d.,-]/g, '')
+  if (!cleaned) return null
+  const hasComma = cleaned.includes(',')
+  const normalized = hasComma ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\./g, '')
+  const num = parseFloat(normalized)
+  if (Number.isNaN(num) || !Number.isFinite(num)) return null
+  return num
+}
+
+function formatPrice(value: unknown) {
+  const num = normalizePriceNumber(value)
+  if (num == null) return '-'
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num)
+}
+
 export function IsolationView({
   userRole,
   initialSearch = '',
@@ -250,7 +274,7 @@ export function IsolationView({
       activeDate: item.activeDate ? new Date(item.activeDate).toISOString().split('T')[0] : '',
       marketing: item.marketing || '',
       radboox: item.radboox || '',
-      price: item.price ? String(item.price) : '',
+      price: item.price != null ? String(item.price) : '',
       reason: item.reason || '',
     })
     setIsModalOpen(true)
@@ -383,7 +407,7 @@ export function IsolationView({
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
-        'Harga': it.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
+        'Harga': formatPrice(it.price),
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
         'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
       }))
@@ -624,7 +648,7 @@ export function IsolationView({
                       {suspendLabel(item.isolationDate)}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
+                      {formatPrice(item.price)}
                     </td>
                     <td
                       className={clsx(
@@ -719,7 +743,7 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
-                            {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
+                            {formatPrice(item.price)}
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>

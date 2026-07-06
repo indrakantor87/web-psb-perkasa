@@ -21,6 +21,24 @@ function hasDismantleHistory(item: {
   return ticket !== '' || note !== '' || photo !== '' || statusValue === 'CLOSED'
 }
 
+function normalizePriceNumber(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'bigint') return Number(value)
+  const raw = String(value).trim()
+  if (!raw) return null
+  const cleaned = raw
+    .replace(/rp/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d.,-]/g, '')
+  if (!cleaned) return null
+  const hasComma = cleaned.includes(',')
+  const normalized = hasComma ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\./g, '')
+  const num = parseFloat(normalized)
+  if (Number.isNaN(num) || !Number.isFinite(num)) return null
+  return num
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -130,10 +148,11 @@ export async function PUT(
   if (priceRaw === null || priceRaw === '') {
     price = null
   } else if (priceRaw !== undefined) {
-    const num = parseFloat(String(priceRaw))
-    if (!isNaN(num)) {
-      price = new Prisma.Decimal(num)
+    const num = normalizePriceNumber(priceRaw)
+    if (num == null) {
+      return NextResponse.json({ error: 'Harga tidak valid' }, { status: 400 })
     }
+    price = new Prisma.Decimal(num)
   } else {
     price = undefined
   }

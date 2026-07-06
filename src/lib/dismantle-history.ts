@@ -177,7 +177,12 @@ export async function listDismantleHistory(params: DismantleHistoryListParams) {
         "closedBy"
       FROM "DismantleHistory"
       ${whereSql}
-      ORDER BY COALESCE("closedAt", "createdAt") DESC, "id" DESC
+      ORDER BY
+        (COALESCE(TRIM("ticketDismantle"), '') = '') ASC,
+        NULLIF(regexp_replace(split_part(COALESCE("ticketDismantle", ''), '/', 3), '\\D', '', 'g'), '')::int ASC NULLS LAST,
+        COALESCE("ticketDismantle", '') ASC,
+        COALESCE("closedAt", "createdAt") DESC,
+        "id" DESC
       LIMIT ${limitSlot}
       OFFSET ${offsetSlot}
     `,

@@ -95,6 +95,24 @@ function compareDismantlePriority(a: { ticketDismantle?: unknown; isolationDate?
   return 0
 }
 
+function normalizePriceNumber(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'bigint') return Number(value)
+  const raw = String(value).trim()
+  if (!raw) return null
+  const cleaned = raw
+    .replace(/rp/gi, '')
+    .replace(/\s+/g, '')
+    .replace(/[^\d.,-]/g, '')
+  if (!cleaned) return null
+  const hasComma = cleaned.includes(',')
+  const normalized = hasComma ? cleaned.replace(/\./g, '').replace(',', '.') : cleaned.replace(/\./g, '')
+  const num = parseFloat(normalized)
+  if (Number.isNaN(num) || !Number.isFinite(num)) return null
+  return num
+}
+
 function buildSmartDismantleRows(items: any[]) {
   const map = new Map<string, any>()
   const passthrough: any[] = []
@@ -457,7 +475,7 @@ export async function GET(request: Request) {
       : filteredIsolations.slice((page - 1) * limit, page * limit)
 
     const payload = {
-      items: isolations,
+      items: isolations.map((item: any) => ({ ...item, price: normalizePriceNumber(item?.price) })),
       total,
       page,
       limit
@@ -476,7 +494,7 @@ export async function GET(request: Request) {
           divisionFilter,
         })
 
-        const legacySelect = {
+        const legacySelectBase = {
           id: true,
           customerName: true,
           customerAddress: true,
@@ -485,6 +503,7 @@ export async function GET(request: Request) {
           activeDate: true,
           marketing: true,
           radboox: true,
+          price: true,
           isolationDate: true,
           reason: true,
           status: true,
@@ -492,20 +511,36 @@ export async function GET(request: Request) {
           teknisi: true,
         }
 
-        const [total, items] = await Promise.all([
-          prisma.isolation.count({ where: legacyWhere }),
-          (prisma as any).isolation.findMany({
-            where: legacyWhere,
-            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
-            ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
-            select: legacySelect,
-          }),
-        ])
+        let total: number
+        let items: any[]
+        try {
+          ;[total, items] = await Promise.all([
+            prisma.isolation.count({ where: legacyWhere }),
+            (prisma as any).isolation.findMany({
+              where: legacyWhere,
+              orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+              ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
+              select: legacySelectBase,
+            }),
+          ])
+        } catch {
+          const legacySelectFallback = { ...legacySelectBase }
+          delete (legacySelectFallback as any).price
+          ;[total, items] = await Promise.all([
+            prisma.isolation.count({ where: legacyWhere }),
+            (prisma as any).isolation.findMany({
+              where: legacyWhere,
+              orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+              ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
+              select: legacySelectFallback,
+            }),
+          ])
+        }
 
         const payload = {
           items: items.map((item: any) => ({
             ...item,
-            price: null,
+            price: normalizePriceNumber(item?.price),
             ticketDismantle: null,
             closeNote: null,
             closePhoto: null,
@@ -562,7 +597,8 @@ export async function POST(request: Request) {
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
     const priceRaw = body.price
-    const price = priceRaw !== undefined && priceRaw !== null && priceRaw !== '' ? new Prisma.Decimal(String(priceRaw)) : null
+    const priceNum = normalizePriceNumber(priceRaw)
+    const price = priceNum == null ? null : new Prisma.Decimal(priceNum)
     const ticketIdRaw = body.ticketId
     const ticketId = typeof ticketIdRaw === 'number' ? Math.trunc(ticketIdRaw) : typeof ticketIdRaw === 'string' ? parseInt(ticketIdRaw, 10) : null
 

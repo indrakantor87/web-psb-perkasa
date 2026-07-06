@@ -244,13 +244,6 @@ export function DismantleView({
   const supportsWorkflow =
     (!canUseAdminScope || division === 'ALL' || division === 'CS_ADMIN') &&
     (!isDismantleRole || division === 'CS_ADMIN')
-  const divisionDescriptions: Record<DivisionFilter, string> = {
-    ALL: 'Menampilkan seluruh data dismantle dari perspektif umum tanpa pembatasan divisi.',
-    PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul Dismantle Perangkat.',
-    CS_ADMIN: 'Fokus ke pelanggan isolir aktif yang membutuhkan tindak lanjut tiket dismantle oleh CS & Admin CS.',
-    NOC_TROUBLESHOOTS: 'Divisi NOC & Troubleshoots tidak memakai modul dismantle sebagai alur utama saat ini.',
-    CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul Dismantle Perangkat.',
-  }
   const statusLabel = statusFilter === 'OPEN' ? 'Open' : 'Close'
   const isClosedView = statusFilter === 'CLOSED'
 
@@ -517,7 +510,7 @@ export function DismantleView({
   }
 
   const handleImportClick = () => {
-    if (!canEdit || !supportsWorkflow || isImporting || isClosedView) return
+    if (!canEdit || !supportsWorkflow || isImporting) return
     fileInputRef.current?.click()
   }
 
@@ -530,7 +523,8 @@ export function DismantleView({
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await fetch('/api/isolations/dismantle-import', {
+      const endpoint = isClosedView ? '/api/dismantle-history/import' : '/api/isolations/dismantle-import'
+      const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       })
@@ -1055,34 +1049,6 @@ export function DismantleView({
         className="hidden"
         onChange={handleImportFile}
       />
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{divisionDescriptions[division]}</p>
-            {isDismantleRole && (
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-300">
-                Menu aktif: Ticket Dismantle {statusLabel}
-              </p>
-            )}
-          </div>
-          {canUseAdminScope && (
-            <div className="w-full max-w-xs">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
-              <select
-                value={division}
-                onChange={(e) => setDivision(e.target.value as DivisionFilter)}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="ALL">Semua Divisi</option>
-                <option value="CS_ADMIN">CS & Admin CS</option>
-                <option value="PENJUALAN">Penjualan</option>
-                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
-                <option value="CREATOR_DIGITAL">Creator Digital</option>
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1111,7 +1077,14 @@ export function DismantleView({
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_auto] lg:items-end">
+        <div
+          className={clsx(
+            'grid gap-3 lg:items-end',
+            canUseAdminScope
+              ? 'lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_0.9fr_auto]'
+              : 'lg:grid-cols-[1.3fr_0.9fr_0.9fr_0.9fr_auto]'
+          )}
+        >
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</label>
             <input
@@ -1146,6 +1119,22 @@ export function DismantleView({
               <option value="Radboox 26">Radboox 26</option>
             </select>
           </div>
+          {canUseAdminScope && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
+              <select
+                value={division}
+                onChange={(e) => setDivision(e.target.value as DivisionFilter)}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="ALL">Semua Divisi</option>
+                <option value="CS_ADMIN">CS & Admin CS</option>
+                <option value="PENJUALAN">Penjualan</option>
+                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
+                <option value="CREATOR_DIGITAL">Creator Digital</option>
+              </select>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Data</label>
             <select
@@ -1174,7 +1163,7 @@ export function DismantleView({
             <button
               type="button"
               onClick={handleImportClick}
-              disabled={!canEdit || !supportsWorkflow || isImporting || isClosedView}
+              disabled={!canEdit || !supportsWorkflow || isImporting}
               className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
             >
               <Upload className="h-4 w-4" />
@@ -1194,7 +1183,7 @@ export function DismantleView({
 
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {isClosedView
-            ? 'Menu close memakai histori dismantle terpisah. Data di sini tidak lagi bergantung pada list Isolir aktif, jadi histori close tidak ikut hilang saat penghapusan massal Isolir.'
+            ? 'Menu close memakai histori dismantle terpisah. Import Excel di mode close hanya menambah/mengupdate histori close dan tidak mengubah data ticket yang masih open.'
             : 'Menu open tetap sinkron otomatis dari data Isolir. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. Import Excel dipakai untuk menambahkan data yang belum ada, sedangkan data duplikat akan diabaikan.'}
         </div>
 
