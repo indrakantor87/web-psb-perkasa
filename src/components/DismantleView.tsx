@@ -339,7 +339,7 @@ export function DismantleView({
   )
   const emptyCount = rows.length - filledCount
   const totalPages = Math.max(1, Math.ceil(total / limit))
-  const showSelection = canBulkDelete && supportsWorkflow && !isClosedView
+  const showSelection = canBulkDelete && supportsWorkflow
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
   const allOnPageSelected = showSelection && rows.length > 0 && rows.every((x) => selectedSet.has(x.id))
 
@@ -377,18 +377,19 @@ export function DismantleView({
   const deleteSelected = async () => {
     if (!showSelection) return
     if (selectedIds.length === 0) return
-    if (!confirm(`Hapus ${selectedIds.length} data yang dipilih?`)) return
+    if (!confirm(`Hapus ${selectedIds.length} data yang dipilih${isClosedView ? ' dari histori close' : ''}?`)) return
     setIsDeletingSelected(true)
     try {
       const ids = [...selectedIds]
-      const res = await fetch('/api/isolations', {
+      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/isolations'
+      const res = await fetch(endpoint, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids }),
       })
       const data = (await res.json().catch(() => ({}))) as { count?: number; error?: string }
-      if (!res.ok) throw new Error(data.error || 'Gagal menghapus data terpilih')
-      alert(`Berhasil menghapus ${data.count ?? ids.length} data`)
+      if (!res.ok) throw new Error(data.error || `Gagal menghapus data ${isClosedView ? 'histori close' : 'terpilih'}`)
+      alert(`Berhasil menghapus ${data.count ?? ids.length} data${isClosedView ? ' histori close' : ''}`)
       setSelectedIds([])
       await fetchRows()
     } catch (e) {
@@ -1183,7 +1184,7 @@ export function DismantleView({
 
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {isClosedView
-            ? 'Menu close memakai histori dismantle terpisah. Import Excel di mode close hanya menambah/mengupdate histori close dan tidak mengubah data ticket yang masih open.'
+            ? 'Menu close memakai histori dismantle terpisah. Import dan hapus terpilih di mode close hanya mengubah histori close dan tidak mengubah data ticket yang masih open.'
             : 'Menu open tetap sinkron otomatis dari data Isolir. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. Import Excel dipakai untuk menambahkan data yang belum ada, sedangkan data duplikat akan diabaikan.'}
         </div>
 
