@@ -266,6 +266,7 @@ export async function POST(request: Request) {
             reason,
             marketing,
             radboox,
+            sortIndex: (index + 1) * 10,
             status,
             isolationDate,
             restorationDate: status === 'CLOSED' ? new Date() : null,
@@ -276,7 +277,7 @@ export async function POST(request: Request) {
           try {
             await prisma.isolation.create({ data: createData })
           } catch (e) {
-            if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price')) {
+            if (isMissingColumnError(e, 'closeNote') || isMissingColumnError(e, 'closePhoto') || isMissingColumnError(e, 'price') || isMissingColumnError(e, 'sortIndex')) {
               await ensureIsolationColumnsOnce()
               await prisma.isolation.create({ data: createData })
             } else {

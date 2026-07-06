@@ -20,6 +20,7 @@ interface Isolation {
   activeDate?: string | null
   marketing?: string | null
   radboox?: string | null
+  sortIndex?: number | null
   price?: number | null
   isolationDate: string
   reason: string | null
@@ -126,6 +127,7 @@ export function IsolationView({
     activeDate: '',
     marketing: '',
     radboox: '',
+    sortIndex: '',
     price: '',
     reason: '',
   })
@@ -227,7 +229,7 @@ export function IsolationView({
       if (res.ok) {
         setIsModalOpen(false)
         setEditId(null)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', price: '', reason: '' })
+        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', sortIndex: '', price: '', reason: '' })
         fetchIsolations()
       } else {
         alert('Gagal menyimpan data isolir')
@@ -250,6 +252,7 @@ export function IsolationView({
       activeDate: item.activeDate ? new Date(item.activeDate).toISOString().split('T')[0] : '',
       marketing: item.marketing || '',
       radboox: item.radboox || '',
+      sortIndex: typeof item.sortIndex === 'number' ? String(item.sortIndex) : '',
       price: item.price ? String(item.price) : '',
       reason: item.reason || '',
     })
@@ -382,6 +385,7 @@ export function IsolationView({
         'Keterangan': it.reason || '-',
         'Marketing': it.marketing || '-',
         'Radboox': it.radboox || '-',
+        'Urutan': typeof it.sortIndex === 'number' ? it.sortIndex : '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
         'Harga': it.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
@@ -410,7 +414,7 @@ export function IsolationView({
   const selectedSet = new Set(selectedIds)
   const allOnPageSelected = isolations.length > 0 && isolations.every((x) => selectedSet.has(x.id))
   const someOnPageSelected = isolations.some((x) => selectedSet.has(x.id))
-  const desktopColumns = 10 + (showSelection ? 1 : 0) + (showActions ? 1 : 0)
+  const desktopColumns = 11 + (showSelection ? 1 : 0) + (showActions ? 1 : 0)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -501,6 +505,7 @@ export function IsolationView({
                   activeDate: '',
                   marketing: '',
                   radboox: '',
+                  sortIndex: '',
                   price: '',
                   reason: '',
                 })
@@ -556,6 +561,7 @@ export function IsolationView({
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">No. HP</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Marketing</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Radboox</th>
+                <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Urutan</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Suspend</th>
                 <th className="px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Harga</th>
                 <th className="w-[240px] px-2 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300 sm:px-3">Keterangan</th>
@@ -619,6 +625,9 @@ export function IsolationView({
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {item.radboox || '-'}
+                    </td>
+                    <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {typeof item.sortIndex === 'number' ? item.sortIndex : '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {suspendLabel(item.isolationDate)}
@@ -744,6 +753,10 @@ export function IsolationView({
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Radboox:</span>
                             {item.radboox || '-'}
+                          </div>
+                          <div>
+                            <span className="font-medium block text-gray-700 dark:text-gray-300">Urutan:</span>
+                            {typeof item.sortIndex === 'number' ? item.sortIndex : '-'}
                           </div>
                         </div>
 
@@ -892,6 +905,16 @@ export function IsolationView({
                   <option value="Radboox 25">Radboox 25</option>
                   <option value="Radboox 26">Radboox 26</option>
                 </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Urutan</label>
+                <input
+                  type="number"
+                  value={formData.sortIndex}
+                  onChange={(e) => setFormData({ ...formData, sortIndex: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  placeholder="10, 20, 30 ..."
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Harga</label>
