@@ -366,8 +366,8 @@ export function IsolationView({
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
       if (canUseAdminScope && division !== 'ALL') params.append('division', division)
-      params.append('page', '1')
-      params.append('limit', '10000')
+      params.append('export', 'all')
+      params.append('limit', '50000')
 
       const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Gagal mengambil data')
@@ -391,7 +391,10 @@ export function IsolationView({
       const wb = XLSX.utils.book_new()
       const ws = XLSX.utils.json_to_sheet(rows)
       XLSX.utils.book_append_sheet(wb, ws, 'Isolir')
-      XLSX.writeFile(wb, `Isolir_Export_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+      const fileSuffix = radbooxFilter !== 'ALL'
+        ? `_${radbooxFilter.replace(/[^a-z0-9]+/gi, '_')}`
+        : ''
+      XLSX.writeFile(wb, `Isolir_Export${fileSuffix}_${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
     } catch (e) {
       alert('Gagal export')
       console.error(e)

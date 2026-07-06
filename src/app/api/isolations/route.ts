@@ -207,10 +207,12 @@ export async function GET(request: Request) {
   const status = searchParams.get('status')
   const ticketStatus = (searchParams.get('ticketStatus') ?? 'ALL').trim().toUpperCase()
   const dismantleEligible = (searchParams.get('dismantleEligible') ?? '').trim().toLowerCase() === 'true'
+  const exportAll = (searchParams.get('export') ?? '').trim().toLowerCase() === 'all'
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
   const limit = (() => {
     const n = parseInt(searchParams.get('limit') || '25', 10)
+    if (exportAll && Number.isFinite(n) && n > 0) return Math.min(n, 50000)
     if ([25, 50, 75, 100].includes(n)) return n
     return 25
   })()
@@ -454,7 +456,9 @@ export async function GET(request: Request) {
       : isolationsRaw
 
     const total = filteredIsolations.length
-    const isolations = filteredIsolations.slice((page - 1) * limit, page * limit)
+    const isolations = exportAll
+      ? filteredIsolations
+      : filteredIsolations.slice((page - 1) * limit, page * limit)
 
     const payload = {
       items: isolations,
@@ -497,8 +501,7 @@ export async function GET(request: Request) {
           (prisma as any).isolation.findMany({
             where: legacyWhere,
             orderBy: { isolationDate: 'desc' },
-            skip: (page - 1) * limit,
-            take: limit,
+            ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
             select: legacySelect,
           }),
         ])
