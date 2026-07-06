@@ -960,8 +960,8 @@ export function IsolationView({
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900 p-4">
-          <div className="my-10 w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1128,8 +1128,8 @@ export function IsolationView({
       )}
 
       {reorderOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-900/70 p-4">
-          <div className="my-10 w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 p-4">
+          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sync Urutan Radboox</h3>
