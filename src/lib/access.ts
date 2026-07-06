@@ -235,6 +235,10 @@ export function canDeleteIsolationRecords(role: string | null | undefined) {
   return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS'])
 }
 
+export function canUseAdminIsolationDismantleScope(role: string | null | undefined) {
+  return hasAnyRole(role, ['ADMIN', 'CS'])
+}
+
 export function canMutateMarketingActivities(role: string | null | undefined) {
   return normalizeRole(role) === 'ADMIN'
 }

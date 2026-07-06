@@ -8,6 +8,7 @@ import {
   canAccessMenu,
   canDeleteIsolationRecords,
   canMutateIsolationRecords,
+  canUseAdminIsolationDismantleScope,
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
@@ -174,7 +175,7 @@ function buildLegacyIsolationWhere(params: {
     }
   }
 
-  if (params.roleUpper === 'ADMIN') {
+  if (canUseAdminIsolationDismantleScope(params.roleUpper)) {
     if (params.divisionFilter === 'CS_ADMIN' && !params.status) {
       where.status = 'OPEN'
     } else if (params.divisionFilter === 'NOC_TROUBLESHOOTS' && !params.status) {
@@ -224,7 +225,7 @@ export async function GET(request: Request) {
   })()
   const roleUpper = (session.user.role || '').toUpperCase()
   const divisionFilter =
-    roleUpper === 'ADMIN' &&
+    canUseAdminIsolationDismantleScope(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
@@ -292,7 +293,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (roleUpper === 'ADMIN') {
+  if (canUseAdminIsolationDismantleScope(roleUpper)) {
     if (divisionFilter === 'CS_ADMIN' && !status) {
       appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
     } else if (divisionFilter === 'NOC_TROUBLESHOOTS' && !status) {

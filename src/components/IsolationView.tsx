@@ -5,7 +5,11 @@ import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
-import { canDeleteIsolationRecords, canMutateIsolationRecords } from '@/lib/access'
+import {
+  canDeleteIsolationRecords,
+  canMutateIsolationRecords,
+  canUseAdminIsolationDismantleScope,
+} from '@/lib/access'
 
 interface Isolation {
   id: number
@@ -96,10 +100,11 @@ export function IsolationView({
 
   // Role Permissions
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const canUseAdminScope = canUseAdminIsolationDismantleScope(roleUpper)
   const canEdit = canMutateIsolationRecords(roleUpper)
   const canDelete = canDeleteIsolationRecords(roleUpper)
-  const supportsIsolationWorkflow = !isAdmin || division === 'ALL' || division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS'
+  const supportsIsolationWorkflow =
+    !canUseAdminScope || division === 'ALL' || division === 'CS_ADMIN' || division === 'NOC_TROUBLESHOOTS'
   const canMutate = canEdit && supportsIsolationWorkflow
   const canBulkDelete = canDelete && supportsIsolationWorkflow
   const showActions = canMutate
@@ -139,7 +144,7 @@ export function IsolationView({
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
-      if (isAdmin && division !== 'ALL') params.append('division', division)
+      if (canUseAdminScope && division !== 'ALL') params.append('division', division)
       params.append('page', String(page))
       params.append('limit', String(limit))
       
@@ -167,7 +172,7 @@ export function IsolationView({
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [debouncedSearch, division, isAdmin, limit, marketingFilter, page, radbooxFilter, statusPreset])
+  }, [canUseAdminScope, debouncedSearch, division, limit, marketingFilter, page, radbooxFilter, statusPreset])
 
   // Debounce pencarian untuk mengurangi request beruntun
   useEffect(() => {
@@ -360,7 +365,7 @@ export function IsolationView({
       if (radbooxFilter !== 'ALL') params.append('radboox', radbooxFilter)
       if (effectiveMarketing) params.append('marketing', effectiveMarketing)
       if (statusPreset) params.append('status', statusPreset)
-      if (isAdmin && division !== 'ALL') params.append('division', division)
+      if (canUseAdminScope && division !== 'ALL') params.append('division', division)
       params.append('page', '1')
       params.append('limit', '10000')
 
@@ -435,7 +440,7 @@ export function IsolationView({
             <option value="Radboox 25">Radboox 25</option>
             <option value="Radboox 26">Radboox 26</option>
           </select>
-          {isAdmin && (
+          {canUseAdminScope && (
             <select
               value={division}
               onChange={(e) => setDivision(e.target.value as DivisionFilter)}
@@ -508,7 +513,7 @@ export function IsolationView({
         )}
       </div>
 
-      {isAdmin && (
+      {canUseAdminScope && (
         <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>

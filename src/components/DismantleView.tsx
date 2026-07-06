@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Trash2, Upload } from 'lucide-react'
 import { formatSuspendDuration } from '@/lib/isolation-suspend'
-import { canDeleteIsolationRecords, canMutateMenu } from '@/lib/access'
+import { canDeleteIsolationRecords, canMutateMenu, canUseAdminIsolationDismantleScope } from '@/lib/access'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 type TicketFilter = 'ALL' | 'WITH' | 'WITHOUT'
@@ -196,7 +196,7 @@ export function DismantleView({
   initialStatus?: DismantleStatusFilter
 }) {
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const canUseAdminScope = canUseAdminIsolationDismantleScope(roleUpper)
   const isDismantleRole = roleUpper === 'DISMANTLE'
   const canEdit = canMutateMenu(roleUpper, 'dismantle')
   const canBulkDelete = canDeleteIsolationRecords(roleUpper)
@@ -241,7 +241,9 @@ export function DismantleView({
   const [isClosing, setIsClosing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const supportsWorkflow = (!isAdmin || division === 'ALL' || division === 'CS_ADMIN') && (!isDismantleRole || division === 'CS_ADMIN')
+  const supportsWorkflow =
+    (!canUseAdminScope || division === 'ALL' || division === 'CS_ADMIN') &&
+    (!isDismantleRole || division === 'CS_ADMIN')
   const divisionDescriptions: Record<DivisionFilter, string> = {
     ALL: 'Menampilkan seluruh data dismantle dari perspektif umum tanpa pembatasan divisi.',
     PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul Dismantle Perangkat.',
@@ -281,11 +283,11 @@ export function DismantleView({
       if (!isClosedView) {
         params.set('status', statusFilter)
         params.set('dismantleEligible', 'true')
-        if (isAdmin && division !== 'ALL') params.set('division', division)
+        if (canUseAdminScope && division !== 'ALL') params.set('division', division)
       }
       return params
     },
-    [debouncedSearch, division, isAdmin, isClosedView, radbooxFilter, statusFilter, ticketFilter]
+    [canUseAdminScope, debouncedSearch, division, isClosedView, radbooxFilter, statusFilter, ticketFilter]
   )
 
   const requestRows = useCallback(
@@ -1064,7 +1066,7 @@ export function DismantleView({
               </p>
             )}
           </div>
-          {isAdmin && (
+          {canUseAdminScope && (
             <div className="w-full max-w-xs">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
               <select
