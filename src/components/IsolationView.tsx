@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { format } from 'date-fns'
+import { addMonths, differenceInDays, differenceInMonths, format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download, ArrowUpDown } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
@@ -28,6 +28,37 @@ interface Isolation {
   restorationDate: string | null
   teknisi: string | null
   ticketDismantle?: string | null
+}
+
+function toOptionalInt(v: unknown) {
+  if (typeof v === 'number') return Number.isFinite(v) ? Math.trunc(v) : null
+  if (typeof v !== 'string') return null
+  const s = v.trim()
+  if (!s) return null
+  const n = parseInt(s, 10)
+  return Number.isFinite(n) ? Math.trunc(n) : null
+}
+
+function toPriceNumber(v: unknown) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null
+  if (typeof v === 'string') {
+    const s = v.trim()
+    if (!s) return null
+    const n = parseFloat(s.replace(/[^\d.-]/g, ''))
+    return Number.isFinite(n) ? n : null
+  }
+  return null
+}
+
+function getSuspendParts(isolationDate: string | null | undefined) {
+  if (!isolationDate) return { months: '', days: '' }
+  const iso = new Date(isolationDate)
+  if (!Number.isFinite(iso.getTime())) return { months: '', days: '' }
+  const now = new Date()
+  const months = Math.max(0, differenceInMonths(now, iso))
+  const afterMonths = addMonths(iso, months)
+  const days = Math.max(0, differenceInDays(now, afterMonths))
+  return { months: months > 0 ? String(months) : '', days: days > 0 ? String(days) : '' }
 }
 
 interface IsolationViewProps {
@@ -133,6 +164,8 @@ export function IsolationView({
     marketing: '',
     radboox: '',
     sortIndex: '',
+    suspendMonths: '',
+    suspendDays: '',
     price: '',
     reason: '',
   })
@@ -158,7 +191,12 @@ export function IsolationView({
       const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store', signal })
       if (res.ok) {
         const data = await res.json()
-        const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
+        const rawItems: any[] = Array.isArray(data) ? data : (data.items || [])
+        const items: Isolation[] = rawItems.map((row) => ({
+          ...row,
+          sortIndex: typeof row?.sortIndex === 'number' ? row.sortIndex : toOptionalInt(row?.sortIndex),
+          price: toPriceNumber(row?.price),
+        }))
         const totalRemote: number = Array.isArray(data) ? data.length : (data.total || 0)
         setIsolations(items)
         setTotal(totalRemote)
@@ -234,7 +272,20 @@ export function IsolationView({
       if (res.ok) {
         setIsModalOpen(false)
         setEditId(null)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', sortIndex: '', price: '', reason: '' })
+        setFormData({
+          customerName: '',
+          customerAddress: '',
+          customerPhone: '',
+          userEmail: '',
+          activeDate: '',
+          marketing: '',
+          radboox: '',
+          sortIndex: '',
+          suspendMonths: '',
+          suspendDays: '',
+          price: '',
+          reason: '',
+        })
         fetchIsolations()
       } else {
         alert('Gagal menyimpan data isolir')
@@ -249,6 +300,7 @@ export function IsolationView({
 
   const openEdit = (item: Isolation) => {
     setEditId(item.id)
+    const suspendParts = getSuspendParts(item.isolationDate)
     setFormData({
       customerName: item.customerName || '',
       customerAddress: item.customerAddress || '',
@@ -258,7 +310,9 @@ export function IsolationView({
       marketing: item.marketing || '',
       radboox: item.radboox || '',
       sortIndex: typeof item.sortIndex === 'number' ? String(item.sortIndex) : '',
-      price: item.price ? String(item.price) : '',
+      suspendMonths: suspendParts.months,
+      suspendDays: suspendParts.days,
+      price: typeof item.price === 'number' ? String(item.price) : '',
       reason: item.reason || '',
     })
     setIsModalOpen(true)
@@ -380,7 +434,12 @@ export function IsolationView({
       const res = await fetch(`/api/isolations?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Gagal mengambil data')
       const data = await res.json()
-      const items: Isolation[] = Array.isArray(data) ? data : (data.items || [])
+      const rawItems: any[] = Array.isArray(data) ? data : (data.items || [])
+      const items: Isolation[] = rawItems.map((row) => ({
+        ...row,
+        sortIndex: typeof row?.sortIndex === 'number' ? row.sortIndex : toOptionalInt(row?.sortIndex),
+        price: toPriceNumber(row?.price),
+      }))
       const rows = items.map((it, idx) => ({
         'No': idx + 1,
         'Nama Pelanggan': it.customerName,
@@ -392,7 +451,7 @@ export function IsolationView({
         'Radboox': it.radboox || '-',
         'Urutan': typeof it.sortIndex === 'number' ? it.sortIndex : '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
-        'Harga': it.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
+        'Harga': typeof it.price === 'number' ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(it.price) : '-',
         'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
         'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
       }))
@@ -575,6 +634,8 @@ export function IsolationView({
                   marketing: '',
                   radboox: '',
                   sortIndex: '',
+                  suspendMonths: '',
+                  suspendDays: '',
                   price: '',
                   reason: '',
                 })
@@ -702,7 +763,9 @@ export function IsolationView({
                       {suspendLabel(item.isolationDate)}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
+                      {typeof item.price === 'number'
+                        ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price)
+                        : '-'}
                     </td>
                     <td
                       className={clsx(
@@ -797,7 +860,9 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
-                            {item.price ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price) : '-'}
+                            {typeof item.price === 'number'
+                              ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(item.price)
+                              : '-'}
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
@@ -984,6 +1049,30 @@ export function IsolationView({
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   placeholder="10, 20, 30 ..."
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Suspend (Bulan)</label>
+                  <input
+                    type="number"
+                    value={formData.suspendMonths}
+                    onChange={(e) => setFormData({ ...formData, suspendMonths: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="contoh: 1"
+                    min={0}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Suspend (Hari)</label>
+                  <input
+                    type="number"
+                    value={formData.suspendDays}
+                    onChange={(e) => setFormData({ ...formData, suspendDays: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="contoh: 5"
+                    min={0}
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Harga</label>
