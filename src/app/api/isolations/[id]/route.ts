@@ -85,8 +85,6 @@ export async function PUT(
       activeDate: getStr('activeDate'),
       marketing: getStr('marketing'),
       radboox: getStr('radboox'),
-      suspendMonths: getStr('suspendMonths'),
-      suspendDays: getStr('suspendDays'),
       sortIndex: getStr('sortIndex'),
       price: getStr('price'),
       reason: getStr('reason'),
@@ -149,30 +147,6 @@ export async function PUT(
         ? Math.trunc(parseInt(sortIndexRaw, 10))
         : undefined
 
-  const hasSuspendFields = Object.prototype.hasOwnProperty.call(body, 'suspendMonths') || Object.prototype.hasOwnProperty.call(body, 'suspendDays')
-  const suspendMonthsRaw = (body as any).suspendMonths
-  const suspendDaysRaw = (body as any).suspendDays
-  const suspendMonths =
-    typeof suspendMonthsRaw === 'number'
-      ? Math.max(0, Math.trunc(suspendMonthsRaw))
-      : typeof suspendMonthsRaw === 'string' && suspendMonthsRaw.trim() !== ''
-        ? Math.max(0, Math.trunc(parseInt(suspendMonthsRaw, 10)))
-        : 0
-  const suspendDays =
-    typeof suspendDaysRaw === 'number'
-      ? Math.max(0, Math.trunc(suspendDaysRaw))
-      : typeof suspendDaysRaw === 'string' && suspendDaysRaw.trim() !== ''
-        ? Math.max(0, Math.trunc(parseInt(suspendDaysRaw, 10)))
-        : 0
-  const isolationDate = hasSuspendFields
-    ? (() => {
-        const d = new Date()
-        if (suspendMonths > 0) d.setMonth(d.getMonth() - suspendMonths)
-        if (suspendDays > 0) d.setDate(d.getDate() - suspendDays)
-        return d
-      })()
-    : undefined
-
   try {
     const data: any = {
       customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
@@ -183,7 +157,6 @@ export async function PUT(
       marketing: normalizeOptionalString(body.marketing),
       radboox: normalizeOptionalString(body.radboox),
       sortIndex: Number.isFinite(sortIndex as number) && (sortIndex as number) > 0 ? (sortIndex as number) : undefined,
-      isolationDate,
       price,
       reason: normalizeOptionalString(body.reason),
       teknisi: normalizeOptionalString(body.teknisi),

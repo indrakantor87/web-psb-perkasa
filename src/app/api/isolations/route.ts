@@ -594,29 +594,6 @@ export async function POST(request: Request) {
     const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
-    const suspendMonthsRaw = body.suspendMonths
-    const suspendDaysRaw = body.suspendDays
-    const suspendMonths =
-      typeof suspendMonthsRaw === 'number'
-        ? Math.max(0, Math.trunc(suspendMonthsRaw))
-        : typeof suspendMonthsRaw === 'string' && suspendMonthsRaw.trim() !== ''
-          ? Math.max(0, Math.trunc(parseInt(suspendMonthsRaw, 10)))
-          : 0
-    const suspendDays =
-      typeof suspendDaysRaw === 'number'
-        ? Math.max(0, Math.trunc(suspendDaysRaw))
-        : typeof suspendDaysRaw === 'string' && suspendDaysRaw.trim() !== ''
-          ? Math.max(0, Math.trunc(parseInt(suspendDaysRaw, 10)))
-          : 0
-    const isolationDate =
-      suspendMonths > 0 || suspendDays > 0
-        ? (() => {
-            const d = new Date()
-            if (suspendMonths > 0) d.setMonth(d.getMonth() - suspendMonths)
-            if (suspendDays > 0) d.setDate(d.getDate() - suspendDays)
-            return d
-          })()
-        : undefined
     const sortIndexRaw = body.sortIndex
     const sortIndexParsed =
       typeof sortIndexRaw === 'number'
@@ -657,7 +634,6 @@ export async function POST(request: Request) {
       reason,
       teknisi: teknisi || session.user.name,
       ticketId,
-      isolationDate,
       status: 'OPEN',
     }
 
