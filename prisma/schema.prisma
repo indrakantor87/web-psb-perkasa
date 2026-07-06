@@ -70,7 +70,6 @@ model Isolation {
   activeDate      DateTime?
   marketing       String?
   radboox         String?
-  sortIndex       Int?
   price           Decimal? @db.Decimal(15, 2) // Harga paket
   isolationDate   DateTime @default(now())
   reason          String?
@@ -94,7 +93,6 @@ model Isolation {
   @@index([marketing])
   @@index([isolationDate])
   @@index([radboox])
-  @@index([sortIndex])
   @@index([isArchived])
 }
 
