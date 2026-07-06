@@ -38,6 +38,8 @@ type DismantleItem = {
 type DismantleResponse = {
   items?: DismantleItem[]
   total?: number
+  withTicketTotal?: number
+  withoutTicketTotal?: number
   error?: string
 }
 
@@ -213,6 +215,8 @@ export function DismantleView({
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(25)
   const [total, setTotal] = useState(0)
+  const [withTicketTotal, setWithTicketTotal] = useState<number | null>(null)
+  const [withoutTicketTotal, setWithoutTicketTotal] = useState<number | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedRow, setSelectedRow] = useState<DismantleItem | null>(null)
@@ -295,6 +299,8 @@ export function DismantleView({
       return {
         items: Array.isArray(data.items) ? data.items : [],
         total: typeof data.total === 'number' ? data.total : 0,
+        withTicketTotal: typeof data.withTicketTotal === 'number' ? data.withTicketTotal : null,
+        withoutTicketTotal: typeof data.withoutTicketTotal === 'number' ? data.withoutTicketTotal : null,
       }
     },
     [buildQueryParams, isClosedView]
@@ -307,11 +313,20 @@ export function DismantleView({
       const data = await requestRows(page, limit, signal)
       setRows(data.items)
       setTotal(data.total)
+      if (!isClosedView && data.withTicketTotal != null && data.withoutTicketTotal != null) {
+        setWithTicketTotal(data.withTicketTotal)
+        setWithoutTicketTotal(data.withoutTicketTotal)
+      } else {
+        setWithTicketTotal(null)
+        setWithoutTicketTotal(null)
+      }
     } catch (err) {
       if (signal?.aborted) return
       setError(err instanceof Error ? err.message : String(err))
       setRows([])
       setTotal(0)
+      setWithTicketTotal(null)
+      setWithoutTicketTotal(null)
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
@@ -333,11 +348,13 @@ export function DismantleView({
     return () => window.removeEventListener('app:refresh', handler)
   }, [fetchRows])
 
-  const filledCount = useMemo(
+  const filledCountOnPage = useMemo(
     () => rows.filter((row) => String(row.ticketDismantle ?? '').trim() !== '').length,
     [rows]
   )
-  const emptyCount = rows.length - filledCount
+  const emptyCountOnPage = rows.length - filledCountOnPage
+  const filledCount = !isClosedView && withTicketTotal != null ? withTicketTotal : filledCountOnPage
+  const emptyCount = !isClosedView && withoutTicketTotal != null ? withoutTicketTotal : emptyCountOnPage
   const totalPages = Math.max(1, Math.ceil(total / limit))
   const showSelection = canBulkDelete && supportsWorkflow
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -1064,7 +1081,11 @@ export function DismantleView({
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Sudah Ada Ticket</div>
           <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{filledCount}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Jumlah pada halaman saat ini yang sudah memiliki nomor ticket.</div>
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            {isClosedView
+              ? 'Jumlah pada halaman saat ini yang sudah memiliki nomor ticket.'
+              : 'Jumlah seluruh data sesuai filter yang sudah memiliki nomor ticket.'}
+          </div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <div className="text-sm text-gray-500 dark:text-gray-400">Belum Ada Ticket</div>

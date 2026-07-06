@@ -470,6 +470,8 @@ export async function GET(request: Request) {
       : isolationsRaw
 
     const total = filteredIsolations.length
+    const withTicketTotal = filteredIsolations.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
+    const withoutTicketTotal = total - withTicketTotal
     const isolations = exportAll
       ? filteredIsolations
       : filteredIsolations.slice((page - 1) * limit, page * limit)
@@ -477,6 +479,7 @@ export async function GET(request: Request) {
     const payload = {
       items: isolations.map((item: any) => ({ ...item, price: normalizePriceNumber(item?.price) })),
       total,
+      ...(dismantleEligible ? { withTicketTotal, withoutTicketTotal } : {}),
       page,
       limit
     }
