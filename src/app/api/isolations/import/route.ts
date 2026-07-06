@@ -61,6 +61,40 @@ function parsePrice(value: unknown): Prisma.Decimal | null {
   return new Prisma.Decimal(num)
 }
 
+function normalizeEmail(v: unknown) {
+  if (typeof v !== 'string') return ''
+  return v.trim().toLowerCase()
+}
+
+function normalizePhone(v: unknown) {
+  if (typeof v !== 'string') return ''
+  const digits = v.replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('62')) return digits
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  return digits
+}
+
+function normalizeTextKey(v: unknown) {
+  return String(v ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function hasDismantleHistory(item: {
+  ticketDismantle?: unknown
+  closeNote?: unknown
+  closePhoto?: unknown
+  status?: unknown
+}) {
+  const ticket = String(item.ticketDismantle ?? '').trim()
+  const closeNote = String(item.closeNote ?? '').trim()
+  const closePhoto = String(item.closePhoto ?? '').trim()
+  const status = String(item.status ?? '').trim().toUpperCase()
+  return ticket !== '' || closeNote !== '' || closePhoto !== '' || status === 'CLOSED'
+}
+
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) {
@@ -87,15 +121,6 @@ export async function POST(request: Request) {
     const sheet = workbook.Sheets[sheetName]
     const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
 
-    let successCount = 0
-    let errorCount = 0
-    const errorDetails: string[] = []
-
-    // Use transaction or createMany? 
-    // createMany is faster but strict. Loop allows error handling per row.
-    // Given the scale is likely small (hundreds), loop is fine.
-
-    // Header normalization helpers
     const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
     const mapField = (key: string) => {
       const k = norm(key)
@@ -142,29 +167,49 @@ export async function POST(request: Request) {
       return out
     }
 
-    const toCreate: any[] = []
+    const preparedByKey = new Map<string, any>()
+    const radbooxSet = new Set<string>()
+
+    let parsedCount = 0
+    let skippedCount = 0
+    let errorCount = 0
+    const errors: string[] = []
 
     for (const [idx, row] of jsonData.entries()) {
-      const r = toIsoRow(row)
-      const customerName = r.customerName
-      if (!customerName) { continue }
       try {
-        const customerNameStr = String(customerName)
-        const userEmail = r.userEmail ? String(r.userEmail) : null
-        const customerPhone = r.customerPhone ? String(r.customerPhone) : null
+        const r = toIsoRow(row)
+        const radbooxRaw = typeof r.radboox === 'string' || typeof r.radboox === 'number' ? String(r.radboox).trim() : ''
+        if (!radbooxRaw) {
+          skippedCount += 1
+          continue
+        }
+        radbooxSet.add(radbooxRaw)
+
+        const customerName = typeof r.customerName === 'string' || typeof r.customerName === 'number' ? String(r.customerName).trim() : ''
+        if (!customerName) {
+          skippedCount += 1
+          continue
+        }
+
+        const userEmail = r.userEmail ? normalizeEmail(String(r.userEmail)) : ''
+        const customerPhone = r.customerPhone ? normalizePhone(String(r.customerPhone)) : ''
+        const customerAddress = r.customerAddress ? String(r.customerAddress).trim() : null
+        const reason = r.reason ? String(r.reason).trim() : null
+        const marketing = r.marketing ? String(r.marketing).trim() : null
+
         const activeDateRaw = r.activeDate
-        const activeDate = parseDate(typeof activeDateRaw === 'number' || typeof activeDateRaw === 'string' ? activeDateRaw : String(activeDateRaw ?? ''))
-        const customerAddress = r.customerAddress ? String(r.customerAddress) : null
-        const reason = r.reason ? String(r.reason) : null
-        const marketing = r.marketing ? String(r.marketing) : null
-        const radboox = r.radboox ? String(r.radboox) : null
+        const activeDate = activeDateRaw == null ? null : parseDate(typeof activeDateRaw === 'number' || typeof activeDateRaw === 'string' ? activeDateRaw : String(activeDateRaw))
+
         const price = parsePrice(r.price)
+
         const statusRaw = typeof r.status === 'string' || typeof r.status === 'number' ? String(r.status) : ''
         const statusNorm = statusRaw.trim().toUpperCase()
+
         const isoDateRaw = r.isolationDate
         const isoDateParsed = parseDate(typeof isoDateRaw === 'number' || typeof isoDateRaw === 'string' ? isoDateRaw : String(isoDateRaw ?? ''))
         const restorationRaw = r.restorationDate
         const restorationDate = parseDate(typeof restorationRaw === 'number' || typeof restorationRaw === 'string' ? restorationRaw : String(restorationRaw ?? ''))
+
         const suspendMonthsRaw = r.suspendMonths
         const suspendMonthsNum =
           typeof suspendMonthsRaw === 'number'
@@ -200,59 +245,160 @@ export async function POST(request: Request) {
           statusNorm === 'SELESAI' ||
           statusNorm === 'DONE'
 
-        toCreate.push({
-          customerName: customerNameStr,
-          userEmail,
-          customerPhone,
+        const statusFinal = isClosedFromStatus || restorationDate ? 'CLOSED' : 'OPEN'
+        const restorationFinal = statusFinal === 'CLOSED' ? restorationDate || new Date() : null
+
+        const keyEmail = userEmail ? `rad:${radbooxRaw}|email:${userEmail}` : ''
+        const keyPhone = !keyEmail && customerPhone ? `rad:${radbooxRaw}|phone:${customerPhone}` : ''
+        const nameKey = !keyEmail && !keyPhone ? normalizeTextKey(customerName) : ''
+        const addrKey = !keyEmail && !keyPhone ? normalizeTextKey(customerAddress) : ''
+        const keyNameAddr = nameKey ? `rad:${radbooxRaw}|name:${nameKey}|addr:${addrKey}` : ''
+        const key = keyEmail || keyPhone || keyNameAddr
+        if (!key) {
+          skippedCount += 1
+          continue
+        }
+
+        parsedCount += 1
+        preparedByKey.set(key, {
+          customerName,
+          userEmail: userEmail || null,
+          customerPhone: customerPhone || null,
           activeDate,
           customerAddress,
           reason,
           marketing,
-          radboox,
+          radboox: radbooxRaw,
           price,
-          status: isClosedFromStatus || restorationDate ? 'CLOSED' : 'OPEN',
+          status: statusFinal,
           isolationDate,
           teknisi: session.user.name ?? null,
-          restorationDate: isClosedFromStatus ? restorationDate || new Date() : restorationDate || null,
+          restorationDate: restorationFinal,
           ticketDismantle,
         })
       } catch (e) {
-        errorCount++
-        if (errorDetails.length < 5) errorDetails.push(`Baris ${idx + 2}: ${String((e as Error).message || e)}`)
+        errorCount += 1
+        if (errors.length < 10) errors.push(`Baris ${idx + 2}: ${String((e as Error).message || e)}`)
       }
     }
 
-    // Batch insert to reduce per-row roundtrips
-    const batchSize = 1000
-    for (let i = 0; i < toCreate.length; i += batchSize) {
-      const chunk = toCreate.slice(i, i + batchSize)
-      if (chunk.length === 0) continue
-      try {
-        const result = await (prisma as any).isolation.createMany({
-          data: chunk,
-          skipDuplicates: false,
+    const radbooxValues = Array.from(radbooxSet).filter(Boolean)
+    if (radbooxValues.length === 0) {
+      return NextResponse.json({ error: 'Radboox tidak ditemukan di file' }, { status: 400 })
+    }
+
+    const existing = await (prisma as any).isolation.findMany({
+      where: { radboox: { in: radbooxValues } },
+      select: {
+        id: true,
+        radboox: true,
+        customerName: true,
+        customerAddress: true,
+        customerPhone: true,
+        userEmail: true,
+        status: true,
+        ticketDismantle: true,
+        closeNote: true,
+        closePhoto: true,
+        isArchived: true,
+      },
+    })
+
+    const existingKeyToRow = new Map<string, any>()
+    for (const row of existing as any[]) {
+      const rad = String(row.radboox ?? '').trim()
+      if (!rad) continue
+      const email = normalizeEmail(row.userEmail)
+      const phone = normalizePhone(row.customerPhone)
+      const nameKey = normalizeTextKey(row.customerName)
+      const addrKey = normalizeTextKey(row.customerAddress)
+
+      const emailKey = email ? `rad:${rad}|email:${email}` : ''
+      const phoneKey = !emailKey && phone ? `rad:${rad}|phone:${phone}` : ''
+      const nameAddrKey = !emailKey && !phoneKey && nameKey ? `rad:${rad}|name:${nameKey}|addr:${addrKey}` : ''
+      const key = emailKey || phoneKey || nameAddrKey
+      if (!key) continue
+      if (!existingKeyToRow.has(key)) {
+        existingKeyToRow.set(key, row)
+      }
+    }
+
+    let inserted = 0
+    let updated = 0
+    const importedOpenIdsByRadboox = new Map<string, Set<number>>()
+
+    for (const [key, data] of preparedByKey.entries()) {
+      const existingRow = existingKeyToRow.get(key)
+      if (existingRow) {
+        await (prisma as any).isolation.update({
+          where: { id: existingRow.id },
+          data,
         })
-        successCount += result.count
-      } catch {
-        // Fallback: try per-row create to salvage partial failures
-        for (let j = 0; j < chunk.length; j++) {
-          try {
-            await (prisma as any).isolation.create({ data: chunk[j] })
-            successCount++
-          } catch (err) {
-            errorCount++
-            if (errorDetails.length < 5) errorDetails.push(`Baris ${i + j + 2}: ${String((err as Error).message || err)}`)
-          }
+        updated += 1
+        const rad = String(data.radboox ?? '').trim()
+        if (rad) {
+          if (!importedOpenIdsByRadboox.has(rad)) importedOpenIdsByRadboox.set(rad, new Set())
+          if (String(data.status).toUpperCase() === 'OPEN') importedOpenIdsByRadboox.get(rad)!.add(existingRow.id)
         }
+        continue
+      }
+
+      const created = await (prisma as any).isolation.create({ data })
+      inserted += 1
+      const rad = String(data.radboox ?? '').trim()
+      if (rad && String(data.status).toUpperCase() === 'OPEN') {
+        if (!importedOpenIdsByRadboox.has(rad)) importedOpenIdsByRadboox.set(rad, new Set())
+        importedOpenIdsByRadboox.get(rad)!.add(created.id)
+      }
+    }
+
+    let deleted = 0
+    let archived = 0
+    for (const rad of radbooxValues) {
+      const keepOpen = importedOpenIdsByRadboox.get(rad) ?? new Set<number>()
+      const candidates = (existing as any[])
+        .filter((row) => String(row.radboox ?? '').trim() === rad)
+        .filter((row) => String(row.status ?? '').trim().toUpperCase() === 'OPEN')
+        .filter((row) => row.isArchived !== true)
+
+      const toRemove = candidates.filter((row) => {
+        const email = normalizeEmail(row.userEmail)
+        const phone = normalizePhone(row.customerPhone)
+        const nameKey = normalizeTextKey(row.customerName)
+        const addrKey = normalizeTextKey(row.customerAddress)
+        const emailKey = email ? `rad:${rad}|email:${email}` : ''
+        const phoneKey = !emailKey && phone ? `rad:${rad}|phone:${phone}` : ''
+        const nameAddrKey = !emailKey && !phoneKey && nameKey ? `rad:${rad}|name:${nameKey}|addr:${addrKey}` : ''
+        const key = emailKey || phoneKey || nameAddrKey
+        if (!key) return false
+        return !preparedByKey.has(key) && !keepOpen.has(row.id)
+      })
+
+      for (const row of toRemove) {
+        if (hasDismantleHistory(row)) {
+          await (prisma as any).isolation.update({
+            where: { id: row.id },
+            data: { isArchived: true, archivedAt: new Date() },
+          })
+          archived += 1
+          continue
+        }
+        await (prisma as any).isolation.delete({ where: { id: row.id } })
+        deleted += 1
       }
     }
 
     cache.invalidateByPrefix('isolations:')
-    return NextResponse.json({ 
-      message: `Import selesai. Berhasil: ${successCount}, Gagal: ${errorCount}`,
-      successCount,
+    return NextResponse.json({
+      message: `Import sinkron selesai. Insert: ${inserted}, Update: ${updated}, Hapus: ${deleted}, Arsip: ${archived}, Skip: ${skippedCount}, Error: ${errorCount}`,
+      parsedCount,
+      inserted,
+      updated,
+      deleted,
+      archived,
+      skippedCount,
       errorCount,
-      errors: errorDetails
+      errors,
     })
     
   } catch (error) {
