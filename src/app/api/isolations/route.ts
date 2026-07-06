@@ -387,9 +387,7 @@ export async function GET(request: Request) {
     try {
       isolationsRaw = await (prisma as any).isolation.findMany({
         where,
-        orderBy: {
-          isolationDate: 'desc',
-        },
+        orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
         select: selectAll,
       })
     } catch (e) {
@@ -430,9 +428,7 @@ export async function GET(request: Request) {
 
       isolationsRaw = await (prisma as any).isolation.findMany({
         where: whereFallback,
-        orderBy: {
-          isolationDate: 'desc',
-        },
+        orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
         select: selectFallback,
       })
 
@@ -500,7 +496,7 @@ export async function GET(request: Request) {
           prisma.isolation.count({ where: legacyWhere }),
           (prisma as any).isolation.findMany({
             where: legacyWhere,
-            orderBy: { isolationDate: 'desc' },
+            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
             ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
             select: legacySelect,
           }),
