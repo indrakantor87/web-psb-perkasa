@@ -29,6 +29,12 @@ type DivisionSummary = {
 
 type DivisionFilter = DivisionSummary['code'] | 'ALL'
 
+type DashboardKpiCard = {
+  label: string
+  value: string | number
+  hint: string
+}
+
 type DashboardPayload = {
   packageData: { name: string; count: number }[]
   marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -49,6 +55,7 @@ type DashboardPayload = {
     rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
   }
   divisionSummary: DivisionSummary[]
+  focusedDivisionKpis: DashboardKpiCard[]
 }
 
 async function ensureSlaTableForDashboard() {
@@ -102,6 +109,7 @@ function createEmptyDashboardPayload(): DashboardPayload {
     ticketingTotal: 0,
     ticketingMonthRecap: [],
     troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
+    focusedDivisionKpis: [],
     divisionSummary: [
       {
         code: 'PENJUALAN',
@@ -157,6 +165,17 @@ function createEmptyDashboardPayload(): DashboardPayload {
   }
 }
 
+function formatDecimal(value: number, digits = 1) {
+  return new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: digits,
+  }).format(value)
+}
+
+function formatPercent(value: number) {
+  return `${formatDecimal(value, 1)}%`
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -209,6 +228,7 @@ export default async function DashboardPage({
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
         divisionSummary={payload.divisionSummary}
+        focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}
       />
     </div>
@@ -689,6 +709,232 @@ export default async function DashboardPage({
       },
     ]
 
+    let focusedDivisionKpis: DashboardKpiCard[] = []
+
+    if (selectedDivision === 'PENJUALAN') {
+      const [inputCount, installedCount, backlogCount, avgLeadRows] = await Promise.all([
+        prisma.ticket.count({
+          where: {
+            ...(marketingRole
+              ? {
+                  marketingName: {
+                    equals: marketingNameFilter,
+                    mode: 'insensitive' as const,
+                  },
+                }
+              : {}),
+            requestDate: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.ticket.count({
+          where: {
+            ...(marketingRole
+              ? {
+                  marketingName: {
+                    equals: marketingNameFilter,
+                    mode: 'insensitive' as const,
+                  },
+                }
+              : {}),
+            installedDate: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.ticket.count({
+          where: {
+            ...(marketingRole
+              ? {
+                  marketingName: {
+                    equals: marketingNameFilter,
+                    mode: 'insensitive' as const,
+                  },
+                }
+              : {}),
+            requestDate: { gte: startDate, lt: endDate },
+            status: { in: ['OPEN', 'ON_PROGRESS', 'PENDING'] },
+          },
+        }),
+        prisma.$queryRaw<Array<{ avg_days: number | null }>>(PrismaSql.sql`
+          SELECT ROUND(AVG(EXTRACT(EPOCH FROM ("installedDate" - "requestDate")) / 86400)::numeric, 1) AS avg_days
+          FROM "Ticket"
+          WHERE "installedDate" IS NOT NULL
+            AND "installedDate" >= ${startDate}
+            AND "installedDate" < ${endDate}
+            AND "requestDate" IS NOT NULL
+            ${marketingClause}
+        `),
+      ])
+      const conversionRate = inputCount > 0 ? (installedCount / inputCount) * 100 : 0
+      const avgLeadTime = Number(avgLeadRows[0]?.avg_days || 0)
+      focusedDivisionKpis = [
+        { label: 'Input PSB', value: inputCount, hint: 'Data masuk pada bulanan aktif ini' },
+        { label: 'Pemasangan', value: installedCount, hint: 'Tiket dengan tanggal pasang pada periode ini' },
+        { label: 'Conversion Rate', value: formatPercent(conversionRate), hint: 'Pemasangan dibanding input baru' },
+        { label: 'Aktivitas Marketing', value: marketingActivityTotal, hint: 'Aktivitas lapangan yang tercatat' },
+        { label: 'Backlog Open', value: backlogCount, hint: 'Prospek yang masih perlu follow up' },
+        { label: 'Lead Time Rata-rata', value: `${formatDecimal(avgLeadTime)} hari`, hint: 'Rata-rata dari input ke pemasangan' },
+      ]
+    }
+
+    if (selectedDivision === 'CS_ADMIN') {
+      const [newIsolationCount, restoredCount, avgRestoreRows] = await Promise.all([
+        prisma.isolation.count({
+          where: {
+            isolationDate: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.isolation.count({
+          where: {
+            restorationDate: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.$queryRaw<Array<{ avg_days: number | null }>>(PrismaSql.sql`
+          SELECT ROUND(AVG(EXTRACT(EPOCH FROM ("restorationDate" - "isolationDate")) / 86400)::numeric, 1) AS avg_days
+          FROM "Isolation"
+          WHERE "restorationDate" IS NOT NULL
+            AND "restorationDate" >= ${startDate}
+            AND "restorationDate" < ${endDate}
+        `),
+      ])
+      const closeRate = newIsolationCount > 0 ? (restoredCount / newIsolationCount) * 100 : 0
+      const avgRestoreDays = Number(avgRestoreRows[0]?.avg_days || 0)
+      focusedDivisionKpis = [
+        { label: 'Isolir Baru', value: newIsolationCount, hint: 'Data isolir yang dibuat pada bulanan aktif ini' },
+        { label: 'Restorasi', value: restoredCount, hint: 'Pelanggan yang kembali normal pada periode ini' },
+        { label: 'Close Rate', value: formatPercent(closeRate), hint: 'Restorasi dibanding isolir baru' },
+        { label: 'Isolir Aktif', value: isolationCount, hint: 'Akumulasi data yang masih berstatus OPEN' },
+        { label: 'Siap Dismantle', value: dismantleOpenCount, hint: 'Data isolir terbuka dengan tiket dismantle' },
+        { label: 'Siklus Rata-rata', value: `${formatDecimal(avgRestoreDays)} hari`, hint: 'Rata-rata dari isolir ke restorasi' },
+      ]
+    }
+
+    if (selectedDivision === 'NOC_TROUBLESHOOTS') {
+      const [openedCount, closedCount, openNowCount, avgHoursRows] = await Promise.all([
+        prisma.troubleTicket.count({
+          where: {
+            openedAt: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.troubleTicket.count({
+          where: {
+            closedAt: { gte: startDate, lt: endDate },
+          },
+        }),
+        prisma.troubleTicket.count({
+          where: {
+            status: 'OPEN',
+          },
+        }),
+        prisma.$queryRaw<Array<{ avg_hours: number | null }>>(PrismaSql.sql`
+          SELECT ROUND(AVG(EXTRACT(EPOCH FROM ("closedAt" - "openedAt")) / 3600)::numeric, 1) AS avg_hours
+          FROM "TroubleTicket"
+          WHERE "closedAt" IS NOT NULL
+            AND "closedAt" >= ${startDate}
+            AND "closedAt" < ${endDate}
+        `),
+      ])
+      const closeRate = openedCount > 0 ? (closedCount / openedCount) * 100 : 0
+      const avgHours = Number(avgHoursRows[0]?.avg_hours || 0)
+      focusedDivisionKpis = [
+        { label: 'Ticket Masuk', value: openedCount, hint: 'Trouble ticket dibuka pada bulanan aktif ini' },
+        { label: 'Ticket Close', value: closedCount, hint: 'Ticket yang selesai pada periode ini' },
+        { label: 'Close Rate', value: formatPercent(closeRate), hint: 'Close dibanding ticket masuk' },
+        { label: 'Backlog Open', value: openNowCount, hint: 'Akumulasi ticket yang masih terbuka' },
+        { label: 'Waktu Selesai', value: `${formatDecimal(avgHours)} jam`, hint: 'Rata-rata durasi open ke close' },
+        { label: 'ODP Aktif', value: odpTotal, hint: 'Aset jaringan yang masih aktif di sistem' },
+      ]
+    }
+
+    if (selectedDivision === 'CREATOR_DIGITAL') {
+      try {
+        const [
+          contentCreated,
+          contentPublished,
+          activeCampaigns,
+          leadsIncoming,
+          leadsConverted,
+          analyticsSummaryRows,
+        ] = await Promise.all([
+          prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
+            SELECT COUNT(*)::int AS total
+            FROM "ContentCalendar"
+            WHERE "createdAt" >= ${startDate}
+              AND "createdAt" < ${endDate}
+          `),
+          prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
+            SELECT COUNT(*)::int AS total
+            FROM "ContentCalendar"
+            WHERE "status" = 'PUBLISHED'
+              AND "publishDate" IS NOT NULL
+              AND "publishDate" >= ${startDate}
+              AND "publishDate" < ${endDate}
+          `),
+          prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
+            SELECT COUNT(*)::int AS total
+            FROM "Campaign"
+            WHERE "startDate" < ${endDate}
+              AND COALESCE("endDate", ${endDate}) >= ${startDate}
+              AND "status" = 'ACTIVE'
+          `),
+          prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
+            SELECT COUNT(*)::int AS total
+            FROM "DigitalLead"
+            WHERE "createdAt" >= ${startDate}
+              AND "createdAt" < ${endDate}
+          `),
+          prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
+            SELECT COUNT(*)::int AS total
+            FROM "DigitalLead"
+            WHERE "status" = 'CONVERTED'
+              AND "updatedAt" >= ${startDate}
+              AND "updatedAt" < ${endDate}
+          `),
+          prisma.$queryRaw<
+            Array<{
+              reach: number
+              impressions: number
+              clicks: number
+              engagement: number
+            }>
+          >(PrismaSql.sql`
+            SELECT
+              COALESCE(SUM("reach"), 0)::int AS reach,
+              COALESCE(SUM("impressions"), 0)::int AS impressions,
+              COALESCE(SUM("clicks"), 0)::int AS clicks,
+              COALESCE(SUM("likes" + "comments" + "shares" + "saves"), 0)::int AS engagement
+            FROM "ContentAnalytics"
+            WHERE "date" >= ${startDate}
+              AND "date" < ${endDate}
+          `),
+        ])
+        const analyticsSummary = analyticsSummaryRows[0] ?? {
+          reach: 0,
+          impressions: 0,
+          clicks: 0,
+          engagement: 0,
+        }
+        const leadCount = Number(leadsIncoming[0]?.total || 0)
+        const convertedCount = Number(leadsConverted[0]?.total || 0)
+        const conversionRate = leadCount > 0 ? (convertedCount / leadCount) * 100 : 0
+        focusedDivisionKpis = [
+          { label: 'Konten Dibuat', value: Number(contentCreated[0]?.total || 0), hint: 'Output content calendar pada periode ini' },
+          { label: 'Konten Publish', value: Number(contentPublished[0]?.total || 0), hint: 'Konten published sesuai jadwal periode ini' },
+          { label: 'Campaign Aktif', value: Number(activeCampaigns[0]?.total || 0), hint: 'Campaign yang overlap dengan periode laporan' },
+          { label: 'Leads Masuk', value: leadCount, hint: 'Leads baru dari channel digital' },
+          { label: 'Lead Converted', value: convertedCount, hint: `Conversion rate ${formatPercent(conversionRate)}` },
+          { label: 'Total Reach', value: formatDecimal(Number(analyticsSummary.reach || 0), 0), hint: `Engagement ${formatDecimal(Number(analyticsSummary.engagement || 0), 0)}` },
+        ]
+      } catch {
+        focusedDivisionKpis = [
+          { label: 'Konten Dibuat', value: 0, hint: 'Belum ada data pada periode ini' },
+          { label: 'Konten Publish', value: 0, hint: 'Belum ada data pada periode ini' },
+          { label: 'Campaign Aktif', value: 0, hint: 'Belum ada data pada periode ini' },
+          { label: 'Leads Masuk', value: 0, hint: 'Belum ada data pada periode ini' },
+          { label: 'Lead Converted', value: 0, hint: 'Belum ada data pada periode ini' },
+          { label: 'Total Reach', value: 0, hint: 'Belum ada data pada periode ini' },
+        ]
+      }
+    }
+
     const payload: DashboardPayload = {
       packageData,
       marketingDataWithIsolir,
@@ -702,6 +948,7 @@ export default async function DashboardPage({
       ticketingMonthRecap,
       yearMarketingMonthly,
       troubleTicketProblemMonthly,
+      focusedDivisionKpis,
       divisionSummary,
     }
 

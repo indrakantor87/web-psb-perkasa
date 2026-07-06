@@ -23,6 +23,12 @@ type DivisionSummary = {
 
 type DivisionFilter = DivisionSummary['code'] | 'ALL'
 
+type DashboardKpiCard = {
+  label: string
+  value: string | number
+  hint: string
+}
+
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
   marketingData: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -41,10 +47,11 @@ interface DashboardViewProps {
   initialPeriod: { month: number; year: number }
   userRole?: string
   divisionSummary?: DivisionSummary[]
+  focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, divisionSummary = [], selectedDivision = 'ALL' }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
   const [month, setMonth] = useState(initialPeriod.month)
   const [year, setYear] = useState(initialPeriod.year)
@@ -301,6 +308,35 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 division={division}
                 detailHref={`/division-performance?division=${division.code}&mode=MONTHLY&month=${month}&year=${year}`}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {focusedDivision !== 'ALL' && focusedDivisionKpis.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">KPI Divisi</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                KPI utama untuk periode bulanan yang sedang aktif.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {focusedDivisionKpis.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
+              >
+                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  {card.label}
+                </div>
+                <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  {card.value}
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{card.hint}</div>
+              </div>
             ))}
           </div>
         </div>
