@@ -621,19 +621,35 @@ export async function GET(request: Request) {
           ])
         }
 
+        const mappedItems = items.map((item: any) => ({
+          ...item,
+          price: normalizePriceNumber(item?.price),
+          ticketDismantle: null,
+          closeNote: null,
+          closePhoto: null,
+          isArchived: false,
+          archivedAt: null,
+          ticketId: null,
+          ticket: null,
+          importBatchAt: null,
+          importRowOrder: null,
+        }))
+        const filteredFallbackItems =
+          divisionFilter === 'CS_ADMIN'
+            ? mappedItems.filter((item: any) => shouldStayInIsolationList(item))
+            : mappedItems
+        const snapshotFallbackItems = filterToLatestImportSnapshot(
+          filteredFallbackItems,
+          Boolean(radboox && radboox !== 'ALL')
+        )
+        const orderedFallbackItems = [...snapshotFallbackItems].sort((a, b) =>
+          compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
+        )
         const payload = {
-          items: items.map((item: any) => ({
-            ...item,
-            price: normalizePriceNumber(item?.price),
-            ticketDismantle: null,
-            closeNote: null,
-            closePhoto: null,
-            isArchived: false,
-            archivedAt: null,
-            ticketId: null,
-            ticket: null,
-          })),
-          total,
+          items: exportAll
+            ? orderedFallbackItems
+            : orderedFallbackItems.slice((page - 1) * limit, page * limit),
+          total: orderedFallbackItems.length,
           page,
           limit,
         }
