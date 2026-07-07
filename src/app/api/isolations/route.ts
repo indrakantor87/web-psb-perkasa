@@ -171,15 +171,12 @@ function filterToLatestImportSnapshot<T extends { importBatchAt?: unknown }>(ite
 function shouldStayInIsolationList(item: {
   status?: unknown
   ticketDismantle?: unknown
-  isolationDate?: unknown
 }) {
   const status = String(item.status ?? '').trim().toUpperCase()
   if (status !== 'OPEN') return true
 
   const hasTicket = String(item.ticketDismantle ?? '').trim() !== ''
-  if (hasTicket) return false
-
-  return !isDismantleEligible(item.isolationDate as string | Date | null | undefined)
+  return !hasTicket
 }
 
 function buildSmartDismantleRows(items: any[]) {
