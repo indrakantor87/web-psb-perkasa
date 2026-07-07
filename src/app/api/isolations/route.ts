@@ -590,46 +590,37 @@ export async function GET(request: Request) {
           status: true,
           restorationDate: true,
           teknisi: true,
+          ticketDismantle: true,
+          isArchived: true,
+          archivedAt: true,
+          importBatchAt: true,
+          importRowOrder: true,
         }
 
-        let total: number
         let items: any[]
         try {
-          ;[total, items] = await Promise.all([
-            prisma.isolation.count({ where: legacyWhere }),
-            (prisma as any).isolation.findMany({
-              where: legacyWhere,
-              orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
-              ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
-              select: legacySelectBase,
-            }),
-          ])
+          items = await (prisma as any).isolation.findMany({
+            where: legacyWhere,
+            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+            select: legacySelectBase,
+          })
         } catch {
           const legacySelectFallback = { ...legacySelectBase }
           delete (legacySelectFallback as any).price
-          ;[total, items] = await Promise.all([
-            prisma.isolation.count({ where: legacyWhere }),
-            (prisma as any).isolation.findMany({
-              where: legacyWhere,
-              orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
-              ...(exportAll ? {} : { skip: (page - 1) * limit, take: limit }),
-              select: legacySelectFallback,
-            }),
-          ])
+          items = await (prisma as any).isolation.findMany({
+            where: legacyWhere,
+            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+            select: legacySelectFallback,
+          })
         }
 
         const mappedItems = items.map((item: any) => ({
           ...item,
           price: normalizePriceNumber(item?.price),
-          ticketDismantle: null,
           closeNote: null,
           closePhoto: null,
-          isArchived: false,
-          archivedAt: null,
           ticketId: null,
           ticket: null,
-          importBatchAt: null,
-          importRowOrder: null,
         }))
         const filteredFallbackItems =
           divisionFilter === 'CS_ADMIN'
