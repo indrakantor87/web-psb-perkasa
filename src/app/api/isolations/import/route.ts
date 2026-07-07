@@ -120,6 +120,7 @@ export async function POST(request: Request) {
     const sheetName = workbook.SheetNames[0]
     const sheet = workbook.Sheets[sheetName]
     const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: null })
+    const importBatchAt = new Date()
 
     const norm = (s: unknown) => (typeof s === 'string' ? s.trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ') : '')
     const mapField = (key: string) => {
@@ -275,6 +276,8 @@ export async function POST(request: Request) {
           teknisi: session.user.name ?? null,
           restorationDate: restorationFinal,
           ticketDismantle,
+          importBatchAt,
+          importRowOrder: idx + 1,
         })
       } catch (e) {
         errorCount += 1

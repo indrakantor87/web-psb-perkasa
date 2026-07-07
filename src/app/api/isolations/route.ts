@@ -113,6 +113,46 @@ function normalizePriceNumber(value: unknown): number | null {
   return num
 }
 
+function parseSortableTime(value: unknown) {
+  const time = new Date(String(value ?? '')).getTime()
+  return Number.isFinite(time) ? time : null
+}
+
+function compareIsolationListOrder(
+  a: { importBatchAt?: unknown; importRowOrder?: unknown; activeDate?: unknown; isolationDate?: unknown; id?: unknown },
+  b: { importBatchAt?: unknown; importRowOrder?: unknown; activeDate?: unknown; isolationDate?: unknown; id?: unknown },
+  preserveImportOrder: boolean
+) {
+  if (preserveImportOrder) {
+    const aBatch = parseSortableTime(a.importBatchAt)
+    const bBatch = parseSortableTime(b.importBatchAt)
+
+    if (aBatch !== null && bBatch !== null) {
+      if (aBatch !== bBatch) return bBatch - aBatch
+
+      const aRow = typeof a.importRowOrder === 'number' ? a.importRowOrder : Number(a.importRowOrder ?? NaN)
+      const bRow = typeof b.importRowOrder === 'number' ? b.importRowOrder : Number(b.importRowOrder ?? NaN)
+      if (Number.isFinite(aRow) && Number.isFinite(bRow) && aRow !== bRow) {
+        return aRow - bRow
+      }
+    } else if (aBatch !== null || bBatch !== null) {
+      return aBatch !== null ? -1 : 1
+    }
+  }
+
+  const aActive = parseSortableTime(a.activeDate)
+  const bActive = parseSortableTime(b.activeDate)
+  if (aActive !== null && bActive !== null && aActive !== bActive) return bActive - aActive
+  if (aActive !== null || bActive !== null) return aActive !== null ? -1 : 1
+
+  const aIsolation = parseSortableTime(a.isolationDate)
+  const bIsolation = parseSortableTime(b.isolationDate)
+  if (aIsolation !== null && bIsolation !== null && aIsolation !== bIsolation) return bIsolation - aIsolation
+  if (aIsolation !== null || bIsolation !== null) return aIsolation !== null ? -1 : 1
+
+  return (typeof b.id === 'number' ? b.id : 0) - (typeof a.id === 'number' ? a.id : 0)
+}
+
 function buildSmartDismantleRows(items: any[]) {
   const map = new Map<string, any>()
   const passthrough: any[] = []
@@ -357,6 +397,8 @@ export async function GET(request: Request) {
       ticketDismantle: true,
       isArchived: true,
       archivedAt: true,
+      importBatchAt: true,
+      importRowOrder: true,
       ...ticketSelect,
     }
     const selectNoPrice: any = {
@@ -378,6 +420,8 @@ export async function GET(request: Request) {
       ticketDismantle: true,
       isArchived: true,
       archivedAt: true,
+      importBatchAt: true,
+      importRowOrder: true,
       ...ticketSelect,
     }
     const selectNoClose: any = {
@@ -469,12 +513,17 @@ export async function GET(request: Request) {
         )
       : isolationsRaw
 
-    const total = filteredIsolations.length
-    const withTicketTotal = filteredIsolations.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
+    const preferImportOrder = Boolean(radboox && radboox !== 'ALL')
+    const orderedIsolations = [...filteredIsolations].sort((a, b) =>
+      compareIsolationListOrder(a, b, preferImportOrder)
+    )
+
+    const total = orderedIsolations.length
+    const withTicketTotal = orderedIsolations.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
     const withoutTicketTotal = total - withTicketTotal
     const isolations = exportAll
-      ? filteredIsolations
-      : filteredIsolations.slice((page - 1) * limit, page * limit)
+      ? orderedIsolations
+      : orderedIsolations.slice((page - 1) * limit, page * limit)
 
     const payload = {
       items: isolations.map((item: any) => ({ ...item, price: normalizePriceNumber(item?.price) })),

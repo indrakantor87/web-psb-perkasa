@@ -37,7 +37,7 @@ export default async function IsolirPage({
         userRole={session.user.role} 
         initialSearch={params?.search || ''} 
         initialMarketing={params?.marketing || ''} 
-        initialStatus={params?.status || ''} 
+        initialStatus={params?.status || 'OPEN'} 
         initialDivision={initialDivision}
       />
     </div>

@@ -81,6 +81,8 @@ model Isolation {
   ticketDismantle String?
   isArchived      Boolean  @default(false)
   archivedAt      DateTime?
+  importBatchAt   DateTime?
+  importRowOrder  Int?
   
   ticketId        Int?
   ticket          Ticket?  @relation(fields: [ticketId], references: [id])
