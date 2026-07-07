@@ -153,6 +153,35 @@ function compareIsolationListOrder(
   return (typeof b.id === 'number' ? b.id : 0) - (typeof a.id === 'number' ? a.id : 0)
 }
 
+function filterToLatestImportSnapshot<T extends { importBatchAt?: unknown }>(items: T[], enabled: boolean) {
+  if (!enabled) return items
+
+  const latestBatchTime = items.reduce<number | null>((current, item) => {
+    const time = parseSortableTime(item.importBatchAt)
+    if (time === null) return current
+    if (current === null || time > current) return time
+    return current
+  }, null)
+
+  if (latestBatchTime === null) return items
+
+  return items.filter((item) => parseSortableTime(item.importBatchAt) === latestBatchTime)
+}
+
+function shouldStayInIsolationList(item: {
+  status?: unknown
+  ticketDismantle?: unknown
+  isolationDate?: unknown
+}) {
+  const status = String(item.status ?? '').trim().toUpperCase()
+  if (status !== 'OPEN') return true
+
+  const hasTicket = String(item.ticketDismantle ?? '').trim() !== ''
+  if (hasTicket) return false
+
+  return !isDismantleEligible(item.isolationDate as string | Date | null | undefined)
+}
+
 function buildSmartDismantleRows(items: any[]) {
   const map = new Map<string, any>()
   const passthrough: any[] = []
@@ -511,10 +540,13 @@ export async function GET(request: Request) {
             return isDismantleEligible(item.isolationDate)
           })
         )
-      : isolationsRaw
+      : divisionFilter === 'CS_ADMIN'
+        ? isolationsRaw.filter((item: any) => shouldStayInIsolationList(item))
+        : isolationsRaw
 
     const preferImportOrder = Boolean(radboox && radboox !== 'ALL')
-    const orderedIsolations = [...filteredIsolations].sort((a, b) =>
+    const snapshotIsolations = filterToLatestImportSnapshot(filteredIsolations, preferImportOrder)
+    const orderedIsolations = [...snapshotIsolations].sort((a, b) =>
       compareIsolationListOrder(a, b, preferImportOrder)
     )
 
