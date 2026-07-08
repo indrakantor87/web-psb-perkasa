@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { normalizeMarketingName } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
-import { ensureDismantleTicketsTable, getDismantleTicketLinksForIsolationIds } from '@/lib/dismantle-tickets'
+import { ensureDismantleTicketsTable, getDismantleTicketLinksForIsolationItems } from '@/lib/dismantle-tickets'
 import {
   canAccessMenu,
   canDeleteIsolationRecords,
@@ -499,10 +499,16 @@ export async function GET(request: Request) {
       compareIsolationListOrder(a, b, preferImportOrder)
     )
 
-    const orderedIds = orderedIsolations
-      .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
-      .filter((id: number) => Number.isFinite(id))
-    const inDismantleSet = await getDismantleTicketLinksForIsolationIds(orderedIds)
+    const inDismantleSet = await getDismantleTicketLinksForIsolationItems(
+      orderedIsolations.map((item: any) => ({
+        id: Number(item?.id ?? NaN),
+        radboox: item?.radboox,
+        userEmail: item?.userEmail,
+        customerPhone: item?.customerPhone,
+        customerName: item?.customerName,
+        customerAddress: item?.customerAddress,
+      }))
+    )
     const filterByTicketStatus = (item: any) => {
       if (ticketStatus === 'WITH') return inDismantleSet.has(Number(item?.id))
       if (ticketStatus === 'WITHOUT') return !inDismantleSet.has(Number(item?.id))
@@ -602,10 +608,16 @@ export async function GET(request: Request) {
       const orderedFallbackItems = [...snapshotFallbackItems].sort((a, b) =>
         compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
       )
-      const fallbackIds = orderedFallbackItems
-        .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
-        .filter((id: number) => Number.isFinite(id))
-      const inDismantleSet = await getDismantleTicketLinksForIsolationIds(fallbackIds)
+      const inDismantleSet = await getDismantleTicketLinksForIsolationItems(
+        orderedFallbackItems.map((item: any) => ({
+          id: Number(item?.id ?? NaN),
+          radboox: item?.radboox,
+          userEmail: item?.userEmail,
+          customerPhone: item?.customerPhone,
+          customerName: item?.customerName,
+          customerAddress: item?.customerAddress,
+        }))
+      )
       const ticketFilteredFallbackItems =
         ticketStatus === 'WITH' || ticketStatus === 'WITHOUT'
           ? orderedFallbackItems.filter((item: any) => {

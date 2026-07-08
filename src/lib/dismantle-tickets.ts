@@ -34,6 +34,59 @@ export type DismantleTicketListParams = {
   limit: number
 }
 
+type IsolationLinkCandidate = {
+  id: number
+  radboox?: unknown
+  userEmail?: unknown
+  customerPhone?: unknown
+  customerName?: unknown
+  customerAddress?: unknown
+}
+
+function normalizeEmail(value: unknown) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+function normalizePhone(value: unknown) {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.startsWith('62')) return digits
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`
+  return digits
+}
+
+function normalizeText(value: unknown) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function buildIsolationMatchKey(candidate: {
+  radboox?: unknown
+  userEmail?: unknown
+  customerPhone?: unknown
+  customerName?: unknown
+  customerAddress?: unknown
+}) {
+  const rad = String(candidate.radboox ?? '').trim()
+  if (!rad) return ''
+
+  const email = normalizeEmail(candidate.userEmail)
+  if (email) return `rad:${rad}|email:${email}`
+
+  const phone = normalizePhone(candidate.customerPhone)
+  if (phone) return `rad:${rad}|phone:${phone}`
+
+  const name = normalizeText(candidate.customerName)
+  const address = normalizeText(candidate.customerAddress)
+  if (name) return `rad:${rad}|name:${name}|addr:${address}`
+
+  return ''
+}
+
 export async function ensureDismantleTicketsTable() {
   if (!g.__ensureDismantleTicketsTablePromise) {
     g.__ensureDismantleTicketsTablePromise = (async () => {
@@ -321,4 +374,139 @@ export async function getDismantleTicketLinksForIsolationIds(ids: number[]) {
     ids,
   )
   return new Set(rows.map((row) => Number(row.sourceIsolationId)))
+}
+
+export async function getDismantleTicketLinksForIsolationItems(items: IsolationLinkCandidate[]) {
+  if (items.length === 0) return new Set<number>()
+
+  const ids = items
+    .map((item) => Number(item.id))
+    .filter((id) => Number.isFinite(id))
+  const radbooxValues = Array.from(
+    new Set(
+      items
+        .map((item) => String(item.radboox ?? '').trim())
+        .filter(Boolean),
+    ),
+  )
+
+  const sourceIdSet = ids.length > 0 ? await getDismantleTicketLinksForIsolationIds(ids) : new Set<number>()
+  if (radbooxValues.length === 0) return sourceIdSet
+
+  const ticketRows = await prisma.$queryRawUnsafe<
+    Array<{
+      sourceIsolationId: number | null
+      radboox: string | null
+      userEmail: string | null
+      customerPhone: string | null
+      customerName: string | null
+      customerAddress: string | null
+    }>
+  >(
+    `
+      SELECT
+        "sourceIsolationId",
+        "radboox",
+        "userEmail",
+        "customerPhone",
+        "customerName",
+        "customerAddress"
+      FROM "DismantleTickets"
+      WHERE COALESCE("status", 'OPEN') = 'OPEN'
+        AND COALESCE("radboox", '') = ANY($1::text[])
+    `,
+    radbooxValues,
+  )
+
+  const ticketKeySet = new Set(
+    ticketRows
+      .map((row) => buildIsolationMatchKey(row))
+      .filter(Boolean),
+  )
+
+  const linked = new Set<number>(sourceIdSet)
+  for (const item of items) {
+    const id = Number(item.id)
+    if (!Number.isFinite(id) || linked.has(id)) continue
+    const key = buildIsolationMatchKey(item)
+    if (key && ticketKeySet.has(key)) linked.add(id)
+  }
+
+  return linked
+}
+
+export async function relinkDismantleTicketsForIsolationItems(items: IsolationLinkCandidate[]) {
+  if (items.length === 0) return 0
+
+  const candidates = items.filter((item) => Number.isFinite(Number(item.id)))
+  if (candidates.length === 0) return 0
+
+  const radbooxValues = Array.from(
+    new Set(
+      candidates
+        .map((item) => String(item.radboox ?? '').trim())
+        .filter(Boolean),
+    ),
+  )
+  if (radbooxValues.length === 0) return 0
+
+  const candidateById = new Map<number, IsolationLinkCandidate>()
+  const candidateByKey = new Map<string, IsolationLinkCandidate>()
+  for (const item of candidates) {
+    const id = Number(item.id)
+    candidateById.set(id, item)
+    const key = buildIsolationMatchKey(item)
+    if (key && !candidateByKey.has(key)) {
+      candidateByKey.set(key, item)
+    }
+  }
+
+  const ticketRows = await prisma.$queryRawUnsafe<
+    Array<{
+      id: number
+      sourceIsolationId: number | null
+      radboox: string | null
+      userEmail: string | null
+      customerPhone: string | null
+      customerName: string | null
+      customerAddress: string | null
+    }>
+  >(
+    `
+      SELECT
+        "id",
+        "sourceIsolationId",
+        "radboox",
+        "userEmail",
+        "customerPhone",
+        "customerName",
+        "customerAddress"
+      FROM "DismantleTickets"
+      WHERE COALESCE("status", 'OPEN') = 'OPEN'
+        AND COALESCE("radboox", '') = ANY($1::text[])
+    `,
+    radbooxValues,
+  )
+
+  let updated = 0
+  for (const ticket of ticketRows) {
+    const sourceId = ticket.sourceIsolationId == null ? null : Number(ticket.sourceIsolationId)
+    const directMatch = sourceId != null ? candidateById.get(sourceId) : undefined
+    const identityKey = buildIsolationMatchKey(ticket)
+    const identityMatch = identityKey ? candidateByKey.get(identityKey) : undefined
+    const target = directMatch ?? identityMatch
+    if (!target) continue
+
+    const targetId = Number(target.id)
+    if (!Number.isFinite(targetId) || sourceId === targetId) continue
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "DismantleTickets" SET "sourceIsolationId" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE "id" = $2`,
+      targetId,
+      Number(ticket.id),
+    )
+    updated += 1
+  }
+
+  return updated
 }

@@ -5,6 +5,7 @@ import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { canMutateIsolationRecords } from '@/lib/access'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
+import { ensureDismantleTicketsTable, relinkDismantleTicketsForIsolationItems } from '@/lib/dismantle-tickets'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -106,6 +107,7 @@ export async function POST(request: Request) {
   
   try {
     await ensureIsolationColumnsOnce()
+    await ensureDismantleTicketsTable()
 
     const XLSX = await import('xlsx')
     const formData = await request.formData()
@@ -328,6 +330,14 @@ export async function POST(request: Request) {
 
     let inserted = 0
     let updated = 0
+    const relinkCandidates: Array<{
+      id: number
+      radboox: string | null
+      userEmail: string | null
+      customerPhone: string | null
+      customerName: string
+      customerAddress: string | null
+    }> = []
     const importedOpenIdsByRadboox = new Map<string, Set<number>>()
 
     for (const [key, data] of preparedByKey.entries()) {
@@ -338,6 +348,14 @@ export async function POST(request: Request) {
           data,
         })
         updated += 1
+          relinkCandidates.push({
+            id: existingRow.id,
+            radboox: data.radboox ?? null,
+            userEmail: data.userEmail ?? null,
+            customerPhone: data.customerPhone ?? null,
+            customerName: data.customerName,
+            customerAddress: data.customerAddress ?? null,
+          })
         const rad = String(data.radboox ?? '').trim()
         if (rad) {
           if (!importedOpenIdsByRadboox.has(rad)) importedOpenIdsByRadboox.set(rad, new Set())
@@ -348,12 +366,22 @@ export async function POST(request: Request) {
 
       const created = await (prisma as any).isolation.create({ data })
       inserted += 1
+      relinkCandidates.push({
+        id: created.id,
+        radboox: data.radboox ?? null,
+        userEmail: data.userEmail ?? null,
+        customerPhone: data.customerPhone ?? null,
+        customerName: data.customerName,
+        customerAddress: data.customerAddress ?? null,
+      })
       const rad = String(data.radboox ?? '').trim()
       if (rad && String(data.status).toUpperCase() === 'OPEN') {
         if (!importedOpenIdsByRadboox.has(rad)) importedOpenIdsByRadboox.set(rad, new Set())
         importedOpenIdsByRadboox.get(rad)!.add(created.id)
       }
     }
+
+    await relinkDismantleTicketsForIsolationItems(relinkCandidates)
 
     let deleted = 0
     let archived = 0
