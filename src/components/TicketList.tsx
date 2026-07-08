@@ -138,6 +138,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     const limitPart = pagination?.pageSize && pagination.pageSize !== 25 ? `&limit=${pagination.pageSize}` : ''
     const url = `${base}${statusPart}${marketingPart}${searchPart}${divisionPart}${limitPart}`
     router.replace(url)
+    router.refresh()
   }, [division, isAdmin, marketing, month, pagination?.pageSize, router, search, status, year])
 
   // Auto-filter when state changes
@@ -512,6 +513,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     const url = new URL(window.location.href)
     url.searchParams.set('page', newPage.toString())
     router.replace(url.pathname + url.search)
+    router.refresh()
   }
 
   const handleLimitChange = (newLimit: number) => {
@@ -522,6 +524,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     const limitPart = newLimit !== 25 ? `&limit=${newLimit}` : ''
     const url = `${base}${statusPart}${marketingPart}${searchPart}${limitPart}`
     router.replace(url)
+    router.refresh()
   }
 
   const handleImportClick = () => {
