@@ -57,6 +57,11 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const [year, setYear] = useState(initialPeriod.year)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
+  useEffect(() => {
+    setMonth(initialPeriod.month)
+    setYear(initialPeriod.year)
+  }, [initialPeriod.month, initialPeriod.year])
+
   // Pull to refresh support
   useEffect(() => {
     const handler = () => {
@@ -83,6 +88,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
   const isAdmin = userRole === 'ADMIN'
+  const roleUpper = String(userRole ?? '').trim().toUpperCase()
+  const isCsRole = roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
   const roleDivision = getDivisionFromRole(userRole)
   const focusedDivision = isAdmin ? selectedDivision : roleDivision
 
@@ -203,7 +210,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     if (isAdmin && nextDivision !== 'ALL') {
       params.set('division', nextDivision)
     }
-    router.push(`/?${params.toString()}`)
+    router.replace(`/?${params.toString()}`)
+    router.refresh()
   }
 
   const visibleDivisionSummary = useMemo(() => {
@@ -387,7 +395,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
       {!showCreatorFocus && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {showSalesFocus && (
+          {(showSalesFocus || isCsRole) && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -427,7 +435,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </div>
           )}
 
-          {!isMarketing && showTicketingFocus && (
+          {!isMarketing && (showTicketingFocus || isCsRole) && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -629,7 +637,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Marketing Table */}
-      {!isMobilePortrait && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
+      {!isMobilePortrait && !isTeknisi && !isNoc && (showSalesFocus || isCsRole) && !showCreatorFocus && (
       <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-6 flex items-center justify-between">
           <div>
