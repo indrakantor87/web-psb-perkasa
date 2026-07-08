@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn, ensureUserRoleValues } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
+import { logSecurityEvent } from '@/lib/security-log'
 
 type UserWithOptionalDivision = {
   division?: string | null
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
   const session = await getSession()
   const accessError = ensureMenuMutation(session, 'settings')
   if (accessError) return accessError
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
@@ -119,6 +121,12 @@ export async function POST(request: Request) {
       createdAt: newUser.createdAt,
     }
     cache.invalidateByPrefix('users:')
+    await logSecurityEvent({
+      action: 'USER_CREATE',
+      request,
+      user: { id: session.user.id, username: session.user.username, role: session.user.role },
+      meta: { createdUserId: safeUser.id, createdRole: safeUser.role, createdUsername: safeUser.username },
+    }).catch(() => {})
     return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Create user error:', error)
@@ -163,6 +171,7 @@ export async function PUT(request: Request) {
   const session = await getSession()
   const accessError = ensureMenuMutation(session, 'settings')
   if (accessError) return accessError
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
@@ -218,6 +227,12 @@ export async function PUT(request: Request) {
       createdAt: updatedUser.createdAt,
     }
     cache.invalidateByPrefix('users:')
+    await logSecurityEvent({
+      action: 'USER_UPDATE',
+      request,
+      user: { id: session.user.id, username: session.user.username, role: session.user.role },
+      meta: { updatedUserId: safeUser.id, updatedRole: safeUser.role, updatedUsername: safeUser.username },
+    }).catch(() => {})
     return NextResponse.json(safeUser)
   } catch (error) {
     console.error('Update user error:', error)
@@ -229,6 +244,7 @@ export async function DELETE(request: Request) {
   const session = await getSession()
   const accessError = ensureMenuMutation(session, 'settings')
   if (accessError) return accessError
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const { searchParams } = new URL(request.url)
@@ -242,6 +258,12 @@ export async function DELETE(request: Request) {
       where: { id: Number(id) },
     })
     cache.invalidateByPrefix('users:')
+    await logSecurityEvent({
+      action: 'USER_DELETE',
+      request,
+      user: { id: session.user.id, username: session.user.username, role: session.user.role },
+      meta: { deletedUserId: Number(id) },
+    }).catch(() => {})
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (error) {
     console.error('Delete user error:', error)

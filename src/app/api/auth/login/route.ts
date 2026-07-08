@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { loginSchema } from '@/lib/validations'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
+import { logSecurityEvent } from '@/lib/security-log'
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,12 @@ export async function POST(request: Request) {
     // Validate input
     const result = loginSchema.safeParse(body)
     if (!result.success) {
+      await logSecurityEvent({
+        action: 'LOGIN_FAILED',
+        request,
+        user: null,
+        meta: { reason: 'invalid_input' },
+      }).catch(() => {})
       return NextResponse.json(
         { message: 'Invalid input', errors: result.error.flatten() },
         { status: 400 }
@@ -50,6 +57,12 @@ export async function POST(request: Request) {
         division: null,
       }
       await login(sessionUser, rememberMe)
+      await logSecurityEvent({
+        action: 'LOGIN_SUCCESS',
+        request,
+        user: { id: sessionUser.id, username: sessionUser.username, role: sessionUser.role },
+        meta: { localOnly: true, rememberMe: Boolean(rememberMe) },
+      }).catch(() => {})
       return NextResponse.json({ ...sessionUser, localOnly: true })
     }
 
@@ -59,11 +72,23 @@ export async function POST(request: Request) {
 
     const isPasswordValid = user ? await bcrypt.compare(password, user.password) : false
     if (!user || !isPasswordValid) {
+      await logSecurityEvent({
+        action: 'LOGIN_FAILED',
+        request,
+        user: null,
+        meta: { username: normalizedUsername, reason: 'invalid_credentials' },
+      }).catch(() => {})
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
     }
 
     const sessionUser = { id: user.id, name: user.name, username: user.username, role: user.role, division: user.division ?? null }
     await login(sessionUser, rememberMe)
+    await logSecurityEvent({
+      action: 'LOGIN_SUCCESS',
+      request,
+      user: { id: sessionUser.id, username: sessionUser.username, role: sessionUser.role },
+      meta: { rememberMe: Boolean(rememberMe) },
+    }).catch(() => {})
 
     return NextResponse.json(sessionUser)
   } catch (error) {

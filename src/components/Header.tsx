@@ -347,6 +347,7 @@ export function Header({ user }: { user: SessionUser }) {
       items: [
         { href: '/settings/users', label: 'Manajemen Pengguna' },
         { href: '/settings/role-audit', label: 'Audit Role' },
+        { href: '/settings/security-logs', label: 'Log Aktivitas' },
       ],
     },
     {

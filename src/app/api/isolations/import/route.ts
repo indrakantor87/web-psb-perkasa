@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client'
 import { canMutateIsolationRecords } from '@/lib/access'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { ensureDismantleTicketsTable, relinkDismantleTicketsForIsolationItems } from '@/lib/dismantle-tickets'
+import { logSecurityEvent } from '@/lib/security-log'
 // Avoid bundling issues on Vercel by dynamically importing 'xlsx'
 
 export const runtime = 'nodejs'
@@ -444,6 +445,12 @@ export async function POST(request: Request) {
     }
 
     cache.invalidateByPrefix('isolations:')
+    await logSecurityEvent({
+      action: 'ISOLATIONS_IMPORT',
+      request,
+      user: { id: session.user.id, username: session.user.username, role: session.user.role },
+      meta: { parsedCount, inserted, updated, deleted, archived, skippedCount, errorCount },
+    }).catch(() => {})
     return NextResponse.json({
       message: `Import sinkron selesai. Insert: ${inserted}, Update: ${updated}, Hapus: ${deleted}, Arsip: ${archived}, Skip: ${skippedCount}, Error: ${errorCount}`,
       parsedCount,

@@ -41,6 +41,8 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     { href: '/settings/users', label: 'Manajemen Pengguna' },
     { href: '/settings/templates', label: 'Template WA' },
     { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
+    { href: '/settings/role-audit', label: 'Audit Role' },
+    { href: '/settings/security-logs', label: 'Log Aktivitas' },
   ] : []
 
   const handleLinkClick = () => {
