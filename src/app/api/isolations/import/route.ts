@@ -62,6 +62,30 @@ function parsePrice(value: unknown): Prisma.Decimal | null {
   return new Prisma.Decimal(num)
 }
 
+function parseSuspendDuration(value: unknown): { months: number; days: number } | null {
+  if (value == null) return null
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const months = Math.trunc(value)
+    return months > 0 ? { months, days: 0 } : null
+  }
+
+  const raw = String(value).trim().toLowerCase()
+  if (!raw) return null
+
+  const monthsMatch = raw.match(/(\d+)\s*bulan/)
+  const daysMatch = raw.match(/(\d+)\s*hari/)
+
+  if (monthsMatch || daysMatch) {
+    const months = monthsMatch ? Number.parseInt(monthsMatch[1], 10) : 0
+    const days = daysMatch ? Number.parseInt(daysMatch[1], 10) : 0
+    return months > 0 || days > 0 ? { months, days } : null
+  }
+
+  const asInt = Number.parseInt(raw, 10)
+  return Number.isFinite(asInt) && asInt > 0 ? { months: Math.trunc(asInt), days: 0 } : null
+}
+
 function normalizeEmail(v: unknown) {
   if (typeof v !== 'string') return ''
   return v.trim().toLowerCase()
@@ -214,18 +238,18 @@ export async function POST(request: Request) {
         const restorationDate = parseDate(typeof restorationRaw === 'number' || typeof restorationRaw === 'string' ? restorationRaw : String(restorationRaw ?? ''))
 
         const suspendMonthsRaw = r.suspendMonths
-        const suspendMonthsNum =
-          typeof suspendMonthsRaw === 'number'
-            ? Math.trunc(suspendMonthsRaw)
-            : typeof suspendMonthsRaw === 'string'
-              ? Math.trunc(parseInt(suspendMonthsRaw, 10))
-              : NaN
+        const suspend = parseSuspendDuration(suspendMonthsRaw)
 
         const isolationDate =
           isoDateParsed && !Number.isNaN(isoDateParsed.getTime())
             ? isoDateParsed
-            : Number.isFinite(suspendMonthsNum) && suspendMonthsNum > 0
-              ? new Date(new Date().getFullYear(), new Date().getMonth() - suspendMonthsNum, 1)
+            : suspend
+              ? (() => {
+                  const d = new Date()
+                  if (suspend.months > 0) d.setMonth(d.getMonth() - suspend.months)
+                  if (suspend.days > 0) d.setDate(d.getDate() - suspend.days)
+                  return d
+                })()
               : new Date()
 
         const ticketDismantleRaw = r.ticketDismantle

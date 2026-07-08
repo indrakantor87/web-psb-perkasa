@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
-import { ensureUserDivisionColumn } from '@/lib/db-init'
+import { ensureUserDivisionColumn, ensureUserRoleValues } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 type UserWithOptionalDivision = {
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
+    await ensureUserRoleValues().catch(() => {})
     const body = await request.json()
 
     // Validate input
@@ -91,11 +92,23 @@ export async function POST(request: Request) {
         data: createData as Prisma.UserUncheckedCreateInput,
       })
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      const looksLikeRoleConstraint =
+        message.toLowerCase().includes('invalid input value for enum') ||
+        message.toLowerCase().includes('violates check constraint') ||
+        message.toLowerCase().includes('enum') && message.toLowerCase().includes('role')
+      if (looksLikeRoleConstraint) {
+        await ensureUserRoleValues().catch(() => {})
+        newUser = await prisma.user.create({
+          data: createData as Prisma.UserUncheckedCreateInput,
+        })
+      } else {
       if (!isUserIdUniqueError(e)) throw e
       await repairUserIdSequence()
       newUser = await prisma.user.create({
         data: createData as Prisma.UserUncheckedCreateInput,
       })
+      }
     }
     const safeUser = {
       id: newUser.id,
@@ -153,6 +166,7 @@ export async function PUT(request: Request) {
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
+    await ensureUserRoleValues().catch(() => {})
     const body = await request.json()
 
     // Validate input
