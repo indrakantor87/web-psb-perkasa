@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
-import { formatSuspendDuration, hasMonthlySuspend } from '@/lib/isolation-suspend'
+import { formatSuspendDuration, getSuspendDurationParts, hasMonthlySuspend } from '@/lib/isolation-suspend'
 import {
   canDeleteIsolationRecords,
   canMutateIsolationRecords,
@@ -80,6 +80,37 @@ function formatPrice(value: unknown) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num)
 }
 
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function addMonthsClamped(date: Date, months: number) {
+  const originalDay = date.getDate()
+  const target = new Date(date)
+  target.setDate(1)
+  target.setMonth(target.getMonth() + months)
+  const lastDayOfTargetMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(originalDay, lastDayOfTargetMonth))
+  return target
+}
+
+function toIsoDateOnly(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function buildIsolationDateFromDuration(monthsInput: unknown, daysInput: unknown) {
+  const months = Math.max(0, parseInt(String(monthsInput ?? '0') || '0', 10) || 0)
+  const days = Math.max(0, parseInt(String(daysInput ?? '0') || '0', 10) || 0)
+  if (months <= 0 && days <= 0) return undefined
+  const now = startOfDay(new Date())
+  const afterMonths = addMonthsClamped(now, -months)
+  afterMonths.setDate(afterMonths.getDate() - days)
+  return toIsoDateOnly(afterMonths)
+}
+
 function getTicketStatusLabel(item: Pick<Isolation, 'isolationDate' | 'ticketDismantle'>) {
   if (!hasMonthlySuspend(item.isolationDate)) return '-'
   return String(item.ticketDismantle ?? '').trim() !== '' ? 'Sudah' : 'Belum'
@@ -153,6 +184,8 @@ export function IsolationView({
     customerPhone: '',
     userEmail: '',
     activeDate: '',
+    isolirMonths: '',
+    isolirDays: '',
     marketing: '',
     radboox: '',
     price: '',
@@ -245,21 +278,55 @@ export function IsolationView({
     if (!canMutate) return
     setIsSubmitting(true)
     try {
+      const { isolirMonths, isolirDays, ...payload } = formData
+      const isolationDate = buildIsolationDateFromDuration(isolirMonths, isolirDays)
+      const requestBody: Record<string, unknown> = {
+        ...payload,
+        ...(isolationDate ? { isolationDate } : {}),
+      }
       const url = editId ? `/api/isolations/${editId}` : '/api/isolations'
       const method = editId ? 'PUT' : 'POST'
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       })
       
       if (res.ok) {
+        const saved = (await res.json().catch(() => null)) as Partial<Isolation> | null
         setIsModalOpen(false)
         setEditId(null)
-        setFormData({ customerName: '', customerAddress: '', customerPhone: '', userEmail: '', activeDate: '', marketing: '', radboox: '', price: '', reason: '' })
-        fetchIsolations()
+        setFormData({
+          customerName: '',
+          customerAddress: '',
+          customerPhone: '',
+          userEmail: '',
+          activeDate: '',
+          isolirMonths: '',
+          isolirDays: '',
+          marketing: '',
+          radboox: '',
+          price: '',
+          reason: '',
+        })
+
+        if (saved && typeof saved.id === 'number') {
+          setIsolations((prev) => {
+            if (prev.some((x) => x.id === saved.id)) {
+              return prev.map((x) => (x.id === saved.id ? ({ ...x, ...saved } as Isolation) : x))
+            }
+            if (page !== 1) return prev
+            return ([saved as Isolation, ...prev]).slice(0, limit)
+          })
+          if (!editId && page === 1) {
+            setTotal((prev) => prev + 1)
+          }
+        }
+
+        await fetchIsolations()
       } else {
-        alert('Gagal menyimpan data isolir')
+        const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string }
+        alert(data.error || data.message || 'Gagal menyimpan data isolir')
       }
     } catch (error) {
       console.error(error)
@@ -270,6 +337,16 @@ export function IsolationView({
   }
 
   const openEdit = (item: Isolation) => {
+    const parts = getSuspendDurationParts(item.isolationDate)
+    const monthsValue = parts?.months && parts.months > 0 ? String(parts.months) : ''
+    const daysValue =
+      parts?.months && parts.months > 0
+        ? parts?.days && parts.days > 0
+          ? String(parts.days)
+          : ''
+        : parts?.totalDays != null && parts.totalDays > 0
+          ? String(parts.totalDays)
+          : ''
     setEditId(item.id)
     setFormData({
       customerName: item.customerName || '',
@@ -277,6 +354,8 @@ export function IsolationView({
       customerPhone: item.customerPhone || '',
       userEmail: item.userEmail || '',
       activeDate: item.activeDate ? new Date(item.activeDate).toISOString().split('T')[0] : '',
+      isolirMonths: monthsValue,
+      isolirDays: daysValue,
       marketing: item.marketing || '',
       radboox: item.radboox || '',
       price: item.price != null ? String(item.price) : '',
@@ -528,6 +607,8 @@ export function IsolationView({
                   customerPhone: '',
                   userEmail: '',
                   activeDate: '',
+                  isolirMonths: '',
+                  isolirDays: '',
                   marketing: '',
                   radboox: '',
                   price: '',
@@ -912,6 +993,30 @@ export function IsolationView({
                     onChange={(e) => setFormData({ ...formData, marketing: e.target.value })}
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="Nama marketing"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Isolir Bulan</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.isolirMonths}
+                    onChange={(e) => setFormData({ ...formData, isolirMonths: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Isolir Hari</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.isolirDays}
+                    onChange={(e) => setFormData({ ...formData, isolirDays: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="0"
                   />
                 </div>
               </div>

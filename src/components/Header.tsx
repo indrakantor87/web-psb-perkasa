@@ -346,6 +346,7 @@ export function Header({ user }: { user: SessionUser }) {
       description: 'Pengguna dan pengaturan akses.',
       items: [
         { href: '/settings/users', label: 'Manajemen Pengguna' },
+        { href: '/settings/role-audit', label: 'Audit Role' },
       ],
     },
     {

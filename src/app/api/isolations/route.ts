@@ -652,6 +652,19 @@ export async function POST(request: Request) {
     const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
+    const isolationDateRaw = (body as any).isolationDate
+    const isolationDate =
+      typeof isolationDateRaw === 'string' || typeof isolationDateRaw === 'number'
+        ? (() => {
+            const s = String(isolationDateRaw).trim()
+            if (!s) return undefined
+            const d = new Date(s)
+            return Number.isFinite(d.getTime()) ? d : 'INVALID'
+          })()
+        : undefined
+    if (isolationDate === 'INVALID') {
+      return NextResponse.json({ error: 'Tanggal isolir tidak valid' }, { status: 400 })
+    }
     const priceRaw = body.price
     const priceNum = normalizePriceNumber(priceRaw)
     const price = priceNum == null ? null : new Prisma.Decimal(priceNum)
@@ -667,6 +680,7 @@ export async function POST(request: Request) {
       marketing,
       radboox,
       price,
+      ...(isolationDate ? { isolationDate } : {}),
       reason,
       teknisi: teknisi || session.user.name,
       ticketId,

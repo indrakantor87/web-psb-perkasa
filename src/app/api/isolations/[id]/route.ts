@@ -101,6 +101,7 @@ export async function PUT(
       customerPhone: getStr('customerPhone'),
       userEmail: getStr('userEmail'),
       activeDate: getStr('activeDate'),
+      isolationDate: getStr('isolationDate'),
       marketing: getStr('marketing'),
       radboox: getStr('radboox'),
       price: getStr('price'),
@@ -134,6 +135,12 @@ export async function PUT(
   if (activeDateParsed === 'INVALID') {
     return NextResponse.json({ error: 'Active Date tidak valid' }, { status: 400 })
   }
+  const isolationDateParsed = normalizeOptionalDate((body as any).isolationDate)
+  if (isolationDateParsed === 'INVALID') {
+    return NextResponse.json({ error: 'Tanggal isolir tidak valid' }, { status: 400 })
+  }
+  const isolationDateValue =
+    isolationDateParsed === undefined || isolationDateParsed === null ? undefined : isolationDateParsed
 
   const ticketIdRaw = body.ticketId
   const ticketId =
@@ -164,6 +171,7 @@ export async function PUT(
       customerPhone: normalizeOptionalString(body.customerPhone),
       userEmail: normalizeOptionalString(body.userEmail),
       activeDate: activeDateParsed === undefined ? undefined : activeDateParsed,
+      isolationDate: isolationDateValue,
       marketing: normalizeOptionalString(body.marketing),
       radboox: normalizeOptionalString(body.radboox),
       price,
