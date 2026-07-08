@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           "updatedAt"
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',NULL,$10,$10)
-        ON CONFLICT ("sourceIsolationId")
+        ON CONFLICT ("sourceIsolationId") WHERE "sourceIsolationId" IS NOT NULL
         DO UPDATE SET
           "customerName" = EXCLUDED."customerName",
           "customerAddress" = EXCLUDED."customerAddress",
@@ -109,4 +109,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to transfer to dismantle' }, { status: 500 })
   }
 }
-

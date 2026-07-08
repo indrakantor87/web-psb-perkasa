@@ -216,7 +216,7 @@ export async function POST(request: Request) {
               INSERT INTO "DismantleTickets" (
                 "sourceIsolationId","customerName","customerAddress","customerPhone","userEmail","marketing","radboox","isolationDate","reason","status","ticketNumber","createdAt","updatedAt"
               ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',$10,$11,$11)
-              ON CONFLICT ("sourceIsolationId")
+              ON CONFLICT ("sourceIsolationId") WHERE "sourceIsolationId" IS NOT NULL
               DO UPDATE SET
                 "customerName" = EXCLUDED."customerName",
                 "customerAddress" = EXCLUDED."customerAddress",
@@ -285,4 +285,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Gagal import Excel' }, { status: 500 })
   }
 }
-

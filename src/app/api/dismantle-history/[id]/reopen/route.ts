@@ -113,7 +113,7 @@ export async function POST(
           ) VALUES (
             $1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',$10,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
           )
-          ON CONFLICT ("sourceIsolationId")
+          ON CONFLICT ("sourceIsolationId") WHERE "sourceIsolationId" IS NOT NULL
           DO UPDATE SET
             "customerName" = EXCLUDED."customerName",
             "customerAddress" = EXCLUDED."customerAddress",
