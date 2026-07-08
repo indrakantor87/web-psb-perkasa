@@ -210,7 +210,7 @@ export function DismantleView({
   const [statusFilter, setStatusFilter] = useState<DismantleStatusFilter>(initialStatus)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(initialStatus === 'CLOSED' ? 'ALL' : 'WITH')
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>('ALL')
   const [radbooxFilter, setRadbooxFilter] = useState('ALL')
   const [rows, setRows] = useState<DismantleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -254,7 +254,7 @@ export function DismantleView({
     (!isDismantleRole || division === 'CS_ADMIN')
   const statusLabel = statusFilter === 'OPEN' ? 'Open' : 'Close'
   const isClosedView = statusFilter === 'CLOSED'
-  const effectiveTicketFilter: TicketFilter = isClosedView ? ticketFilter : 'WITH'
+  const effectiveTicketFilter: TicketFilter = ticketFilter
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350)
@@ -268,7 +268,7 @@ export function DismantleView({
   useEffect(() => {
     setStatusFilter(initialStatus)
     setStatusValue(initialStatus)
-    setTicketFilter(initialStatus === 'CLOSED' ? 'ALL' : 'WITH')
+    setTicketFilter('ALL')
   }, [initialStatus])
 
   useEffect(() => {
