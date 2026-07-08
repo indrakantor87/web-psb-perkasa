@@ -149,6 +149,21 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     e.preventDefault()
     if (!canCreate) return
 
+    const normalizedName = formData.name.trim()
+    const normalizedUsername = formData.username.trim()
+    if (!normalizedName) {
+      setError('Nama harus diisi')
+      return
+    }
+    if (normalizedUsername.length < 3) {
+      setError('Username minimal 3 karakter')
+      return
+    }
+    if (String(formData.password || '').length < 6) {
+      setError('Password minimal 6 karakter')
+      return
+    }
+
     setLoading(true)
     setError('')
     setSuccess('')
@@ -157,20 +172,23 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, name: normalizedName, username: normalizedUsername }),
       })
 
-      let data: { error?: string }
+      let data: { error?: string; details?: Array<{ message?: string }> | unknown }
       const contentType = res.headers.get("content-type");
       if (contentType && contentType.indexOf("application/json") !== -1) {
-        data = (await res.json()) as { error?: string }
+        data = (await res.json()) as { error?: string; details?: Array<{ message?: string }> | unknown }
       } else {
         const text = await res.text();
         throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
       }
 
       if (!res.ok) {
-        throw new Error(data.error || `Failed to create user (${res.status})`)
+        const details = Array.isArray((data as any).details)
+          ? (data as any).details.map((it: any) => String(it?.message ?? '')).filter(Boolean).join(', ')
+          : ''
+        throw new Error([data.error || `Gagal membuat user (${res.status})`, details].filter(Boolean).join(': '))
       }
 
       setSuccess('User berhasil dibuat!')

@@ -61,6 +61,14 @@ export async function ensureSecurityLogTable() {
         CREATE INDEX IF NOT EXISTS "SecurityLogs_userId_createdAt_idx"
         ON "SecurityLogs" ("userId", "createdAt");
       `)
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "SecurityLogs_monthKey_username_action_ip_idx"
+        ON "SecurityLogs" ("monthKey", "username", "action", "ip");
+      `)
+      await prisma.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "SecurityLogs_monthKey_action_role_createdAt_idx"
+        ON "SecurityLogs" ("monthKey", "action", "role", "createdAt");
+      `)
     })()
   }
 
@@ -91,6 +99,35 @@ export async function logSecurityEvent(input: {
   const username = input.user?.username ? String(input.user.username) : null
   const role = input.user?.role ? String(input.user.role) : null
 
+  let mergedMeta: Record<string, unknown> | null = input.meta ? { ...input.meta } : null
+  if (
+    String(input.action) === 'LOGIN_SUCCESS' &&
+    String(role ?? '').toUpperCase() === 'MARKETING' &&
+    username &&
+    ip
+  ) {
+    try {
+      const existing = await prisma.$queryRawUnsafe<Array<{ ok: number }>>(
+        `SELECT 1 as ok
+         FROM "SecurityLogs"
+         WHERE "monthKey" = $1
+           AND "username" = $2
+           AND "action" = 'LOGIN_SUCCESS'
+           AND "ip" = $3
+         LIMIT 1;`,
+        mk,
+        username,
+        ip
+      )
+      const isNewIp = !existing || existing.length === 0
+      const base = mergedMeta ?? {}
+      base.isNewIp = isNewIp
+      base.ip = ip
+      base.username = username
+      mergedMeta = base
+    } catch {}
+  }
+
   await prisma.$executeRawUnsafe(
     `INSERT INTO "SecurityLogs" ("monthKey","userId","username","role","action","path","method","ip","userAgent","meta")
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb);`,
@@ -103,7 +140,6 @@ export async function logSecurityEvent(input: {
     method,
     ip,
     userAgent,
-    input.meta ? JSON.stringify(input.meta) : null
+    mergedMeta ? JSON.stringify(mergedMeta) : null
   )
 }
-

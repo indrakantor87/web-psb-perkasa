@@ -8,6 +8,7 @@ import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
 import { canAccessMenu, getDivisionFromRole, getMenuHref } from '@/lib/access'
+import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
 
 function formatDivisionLabel(division?: string | null) {
   switch ((division || '').toUpperCase()) {
@@ -371,6 +372,7 @@ export function Header({ user }: { user: SessionUser }) {
 
   return (
     <header className={clsx("border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
+      {isAdmin && <SecurityAlertsListener />}
       <div className="mx-auto w-full max-w-7xl md:max-w-none">
         <div className="flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2 md:gap-8">
