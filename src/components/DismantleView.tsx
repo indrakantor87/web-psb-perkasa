@@ -699,6 +699,9 @@ export function DismantleView({
             rows.map((row) => {
               const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
               const ticketCode = String(row.ticketDismantle ?? '').trim() || `DSM-${row.id}`
+              const headerLabel = String(row.ticketDismantle ?? '').trim()
+                ? `${formatDateTime(row.isolationDate)} - ${ticketCode} - ${isClosed ? 'Close' : 'New'}`
+                : `DSM - ${formatDateTime(row.isolationDate)} - ${ticketCode} - ${isClosed ? 'Close' : 'New'}`
               const mapsLink = String(row.ticket?.locationMap ?? '').trim()
               const normalizedWa = normalizeWaNumber(String(row.customerPhone ?? ''))
               const mapsHref = normalizeMapsLink(mapsLink)
@@ -715,7 +718,7 @@ export function DismantleView({
                       <Info className="mt-0.5 h-6 w-6 text-orange-400" />
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-wide">
-                          <span>DSM - {formatDateTime(row.isolationDate)} - {ticketCode} - {isClosed ? 'Close' : 'New'}</span>
+                          <span>{headerLabel}</span>
                         </div>
                         <div className="mt-1 text-sm text-gray-200">{row.customerName || '-'}</div>
                         <div className="mt-1 text-xs text-gray-400">
