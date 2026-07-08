@@ -697,6 +697,7 @@ export function DismantleView({
             <div className="rounded-lg bg-black px-4 py-6 text-center text-sm text-white">Tidak ada data</div>
           ) : (
             rows.map((row) => {
+              const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
               const ticketCode = String(row.ticketDismantle ?? '').trim() || `DSM-${row.id}`
               const headerLabel = `${ticketCode} - ${formatDateTime(row.isolationDate)}`
               const mapsLink = String(row.ticket?.locationMap ?? '').trim()
