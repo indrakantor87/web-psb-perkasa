@@ -34,67 +34,6 @@ function getVisibleMarketingName(value: string | null | undefined) {
   return toDisplayMarketingName(value) || '-'
 }
 
-function normalizeCoordinateText(lat: string, lng: string) {
-  const latNum = Number(lat)
-  const lngNum = Number(lng)
-  if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
-    return `${latNum.toFixed(6)}, ${lngNum.toFixed(6)}`
-  }
-  return `${lat}, ${lng}`
-}
-
-function parseLocationMapInfo(rawValue: string | null | undefined) {
-  const raw = String(rawValue ?? '').trim()
-  if (!raw) {
-    return { coordinates: '-', address: '-' }
-  }
-
-  const directCoord = raw.match(/(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/)
-  let coordinates = directCoord ? normalizeCoordinateText(directCoord[1], directCoord[2]) : '-'
-  let address = '-'
-
-  try {
-    const parsed = new URL(raw)
-    const q = parsed.searchParams.get('q') || parsed.searchParams.get('query') || parsed.searchParams.get('ll') || ''
-    const decodedQuery = decodeURIComponent(q).trim()
-    const queryCoord = decodedQuery.match(/(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/)
-    if (queryCoord) {
-      coordinates = normalizeCoordinateText(queryCoord[1], queryCoord[2])
-    } else if (decodedQuery) {
-      address = decodedQuery
-    }
-
-    const pathCoord = decodedQuery
-      ? null
-      : `${parsed.pathname}${parsed.hash}`.match(/@(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)/)
-    if (pathCoord) {
-      coordinates = normalizeCoordinateText(pathCoord[1], pathCoord[2])
-    }
-
-    if (address === '-') {
-      const pathname = decodeURIComponent(parsed.pathname)
-      if (
-        pathname &&
-        !pathname.startsWith('/maps') &&
-        !pathname.startsWith('/place') &&
-        !pathname.startsWith('/search') &&
-        !pathname.startsWith('/dir') &&
-        !pathname.startsWith('/@') &&
-        !pathname.startsWith('/?')
-      ) {
-        const cleaned = pathname.replace(/^\/+/, '').replace(/\+/g, ' ').trim()
-        if (cleaned && !cleaned.includes('maps.app.goo.gl')) {
-          address = cleaned
-        }
-      }
-    }
-  } catch {
-    // Ignore invalid URL parsing and fallback to regex-based extraction only.
-  }
-
-  return { coordinates, address }
-}
-
 interface TicketListProps {
   tickets: Ticket[]
   userRole: string
@@ -188,7 +127,6 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const currentPage = pagination?.currentPage || 1
   const totalPages = pagination?.totalPages || 1
   const totalCount = pagination?.totalCount || tickets.length
-  const summaryLocationInfo = summaryTicket ? parseLocationMapInfo(summaryTicket.locationMap) : { coordinates: '-', address: '-' }
 
   const formatMessage = (template: string, ticket: Ticket) => {
     return template
@@ -1405,14 +1343,6 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">Link Maps</span>{'\t'}
                       <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white break-all">{summaryTicket.locationMap}</span>
-                    </div>
-                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Koordinat</span>{'\t'}
-                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white">{summaryLocationInfo.coordinates}</span>
-                    </div>
-                    <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Alamat</span>{'\t'}
-                      <span className="font-medium text-gray-400 dark:text-gray-500">:</span> <span className="text-gray-900 dark:text-white break-words">{summaryLocationInfo.address}</span>
                     </div>
                     <div className="whitespace-pre-wrap" style={{ tabSize: '130px' }}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">No WA</span>{'\t'}
