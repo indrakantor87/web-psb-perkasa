@@ -78,6 +78,10 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
+  const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([])
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [scheduleCopied, setScheduleCopied] = useState(false)
   
   // Use prop directly
   const defaultTemplate = defaultTemplateContent
@@ -90,6 +94,10 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   // Sync local state when props change
   useEffect(() => {
     setTicketsState(tickets)
+  }, [tickets])
+
+  useEffect(() => {
+    setSelectedTicketIds([])
   }, [tickets])
 
   // Listen for app:refresh event from custom PullToRefresh component
@@ -323,6 +331,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const canDelete = !readOnly && canDeleteListTickets(role)
   const canEditStatus = canManageRows
   const canBulkDelete = !readOnly && canDeleteListTickets(role)
+  const canCreateSchedule = !readOnly && (role === 'CS' || role === 'ADMIN_CS')
   const divisionDescriptions: Record<string, string> = {
     ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
     PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
@@ -590,6 +599,84 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     }
   }
 
+  const selectedSet = new Set(selectedTicketIds)
+
+  const toggleSelectedTicket = (id: number) => {
+    setSelectedTicketIds((prev) => {
+      const set = new Set(prev)
+      if (set.has(id)) set.delete(id)
+      else set.add(id)
+      return Array.from(set)
+    })
+  }
+
+  const toggleSelectAllOnPage = () => {
+    const pageIds = currentTickets.map((t) => t.id)
+    setSelectedTicketIds((prev) => {
+      const prevSet = new Set(prev)
+      const allSelected = pageIds.length > 0 && pageIds.every((id) => prevSet.has(id))
+      if (allSelected) {
+        return prev.filter((id) => !pageIds.includes(id))
+      }
+      for (const id of pageIds) prevSet.add(id)
+      return Array.from(prevSet)
+    })
+  }
+
+  const buildScheduleText = useCallback(
+    (dateValue: string, selected: Ticket[]) => {
+      const dateText = dateValue ? format(new Date(dateValue), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy')
+      const header = `*JADWAL PSB ${dateText}*`
+
+      const normalizeTeam = (value: string | null | undefined) => {
+        const raw = String(value ?? '').trim()
+        if (!raw) return '-'
+        if (/teknisi/i.test(raw)) return raw
+        return `Teknisi ${raw}`
+      }
+
+      const lines: string[] = [header, '']
+      selected.forEach((ticket, idx) => {
+        lines.push(`${idx + 1}. Nama\t: ${ticket.customerName || '-'}`)
+        lines.push(`   Tanggal Lahir: ${ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}`)
+        lines.push(`   Link Maps\t: \`${ticket.locationMap || '-'}\``)
+        lines.push(`   No WA\t: ${ticket.phoneNumber || '-'}`)
+        lines.push(`   Paket\t: ${ticket.package || '-'}`)
+        lines.push(`   Marketing\t: ${getVisibleMarketingName(ticket.marketingName)}`)
+        lines.push(`   Team         : ${normalizeTeam(ticket.teknisi)}`)
+        lines.push('')
+      })
+      return lines.join('\n')
+    },
+    []
+  )
+
+  const handleOpenSchedule = () => {
+    if (!canCreateSchedule) return
+    if (selectedTicketIds.length === 0) return
+    setScheduleCopied(false)
+    setScheduleModalOpen(true)
+  }
+
+  const handleCopySchedule = async () => {
+    try {
+      const selectedTickets = ticketsState.filter((t) => selectedSet.has(t.id))
+      const text = buildScheduleText(scheduleDate, selectedTickets)
+      await navigator.clipboard.writeText(text)
+      setScheduleCopied(true)
+      window.setTimeout(() => setScheduleCopied(false), 1200)
+    } catch {
+      alert('Gagal copy jadwal')
+    }
+  }
+
+  const handleShareScheduleWa = () => {
+    const selectedTickets = ticketsState.filter((t) => selectedSet.has(t.id))
+    const text = buildScheduleText(scheduleDate, selectedTickets)
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`
+    window.open(url, '_blank', 'noreferrer')
+  }
+
   return (
     <div className="space-y-2">
       {userRole !== 'MARKETING' && (
@@ -699,6 +786,17 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             />
           </div>
           <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:flex md:items-end md:pt-3 md:space-x-2 md:justify-end">
+            {canCreateSchedule && (
+              <button
+                type="button"
+                onClick={handleOpenSchedule}
+                disabled={selectedTicketIds.length === 0}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 md:w-auto disabled:opacity-60"
+                title={selectedTicketIds.length === 0 ? 'Pilih minimal satu data dulu' : 'Buat jadwal dari data terpilih'}
+              >
+                Buat Jadwal ({selectedTicketIds.length})
+              </button>
+            )}
             {canManageRows && (
               <>
                 <input
@@ -764,6 +862,17 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
         <table className="min-w-full border-collapse">
           <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
             <tr>
+              {canCreateSchedule && (
+                <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={currentTickets.length > 0 && currentTickets.every((t) => selectedSet.has(t.id))}
+                    onChange={toggleSelectAllOnPage}
+                    className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                    aria-label="Pilih semua"
+                  />
+                </th>
+              )}
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Lahir</th>
@@ -788,6 +897,17 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             {currentTickets.map((ticket, index) => (
               <Fragment key={ticket.id}>
                 <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
+                  {canCreateSchedule && (
+                    <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={selectedSet.has(ticket.id)}
+                        onChange={() => toggleSelectedTicket(ticket.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                        aria-label={`Pilih ${ticket.customerName}`}
+                      />
+                    </td>
+                  )}
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     <div className="flex items-center space-x-2">
                       <button
@@ -888,6 +1008,15 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
+                          {canCreateSchedule && (
+                            <input
+                              type="checkbox"
+                              checked={selectedSet.has(ticket.id)}
+                              onChange={() => toggleSelectedTicket(ticket.id)}
+                              className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                              aria-label={`Pilih ${ticket.customerName}`}
+                            />
+                          )}
                           <button
                             onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
                             className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300 focus:outline-none"
@@ -1448,6 +1577,64 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {scheduleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Buat Jadwal PSB</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Ringkasan siap di-copy untuk WA.</p>
+              </div>
+              <button
+                onClick={() => setScheduleModalOpen(false)}
+                className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto min-h-0">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tanggal Jadwal</label>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopySchedule}
+                    className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                  >
+                    {scheduleCopied ? 'Tercopy' : 'Copy Jadwal'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareScheduleWa}
+                    className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                  >
+                    Kirim WA
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                readOnly
+                value={buildScheduleText(scheduleDate, ticketsState.filter((t) => selectedSet.has(t.id)))}
+                className="min-h-[260px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
           </div>
         </div>
       )}
