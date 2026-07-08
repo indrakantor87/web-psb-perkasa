@@ -53,14 +53,9 @@ interface DashboardViewProps {
 
 export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
-  const [month, setMonth] = useState(initialPeriod.month)
-  const [year, setYear] = useState(initialPeriod.year)
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
-
-  useEffect(() => {
-    setMonth(initialPeriod.month)
-    setYear(initialPeriod.year)
-  }, [initialPeriod.month, initialPeriod.year])
+  const month = initialPeriod.month
+  const year = initialPeriod.year
 
   // Pull to refresh support
   useEffect(() => {
@@ -251,7 +246,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               value={month}
               onChange={(e) => {
                 const newMonth = Number(e.target.value)
-                setMonth(newMonth)
                 pushFilters(newMonth, year, focusedDivision)
               }}
               className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
@@ -266,7 +260,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               value={year}
               onChange={(e) => {
                 const newYear = Number(e.target.value)
-                setYear(newYear)
                 pushFilters(month, newYear, focusedDivision)
               }}
               className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"

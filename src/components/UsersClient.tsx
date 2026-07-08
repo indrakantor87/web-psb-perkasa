@@ -20,6 +20,11 @@ interface UsersClientProps {
   }
 }
 
+type CreateUserErrorResponse = {
+  error?: string
+  details?: Array<{ message?: string }>
+}
+
 const ROLE_OPTIONS = [
   { value: 'MARKETING', label: 'Marketing' },
   { value: 'ADMIN', label: 'Admin' },
@@ -175,18 +180,18 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         body: JSON.stringify({ ...formData, name: normalizedName, username: normalizedUsername }),
       })
 
-      let data: { error?: string; details?: Array<{ message?: string }> | unknown }
-      const contentType = res.headers.get("content-type");
+      let data: CreateUserErrorResponse
+      const contentType = res.headers.get('content-type')
       if (contentType && contentType.indexOf("application/json") !== -1) {
-        data = (await res.json()) as { error?: string; details?: Array<{ message?: string }> | unknown }
+        data = (await res.json()) as CreateUserErrorResponse
       } else {
-        const text = await res.text();
-        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
+        const text = await res.text()
+        throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`)
       }
 
       if (!res.ok) {
-        const details = Array.isArray((data as any).details)
-          ? (data as any).details.map((it: any) => String(it?.message ?? '')).filter(Boolean).join(', ')
+        const details = Array.isArray(data.details)
+          ? data.details.map((it) => String(it?.message ?? '')).filter(Boolean).join(', ')
           : ''
         throw new Error([data.error || `Gagal membuat user (${res.status})`, details].filter(Boolean).join(': '))
       }
