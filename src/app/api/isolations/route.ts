@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
-import { isDismantleEligible } from '@/lib/isolation-suspend'
 import { normalizeMarketingName } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import {
@@ -52,17 +51,7 @@ function buildDismantleIdentity(item: {
   customerPhone?: unknown
   customerName?: unknown
   customerAddress?: unknown
-  isArchived?: unknown
-  ticketDismantle?: unknown
-  closeNote?: unknown
-  closePhoto?: unknown
-  status?: unknown
 }) {
-  const archived = item.isArchived === true
-  if (archived && hasDismantleHistory(item)) {
-    return `archive:${typeof item.id === 'number' ? item.id : String(item.id ?? '')}`
-  }
-
   const userEmail = normalizeDismantleKeyPart(item.userEmail)
   if (userEmail) return `user:${userEmail}`
 
@@ -166,17 +155,6 @@ function filterToLatestImportSnapshot<T extends { importBatchAt?: unknown }>(ite
   if (latestBatchTime === null) return items
 
   return items.filter((item) => parseSortableTime(item.importBatchAt) === latestBatchTime)
-}
-
-function shouldStayInIsolationList(item: {
-  status?: unknown
-  ticketDismantle?: unknown
-}) {
-  const status = String(item.status ?? '').trim().toUpperCase()
-  if (status !== 'OPEN') return true
-
-  const hasTicket = String(item.ticketDismantle ?? '').trim() !== ''
-  return !hasTicket
 }
 
 function buildSmartDismantleRows(items: any[]) {
@@ -290,7 +268,7 @@ export async function GET(request: Request) {
   const marketing = searchParams.get('marketing')
   const status = searchParams.get('status')
   const ticketStatus = (searchParams.get('ticketStatus') ?? 'ALL').trim().toUpperCase()
-  const dismantleEligible = (searchParams.get('dismantleEligible') ?? '').trim().toLowerCase() === 'true'
+  const includeTicketDetails = (searchParams.get('ticketDetails') ?? '').trim().toLowerCase() === 'true'
   const exportAll = (searchParams.get('export') ?? '').trim().toLowerCase() === 'all'
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
@@ -313,12 +291,9 @@ export async function GET(request: Request) {
     const arr = Array.isArray(current) ? current : current ? [current] : []
     where.AND = [...arr, clause]
   }
-  const archiveVisibilityClause =
-    !dismantleEligible
-      ? {
-          OR: [{ isArchived: false }, { isArchived: null }],
-        }
-      : null
+  const archiveVisibilityClause = {
+    OR: [{ isArchived: false }, { isArchived: null }],
+  }
 
   if (status && status.trim() !== '') {
     where.status = { equals: status.trim().toUpperCase(), mode: 'insensitive' }
@@ -355,9 +330,6 @@ export async function GET(request: Request) {
       OR: [{ ticketDismantle: null }, { ticketDismantle: '' }],
     })
   }
-  if (dismantleEligible && !status) {
-    appendAnd({ status: { equals: 'OPEN', mode: 'insensitive' } })
-  }
   if (archiveVisibilityClause) {
     appendAnd(archiveVisibilityClause)
   }
@@ -390,7 +362,7 @@ export async function GET(request: Request) {
 
   try {
     const ticketSelect =
-      dismantleEligible
+      includeTicketDetails
         ? {
             ticketId: true,
             ticket: {
@@ -530,15 +502,9 @@ export async function GET(request: Request) {
       }))
     }
 
-    const filteredIsolations = dismantleEligible
-      ? buildSmartDismantleRows(
-          isolationsRaw.filter((item: any) => {
-            if (item?.isArchived) return hasDismantleHistory(item)
-            return isDismantleEligible(item.isolationDate)
-          })
-        )
-      : divisionFilter === 'CS_ADMIN'
-        ? isolationsRaw.filter((item: any) => shouldStayInIsolationList(item))
+    const filteredIsolations =
+      includeTicketDetails && String(ticketStatus) === 'WITH'
+        ? buildSmartDismantleRows(isolationsRaw)
         : isolationsRaw
 
     const preferImportOrder = Boolean(radboox && radboox !== 'ALL')
@@ -557,96 +523,98 @@ export async function GET(request: Request) {
     const payload = {
       items: isolations.map((item: any) => ({ ...item, price: normalizePriceNumber(item?.price) })),
       total,
-      ...(dismantleEligible ? { withTicketTotal, withoutTicketTotal } : {}),
+      ...(includeTicketDetails ? { withTicketTotal, withoutTicketTotal } : {}),
       page,
       limit
     }
     return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    if (!dismantleEligible) {
-      try {
-        const legacyWhere = buildLegacyIsolationWhere({
-          search,
-          radboox,
-          marketing,
-          status,
-          roleUpper,
-          userName: session.user.name,
-          divisionFilter,
-        })
+    try {
+      const legacyWhere = buildLegacyIsolationWhere({
+        search,
+        radboox,
+        marketing,
+        status,
+        roleUpper,
+        userName: session.user.name,
+        divisionFilter,
+      })
 
-        const legacySelectBase = {
-          id: true,
-          customerName: true,
-          customerAddress: true,
-          customerPhone: true,
-          userEmail: true,
-          activeDate: true,
-          marketing: true,
-          radboox: true,
-          price: true,
-          isolationDate: true,
-          reason: true,
-          status: true,
-          restorationDate: true,
-          teknisi: true,
-          ticketDismantle: true,
-          isArchived: true,
-          archivedAt: true,
-          importBatchAt: true,
-          importRowOrder: true,
-        }
-
-        let items: any[]
-        try {
-          items = await (prisma as any).isolation.findMany({
-            where: legacyWhere,
-            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
-            select: legacySelectBase,
-          })
-        } catch {
-          const legacySelectFallback = { ...legacySelectBase }
-          delete (legacySelectFallback as any).price
-          items = await (prisma as any).isolation.findMany({
-            where: legacyWhere,
-            orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
-            select: legacySelectFallback,
-          })
-        }
-
-        const mappedItems = items.map((item: any) => ({
-          ...item,
-          price: normalizePriceNumber(item?.price),
-          closeNote: null,
-          closePhoto: null,
-          ticketId: null,
-          ticket: null,
-        }))
-        const filteredFallbackItems =
-          divisionFilter === 'CS_ADMIN'
-            ? mappedItems.filter((item: any) => shouldStayInIsolationList(item))
-            : mappedItems
-        const snapshotFallbackItems = filterToLatestImportSnapshot(
-          filteredFallbackItems,
-          Boolean(radboox && radboox !== 'ALL')
-        )
-        const orderedFallbackItems = [...snapshotFallbackItems].sort((a, b) =>
-          compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
-        )
-        const payload = {
-          items: exportAll
-            ? orderedFallbackItems
-            : orderedFallbackItems.slice((page - 1) * limit, page * limit),
-          total: orderedFallbackItems.length,
-          page,
-          limit,
-        }
-
-        console.warn('GET /api/isolations fell back to legacy query path', error)
-        return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
-      } catch (legacyError) {
-        console.error('Legacy isolation fallback failed:', legacyError)
+      const legacySelectBase = {
+        id: true,
+        customerName: true,
+        customerAddress: true,
+        customerPhone: true,
+        userEmail: true,
+        activeDate: true,
+        marketing: true,
+        radboox: true,
+        price: true,
+        isolationDate: true,
+        reason: true,
+        status: true,
+        restorationDate: true,
+        teknisi: true,
+        ticketDismantle: true,
+        isArchived: true,
+        archivedAt: true,
+        importBatchAt: true,
+        importRowOrder: true,
       }
+
+      let items: any[]
+      try {
+        items = await (prisma as any).isolation.findMany({
+          where: legacyWhere,
+          orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+          select: legacySelectBase,
+        })
+      } catch {
+        const legacySelectFallback = { ...legacySelectBase }
+        delete (legacySelectFallback as any).price
+        items = await (prisma as any).isolation.findMany({
+          where: legacyWhere,
+          orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
+          select: legacySelectFallback,
+        })
+      }
+
+      const mappedItems = items.map((item: any) => ({
+        ...item,
+        price: normalizePriceNumber(item?.price),
+        closeNote: null,
+        closePhoto: null,
+        ticketId: null,
+        ticket: null,
+      }))
+      const filteredFallbackItems =
+        includeTicketDetails && String(ticketStatus) === 'WITH'
+          ? buildSmartDismantleRows(mappedItems)
+          : mappedItems
+      const snapshotFallbackItems = filterToLatestImportSnapshot(
+        filteredFallbackItems,
+        Boolean(radboox && radboox !== 'ALL')
+      )
+      const orderedFallbackItems = [...snapshotFallbackItems].sort((a, b) =>
+        compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
+      )
+      const totalFallback = orderedFallbackItems.length
+      const withTicketTotalFallback = orderedFallbackItems.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
+      const withoutTicketTotalFallback = totalFallback - withTicketTotalFallback
+      const payload = {
+        items: exportAll
+          ? orderedFallbackItems
+          : orderedFallbackItems.slice((page - 1) * limit, page * limit),
+        total: totalFallback,
+        ...(includeTicketDetails ? { withTicketTotal: withTicketTotalFallback, withoutTicketTotal: withoutTicketTotalFallback } : {}),
+        page,
+        limit,
+      }
+
+      console.warn('GET /api/isolations fell back to legacy query path', error)
+      return NextResponse.json(payload, { headers: { 'Cache-Control': 'no-store' } })
+    } catch (legacyError) {
+      console.error('Legacy isolation fallback failed:', legacyError)
     }
 
     console.error('Failed to fetch isolations:', error)

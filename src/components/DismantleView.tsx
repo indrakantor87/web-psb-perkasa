@@ -207,7 +207,7 @@ export function DismantleView({
   const [statusFilter, setStatusFilter] = useState<DismantleStatusFilter>(initialStatus)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [ticketFilter, setTicketFilter] = useState<TicketFilter>('ALL')
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(initialStatus === 'CLOSED' ? 'ALL' : 'WITH')
   const [radbooxFilter, setRadbooxFilter] = useState('ALL')
   const [rows, setRows] = useState<DismantleItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -250,6 +250,7 @@ export function DismantleView({
     (!isDismantleRole || division === 'CS_ADMIN')
   const statusLabel = statusFilter === 'OPEN' ? 'Open' : 'Close'
   const isClosedView = statusFilter === 'CLOSED'
+  const effectiveTicketFilter: TicketFilter = isClosedView ? ticketFilter : 'WITH'
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 350)
@@ -263,6 +264,7 @@ export function DismantleView({
   useEffect(() => {
     setStatusFilter(initialStatus)
     setStatusValue(initialStatus)
+    setTicketFilter(initialStatus === 'CLOSED' ? 'ALL' : 'WITH')
   }, [initialStatus])
 
   useEffect(() => {
@@ -276,15 +278,15 @@ export function DismantleView({
       params.set('limit', String(targetLimit))
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.set('radboox', radbooxFilter)
-      if (ticketFilter !== 'ALL') params.set('ticketStatus', ticketFilter)
+      if (effectiveTicketFilter !== 'ALL') params.set('ticketStatus', effectiveTicketFilter)
       if (!isClosedView) {
         params.set('status', statusFilter)
-        params.set('dismantleEligible', 'true')
+        params.set('ticketDetails', 'true')
         if (canUseAdminScope && division !== 'ALL') params.set('division', division)
       }
       return params
     },
-    [canUseAdminScope, debouncedSearch, division, isClosedView, radbooxFilter, statusFilter, ticketFilter]
+    [canUseAdminScope, debouncedSearch, division, effectiveTicketFilter, isClosedView, radbooxFilter, statusFilter]
   )
 
   const requestRows = useCallback(
@@ -330,7 +332,7 @@ export function DismantleView({
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
-  }, [limit, page, requestRows])
+  }, [isClosedView, limit, page, requestRows])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -679,13 +681,14 @@ export function DismantleView({
               <div className="flex flex-col">
                 <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Ticket</span>
                 <select
-                  value={ticketFilter}
+                  value={effectiveTicketFilter}
                   onChange={(e) => setTicketFilter(e.target.value as TicketFilter)}
+                  disabled={!isClosedView}
                   className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-48"
                 >
-                  <option value="ALL">SEMUA</option>
-                  <option value="WITHOUT">BELUM ADA TICKET</option>
                   <option value="WITH">SUDAH ADA TICKET</option>
+                  {isClosedView && <option value="ALL">SEMUA</option>}
+                  {isClosedView && <option value="WITHOUT">BELUM ADA TICKET</option>}
                 </select>
               </div>
             </div>
@@ -693,7 +696,7 @@ export function DismantleView({
             <div className="rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-300">
               {isClosedView
                 ? 'Riwayat close dismantle dibaca dari histori terpisah agar tidak terpengaruh penghapusan massal Isolir.'
-                : 'Ticket dismantle open tetap tersambung ke data Isolir aktif.'}
+                : 'Menu open hanya menampilkan data Isolir aktif yang sudah memiliki nomor ticket dismantle.'}
             </div>
           </div>
         </div>
@@ -1075,7 +1078,7 @@ export function DismantleView({
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {isClosedView
               ? 'Riwayat ticket dismantle yang sudah ditutup dan dipisahkan dari Isolir aktif.'
-              : `Pelanggan dengan ticket dismantle status ${statusLabel.toLowerCase()} dan suspend minimal 1 bulan.`}
+              : `Data Isolir aktif dengan ticket dismantle status ${statusLabel.toLowerCase()}.`}
           </div>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -1093,7 +1096,7 @@ export function DismantleView({
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             {isClosedView
               ? 'Histori close tetap aman walau data Isolir aktif dibersihkan atau di-import ulang.'
-              : 'Data ini otomatis masuk alur dismantle setelah suspend mencapai minimal 1 bulan.'}
+              : 'Data tanpa ticket tetap dipantau dari menu Isolir dan tidak otomatis masuk ke menu Dismantle.'}
           </div>
         </div>
       </div>
@@ -1119,13 +1122,14 @@ export function DismantleView({
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Ticket</label>
             <select
-              value={ticketFilter}
+              value={effectiveTicketFilter}
               onChange={(e) => setTicketFilter(e.target.value as TicketFilter)}
+              disabled={!isClosedView}
               className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             >
-              <option value="ALL">Semua</option>
-              <option value="WITHOUT">Belum Ada Ticket</option>
               <option value="WITH">Sudah Ada Ticket</option>
+              {isClosedView && <option value="ALL">Semua</option>}
+              {isClosedView && <option value="WITHOUT">Belum Ada Ticket</option>}
             </select>
           </div>
           <div>
@@ -1206,7 +1210,7 @@ export function DismantleView({
         <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {isClosedView
             ? 'Menu close memakai histori dismantle terpisah. Import dan hapus terpilih di mode close hanya mengubah histori close dan tidak mengubah data ticket yang masih open.'
-            : 'Menu open tetap sinkron otomatis dari data Isolir. Jika ada pelanggan isolir yang sudah memenuhi syarat dismantle dan belum muncul di sini, sistem akan menampilkannya otomatis. Import Excel dipakai untuk menambahkan data yang belum ada, sedangkan data duplikat akan diabaikan.'}
+            : 'Menu open membaca data Isolir aktif yang sudah berticket. Data suspend bulanan yang belum punya ticket tetap berada di menu Isolir dengan indikator `Belum`.'}
         </div>
 
         {!supportsWorkflow && (

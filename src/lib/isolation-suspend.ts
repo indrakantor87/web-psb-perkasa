@@ -66,7 +66,11 @@ export function formatSuspendDuration(value: string | Date | null | undefined, n
   return `${parts.months} Bulan ${parts.days} Hari`
 }
 
-export function isDismantleEligible(value: string | Date | null | undefined, nowInput: Date = new Date()) {
+export function hasMonthlySuspend(value: string | Date | null | undefined, nowInput: Date = new Date()) {
   const parts = getSuspendDurationParts(value, nowInput)
   return parts ? parts.months >= 1 : false
+}
+
+export function isDismantleEligible(value: string | Date | null | undefined, nowInput: Date = new Date()) {
+  return hasMonthlySuspend(value, nowInput)
 }

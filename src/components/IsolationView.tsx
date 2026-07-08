@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
 import { clsx } from 'clsx'
-import { formatSuspendDuration, isDismantleEligible } from '@/lib/isolation-suspend'
+import { formatSuspendDuration, hasMonthlySuspend } from '@/lib/isolation-suspend'
 import {
   canDeleteIsolationRecords,
   canMutateIsolationRecords,
@@ -78,6 +78,11 @@ function formatPrice(value: unknown) {
   const num = normalizePriceNumber(value)
   if (num == null) return '-'
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(num)
+}
+
+function getTicketStatusLabel(item: Pick<Isolation, 'isolationDate' | 'ticketDismantle'>) {
+  if (!hasMonthlySuspend(item.isolationDate)) return '-'
+  return String(item.ticketDismantle ?? '').trim() !== '' ? 'Sudah' : 'Belum'
 }
 
 export function IsolationView({
@@ -408,8 +413,8 @@ export function IsolationView({
         'Radboox': it.radboox || '-',
         'Suspend': formatSuspendDuration(it.isolationDate),
         'Harga': formatPrice(it.price),
-        'Ticket': it.ticketDismantle ? String(it.ticketDismantle) : '-',
-        'Status Dismantle': isDismantleEligible(it.isolationDate) ? 'Masuk Dismantle' : 'Belum',
+        'Ticket': getTicketStatusLabel(it),
+        'Nomor Ticket Dismantle': it.ticketDismantle ? String(it.ticketDismantle) : '-',
       }))
 
       const wb = XLSX.utils.book_new()
@@ -662,14 +667,18 @@ export function IsolationView({
                       {item.reason || '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {item.ticketDismantle ? (
-                        String(item.ticketDismantle)
-                      ) : isDismantleEligible(item.isolationDate) ? (
-                        <span className="inline-flex rounded-full bg-orange-500 px-2 py-1 text-[10px] font-semibold text-white">
-                          Auto Dismantle
-                        </span>
-                      ) : (
+                      {getTicketStatusLabel(item) === '-' ? (
                         '-'
+                      ) : (
+                        <span
+                          title={item.ticketDismantle ? `Nomor ticket: ${String(item.ticketDismantle)}` : 'Belum ada nomor ticket'}
+                          className={clsx(
+                            'inline-flex rounded-full px-2 py-1 text-[10px] font-semibold text-white',
+                            getTicketStatusLabel(item) === 'Sudah' ? 'bg-green-600' : 'bg-orange-500'
+                          )}
+                        >
+                          {getTicketStatusLabel(item)}
+                        </span>
                       )}
                     </td>
                     {showActions && (
@@ -747,7 +756,9 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            {item.ticketDismantle ? String(item.ticketDismantle) : isDismantleEligible(item.isolationDate) ? 'Auto Dismantle' : '-'}
+                            <span title={item.ticketDismantle ? `Nomor ticket: ${String(item.ticketDismantle)}` : undefined}>
+                              {getTicketStatusLabel(item)}
+                            </span>
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>

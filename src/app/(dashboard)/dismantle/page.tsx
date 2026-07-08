@@ -38,7 +38,7 @@ export default async function DismantlePage({
         : 'Pantau riwayat data dismantle yang sudah ditutup dan dipisahkan dari data Isolir aktif.'
       : status === 'CLOSED'
         ? 'Pantau histori ticket dismantle yang sudah ditutup tanpa bergantung pada penghapusan data Isolir.'
-        : 'Pantau pelanggan isolir aktif dan kelola nomor ticket dismantle dari satu halaman.'
+        : 'Pantau ticket dismantle aktif tanpa menarik otomatis seluruh data isolir bulanan ke menu ini.'
 
   return (
     <div className="space-y-4 sm:space-y-6">
