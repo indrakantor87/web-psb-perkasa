@@ -22,6 +22,7 @@ type DismantleItem = {
   radboox?: string | null
   isolationDate: string
   reason?: string | null
+  fieldNote?: string | null
   status: string
   ticketDismantle?: string | null
   ticketId?: number | null
@@ -137,6 +138,7 @@ function buildDismantleDetailText(row: DismantleItem) {
   const maps = String(row.ticket?.locationMap ?? '').trim()
   const problem = String(row.ticket?.description ?? row.radboox ?? '').trim()
   const closeNote = String(row.closeNote ?? '').trim()
+  const fieldNote = String(row.fieldNote ?? '').trim()
   const lines = [
     `ID DATA : ${row.id}`,
     `NO TICKET : ${String(row.ticketDismantle ?? '').trim() || '-'}`,
@@ -148,6 +150,7 @@ function buildDismantleDetailText(row: DismantleItem) {
     `Suspend : ${formatSuspendDuration(row.isolationDate)}`,
     `Problem : ${problem || '-'}`,
     `Keterangan : ${row.reason || `Isolir sejak ${formatDate(row.isolationDate)}`}`,
+    `Keterangan Lapangan : ${fieldNote || '-'}`,
     `Keterangan Close : ${closeNote || '-'}`,
     `Ditutup : ${formatDateTime(row.closedAt)}`,
     `Closed By : ${String(row.closedBy ?? '').trim() || '-'}`,
@@ -229,6 +232,7 @@ export function DismantleView({
   const [mapsValue, setMapsValue] = useState('')
   const [addressValue, setAddressValue] = useState('')
   const [reasonValue, setReasonValue] = useState('')
+  const [fieldNoteValue, setFieldNoteValue] = useState('')
   const [problemValue, setProblemValue] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
@@ -279,19 +283,14 @@ export function DismantleView({
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (radbooxFilter !== 'ALL') params.set('radboox', radbooxFilter)
       if (effectiveTicketFilter !== 'ALL') params.set('ticketStatus', effectiveTicketFilter)
-      if (!isClosedView) {
-        params.set('status', statusFilter)
-        params.set('ticketDetails', 'true')
-        if (canUseAdminScope && division !== 'ALL') params.set('division', division)
-      }
       return params
     },
-    [canUseAdminScope, debouncedSearch, division, effectiveTicketFilter, isClosedView, radbooxFilter, statusFilter]
+    [debouncedSearch, effectiveTicketFilter, radbooxFilter]
   )
 
   const requestRows = useCallback(
     async (targetPage: number, targetLimit: number, signal?: AbortSignal) => {
-      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/isolations'
+      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/dismantle-tickets'
       const res = await fetch(`${endpoint}?${buildQueryParams(targetPage, targetLimit).toString()}`, {
         cache: 'no-store',
         signal,
@@ -400,7 +399,7 @@ export function DismantleView({
     setIsDeletingSelected(true)
     try {
       const ids = [...selectedIds]
-      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/isolations'
+      const endpoint = isClosedView ? '/api/dismantle-history' : '/api/dismantle-tickets'
       const res = await fetch(endpoint, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -430,6 +429,7 @@ export function DismantleView({
     setMapsValue(String(row.ticket?.locationMap ?? ''))
     setAddressValue(String(row.customerAddress ?? ''))
     setReasonValue(String(row.reason ?? ''))
+    setFieldNoteValue(String(row.fieldNote ?? ''))
     setProblemValue(String(row.ticket?.description ?? row.radboox ?? ''))
     setModalOpen(true)
   }
@@ -438,7 +438,7 @@ export function DismantleView({
     if (!selectedRow) return
     setSaving(true)
     try {
-      const isolationRes = await fetch(`/api/isolations/${selectedRow.id}`, {
+      const isolationRes = await fetch(`/api/dismantle-tickets/${selectedRow.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -448,31 +448,14 @@ export function DismantleView({
           customerPhone: phoneValue,
           customerAddress: addressValue,
           reason: reasonValue,
+          fieldNote: fieldNoteValue,
           radboox: problemValue,
-          ticketDismantle: ticketValue,
+          ticketNumber: ticketValue,
           status: 'OPEN',
         }),
       })
       const isolationData = (await isolationRes.json().catch(() => ({}))) as { error?: string }
       if (!isolationRes.ok) throw new Error(isolationData.error || 'Gagal menyimpan perubahan')
-
-      const ticketId = selectedRow.ticketId
-      if (typeof ticketId === 'number' && Number.isFinite(ticketId)) {
-        const payload: Record<string, unknown> = {
-          description: problemValue,
-        }
-        if (customerNameValue.trim() !== '') payload.customerName = customerNameValue.trim()
-        if (phoneValue.trim() !== '') payload.phoneNumber = phoneValue.trim()
-        if (marketingValue.trim() !== '') payload.marketingName = marketingValue.trim()
-        if (mapsValue.trim() !== '') payload.locationMap = mapsValue.trim()
-        const ticketRes = await fetch(`/api/tickets/${ticketId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const ticketData = (await ticketRes.json().catch(() => ({}))) as { error?: string }
-        if (!ticketRes.ok) throw new Error(ticketData.error || 'Gagal menyimpan detail ticket')
-      }
 
       setModalOpen(false)
       setSelectedRow(null)
@@ -543,7 +526,7 @@ export function DismantleView({
       const formData = new FormData()
       formData.append('file', file)
 
-      const endpoint = isClosedView ? '/api/dismantle-history/import' : '/api/isolations/dismantle-import'
+      const endpoint = isClosedView ? '/api/dismantle-history/import' : '/api/dismantle-tickets/import'
       const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
@@ -599,7 +582,7 @@ export function DismantleView({
     setIsClosing(true)
     try {
       const form = new FormData()
-      form.append('isolationId', String(closeRow.id))
+      form.append('dismantleTicketId', String(closeRow.id))
       form.append('closeNote', closeNote)
       const existingTicket = String(closeRow.ticketDismantle ?? '').trim()
       if (existingTicket) form.append('ticketDismantle', existingTicket)
@@ -1020,6 +1003,18 @@ export function DismantleView({
                 placeholder="Contoh: DT/PKN/019/21.02.2026"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan Lapangan</label>
+              <textarea
+                rows={3}
+                value={fieldNoteValue}
+                onChange={(e) => setFieldNoteValue(e.target.value)}
+                placeholder="Contoh: Perangkat belum bisa diambil karena rumah kosong / kunci tidak ada / minta jadwal ulang / dll"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Catatan ini untuk kendala di lapangan tanpa perlu close ticket.</p>
             </div>
 
             <div>
@@ -1782,6 +1777,18 @@ export function DismantleView({
                 placeholder="Keterangan / catatan"
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan Lapangan</label>
+              <textarea
+                rows={3}
+                value={fieldNoteValue}
+                onChange={(e) => setFieldNoteValue(e.target.value)}
+                placeholder="Contoh: Perangkat belum bisa diambil karena rumah kosong / kunci tidak ada / minta jadwal ulang / dll"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Catatan ini untuk kendala di lapangan tanpa perlu close ticket.</p>
             </div>
 
             <div className="sm:col-span-2">

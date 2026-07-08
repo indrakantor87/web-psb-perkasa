@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { normalizeMarketingName } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
+import { ensureDismantleTicketsTable, getDismantleTicketLinksForIsolationIds } from '@/lib/dismantle-tickets'
 import {
   canAccessMenu,
   canDeleteIsolationRecords,
@@ -26,16 +27,14 @@ function getIsolationFetchErrorMessage(error: unknown) {
 }
 
 function hasDismantleHistory(item: {
-  ticketDismantle?: unknown
   closeNote?: unknown
   closePhoto?: unknown
   status?: unknown
 }) {
-  const ticket = String(item.ticketDismantle ?? '').trim()
   const closeNote = String(item.closeNote ?? '').trim()
   const closePhoto = String(item.closePhoto ?? '').trim()
   const status = String(item.status ?? '').trim().toUpperCase()
-  return ticket !== '' || closeNote !== '' || closePhoto !== '' || status === 'CLOSED'
+  return closeNote !== '' || closePhoto !== '' || status === 'CLOSED'
 }
 
 function normalizeDismantleKeyPart(value: unknown) {
@@ -261,6 +260,7 @@ export async function GET(request: Request) {
   }
 
   await ensureIsolationColumnsOnce()
+  await ensureDismantleTicketsTable()
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
@@ -315,20 +315,6 @@ export async function GET(request: Request) {
     if (exactMarketingClause) {
       appendAnd(exactMarketingClause)
     }
-  }
-  if (ticketStatus === 'WITH') {
-    appendAnd({
-      ticketDismantle: { not: null },
-    })
-    appendAnd({
-      NOT: {
-        ticketDismantle: '',
-      },
-    })
-  } else if (ticketStatus === 'WITHOUT') {
-    appendAnd({
-      OR: [{ ticketDismantle: null }, { ticketDismantle: '' }],
-    })
   }
   if (archiveVisibilityClause) {
     appendAnd(archiveVisibilityClause)
@@ -513,15 +499,36 @@ export async function GET(request: Request) {
       compareIsolationListOrder(a, b, preferImportOrder)
     )
 
-    const total = orderedIsolations.length
-    const withTicketTotal = orderedIsolations.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
-    const withoutTicketTotal = total - withTicketTotal
+    const orderedIds = orderedIsolations
+      .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
+      .filter((id: number) => Number.isFinite(id))
+    const inDismantleSet = await getDismantleTicketLinksForIsolationIds(orderedIds)
+    const filterByTicketStatus = (item: any) => {
+      if (ticketStatus === 'WITH') return inDismantleSet.has(Number(item?.id))
+      if (ticketStatus === 'WITHOUT') return !inDismantleSet.has(Number(item?.id))
+      return true
+    }
+
+    const ticketFilteredOrdered = ticketStatus === 'WITH' || ticketStatus === 'WITHOUT'
+      ? orderedIsolations.filter(filterByTicketStatus)
+      : orderedIsolations
+
+    const total = ticketFilteredOrdered.length
+    const ticketFilteredIds = ticketFilteredOrdered
+      .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
+      .filter((id: number) => Number.isFinite(id))
+    const withTicketTotal = ticketFilteredIds.filter((id) => inDismantleSet.has(id)).length
+    const withoutTicketTotal = Math.max(0, total - withTicketTotal)
     const isolations = exportAll
-      ? orderedIsolations
-      : orderedIsolations.slice((page - 1) * limit, page * limit)
+      ? ticketFilteredOrdered
+      : ticketFilteredOrdered.slice((page - 1) * limit, page * limit)
 
     const payload = {
-      items: isolations.map((item: any) => ({ ...item, price: normalizePriceNumber(item?.price) })),
+      items: isolations.map((item: any) => ({
+        ...item,
+        price: normalizePriceNumber(item?.price),
+        inDismantle: inDismantleSet.has(Number(item?.id)),
+      })),
       total,
       ...(includeTicketDetails ? { withTicketTotal, withoutTicketTotal } : {}),
       page,
@@ -587,10 +594,7 @@ export async function GET(request: Request) {
         ticketId: null,
         ticket: null,
       }))
-      const filteredFallbackItems =
-        includeTicketDetails && String(ticketStatus) === 'WITH'
-          ? buildSmartDismantleRows(mappedItems)
-          : mappedItems
+      const filteredFallbackItems = mappedItems
       const snapshotFallbackItems = filterToLatestImportSnapshot(
         filteredFallbackItems,
         Boolean(radboox && radboox !== 'ALL')
@@ -598,13 +602,27 @@ export async function GET(request: Request) {
       const orderedFallbackItems = [...snapshotFallbackItems].sort((a, b) =>
         compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
       )
-      const totalFallback = orderedFallbackItems.length
-      const withTicketTotalFallback = orderedFallbackItems.filter((item: any) => String(item?.ticketDismantle ?? '').trim() !== '').length
+      const fallbackIds = orderedFallbackItems
+        .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
+        .filter((id: number) => Number.isFinite(id))
+      const inDismantleSet = await getDismantleTicketLinksForIsolationIds(fallbackIds)
+      const ticketFilteredFallbackItems =
+        ticketStatus === 'WITH' || ticketStatus === 'WITHOUT'
+          ? orderedFallbackItems.filter((item: any) => {
+              const id = Number(item?.id ?? NaN)
+              if (!Number.isFinite(id)) return ticketStatus !== 'WITH'
+              return ticketStatus === 'WITH' ? inDismantleSet.has(id) : !inDismantleSet.has(id)
+            })
+          : orderedFallbackItems
+      const totalFallback = ticketFilteredFallbackItems.length
+      const withTicketTotalFallback = ticketFilteredFallbackItems.filter((item: any) => inDismantleSet.has(Number(item?.id))).length
       const withoutTicketTotalFallback = totalFallback - withTicketTotalFallback
       const payload = {
         items: exportAll
-          ? orderedFallbackItems
-          : orderedFallbackItems.slice((page - 1) * limit, page * limit),
+          ? ticketFilteredFallbackItems.map((item: any) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) }))
+          : ticketFilteredFallbackItems
+              .slice((page - 1) * limit, page * limit)
+              .map((item: any) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) })),
         total: totalFallback,
         ...(includeTicketDetails ? { withTicketTotal: withTicketTotalFallback, withoutTicketTotal: withoutTicketTotalFallback } : {}),
         page,

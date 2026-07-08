@@ -27,6 +27,7 @@ interface Isolation {
   restorationDate: string | null
   teknisi: string | null
   ticketDismantle?: string | null
+  inDismantle?: boolean | null
 }
 
 interface IsolationViewProps {
@@ -111,9 +112,9 @@ function buildIsolationDateFromDuration(monthsInput: unknown, daysInput: unknown
   return toIsoDateOnly(afterMonths)
 }
 
-function getTicketStatusLabel(item: Pick<Isolation, 'isolationDate' | 'ticketDismantle'>) {
+function getTicketStatusLabel(item: Pick<Isolation, 'isolationDate' | 'inDismantle'>) {
   if (!hasMonthlySuspend(item.isolationDate)) return '-'
-  return String(item.ticketDismantle ?? '').trim() !== '' ? 'Sudah' : 'Belum'
+  return item.inDismantle ? 'Sudah' : 'Belum'
 }
 
 export function IsolationView({
@@ -142,6 +143,7 @@ export function IsolationView({
   const [error, setError] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
+  const [transferringId, setTransferringId] = useState<number | null>(null)
 
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
@@ -235,6 +237,33 @@ export function IsolationView({
       if (!signal?.aborted) setLoading(false)
     }
   }, [canUseAdminScope, debouncedSearch, division, limit, marketingFilter, page, radbooxFilter, statusPreset])
+
+  const handleTransferToDismantle = useCallback(
+    async (isolationId: number) => {
+      if (!canMutate) return
+      if (!confirm('Transfer data ini ke menu Dismantle?')) return
+      setTransferringId(isolationId)
+      try {
+        const res = await fetch('/api/dismantle-tickets/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isolationId }),
+        })
+        const payload = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok) {
+          alert(payload.error || 'Gagal transfer ke dismantle')
+          return
+        }
+        setIsolations((prev) => prev.map((row) => (row.id === isolationId ? { ...row, inDismantle: true } : row)))
+        await fetchIsolations()
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Gagal transfer ke dismantle')
+      } finally {
+        setTransferringId(null)
+      }
+    },
+    [canMutate, fetchIsolations]
+  )
 
   // Debounce pencarian untuk mengurangi request beruntun
   useEffect(() => {
@@ -493,7 +522,7 @@ export function IsolationView({
         'Suspend': formatSuspendDuration(it.isolationDate),
         'Harga': formatPrice(it.price),
         'Ticket': getTicketStatusLabel(it),
-        'Nomor Ticket Dismantle': it.ticketDismantle ? String(it.ticketDismantle) : '-',
+        'Nomor Ticket Dismantle': '-',
       }))
 
       const wb = XLSX.utils.book_new()
@@ -748,19 +777,34 @@ export function IsolationView({
                       {item.reason || '-'}
                     </td>
                     <td className="hidden md:table-cell px-2 sm:px-3 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {getTicketStatusLabel(item) === '-' ? (
-                        '-'
-                      ) : (
-                        <span
-                          title={item.ticketDismantle ? `Nomor ticket: ${String(item.ticketDismantle)}` : 'Belum ada nomor ticket'}
-                          className={clsx(
-                            'inline-flex rounded-full px-2 py-1 text-[10px] font-semibold text-white',
-                            getTicketStatusLabel(item) === 'Sudah' ? 'bg-green-600' : 'bg-orange-500'
-                          )}
-                        >
-                          {getTicketStatusLabel(item)}
-                        </span>
-                      )}
+                      {(() => {
+                        const label = getTicketStatusLabel(item)
+                        if (label === '-') return '-'
+                        const canTransfer = canMutate && label === 'Belum' && String(item.status ?? '').toUpperCase() === 'OPEN'
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={clsx(
+                                'inline-flex rounded-full px-2 py-1 text-[10px] font-semibold text-white',
+                                label === 'Sudah' ? 'bg-green-600' : 'bg-orange-500'
+                              )}
+                            >
+                              {label}
+                            </span>
+                            {canTransfer && (
+                              <button
+                                type="button"
+                                onClick={() => handleTransferToDismantle(item.id)}
+                                disabled={transferringId === item.id}
+                                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[10px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 disabled:opacity-60"
+                                title="Transfer ke Dismantle"
+                              >
+                                {transferringId === item.id ? '...' : 'Transfer'}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     {showActions && (
                       <td className="hidden md:table-cell px-2 sm:px-3 py-3 whitespace-nowrap text-sm font-medium">
@@ -837,9 +881,21 @@ export function IsolationView({
                           </div>
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            <span title={item.ticketDismantle ? `Nomor ticket: ${String(item.ticketDismantle)}` : undefined}>
-                              {getTicketStatusLabel(item)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span>{getTicketStatusLabel(item)}</span>
+                              {canMutate &&
+                                getTicketStatusLabel(item) === 'Belum' &&
+                                String(item.status ?? '').toUpperCase() === 'OPEN' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTransferToDismantle(item.id)}
+                                    disabled={transferringId === item.id}
+                                    className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 disabled:opacity-60"
+                                  >
+                                    {transferringId === item.id ? '...' : 'Transfer'}
+                                  </button>
+                                )}
+                            </div>
                           </div>
                           <div className="col-span-2">
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>

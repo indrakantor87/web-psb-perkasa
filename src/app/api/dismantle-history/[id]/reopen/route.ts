@@ -5,6 +5,7 @@ import { canMutateMenu } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureDismantleHistoryTable, getDismantleHistoryById } from '@/lib/dismantle-history'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
+import { ensureDismantleTicketsTable } from '@/lib/dismantle-tickets'
 
 export const runtime = 'nodejs'
 
@@ -20,6 +21,7 @@ export async function POST(
 
   await ensureIsolationColumnsOnce()
   await ensureDismantleHistoryTable()
+  await ensureDismantleTicketsTable()
 
   const resolvedParams = await params
   const historyId = parseInt(resolvedParams.id, 10)
@@ -55,7 +57,7 @@ export async function POST(
               marketing: history.marketing ?? null,
               radboox: history.radboox ?? null,
               reason: history.reason ?? null,
-              ticketDismantle: history.ticketDismantle ?? null,
+              ticketDismantle: null,
               ticketId: history.ticketId == null ? null : Number(history.ticketId),
               status: 'OPEN',
               restorationDate: null,
@@ -79,7 +81,7 @@ export async function POST(
             radboox: history.radboox ?? null,
             reason: history.reason ?? null,
             isolationDate: history.isolationDate ? new Date(history.isolationDate) : new Date(),
-            ticketDismantle: history.ticketDismantle ?? null,
+            ticketDismantle: null,
             ticketId: history.ticketId == null ? null : Number(history.ticketId),
             status: 'OPEN',
             restorationDate: null,
@@ -91,6 +93,51 @@ export async function POST(
         })
         reopenedIsolationId = Number(created.id)
       }
+
+      await tx.$executeRawUnsafe(
+        `
+          INSERT INTO "DismantleTickets" (
+            "sourceIsolationId",
+            "customerName",
+            "customerAddress",
+            "customerPhone",
+            "userEmail",
+            "marketing",
+            "radboox",
+            "isolationDate",
+            "reason",
+            "status",
+            "ticketNumber",
+            "createdAt",
+            "updatedAt"
+          ) VALUES (
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',$10,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+          )
+          ON CONFLICT ("sourceIsolationId")
+          DO UPDATE SET
+            "customerName" = EXCLUDED."customerName",
+            "customerAddress" = EXCLUDED."customerAddress",
+            "customerPhone" = EXCLUDED."customerPhone",
+            "userEmail" = EXCLUDED."userEmail",
+            "marketing" = EXCLUDED."marketing",
+            "radboox" = EXCLUDED."radboox",
+            "isolationDate" = EXCLUDED."isolationDate",
+            "reason" = EXCLUDED."reason",
+            "ticketNumber" = EXCLUDED."ticketNumber",
+            "status" = 'OPEN',
+            "updatedAt" = CURRENT_TIMESTAMP
+        `,
+        reopenedIsolationId,
+        history.customerName,
+        history.customerAddress ?? null,
+        history.customerPhone ?? null,
+        history.userEmail ?? null,
+        history.marketing ?? null,
+        history.radboox ?? null,
+        history.isolationDate ? new Date(history.isolationDate) : new Date(),
+        history.reason ?? null,
+        history.ticketDismantle ?? null,
+      )
 
       await tx.$executeRawUnsafe(`DELETE FROM "DismantleHistory" WHERE "id" = $1`, historyId)
     })
