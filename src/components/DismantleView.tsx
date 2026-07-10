@@ -28,6 +28,7 @@ type DismantleItem = {
   ticketId?: number | null
   closeNote?: string | null
   closePhoto?: string | null
+  closePhotos?: string[] | null
   closedAt?: string | null
   closedBy?: string | null
   ticket?: {
@@ -147,7 +148,7 @@ function buildDismantleDetailText(row: DismantleItem) {
     `User : ${row.userEmail || row.marketing || '-'}`,
     `No WA : ${row.customerPhone || '-'}`,
     `In Maps : ${maps || '-'}`,
-    `Alamat : ${row.customerAddress || '-'}`,
+    `Marketing : ${row.marketing || '-'}`,
     `Suspend : ${formatSuspendDuration(row.isolationDate)}`,
     `Problem : ${problem || '-'}`,
     `Keterangan : ${row.reason || `Isolir sejak ${formatDate(row.isolationDate)}`}`,
@@ -158,6 +159,80 @@ function buildDismantleDetailText(row: DismantleItem) {
     `Status : ${String(row.status || '-').toUpperCase()}`,
   ]
   return lines.join('\n')
+}
+
+function getClosePhotoSources(row: DismantleItem | null | undefined) {
+  if (!row) return []
+  const fromArray = Array.isArray(row.closePhotos)
+    ? row.closePhotos.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : []
+  if (fromArray.length > 0) return fromArray
+  const fallback = String(row.closePhoto ?? '').trim()
+  return fallback ? [fallback] : []
+}
+
+function compressImage(file: File) {
+  return new Promise<File>((resolve) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new window.Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        const maxSide = 1600
+        if (width > height) {
+          if (width > maxSide) {
+            height = Math.round(height * (maxSide / width))
+            width = maxSide
+          }
+        } else if (height > maxSide) {
+          width = Math.round(width * (maxSide / height))
+          height = maxSide
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(file)
+          return
+        }
+        ctx.drawImage(img, 0, 0, width, height)
+
+        const tryQuality = (quality: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file)
+                return
+              }
+              const targetBytes = 600 * 1024
+              if (blob.size <= targetBytes || quality <= 0.4) {
+                resolve(
+                  new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                  }),
+                )
+                return
+              }
+              tryQuality(Math.max(0.4, quality - 0.1))
+            },
+            'image/jpeg',
+            quality,
+          )
+        }
+
+        tryQuality(0.8)
+      }
+      img.onerror = () => resolve(file)
+    }
+    reader.onerror = () => resolve(file)
+  })
 }
 
 function Modal({
@@ -247,9 +322,27 @@ export function DismantleView({
   const [closeModalOpen, setCloseModalOpen] = useState(false)
   const [closeRow, setCloseRow] = useState<DismantleItem | null>(null)
   const [closeNote, setCloseNote] = useState('')
-  const [closePhotoFile, setClosePhotoFile] = useState<File | null>(null)
+  const [closePhotoFiles, setClosePhotoFiles] = useState<File[]>([])
   const [isClosing, setIsClosing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const closePhotoPreviews = useMemo(
+    () =>
+      closePhotoFiles.map((file, index) => ({
+        key: `${file.name}-${index}-${file.lastModified}`,
+        url: URL.createObjectURL(file),
+        name: file.name,
+      })),
+    [closePhotoFiles],
+  )
+
+  useEffect(() => {
+    return () => {
+      for (const preview of closePhotoPreviews) {
+        URL.revokeObjectURL(preview.url)
+      }
+    }
+  }, [closePhotoPreviews])
 
   const supportsWorkflow =
     (!canUseAdminScope || division === 'ALL' || division === 'CS_ADMIN') &&
@@ -498,7 +591,7 @@ export function DismantleView({
         'User': row.userEmail || row.marketing || '',
         'No. HP': row.customerPhone || '',
         'Maps': row.ticket?.locationMap || '',
-        'Alamat': row.customerAddress || '',
+        'Marketing': row.marketing || '',
         'Keterangan': row.reason || '',
         'Problem': row.ticket?.description || row.radboox || '',
         'Status': row.status || '',
@@ -578,12 +671,49 @@ export function DismantleView({
   const openCloseForm = (row: DismantleItem) => {
     setCloseRow(row)
     setCloseNote('')
-    setClosePhotoFile(null)
+    setClosePhotoFiles([])
     setCloseModalOpen(true)
+  }
+
+  const handleClosePhotoChange = async (picked: FileList | null) => {
+    if (!picked) return
+    setError(null)
+
+    const incoming = Array.from(picked)
+    const combined = [...closePhotoFiles, ...incoming]
+    if (combined.length > 10) {
+      setError('Maksimal 10 foto close')
+      return
+    }
+
+    for (const file of incoming) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError('Ukuran foto maksimal 10MB')
+        return
+      }
+    }
+
+    setIsClosing(true)
+    try {
+      const compressed = await Promise.all(incoming.map((file) => compressImage(file)))
+      setClosePhotoFiles((prev) => [...prev, ...compressed].slice(0, 10))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal memproses foto')
+    } finally {
+      setIsClosing(false)
+    }
+  }
+
+  const removeClosePhotoAt = (index: number) => {
+    setClosePhotoFiles((prev) => prev.filter((_, idx) => idx !== index))
   }
 
   const submitClose = async () => {
     if (!closeRow) return
+    if (closePhotoFiles.length === 0) {
+      setError('Upload minimal 1 foto close')
+      return
+    }
     setIsClosing(true)
     try {
       const form = new FormData()
@@ -591,7 +721,7 @@ export function DismantleView({
       form.append('closeNote', closeNote)
       const existingTicket = String(closeRow.ticketDismantle ?? '').trim()
       if (existingTicket) form.append('ticketDismantle', existingTicket)
-      if (closePhotoFile) form.append('closePhoto', closePhotoFile)
+      closePhotoFiles.forEach((file) => form.append('closePhotos', file))
 
       const res = await fetch('/api/dismantle-history/close', {
         method: 'POST',
@@ -603,7 +733,7 @@ export function DismantleView({
       setCloseModalOpen(false)
       setCloseRow(null)
       setCloseNote('')
-      setClosePhotoFile(null)
+      setClosePhotoFiles([])
       await fetchRows()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Gagal close ticket')
@@ -895,17 +1025,21 @@ export function DismantleView({
               value={detailRow ? buildDismantleDetailText(detailRow) : ''}
               className="min-h-[220px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
             />
-            {detailRow?.closePhoto && (
-              <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
-                <Image
-                  src={detailRow.closePhoto}
-                  alt="Foto Close"
-                  width={1200}
-                  height={800}
-                  unoptimized
-                  className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
-                />
-              </a>
+            {getClosePhotoSources(detailRow).length > 0 && (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                {getClosePhotoSources(detailRow).map((photo, index) => (
+                  <a key={`${detailRow?.id}-${index}`} href={photo} target="_blank" rel="noreferrer" className="block">
+                    <Image
+                      src={photo}
+                      alt={`Foto Close ${index + 1}`}
+                      width={1200}
+                      height={800}
+                      unoptimized
+                      className="h-32 w-full rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                    />
+                  </a>
+                ))}
+              </div>
             )}
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
               <button
@@ -935,7 +1069,7 @@ export function DismantleView({
             setCloseModalOpen(false)
             setCloseRow(null)
             setCloseNote('')
-            setClosePhotoFile(null)
+            setClosePhotoFiles([])
           }}
         >
           <div className="space-y-4">
@@ -953,11 +1087,39 @@ export function DismantleView({
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Upload Foto</label>
               <input
                 type="file"
-                accept="image/png,image/jpeg"
-                onChange={(e) => setClosePhotoFile(e.target.files?.[0] || null)}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                accept="image/*"
+                multiple
+                onChange={(e) => {
+                  void handleClosePhotoChange(e.target.files)
+                  e.currentTarget.value = ''
+                }}
+                className="block w-full rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:file:bg-gray-600 dark:file:text-gray-100 dark:hover:file:bg-gray-500"
               />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 3MB (jpg/png).</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 10 foto, ukuran maksimal 10MB per foto.</p>
+              {closePhotoFiles.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {closePhotoPreviews.map((preview, index) => (
+                    <div key={preview.key} className="overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                      <Image
+                        src={preview.url}
+                        alt={preview.name}
+                        width={400}
+                        height={240}
+                        unoptimized
+                        className="h-24 w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeClosePhotoAt(index)}
+                        disabled={isClosing}
+                        className="w-full border-t border-gray-200 px-2 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-gray-700 dark:text-red-300 dark:hover:bg-red-950/30"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2">
               <button
@@ -966,7 +1128,7 @@ export function DismantleView({
                   setCloseModalOpen(false)
                   setCloseRow(null)
                   setCloseNote('')
-                  setClosePhotoFile(null)
+                  setClosePhotoFiles([])
                 }}
                 disabled={isClosing}
                 className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
@@ -1299,8 +1461,8 @@ export function DismantleView({
                       <div className={clsx('font-semibold break-words', textTone)}>{row.customerPhone || '-'}</div>
                     </div>
                     <div className="col-span-2 min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Alamat</div>
-                      <div className={clsx('font-semibold break-words', textTone)}>{row.customerAddress || '-'}</div>
+                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Marketing</div>
+                      <div className={clsx('font-semibold break-words', textTone)}>{row.marketing || '-'}</div>
                     </div>
                     <div className="col-span-2 min-w-0">
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">Keterangan</div>
@@ -1392,7 +1554,7 @@ export function DismantleView({
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">User</th>
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">No. HP</th>
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Maps</th>
-                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Alamat</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Marketing</th>
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Keterangan</th>
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Problem</th>
                 <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Status</th>
@@ -1467,7 +1629,7 @@ export function DismantleView({
                           '-'
                         )}
                       </td>
-                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>{row.customerAddress || '-'}</td>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>{row.marketing || '-'}</td>
                       <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>
                         <div className="max-w-xs whitespace-pre-wrap break-words">
                           {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
@@ -1581,17 +1743,21 @@ export function DismantleView({
             value={detailRow ? buildDismantleDetailText(detailRow) : ''}
             className="min-h-[220px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black dark:border-gray-600 dark:bg-gray-900 dark:text-white"
           />
-          {detailRow?.closePhoto && (
-            <a href={detailRow.closePhoto} target="_blank" rel="noreferrer" className="block">
-              <Image
-                src={detailRow.closePhoto}
-                alt="Foto Close"
-                width={1200}
-                height={800}
-                unoptimized
-                className="max-h-[320px] w-full rounded-md border border-gray-200 object-contain dark:border-gray-700"
-              />
-            </a>
+          {getClosePhotoSources(detailRow).length > 0 && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {getClosePhotoSources(detailRow).map((photo, index) => (
+                <a key={`${detailRow?.id}-${index}`} href={photo} target="_blank" rel="noreferrer" className="block">
+                  <Image
+                    src={photo}
+                    alt={`Foto Close ${index + 1}`}
+                    width={1200}
+                    height={800}
+                    unoptimized
+                    className="h-32 w-full rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                  />
+                </a>
+              ))}
+            </div>
           )}
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
             <button
@@ -1621,7 +1787,7 @@ export function DismantleView({
           setCloseModalOpen(false)
           setCloseRow(null)
           setCloseNote('')
-          setClosePhotoFile(null)
+          setClosePhotoFiles([])
         }}
       >
         <div className="space-y-4">
@@ -1639,11 +1805,39 @@ export function DismantleView({
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Upload Foto</label>
             <input
               type="file"
-              accept="image/png,image/jpeg"
-              onChange={(e) => setClosePhotoFile(e.target.files?.[0] || null)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                void handleClosePhotoChange(e.target.files)
+                e.currentTarget.value = ''
+              }}
+              className="block w-full rounded-md border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:file:bg-gray-600 dark:file:text-gray-100 dark:hover:file:bg-gray-500"
             />
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 3MB (jpg/png).</p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Maksimal 10 foto, ukuran maksimal 10MB per foto.</p>
+            {closePhotoFiles.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                {closePhotoPreviews.map((preview, index) => (
+                  <div key={preview.key} className="overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+                    <Image
+                      src={preview.url}
+                      alt={preview.name}
+                      width={400}
+                      height={240}
+                      unoptimized
+                      className="h-24 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeClosePhotoAt(index)}
+                      disabled={isClosing}
+                      className="w-full border-t border-gray-200 px-2 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-gray-700 dark:text-red-300 dark:hover:bg-red-950/30"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-end gap-2">
             <button
@@ -1652,7 +1846,7 @@ export function DismantleView({
                 setCloseModalOpen(false)
                 setCloseRow(null)
                 setCloseNote('')
-                setClosePhotoFile(null)
+                setClosePhotoFiles([])
               }}
               disabled={isClosing}
               className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"

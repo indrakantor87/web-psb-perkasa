@@ -9,6 +9,25 @@ import { ensureDismantleTicketsTable, getDismantleTicketById } from '@/lib/disma
 
 export const runtime = 'nodejs'
 
+function normalizePhotos(files: File[]) {
+  const limited = files.slice(0, 10)
+  const validTypes = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/jpg',
+    'image/webp',
+    'image/heic',
+    'image/heif',
+    'image/heic-sequence',
+    'image/heif-sequence',
+  ])
+  for (const file of limited) {
+    if (!validTypes.has(file.type)) throw new Error(`Format file tidak didukung: ${file.type}`)
+    if (file.size > 10 * 1024 * 1024) throw new Error('Ukuran file maksimal 10MB')
+  }
+  return limited
+}
+
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
@@ -35,19 +54,22 @@ export async function POST(request: Request) {
     const ticketDismantle =
       typeof ticketInput === 'string' && ticketInput.trim() !== '' ? ticketInput.trim() : null
 
-    let closePhotoDataUri: string | null = null
-    const file = form.get('closePhoto')
-    if (file instanceof File && file.size > 0) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg']
-      if (!validTypes.includes(file.type)) {
-        return NextResponse.json({ error: 'Tipe foto tidak valid (jpg/png)' }, { status: 400 })
-      }
-      if (file.size > 3 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Ukuran foto terlalu besar (maks 3MB)' }, { status: 400 })
-      }
-      const buffer = Buffer.from(await file.arrayBuffer())
-      closePhotoDataUri = `data:${file.type};base64,${buffer.toString('base64')}`
+    const rawFiles = form.getAll('closePhotos')
+    const files = rawFiles.filter((entry): entry is File => {
+      return typeof entry !== 'string' && typeof (entry as File).arrayBuffer === 'function' && entry.size > 0
+    })
+    const fallbackFile = form.get('closePhoto')
+    if (files.length === 0 && fallbackFile instanceof File && fallbackFile.size > 0) {
+      files.push(fallbackFile)
     }
+    const normalizedPhotos = normalizePhotos(files)
+    const closePhotoDataUris = await Promise.all(
+      normalizedPhotos.map(async (file) => {
+        const buffer = Buffer.from(await file.arrayBuffer())
+        return `data:${file.type};base64,${buffer.toString('base64')}`
+      }),
+    )
+    const primaryClosePhoto = closePhotoDataUris[0] ?? null
 
     const existing = useDismantleTicket ? await getDismantleTicketById(dismantleTicketId) : null
     const existingIsolation = !useDismantleTicket
@@ -136,12 +158,13 @@ export async function POST(request: Request) {
             "ticketDescription",
             "closeNote",
             "closePhoto",
+            "closePhotos",
             "closedAt",
             "closedBy",
             "createdAt",
             "updatedAt"
           ) VALUES (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
           )
         `,
         base.sourceIsolationId,
@@ -158,7 +181,8 @@ export async function POST(request: Request) {
         base.ticketLocationMap,
         base.ticketDescription,
         closeNote,
-        closePhotoDataUri,
+        primaryClosePhoto,
+        closePhotoDataUris.length > 0 ? closePhotoDataUris : null,
         now,
         session.user.name ?? null,
         now,
@@ -175,7 +199,7 @@ export async function POST(request: Request) {
             ticketDismantle:
               ticketDismantle ?? (typeof existingIsolation?.ticketDismantle === 'string' ? existingIsolation.ticketDismantle : null),
             closeNote,
-            closePhoto: closePhotoDataUri,
+            closePhoto: primaryClosePhoto,
             restorationDate: now,
             isArchived: true,
             archivedAt: now,

@@ -10,6 +10,7 @@ export type DismantleHistoryListParams = {
   search?: string | null
   radboox?: string | null
   ticketStatus?: 'ALL' | 'WITH' | 'WITHOUT'
+  marketingOwners?: string[] | null
   page: number
   limit: number
 }
@@ -31,6 +32,7 @@ export type DismantleHistoryRow = {
   ticketDescription: string | null
   closeNote: string | null
   closePhoto: string | null
+  closePhotos: string[] | null
   closedAt: Date | string | null
   closedBy: string | null
 }
@@ -56,6 +58,7 @@ export async function ensureDismantleHistoryTable() {
           "ticketDescription" TEXT,
           "closeNote" TEXT,
           "closePhoto" TEXT,
+          "closePhotos" TEXT[],
           "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "closedBy" TEXT,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -76,6 +79,7 @@ export async function ensureDismantleHistoryTable() {
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDescription" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closeNote" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[]`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3)`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closedBy" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(() => {})
@@ -93,6 +97,9 @@ export async function ensureDismantleHistoryTable() {
 }
 
 export function mapDismantleHistoryRow(row: DismantleHistoryRow) {
+  const photoList = Array.isArray(row.closePhotos)
+    ? row.closePhotos.filter((item) => String(item ?? '').trim() !== '')
+    : []
   return {
     id: Number(row.id),
     sourceIsolationId: row.sourceIsolationId == null ? null : Number(row.sourceIsolationId),
@@ -109,6 +116,7 @@ export function mapDismantleHistoryRow(row: DismantleHistoryRow) {
     ticketId: row.ticketId == null ? null : Number(row.ticketId),
     closeNote: row.closeNote ?? null,
     closePhoto: row.closePhoto ?? null,
+    closePhotos: photoList.length > 0 ? photoList : (row.closePhoto ? [row.closePhoto] : []),
     closedAt: row.closedAt ? new Date(row.closedAt).toISOString() : null,
     closedBy: row.closedBy ?? null,
     ticket: {
@@ -124,6 +132,20 @@ export async function listDismantleHistory(params: DismantleHistoryListParams) {
   const push = (value: unknown) => {
     values.push(value)
     return `$${values.length}`
+  }
+
+  const normalizedMarketingOwners = Array.isArray(params.marketingOwners)
+    ? Array.from(
+        new Set(
+          params.marketingOwners
+            .map((value) => String(value ?? '').trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      )
+    : []
+
+  if (normalizedMarketingOwners.length > 0) {
+    whereParts.push(`LOWER(TRIM(COALESCE("marketing", ''))) = ANY(${push(normalizedMarketingOwners)}::text[])`)
   }
 
   if (params.search && params.search.trim() !== '') {
@@ -173,6 +195,7 @@ export async function listDismantleHistory(params: DismantleHistoryListParams) {
         "ticketDescription",
         "closeNote",
         "closePhoto",
+        "closePhotos",
         "closedAt",
         "closedBy"
       FROM "DismantleHistory"
@@ -224,6 +247,7 @@ export async function getDismantleHistoryById(id: number) {
         "ticketDescription",
         "closeNote",
         "closePhoto",
+        "closePhotos",
         "closedAt",
         "closedBy"
       FROM "DismantleHistory"

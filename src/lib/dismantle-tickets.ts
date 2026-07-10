@@ -30,6 +30,7 @@ export type DismantleTicketListParams = {
   search?: string | null
   radboox?: string | null
   ticketStatus?: 'ALL' | 'WITH' | 'WITHOUT'
+  marketingOwners?: string[] | null
   page: number
   limit: number
 }
@@ -228,6 +229,20 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
   const push = (value: unknown) => {
     values.push(value)
     return `$${values.length}`
+  }
+
+  const normalizedMarketingOwners = Array.isArray(params.marketingOwners)
+    ? Array.from(
+        new Set(
+          params.marketingOwners
+            .map((value) => String(value ?? '').trim().toLowerCase())
+            .filter(Boolean),
+        ),
+      )
+    : []
+
+  if (normalizedMarketingOwners.length > 0) {
+    baseWhereParts.push(`LOWER(TRIM(COALESCE("marketing", ''))) = ANY(${push(normalizedMarketingOwners)}::text[])`)
   }
 
   if (params.search && params.search.trim() !== '') {
