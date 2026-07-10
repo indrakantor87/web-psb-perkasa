@@ -393,6 +393,18 @@ export function TroubleTicketView({
   }
 
   const fileInputId = 'trouble-ticket-import-input'
+  const closeCreateModal = useCallback(() => setIsCreateOpen(false), [])
+  const closeEditModal = useCallback(() => {
+    setIsEditOpen(false)
+    setEditingId(null)
+  }, [])
+  const closePhotoViewer = useCallback(() => setIsPhotoViewerOpen(false), [])
+  const closeDetailModal = useCallback(() => {
+    setIsPhotoViewerOpen(false)
+    setDetailRow(null)
+    setCopied(false)
+  }, [])
+  const hasAnyModalOpen = isCreateOpen || isEditOpen || !!detailRow || isPhotoViewerOpen
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
@@ -407,6 +419,38 @@ export function TroubleTicketView({
     mq.addListener(update)
     return () => mq.removeListener(update)
   }, [])
+
+  useEffect(() => {
+    if (!hasAnyModalOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (isPhotoViewerOpen) {
+        closePhotoViewer()
+        return
+      }
+      if (detailRow) {
+        closeDetailModal()
+        return
+      }
+      if (isEditOpen) {
+        closeEditModal()
+        return
+      }
+      if (isCreateOpen) {
+        closeCreateModal()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeCreateModal, closeDetailModal, closeEditModal, closePhotoViewer, detailRow, hasAnyModalOpen, isCreateOpen, isEditOpen, isPhotoViewerOpen])
 
   useEffect(() => {
     if (!isTroubleshoots) return
@@ -1283,7 +1327,7 @@ export function TroubleTicketView({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'OPEN' | 'CLOSE')}
-                className="w-full rounded-md border border-gray-600 bg-black px-3 py-1.5 text-sm text-white md:w-40 md:py-2"
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-40"
               >
                 <option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
@@ -1343,7 +1387,10 @@ export function TroubleTicketView({
             )}
             {canCreate && (
               <button
-                onClick={() => setIsCreateOpen(true)}
+                onClick={() => {
+                  setError(null)
+                  setIsCreateOpen(true)
+                }}
                 disabled={!supportsTroubleTicketWorkflow}
                 className="w-full rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 md:w-auto"
               >
@@ -1373,9 +1420,13 @@ export function TroubleTicketView({
       {isTroubleshoots && (
         <div className="space-y-2">
           {loading ? (
-            <div className="rounded-lg bg-black text-white px-4 py-6 text-center text-sm">Memuat...</div>
+            <div className="rounded-lg border border-gray-800 bg-gray-950 px-4 py-6 text-center text-sm text-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+              Memuat...
+            </div>
           ) : rows.length === 0 ? (
-            <div className="rounded-lg bg-black text-white px-4 py-6 text-center text-sm">Tidak ada data</div>
+            <div className="rounded-lg border border-gray-800 bg-gray-950 px-4 py-6 text-center text-sm text-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+              Tidak ada data
+            </div>
           ) : (
             rows.map((r) => {
               const { label, Icon, iconClass } = getTroubleshootsTypeMeta(r.type)
@@ -1406,7 +1457,7 @@ export function TroubleTicketView({
                     'rounded-lg bg-black text-white border border-gray-800',
                     (() => {
                       const k = String(r.user ?? '').trim().toLowerCase()
-                      return k && repeatedUserSet.has(k) ? 'bg-orange-50 border-orange-300' : undefined
+                      return k && repeatedUserSet.has(k) ? 'border-orange-500/60 bg-orange-950/35' : undefined
                     })(),
                     isOverdue
                       ? 'tt-near-overdue tt-near-overdue-blink'
@@ -1520,7 +1571,7 @@ export function TroubleTicketView({
                           target={mapsHref ? '_blank' : undefined}
                           rel={mapsHref ? 'noreferrer' : undefined}
                           className={clsx(
-                            'rounded-md border border-gray-600 bg-gray-200 text-gray-900 px-3 py-3 text-center text-sm font-medium',
+                            'rounded-md border border-gray-300 bg-gray-100 px-3 py-3 text-center text-sm font-medium text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
                             !mapsHref && 'opacity-50 pointer-events-none'
                           )}
                         >
@@ -1532,7 +1583,7 @@ export function TroubleTicketView({
                             window.location.href = `/trouble-ticket/close/${r.id}`
                           }}
                           disabled={isClosed}
-                          className="rounded-md border border-gray-600 bg-gray-200 text-gray-900 px-3 py-3 text-center text-sm font-medium"
+                          className="rounded-md border border-gray-300 bg-gray-100 px-3 py-3 text-center text-sm font-medium text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                         >
                           Close
                         </button>
@@ -1787,7 +1838,7 @@ export function TroubleTicketView({
                   <Fragment key={r.id}>
                     <tr
                       className={clsx(
-                        isRepeatedUser ? 'bg-orange-50' : undefined,
+                        isRepeatedUser ? 'bg-orange-50 dark:bg-orange-950/35' : undefined,
                         'hover:bg-gray-50 dark:hover:bg-gray-700',
                         isOverdue
                           ? 'tt-near-overdue tt-near-overdue-blink'
@@ -2028,13 +2079,33 @@ export function TroubleTicketView({
       )}
 
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
-          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">Buat Trouble Ticket</div>
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Isi data gangguan atau preventive secara singkat dan jelas.</div>
-            </div>
-            <div className="px-5 py-4 space-y-3">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 px-4 py-6 backdrop-blur-sm"
+          onClick={closeCreateModal}
+        >
+          <div className="flex min-h-full items-start justify-center sm:items-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Buat Trouble Ticket"
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Buat Trouble Ticket</div>
+                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Isi data gangguan atau preventive secara singkat dan jelas.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                  aria-label="Tutup popup create ticket"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-4 space-y-3">
               <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
                 ID Ticket otomatis: {idPrefix}{formatTicketNumber(nextNumber)}
               </div>
@@ -2141,35 +2212,56 @@ export function TroubleTicketView({
                   className="min-h-[90px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
-            </div>
-            <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                disabled={isSubmitting}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleCreate}
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4 dark:border-gray-700">
+                <button
+                  onClick={closeCreateModal}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleCreate}
+                  className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {isEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
-          <div className="w-full max-w-xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
-              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Perbarui data inti tiket tanpa mengubah alur kerja.</div>
-            </div>
-            <div className="px-5 py-4 space-y-3">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 px-4 py-6 backdrop-blur-sm"
+          onClick={closeEditModal}
+        >
+          <div className="flex min-h-full items-start justify-center sm:items-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Edit Trouble Ticket"
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
+                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Perbarui data inti tiket tanpa mengubah alur kerja.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+                  aria-label="Tutup popup edit ticket"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="flex flex-col">
                   <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Pelanggan</span>
@@ -2272,31 +2364,42 @@ export function TroubleTicketView({
                   className="min-h-[90px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
-            </div>
-            <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-              <button
-                onClick={() => { setIsEditOpen(false); setEditingId(null) }}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                disabled={isSubmitting}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleUpdate}
-                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
+              </div>
+              <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4 dark:border-gray-700">
+                <button
+                  onClick={closeEditModal}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {detailRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
-          <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 px-4 py-6 backdrop-blur-sm"
+          onClick={closeDetailModal}
+        >
+          <div className="flex min-h-full items-start justify-center sm:items-center">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Rincian Trouble Ticket"
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            >
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <div>
                   <div className="text-lg font-semibold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
@@ -2311,14 +2414,14 @@ export function TroubleTicketView({
               </div>
               <button
                 type="button"
-                onClick={() => setDetailRow(null)}
+                onClick={closeDetailModal}
                 className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-5 py-4 space-y-3">
+            <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-4 space-y-3">
               <textarea
                 readOnly
                 value={detailText}
@@ -2384,12 +2487,23 @@ export function TroubleTicketView({
               </div>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {detailRow && isPhotoViewerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 px-4">
-          <div className="w-full max-w-4xl rounded-lg bg-white dark:bg-gray-800 shadow-lg">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/85 px-4 py-6 backdrop-blur-sm"
+          onClick={closePhotoViewer}
+        >
+          <div className="flex min-h-full items-start justify-center sm:items-center">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Foto Lokasi"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800"
+          >
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div className="text-lg font-bold text-gray-900 dark:text-white">Foto Lokasi</div>
               <div className="flex items-center gap-2">
@@ -2402,7 +2516,7 @@ export function TroubleTicketView({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsPhotoViewerOpen(false)}
+                  onClick={closePhotoViewer}
                   className="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
                   aria-label="Close"
                 >
@@ -2410,7 +2524,7 @@ export function TroubleTicketView({
                 </button>
               </div>
             </div>
-            <div className="px-5 py-4">
+            <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-4">
               {(() => {
                 const sources = (Array.isArray(detailRow.closePhotoUrls) ? detailRow.closePhotoUrls : null) ??
                   (Array.isArray(detailRow.closePhotos) ? detailRow.closePhotos : null) ??
@@ -2442,6 +2556,7 @@ export function TroubleTicketView({
                 )
               })()}
             </div>
+          </div>
           </div>
         </div>
       )}

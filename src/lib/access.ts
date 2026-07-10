@@ -13,6 +13,16 @@ export type AppMenuKey =
   | 'analytics'
   | 'settings'
 
+export type AppSettingsKey =
+  | 'areas'
+  | 'packages'
+  | 'templates'
+  | 'users'
+  | 'role-audit'
+  | 'security-logs'
+  | 'trouble-ticket'
+  | 'priorities'
+
 export type AppDivisionCode = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 
 export function normalizeRole(role?: string | null) {
@@ -54,6 +64,7 @@ export function getMenuDataDivision(menu: AppMenuKey, perspectiveDivision?: stri
     case 'isolir':
       return division === 'NOC_TROUBLESHOOTS' ? 'NOC_TROUBLESHOOTS' : 'CS_ADMIN'
     case 'dismantle':
+      return division === 'NOC_TROUBLESHOOTS' ? 'NOC_TROUBLESHOOTS' : 'CS_ADMIN'
     case 'odp':
       return 'CS_ADMIN'
     case 'trouble-ticket':
@@ -101,6 +112,10 @@ function menuSet(items: AppMenuKey[]) {
   return new Set<AppMenuKey>(items)
 }
 
+function settingsSet(items: AppSettingsKey[]) {
+  return new Set<AppSettingsKey>(items)
+}
+
 function getAccessibleMenus(role?: string | null) {
   const roleUpper = normalizeRole(role)
 
@@ -131,7 +146,7 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (roleUpper === 'NOC') {
-    return menuSet(['dashboard', 'list', 'odp', 'trouble-ticket'])
+    return menuSet(['dashboard', 'list', 'dismantle', 'odp', 'trouble-ticket'])
   }
 
   if (roleUpper === 'CREATOR_DIGITAL') {
@@ -168,6 +183,37 @@ export function canAccessMenu(role: string | null | undefined, menu: AppMenuKey)
   return getAccessibleMenus(role).has(menu)
 }
 
+function getAccessibleSettingsPages(role?: string | null) {
+  const roleUpper = normalizeRole(role)
+
+  if (roleUpper === 'ADMIN') {
+    return settingsSet([
+      'areas',
+      'packages',
+      'templates',
+      'users',
+      'role-audit',
+      'security-logs',
+      'trouble-ticket',
+      'priorities',
+    ])
+  }
+
+  if (roleUpper === 'NOC') {
+    return settingsSet(['trouble-ticket'])
+  }
+
+  return settingsSet([])
+}
+
+export function canAccessSettingsPage(role: string | null | undefined, page: AppSettingsKey) {
+  return getAccessibleSettingsPages(role).has(page)
+}
+
+export function hasAnySettingsAccess(role: string | null | undefined) {
+  return getAccessibleSettingsPages(role).size > 0
+}
+
 export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey) {
   const roleUpper = normalizeRole(role)
 
@@ -183,7 +229,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'isolir':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
     case 'dismantle':
-      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'DISMANTLE'
+      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || roleUpper === 'DISMANTLE'
     case 'odp':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || roleUpper === 'TEKNISI'
     case 'trouble-ticket':

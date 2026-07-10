@@ -41,6 +41,7 @@ type DismantleResponse = {
   total?: number
   withTicketTotal?: number
   withoutTicketTotal?: number
+  localNotice?: string
   error?: string
 }
 
@@ -215,6 +216,7 @@ export function DismantleView({
   const [rows, setRows] = useState<DismantleItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [localNotice, setLocalNotice] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(25)
   const [total, setTotal] = useState(0)
@@ -302,6 +304,7 @@ export function DismantleView({
         total: typeof data.total === 'number' ? data.total : 0,
         withTicketTotal: typeof data.withTicketTotal === 'number' ? data.withTicketTotal : null,
         withoutTicketTotal: typeof data.withoutTicketTotal === 'number' ? data.withoutTicketTotal : null,
+        localNotice: typeof data.localNotice === 'string' ? data.localNotice : null,
       }
     },
     [buildQueryParams, isClosedView]
@@ -321,6 +324,7 @@ export function DismantleView({
         setWithTicketTotal(null)
         setWithoutTicketTotal(null)
       }
+      setLocalNotice(data.localNotice)
     } catch (err) {
       if (signal?.aborted) return
       setError(err instanceof Error ? err.message : String(err))
@@ -328,6 +332,7 @@ export function DismantleView({
       setTotal(0)
       setWithTicketTotal(null)
       setWithoutTicketTotal(null)
+      setLocalNotice(null)
     } finally {
       if (!signal?.aborted) setLoading(false)
     }
@@ -638,36 +643,36 @@ export function DismantleView({
           onChange={handleImportFile}
         />
 
-        <div className="rounded-xl border border-gray-800 bg-black p-3 text-white">
+        <div className="rounded-xl border border-gray-200 bg-white p-3 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="grid grid-cols-1 gap-3 md:flex md:flex-row md:items-end">
               <div className="flex flex-col">
-                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Cari</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</span>
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-80"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-80"
                   placeholder="Nama / WA / alamat / problem"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Status</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as DismantleStatusFilter)}
-                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-40"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-40"
                 >
                   <option value="OPEN">OPEN</option>
                   <option value="CLOSED">CLOSE</option>
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Ticket</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ticket</span>
                 <select
                   value={effectiveTicketFilter}
                   onChange={(e) => setTicketFilter(e.target.value as TicketFilter)}
                   disabled={!isClosedView}
-                  className="w-full rounded-md border border-gray-600 bg-black px-3 py-2 text-sm text-white focus:border-gray-400 focus:outline-none focus:ring-0 md:w-48"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-48"
                 >
                   <option value="WITH">SUDAH ADA TICKET</option>
                   {isClosedView && <option value="ALL">SEMUA</option>}
@@ -676,7 +681,7 @@ export function DismantleView({
               </div>
             </div>
 
-            <div className="rounded-md border border-gray-800 bg-gray-950 px-3 py-2 text-xs text-gray-300">
+            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
               {isClosedView
                 ? 'Riwayat close dismantle dibaca dari histori terpisah agar tidak terpengaruh penghapusan massal Isolir.'
                 : 'Menu open hanya menampilkan data Isolir aktif yang sudah memiliki nomor ticket dismantle.'}
@@ -690,11 +695,17 @@ export function DismantleView({
           </div>
         )}
 
+        {localNotice && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+            {localNotice}
+          </div>
+        )}
+
         <div className="space-y-2">
           {loading ? (
-            <div className="rounded-lg bg-black px-4 py-6 text-center text-sm text-white">Memuat...</div>
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Memuat...</div>
           ) : rows.length === 0 ? (
-            <div className="rounded-lg bg-black px-4 py-6 text-center text-sm text-white">Tidak ada data</div>
+            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Tidak ada data</div>
           ) : (
             rows.map((row) => {
               const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
@@ -706,7 +717,7 @@ export function DismantleView({
               const detailText = String(row.ticket?.description ?? row.radboox ?? '').trim()
 
               return (
-                <div key={row.id} className="rounded-lg border border-gray-800 bg-black text-white">
+                <div key={row.id} className="rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
                   <button
                     type="button"
                     onClick={() => setExpandedId((prev) => (prev === row.id ? null : row.id))}
@@ -718,12 +729,12 @@ export function DismantleView({
                         <div className="flex flex-wrap items-center gap-2 text-sm font-bold tracking-wide">
                           <span>{headerLabel}</span>
                         </div>
-                        <div className="mt-1 text-sm text-gray-200">{row.customerName || '-'}</div>
-                        <div className="mt-1 text-xs text-gray-400">
+                        <div className="mt-1 text-sm text-gray-700 dark:text-gray-200">{row.customerName || '-'}</div>
+                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                           {(detailText || '-')} {' • '} Suspend {formatSuspendDuration(row.isolationDate)}
                         </div>
                       </div>
-                      <div className="pt-0.5 text-gray-300">
+                      <div className="pt-0.5 text-gray-500 dark:text-gray-300">
                         {expandedId === row.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </div>
                     </div>
@@ -732,28 +743,28 @@ export function DismantleView({
                   {expandedId === row.id && (
                     <div className="px-4 pb-4">
                       <div className="mt-2 space-y-2 text-sm">
-                        <div className="rounded-md bg-gray-900 px-3 py-2">
-                          <div className="text-xs text-gray-400">Nama Pelanggan</div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Nama Pelanggan</div>
                           <button
                             type="button"
                             onClick={() => openDetail(row)}
-                            className="text-left font-semibold text-blue-300 hover:underline"
+                            className="text-left font-semibold text-blue-700 hover:underline dark:text-blue-300"
                           >
                             {row.customerName || '-'}
                           </button>
                         </div>
-                        <div className="rounded-md bg-gray-900 px-3 py-2">
-                          <div className="text-xs text-gray-400">No Ticket</div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">No Ticket</div>
                           <div className="font-semibold">{ticketCode}</div>
                         </div>
-                        <div className="rounded-md bg-gray-900 px-3 py-2">
-                          <div className="text-xs text-gray-400">No WA</div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">No WA</div>
                           {normalizedWa ? (
                             <a
                               href={`https://wa.me/${normalizedWa}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="break-words font-semibold text-blue-300 hover:underline"
+                              className="break-words font-semibold text-blue-700 hover:underline dark:text-blue-300"
                             >
                               {row.customerPhone}
                             </a>
@@ -761,12 +772,12 @@ export function DismantleView({
                             <div>{row.customerPhone || '-'}</div>
                           )}
                         </div>
-                        <div className="rounded-md bg-gray-900 px-3 py-2">
-                          <div className="text-xs text-gray-400">Problem</div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Problem</div>
                           <div className="whitespace-pre-wrap break-words">{detailText || '-'}</div>
                         </div>
-                        <div className="rounded-md bg-gray-900 px-3 py-2">
-                          <div className="text-xs text-gray-400">Keterangan</div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Keterangan</div>
                           <div className="whitespace-pre-wrap break-words">
                             {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
                           </div>
@@ -779,7 +790,7 @@ export function DismantleView({
                           target={mapsHref ? '_blank' : undefined}
                           rel={mapsHref ? 'noreferrer' : undefined}
                           className={clsx(
-                            'rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900',
+                            'rounded-md border border-gray-300 bg-white px-3 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
                             !mapsHref && 'pointer-events-none opacity-50'
                           )}
                         >
@@ -790,7 +801,7 @@ export function DismantleView({
                             type="button"
                             onClick={() => void reopenHistory(row)}
                             disabled={actionLoadingId === row.id}
-                            className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
+                            className="rounded-md border border-gray-300 bg-white px-3 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                           >
                             {actionLoadingId === row.id ? 'Menyimpan...' : 'Open Kembali'}
                           </button>
@@ -799,7 +810,7 @@ export function DismantleView({
                             type="button"
                             onClick={() => openCloseForm(row)}
                             disabled={actionLoadingId === row.id}
-                            className="rounded-md border border-gray-600 bg-gray-200 px-3 py-3 text-center text-sm font-medium text-gray-900 disabled:opacity-50"
+                            className="rounded-md border border-gray-300 bg-white px-3 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                           >
                             {actionLoadingId === row.id ? 'Menyimpan...' : 'Close'}
                           </button>
@@ -810,7 +821,7 @@ export function DismantleView({
                         <button
                           type="button"
                           onClick={() => openDetail(row)}
-                          className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
+                          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                         >
                           <Info className="h-4 w-4" />
                           Rincian
@@ -822,7 +833,7 @@ export function DismantleView({
                               setExpandedId(null)
                               openEdit(row)
                             }}
-                            className="inline-flex items-center gap-2 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-100 hover:bg-gray-700"
+                            className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                           >
                             <Pencil className="h-4 w-4" />
                             Edit
@@ -848,7 +859,7 @@ export function DismantleView({
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-800 bg-black px-3 py-3 text-sm text-white">
+        <div className="rounded-lg border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>{total > 0 ? `Menampilkan ${rows.length} dari total ${total} data` : 'Tidak ada data'}</div>
             <div className="flex items-center gap-2">
@@ -856,7 +867,7 @@ export function DismantleView({
                 type="button"
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={page <= 1}
-                className="rounded-md border border-gray-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Sebelumnya
               </button>
@@ -865,7 +876,7 @@ export function DismantleView({
                 type="button"
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={page >= totalPages}
-                className="rounded-md border border-gray-700 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Berikutnya
               </button>
@@ -1221,6 +1232,12 @@ export function DismantleView({
           </div>
         )}
 
+      {localNotice && (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          {localNotice}
+        </div>
+      )}
+
         <div className="mt-4 space-y-3 md:hidden">
           {loading ? (
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
@@ -1355,34 +1372,34 @@ export function DismantleView({
           )}
         </div>
 
-        <div className="mt-4 hidden overflow-x-auto rounded-lg border border-green-700 dark:border-green-700 md:block">
+        <div className="mt-4 hidden overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 md:block">
           <table className="min-w-full border-collapse">
-            <thead className="bg-green-700 dark:bg-green-800">
+            <thead className="bg-gray-50 dark:bg-gray-900/80">
               <tr>
                 {showSelection && (
-                  <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">
+                  <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">
                     <input
                       type="checkbox"
                       checked={allOnPageSelected}
                       onChange={toggleSelectAllOnPage}
-                      className="h-4 w-4 rounded border-green-200 text-white focus:ring-0"
+                      className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:border-gray-600 dark:text-gray-100"
                       aria-label="Pilih semua pada halaman ini"
                     />
                   </th>
                 )}
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Nomor Ticket</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Nama</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">User</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">No. HP</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Maps</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Alamat</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Keterangan</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Problem</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Status</th>
-                <th className="border border-green-900 px-2 py-2 text-center text-[11px] font-semibold text-white">Aksi</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Nomor Ticket</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Nama</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">User</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">No. HP</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Maps</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Alamat</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Keterangan</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Problem</th>
+                <th className="border-b border-r border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Status</th>
+                <th className="border-b border-gray-200 px-2 py-2 text-center text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-200">Aksi</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-transparent">
               {loading ? (
                 <tr>
                   <td colSpan={showSelection ? 11 : 10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -1401,22 +1418,21 @@ export function DismantleView({
                   const mapsUrl = String(row.ticket?.locationMap ?? '').trim()
                   const problemText = String(row.ticket?.description ?? row.radboox ?? '').trim()
                   const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
-                  const rowTone = getRowTone(row)
                   const textTone = getCellTextTone(row)
                   return (
-                    <tr key={row.id} className={clsx('align-top', rowTone)}>
+                    <tr key={row.id} className="align-top bg-transparent transition-colors hover:bg-gray-50/70 dark:hover:bg-gray-800/60">
                       {showSelection && (
-                        <td className="border border-green-900 px-2 py-2 text-center text-xs">
+                        <td className="border-b border-r border-gray-200 px-2 py-2 text-center text-xs dark:border-gray-700">
                           <input
                             type="checkbox"
                             checked={selectedSet.has(row.id)}
                             onChange={() => toggleSelected(row.id)}
-                            className="h-4 w-4 rounded border-green-200 text-white focus:ring-0"
+                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:border-gray-600 dark:text-gray-100"
                             aria-label={`Pilih ${row.customerName || `ID ${row.id}`}`}
                           />
                         </td>
                       )}
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>
                         <span
                           className={clsx(
                             'inline-flex rounded-md px-2 py-1 text-[11px] font-semibold',
@@ -1426,7 +1442,7 @@ export function DismantleView({
                           {hasTicket ? row.ticketDismantle : 'Belum diisi'}
                         </span>
                       </td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs font-medium', textTone)}>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs font-medium dark:border-gray-700', textTone)}>
                         <button
                           type="button"
                           onClick={() => openDetail(row)}
@@ -1435,9 +1451,9 @@ export function DismantleView({
                           {row.customerName || '-'}
                         </button>
                       </td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>{row.userEmail || row.marketing || '-'}</td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs font-semibold text-green-900 dark:text-green-100')}>{row.customerPhone || '-'}</td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>{row.userEmail || row.marketing || '-'}</td>
+                      <td className="border-b border-r border-gray-200 px-2 py-2 text-xs font-semibold text-gray-900 dark:border-gray-700 dark:text-gray-100">{row.customerPhone || '-'}</td>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>
                         {mapsUrl ? (
                           <a
                             href={mapsUrl}
@@ -1451,16 +1467,16 @@ export function DismantleView({
                           '-'
                         )}
                       </td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>{row.customerAddress || '-'}</td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>{row.customerAddress || '-'}</td>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>
                         <div className="max-w-xs whitespace-pre-wrap break-words">
                           {row.reason || `Isolir sejak ${formatDate(row.isolationDate)} (${formatSuspendDuration(row.isolationDate)}).`}
                         </div>
                       </td>
-                      <td className={clsx('border border-green-900 px-2 py-2 text-xs', textTone)}>
+                      <td className={clsx('border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700', textTone)}>
                         <div className="max-w-xs whitespace-pre-wrap break-words">{problemText || row.radboox || '-'}</div>
                       </td>
-                      <td className="border border-green-900 px-2 py-2 text-xs">
+                      <td className="border-b border-r border-gray-200 px-2 py-2 text-xs dark:border-gray-700">
                         <span
                           className={clsx(
                             'inline-flex rounded-md px-2 py-1 text-[11px] font-semibold',
@@ -1470,7 +1486,7 @@ export function DismantleView({
                           {row.status || '-'}
                         </span>
                       </td>
-                      <td className="border border-green-900 px-2 py-2">
+                      <td className="border-b border-gray-200 px-2 py-2 dark:border-gray-700">
                         <div className="flex flex-col gap-2">
                           {!isClosed ? (
                             <button

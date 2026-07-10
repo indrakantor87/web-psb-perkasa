@@ -82,6 +82,16 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [scheduleCopied, setScheduleCopied] = useState(false)
+  const closeSummaryModal = useCallback(() => setSummaryTicket(null), [])
+  const closeEditModal = useCallback(() => {
+    setEditTicket(null)
+    setEditFile(null)
+  }, [])
+  const closeScheduleModal = useCallback(() => {
+    setScheduleModalOpen(false)
+    setScheduleCopied(false)
+  }, [])
+  const hasModalOpen = !!summaryTicket || !!editTicket || scheduleModalOpen
   
   // Use prop directly
   const defaultTemplate = defaultTemplateContent
@@ -99,6 +109,34 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   useEffect(() => {
     setSelectedTicketIds([])
   }, [tickets])
+
+  useEffect(() => {
+    if (!hasModalOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (editTicket) {
+        closeEditModal()
+        return
+      }
+      if (scheduleModalOpen) {
+        closeScheduleModal()
+        return
+      }
+      if (summaryTicket) {
+        closeSummaryModal()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeEditModal, closeScheduleModal, closeSummaryModal, editTicket, hasModalOpen, scheduleModalOpen, summaryTicket])
 
   // Listen for app:refresh event from custom PullToRefresh component
   useEffect(() => {
@@ -336,7 +374,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
     PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
     CS_ADMIN: 'Fokus ke tiket yang belum memiliki teknisi, cocok untuk alur CS & Admin CS.',
-    NOC_TROUBLESHOOTS: 'Fokus ke tiket yang sudah memiliki teknisi, cocok untuk tindak lanjut teknis.',
+    NOC_TROUBLESHOOTS: 'Perspektif NOC memakai dataset PSB yang sama seperti CS dan Penjualan agar tindak lanjut teknis tetap melihat antrean lengkap.',
     CREATOR_DIGITAL: 'Belum ada relasi langsung ke data PSB, sehingga hasil list akan kosong sebagai placeholder.',
   }
 
@@ -853,7 +891,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
       )}
 
       {importError && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {importError}
         </div>
       )}
@@ -1313,15 +1351,22 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
       </div>
 
       {summaryTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4 transition-all duration-300">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm transition-all duration-300"
+          onClick={closeSummaryModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ringkasan Tiket</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Lihat data utama pelanggan secara cepat.</p>
               </div>
               <button
-                onClick={() => setSummaryTicket(null)}
+                onClick={closeSummaryModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
               >
                 <span className="sr-only">Close</span>
@@ -1367,26 +1412,34 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
               <button
                 type="button"
                 className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
-                onClick={() => setSummaryTicket(null)}
+                onClick={closeSummaryModal}
               >
                 Tutup
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
 
       {/* Edit Modal */}
       {editTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4">
-          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={closeEditModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Tiket</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Perbarui data pelanggan dan tindak lanjutnya.</p>
               </div>
               <button
-                onClick={() => setEditTicket(null)}
+                onClick={closeEditModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
               >
                 <span className="sr-only">Close</span>
@@ -1511,7 +1564,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                         setEditFile(file)
                       }
                     }}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600 file:bg-white dark:file:bg-gray-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-700 dark:file:text-gray-300 hover:file:bg-gray-50 dark:hover:file:bg-gray-600"
+                    className="w-full rounded-md border border-dashed border-gray-300 bg-white/70 px-3 py-2 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-900/70 dark:text-gray-400 file:mr-4 file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600 file:bg-white dark:file:bg-gray-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-700 dark:file:text-gray-300 hover:file:bg-gray-50 dark:hover:file:bg-gray-600"
                   />
                   <p className="mt-1 text-xs text-gray-500">Maks. 3MB (.jpg, .png)</p>
                 </div>
@@ -1563,7 +1616,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
               <div className="flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
                 <button
                   type="button"
-                  onClick={() => setEditTicket(null)}
+                  onClick={closeEditModal}
                   className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                 >
                   Batal
@@ -1578,19 +1631,27 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {scheduleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 backdrop-blur-sm p-4">
-          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={closeScheduleModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Buat Jadwal PSB</h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Ringkasan siap di-copy untuk WA.</p>
               </div>
               <button
-                onClick={() => setScheduleModalOpen(false)}
+                onClick={closeScheduleModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
               >
                 <span className="sr-only">Close</span>
@@ -1635,6 +1696,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                 className="min-h-[260px] w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </div>
+          </div>
           </div>
         </div>
       )}

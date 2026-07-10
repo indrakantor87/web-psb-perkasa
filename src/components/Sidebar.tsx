@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess } from '@/lib/access'
 
 export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string }; onExpand?: () => void }) {
   const pathname = usePathname()
@@ -18,6 +19,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
   })
   const { theme, setTheme } = useTheme()
   const isMarketing = user?.role === 'MARKETING'
+  const roleDivision = getDivisionFromRole(user?.role)
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`
@@ -26,24 +28,26 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
 
   const links = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    ...(user?.role !== 'TEKNISI' ? [{ href: '/input', label: 'Input PSB', icon: FileInput }] : []),
-    { href: '/list', label: 'List Data', icon: List },
-    { href: '/marketing-activities', label: 'Aktivitas Marketing', icon: ClipboardList },
-    { href: '/isolir', label: 'Isolir', icon: Ban },
-    { href: '/odp', label: 'PORT ODP', icon: Wifi },
+    ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
+    ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
+    ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+    ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
+    ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle Perangkat', icon: Wrench }] : []),
+    ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),
+    ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
   ]
 
-  const hasSettingsAccess = user?.role && ['ADMIN', 'CS', 'NOC'].includes(user.role)
+  const hasSettingsAccess = hasAnySettingsAccess(user?.role)
 
-  const settingsLinks = hasSettingsAccess ? [
-    { href: '/settings/areas', label: 'Master Area' },
-    { href: '/settings/packages', label: 'Master Paket' },
-    { href: '/settings/users', label: 'Manajemen Pengguna' },
-    { href: '/settings/templates', label: 'Template WA' },
-    { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
-    { href: '/settings/role-audit', label: 'Audit Role' },
-    { href: '/settings/security-logs', label: 'Log Aktivitas' },
-  ] : []
+  const settingsLinks = [
+    ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'trouble-ticket') ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
+    ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
+  ]
 
   const handleLinkClick = () => {
     if (mobile && onClose) {
@@ -80,6 +84,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
         })}
 
         {/* Settings Menu */}
+        {hasSettingsAccess ? (
         <div className="space-y-1">
           <button
             onClick={() => {
@@ -167,6 +172,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
             </div>
           )}
         </div>
+        ) : null}
 
       </nav>
       <div className="border-t border-gray-800 p-2 text-center">

@@ -7,14 +7,17 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
+function isDatabaseInitError(error: unknown) {
+  const message = String(error instanceof Error ? error.message : error)
+  return message.includes('tenant/user') || message.includes('PrismaClientInitializationError')
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   if (!canAccessMenu(session.user.role, 'dismantle')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  await ensureDismantleHistoryTable()
 
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
@@ -29,6 +32,7 @@ export async function GET(request: Request) {
   })()
 
   try {
+    await ensureDismantleHistoryTable()
     const payload = await listDismantleHistory({
       search,
       radboox,
@@ -47,6 +51,19 @@ export async function GET(request: Request) {
     )
   } catch (error) {
     console.error('Failed to fetch dismantle history:', error)
+    if (isDatabaseInitError(error) && process.env.NODE_ENV !== 'production') {
+      return NextResponse.json(
+        {
+          items: [],
+          total: 0,
+          page,
+          limit,
+          localNotice:
+            'Mode lokal aktif: histori dismantle ditampilkan kosong karena koneksi database remote sedang tidak tersedia.',
+        },
+        { headers: { 'Cache-Control': 'no-store' } },
+      )
+    }
     return NextResponse.json({ error: 'Failed to fetch dismantle history' }, { status: 500 })
   }
 }
@@ -58,9 +75,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await ensureDismantleHistoryTable()
-
   try {
+    await ensureDismantleHistoryTable()
     const body = (await request.json().catch(() => ({}))) as { ids?: unknown }
     const idsRaw = body?.ids
     const ids =

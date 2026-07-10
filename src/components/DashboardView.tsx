@@ -248,10 +248,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 const newMonth = Number(e.target.value)
                 pushFilters(newMonth, year, focusedDivision)
               }}
-              className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+              className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
             >
               {months.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
+                <option key={i} value={i + 1}>
+                  {m}
+                </option>
               ))}
             </select>
           </div>
@@ -262,10 +264,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 const newYear = Number(e.target.value)
                 pushFilters(month, newYear, focusedDivision)
               }}
-              className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+              className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
             >
               {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>
@@ -277,7 +281,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   const newDivision = e.target.value as DivisionFilter
                   pushFilters(month, year, newDivision)
                 }}
-                className="w-full bg-transparent text-sm font-semibold text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer"
+                className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
               >
                 <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
@@ -307,7 +311,11 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <DivisionCard
                 key={division.code}
                 division={division}
-                detailHref={`/division-performance?division=${division.code}&mode=MONTHLY&month=${month}&year=${year}`}
+                detailHref={
+                  isAdmin
+                    ? `/division-performance?division=${division.code}&mode=MONTHLY&month=${month}&year=${year}`
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -1048,7 +1056,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   )
 }
 
-function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref: string }) {
+function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref?: string }) {
   const config = {
     PENJUALAN: {
       icon: <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
@@ -1129,14 +1137,16 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
         </div>
       )}
 
-      <div className="mt-3 flex justify-end">
-        <Link
-          href={detailHref}
-          className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
-        >
-          Lihat detail
-        </Link>
-      </div>
+      {detailHref && (
+        <div className="mt-3 flex justify-end">
+          <Link
+            href={detailHref}
+            className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
+          >
+            Lihat detail
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

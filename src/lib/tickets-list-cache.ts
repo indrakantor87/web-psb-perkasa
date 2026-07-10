@@ -91,13 +91,6 @@ async function queryTicketsList(args: Args) {
             { teknisi: '' },
           ],
         })
-      } else if (normalizedDivision === 'NOC_TROUBLESHOOTS') {
-        appendAnd({
-          AND: [
-            { teknisi: { not: null } },
-            { NOT: { teknisi: '' } },
-          ],
-        })
       } else if (normalizedDivision === 'CREATOR_DIGITAL') {
         baseWhere.id = -1
       }

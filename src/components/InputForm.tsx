@@ -436,7 +436,7 @@ export function InputForm({
           )}
         </div>
 
-        <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-900">
+        <div className="md:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50/80 p-4 dark:border-gray-600 dark:bg-gray-900/80">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Foto Rumah (Max 10MB - Otomatis Dikompres)
           </label>
@@ -445,7 +445,7 @@ export function InputForm({
             accept=".jpg,.jpeg,.png,.webp"
             onChange={handleFileChange}
             disabled={readOnly}
-            className="mt-2 block w-full text-sm text-gray-500 dark:text-gray-400
+            className="mt-2 block w-full rounded-md border border-dashed border-gray-300 bg-white/70 px-3 py-2 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-900/70 dark:text-gray-400
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border file:border-gray-300 dark:file:border-gray-600
               file:text-sm file:font-semibold
@@ -500,7 +500,7 @@ export function InputForm({
           </div>
         </form>
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/70 p-6 text-center dark:border-gray-700 dark:bg-gray-900/70">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Input PSB Belum Tersedia untuk Divisi Ini</h3>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Saat ini input pelanggan baru masih dicatat melalui alur divisi Penjualan. Pilih `Semua Divisi` atau `Penjualan` untuk memakai formulir PSB.

@@ -143,7 +143,7 @@ export function DivisionPerformanceControls({
               <select
                 value={month}
                 onChange={(event) => pushState({ month: Number(event.target.value) })}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600"
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600 dark:[color-scheme:dark]"
               >
                 {months.map((label, index) => (
                   <option key={label} value={index + 1}>
@@ -154,7 +154,7 @@ export function DivisionPerformanceControls({
               <select
                 value={year}
                 onChange={(event) => pushState({ year: Number(event.target.value) })}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600"
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600 dark:[color-scheme:dark]"
               >
                 {years.map((option) => (
                   <option key={option} value={option}>
@@ -168,7 +168,7 @@ export function DivisionPerformanceControls({
               type="date"
               value={anchorDate}
               onChange={(event) => pushState({ anchorDate: event.target.value })}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:focus:ring-gray-600 dark:[color-scheme:dark]"
             />
           )}
         </div>

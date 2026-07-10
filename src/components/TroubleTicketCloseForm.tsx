@@ -284,15 +284,23 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
   }
 
   if (loading) {
-    return <div className="rounded-lg bg-black text-white px-4 py-6 text-center text-sm">Memuat...</div>
+    return (
+      <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-6 text-center text-sm text-gray-100">
+        Memuat...
+      </div>
+    )
   }
 
   if (!ticket) {
-    return <div className="rounded-lg bg-black text-white px-4 py-6 text-center text-sm">{error || 'Ticket tidak ditemukan'}</div>
+    return (
+      <div className="rounded-xl border border-gray-800 bg-gray-950 px-4 py-6 text-center text-sm text-gray-100">
+        {error || 'Ticket tidak ditemukan'}
+      </div>
+    )
   }
 
   return (
-    <div className="relative rounded-lg bg-black text-white border border-gray-800 p-4">
+    <div className="relative rounded-xl border border-gray-800 bg-gray-950 p-4 text-gray-100 shadow-sm">
       <div className="space-y-4 pb-28">
         <div className="text-lg font-bold">Close Ticket</div>
 
@@ -303,15 +311,15 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         )}
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
             <div className="text-xs text-gray-400">Nama Pelanggan</div>
             <div className="font-semibold">{ticket.customerName}</div>
           </div>
-          <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
             <div className="text-xs text-gray-400">No Ticket</div>
             <div className="font-semibold">{ticket.ticketCode || ticket.id}</div>
           </div>
-          <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
             <div className="text-xs text-gray-400">No WA</div>
             {wa ? (
               <a
@@ -326,7 +334,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
               <div className="break-words font-semibold">{ticket.waNumber || '-'}</div>
             )}
           </div>
-          <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
             <div className="text-xs text-gray-400">Keterangan Ticket</div>
             <div className="break-words font-semibold">{formatTypeLabel(ticket.type)}</div>
             <div className="mt-1 break-words text-sm text-gray-200">{(ticket.notes || '').trim() || '-'}</div>
@@ -334,7 +342,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <div className="rounded-md bg-gray-900 px-3 py-2">
+          <div className="rounded-md border border-gray-800 bg-gray-900 px-3 py-2">
             <div className="text-xs text-gray-400">Jenis Gangguan</div>
             <div className="break-words font-semibold">{(String(ticket.problemCategory ?? '').trim() || '-')}</div>
           </div>
@@ -345,7 +353,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
               onChange={(e) => setActionQuery(e.target.value)}
               disabled={saving}
               placeholder="Cari tindakan..."
-              className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+              className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white focus:border-gray-500 focus:outline-none focus:ring-0"
             />
             <div className="max-h-56 overflow-y-auto rounded-md border border-gray-700 bg-gray-900 px-3 py-2">
               {filteredResolutionOptions.length === 0 ? (
@@ -385,7 +393,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
           <textarea
             value={closeNotes}
             onChange={(e) => setCloseNotes(e.target.value)}
-            className="w-full min-h-[120px] rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white"
+            className="w-full min-h-[120px] rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white focus:border-gray-500 focus:outline-none focus:ring-0"
             placeholder="Isi penanganan yang dilakukan di lokasi..."
           />
         </div>
@@ -398,13 +406,13 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
             multiple
             onChange={(e) => handleFileChange(e.target.files)}
             disabled={saving}
-            className="block w-full text-sm text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-900"
+            className="block w-full rounded-md border border-dashed border-gray-700 bg-gray-900/70 px-3 py-2 text-sm text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-100 hover:file:bg-gray-600"
           />
           {files.length > 0 && (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
               {filePreviews.map((preview, idx) => {
                 return (
-                  <div key={preview.key} className="rounded-md bg-gray-900 border border-gray-800 overflow-hidden">
+                  <div key={preview.key} className="overflow-hidden rounded-md border border-gray-800 bg-gray-900">
                     <NextImage
                       src={preview.url}
                       alt={preview.name}
@@ -416,7 +424,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
                     <button
                       type="button"
                       onClick={() => removeFileAt(idx)}
-                      className="w-full px-2 py-2 text-xs font-semibold text-red-200 hover:bg-red-950"
+                      className="w-full border-t border-gray-800 px-2 py-2 text-xs font-semibold text-red-200 hover:bg-red-950"
                     >
                       Hapus
                     </button>
@@ -429,7 +437,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
       </div>
 
       <div
-        className="sticky bottom-0 -mx-4 mt-4 border-t border-gray-800 bg-gray-950 px-4 py-3"
+        className="sticky bottom-0 -mx-4 mt-4 border-t border-gray-800 bg-gray-950/95 px-4 py-3 backdrop-blur-sm"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
       >
         <div className="flex flex-col gap-2 md:flex-row md:justify-end">
@@ -437,7 +445,7 @@ export function TroubleTicketCloseForm({ ticketId }: { ticketId: number }) {
             type="button"
             onClick={() => router.push('/trouble-ticket')}
             disabled={saving}
-            className="rounded-md border border-gray-600 bg-gray-200 text-gray-900 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            className="rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-sm font-semibold text-gray-100 hover:bg-gray-700 disabled:opacity-50"
           >
             Batal
           </button>

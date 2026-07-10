@@ -144,6 +144,7 @@ export function IsolationView({
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [isDeletingSelected, setIsDeletingSelected] = useState(false)
   const [transferringId, setTransferringId] = useState<number | null>(null)
+  const closeModal = useCallback(() => setIsModalOpen(false), [])
 
   // Sinkronkan selalu marketing dari URL agar tidak hilang saat re-render/dev refresh
   useEffect(() => {
@@ -159,6 +160,23 @@ export function IsolationView({
       if (d && d !== division) setDivision(d)
     } catch {}
   }, [division, marketingFilter, statusPreset, userRole])
+
+  useEffect(() => {
+    if (!isModalOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeModal()
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeModal, isModalOpen])
 
   // Role Permissions
   const roleUpper = (userRole || '').toUpperCase()
@@ -968,7 +986,7 @@ export function IsolationView({
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+            className="rounded border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
             Sebelumnya
           </button>
@@ -976,7 +994,7 @@ export function IsolationView({
           <button
             onClick={() => setPage((p) => (p * limit < total ? p + 1 : p))}
             disabled={page * limit >= total}
-            className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+            className="rounded border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
             Berikutnya
           </button>
@@ -985,8 +1003,15 @@ export function IsolationView({
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -994,11 +1019,11 @@ export function IsolationView({
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Perbarui data isolir dengan format yang rapi dan singkat.</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+              <button onClick={closeModal} className="rounded-md p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <form onSubmit={handleSubmit} className="max-h-[calc(100vh-8rem)] overflow-y-auto p-4 space-y-4">
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Pelanggan</label>
                 <input
@@ -1124,7 +1149,7 @@ export function IsolationView({
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
                   className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
                   Batal
@@ -1138,6 +1163,7 @@ export function IsolationView({
                 </button>
               </div>
             </form>
+          </div>
           </div>
         </div>
       )}

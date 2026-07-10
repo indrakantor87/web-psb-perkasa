@@ -649,8 +649,15 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
       {/* Edit User Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={handleCloseEditModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-800 sm:max-h-[calc(100vh-2rem)] sm:overflow-y-auto sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit User</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Perbarui data dasar user tanpa mengubah password.</p>
@@ -729,12 +736,20 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
       {/* Reset Password Modal */}
       {isResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={handleCloseResetModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-800 sm:max-h-[calc(100vh-2rem)] sm:overflow-y-auto sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Reset Password</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Masukkan password baru untuk user terpilih.</p>
@@ -782,13 +797,21 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               </div>
             </form>
           </div>
+          </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-4 backdrop-blur-sm"
+          onClick={handleCloseDeleteModal}
+        >
+          <div className="flex min-h-full items-center justify-center">
+          <div
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-800 sm:max-h-[calc(100vh-2rem)] sm:overflow-y-auto sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Hapus User</h3>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
               User yang dihapus tidak bisa dikembalikan dari layar ini.
@@ -810,6 +833,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 {loading ? 'Menghapus...' : 'Hapus User'}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}

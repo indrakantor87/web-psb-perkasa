@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
-import { canAccessMenu, getDivisionFromRole, getMenuHref } from '@/lib/access'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess } from '@/lib/access'
 import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
 
 function formatDivisionLabel(division?: string | null) {
@@ -269,6 +269,7 @@ export function Header({ user }: { user: SessionUser }) {
           items: [
             { href: '/division-performance?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
             { href: getMenuHref('list', 'NOC_TROUBLESHOOTS'), label: 'List Data', icon: List },
+            { href: getMenuHref('dismantle', 'NOC_TROUBLESHOOTS'), label: 'Dismantle Perangkat', icon: Wrench },
             { href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'), label: 'PORT ODP', icon: Wifi },
             { href: getMenuHref('trouble-ticket', 'NOC_TROUBLESHOOTS'), label: 'Trouble Ticket', icon: Wrench },
           ],
@@ -328,17 +329,17 @@ export function Header({ user }: { user: SessionUser }) {
   const navGroups = isAdmin ? adminDivisionGroups : creatorDigitalGroups
   const usesGroupedNavigation = navGroups.length > 0
 
-  const hasSettingsAccess = !!user?.role && canAccessMenu(user.role, 'settings')
+  const hasSettingsAccess = hasAnySettingsAccess(user?.role)
 
-  const settingsGroups: HeaderSettingsGroup[] = hasSettingsAccess ? [
+  const settingsGroups: HeaderSettingsGroup[] = [
     {
       key: 'sales-master',
       label: 'Penjualan',
       description: 'Master data PSB dan komunikasi marketing.',
       items: [
-        { href: '/settings/areas', label: 'Master Area' },
-        { href: '/settings/packages', label: 'Master Paket' },
-        { href: '/settings/templates', label: 'Template WA' },
+        ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
       ],
     },
     {
@@ -346,9 +347,9 @@ export function Header({ user }: { user: SessionUser }) {
       label: 'Admin & Sistem',
       description: 'Pengguna dan pengaturan akses.',
       items: [
-        { href: '/settings/users', label: 'Manajemen Pengguna' },
-        { href: '/settings/role-audit', label: 'Audit Role' },
-        { href: '/settings/security-logs', label: 'Log Aktivitas' },
+        ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
       ],
     },
     {
@@ -356,10 +357,19 @@ export function Header({ user }: { user: SessionUser }) {
       label: 'NOC',
       description: 'Konfigurasi trouble ticket dan operasional teknis.',
       items: [
-        { href: '/settings/trouble-ticket', label: 'Trouble Ticket' },
+        ...(canAccessSettingsPage(user?.role, 'trouble-ticket')
+          ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }]
+          : []),
       ],
     },
-  ] : []
+  ].filter((group) => group.items.length > 0)
+
+  const settingsPanelClass =
+    'overflow-hidden rounded-2xl border border-gray-200 bg-white/95 py-1 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-800/95'
+  const settingsControlCardClass =
+    'mx-3 my-2 rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-900/70'
+  const settingsSelectClass =
+    'mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'
 
   const handleLogout = async () => {
     try {
@@ -384,7 +394,7 @@ export function Header({ user }: { user: SessionUser }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
               src="/logo.png" 
-              alt="Ticketing Perkasa Networls" 
+              alt="Ticketing Perkasa Networks" 
               className="h-full w-full object-contain"
             />
             </div>
@@ -416,7 +426,7 @@ export function Header({ user }: { user: SessionUser }) {
 
                 {isNavOpen && (
                   <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
-                    <div className="max-h-[60vh] overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
+                    <div className={clsx('max-h-[60vh] overflow-y-auto', settingsPanelClass)}>
                       {usesGroupedNavigation ? (
                         <>
                           <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -539,12 +549,12 @@ export function Header({ user }: { user: SessionUser }) {
                         </div>
                       ))}
                       {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
-                      <div className="px-3 py-2">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
+                      <div className={settingsControlCardClass}>
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Text Size</div>
                         <select
                           value={zoomLevel}
                           onChange={(e) => setZoomLevel(Number(e.target.value))}
-                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                          className={settingsSelectClass}
                         >
                           <option value={100}>100%</option>
                           <option value={90}>90%</option>
@@ -554,12 +564,12 @@ export function Header({ user }: { user: SessionUser }) {
                           <option value={50}>50%</option>
                         </select>
                       </div>
-                      <div className="px-3 py-2">
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
+                      <div className={settingsControlCardClass}>
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</div>
                         <select
                           value={theme ?? 'system'}
                           onChange={(e) => setTheme(e.target.value)}
-                          className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                          className={settingsSelectClass}
                           suppressHydrationWarning
                         >
                           <option value="light">Light</option>
@@ -689,7 +699,7 @@ export function Header({ user }: { user: SessionUser }) {
               </button>
 
               {isSettingsOpen && (
-                <div className="absolute left-0 mt-2 w-80 overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-gray-700 z-50">
+                <div className={clsx('absolute left-0 z-50 mt-2 w-80', settingsPanelClass)}>
                   {settingsGroups.map((group) => (
                     <div key={group.key} className="border-b border-gray-100 px-4 py-3 last:border-b-0 dark:border-gray-700">
                       <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -723,12 +733,12 @@ export function Header({ user }: { user: SessionUser }) {
                     <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                   )}
                   
-                  <div className="px-4 py-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
+                  <div className={settingsControlCardClass}>
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Text Size</div>
                     <select
                       value={zoomLevel}
                       onChange={(e) => setZoomLevel(Number(e.target.value))}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                      className={settingsSelectClass}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <option value={100}>100%</option>
@@ -740,12 +750,12 @@ export function Header({ user }: { user: SessionUser }) {
                     </select>
                   </div>
 
-                  <div className="px-4 py-2">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
+                  <div className={settingsControlCardClass}>
+                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</div>
                     <select
                       value={theme ?? 'system'}
                       onChange={(e) => setTheme(e.target.value)}
-                      className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                      className={settingsSelectClass}
                       onClick={(e) => e.stopPropagation()}
                       suppressHydrationWarning
                     >
@@ -946,7 +956,7 @@ export function Header({ user }: { user: SessionUser }) {
 
               {isSettingsOpen && (
                 <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-gray-300 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
+                  <div className={clsx('max-h-[60vh] overflow-y-auto', settingsPanelClass)}>
                     {settingsGroups.map((group) => (
                       <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
                         <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -976,12 +986,12 @@ export function Header({ user }: { user: SessionUser }) {
                       </div>
                     ))}
                     {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
-                    <div className="px-3 py-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Text Size</div>
+                    <div className={settingsControlCardClass}>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Text Size</div>
                       <select
                         value={zoomLevel}
                         onChange={(e) => setZoomLevel(Number(e.target.value))}
-                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                        className={settingsSelectClass}
                       >
                         <option value={100}>100%</option>
                         <option value={90}>90%</option>
@@ -991,12 +1001,12 @@ export function Header({ user }: { user: SessionUser }) {
                         <option value={50}>50%</option>
                       </select>
                     </div>
-                    <div className="px-3 py-2">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Theme</div>
+                    <div className={settingsControlCardClass}>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</div>
                       <select
                         value={theme ?? 'system'}
                         onChange={(e) => setTheme(e.target.value)}
-                        className="w-full rounded bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-xs py-1 px-2 focus:outline-none focus:ring-1 focus:ring-gray-400"
+                        className={settingsSelectClass}
                         suppressHydrationWarning
                       >
                         <option value="light">Light</option>

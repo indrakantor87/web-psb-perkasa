@@ -6,6 +6,24 @@ import { loginSchema } from '@/lib/validations'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 import { logSecurityEvent } from '@/lib/security-log'
 
+function getLocalDemoUser(username: string) {
+  const normalized = String(username ?? '').trim().toLowerCase()
+  const demoUsers = {
+    admin: { id: 0, name: 'Admin', username: 'admin', role: 'ADMIN', division: null },
+    cs: { id: -1, name: 'Customer Service', username: 'cs', role: 'CS', division: 'CS_ADMIN' },
+    noc: { id: -2, name: 'NOC User', username: 'noc', role: 'NOC', division: 'NOC_TROUBLESHOOTS' },
+    marketing: { id: -3, name: 'Marketing User', username: 'marketing', role: 'MARKETING', division: 'PENJUALAN' },
+    teknisi: { id: -4, name: 'Teknisi User', username: 'teknisi', role: 'TEKNISI', division: 'NOC_TROUBLESHOOTS' },
+    dismantle: { id: -5, name: 'Dismantle User', username: 'dismantle', role: 'DISMANTLE', division: 'CS_ADMIN' },
+    creator: { id: -6, name: 'Creator Digital', username: 'creator', role: 'CREATOR_DIGITAL', division: 'CREATOR_DIGITAL' },
+    'creator_digital': { id: -6, name: 'Creator Digital', username: 'creator_digital', role: 'CREATOR_DIGITAL', division: 'CREATOR_DIGITAL' },
+    admin_cs: { id: -7, name: 'Admin CS', username: 'admin_cs', role: 'ADMIN_CS', division: 'CS_ADMIN' },
+    troubleshoots: { id: -8, name: 'Troubleshoots User', username: 'troubleshoots', role: 'TROUBLESHOOTS', division: 'NOC_TROUBLESHOOTS' },
+  } as const
+
+  return demoUsers[normalized as keyof typeof demoUsers] ?? null
+}
+
 export async function POST(request: Request) {
   try {
     await ensureUserDivisionColumn().catch(() => {})
@@ -43,27 +61,22 @@ export async function POST(request: Request) {
     // Normalize username to lowercase for case-insensitive login
     const normalizedUsername = username.toLowerCase()
 
-    // Local-only fallback login so app access still works when remote DB is unavailable.
+    // Local-only fallback login so demo role access still works when remote DB is unavailable.
     if (
       process.env.NODE_ENV !== 'production' &&
-      normalizedUsername === 'admin' &&
       password === '123456'
     ) {
-      const sessionUser = {
-        id: 0,
-        name: 'Admin',
-        username: 'admin',
-        role: 'ADMIN',
-        division: null,
+      const sessionUser = getLocalDemoUser(normalizedUsername)
+      if (sessionUser) {
+        await login(sessionUser, rememberMe)
+        await logSecurityEvent({
+          action: 'LOGIN_SUCCESS',
+          request,
+          user: { id: sessionUser.id, username: sessionUser.username, role: sessionUser.role },
+          meta: { localOnly: true, rememberMe: Boolean(rememberMe) },
+        }).catch(() => {})
+        return NextResponse.json({ ...sessionUser, localOnly: true })
       }
-      await login(sessionUser, rememberMe)
-      await logSecurityEvent({
-        action: 'LOGIN_SUCCESS',
-        request,
-        user: { id: sessionUser.id, username: sessionUser.username, role: sessionUser.role },
-        meta: { localOnly: true, rememberMe: Boolean(rememberMe) },
-      }).catch(() => {})
-      return NextResponse.json({ ...sessionUser, localOnly: true })
     }
 
     const user = await prisma.user.findUnique({
