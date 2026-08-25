@@ -178,6 +178,7 @@ model TroubleTicket {
   mapsUrl      String?
   type         String
   ont          String?
+  paket        String?
   openedAt     DateTime @default(now())
   closedAt     DateTime?
   temporaryAt  DateTime?
@@ -197,6 +198,7 @@ model TroubleTicket {
   @@index([category])
   @@index([problemCategory])
   @@index([resolutionAction])
+  @@index([paket])
 }
 
 // Creator Digital Models

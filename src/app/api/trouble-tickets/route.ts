@@ -196,6 +196,8 @@ async function ensureTroubleTicketTable() {
       "waNumber" TEXT NOT NULL,
       "mapsUrl" TEXT,
       "type" TEXT NOT NULL,
+      "ont" TEXT,
+      "paket" TEXT,
       "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "closedAt" TIMESTAMP(3),
       "notes" TEXT,
@@ -221,6 +223,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "paket" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -502,7 +505,7 @@ export async function GET(request: Request) {
       baseParams.push(`%${search}%`)
       const p = `$${baseParams.length}`
       baseParts.push(
-        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p})`
+        `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p} OR "paket" ILIKE ${p})`
       )
     }
 
@@ -572,6 +575,7 @@ export async function GET(request: Request) {
           "mapsUrl",
           "type",
           "ont",
+          "paket",
           "openedAt",
           "closedAt",
           "temporaryAt",
@@ -619,6 +623,7 @@ export async function GET(request: Request) {
         "mapsUrl",
         "type",
         "ont",
+        "paket",
         "openedAt",
         "closedAt",
         "temporaryAt",
@@ -772,6 +777,7 @@ export async function POST(request: Request) {
   const mapsUrlRaw = String(body.mapsUrl ?? '').trim()
   const type = String(body.type ?? '').trim()
   const ont = String(body.ont ?? '').trim()
+  const paket = String(body.paket ?? '').trim()
   const notes = String(body.notes ?? '').trim()
   const problemCategory = String(body.problemCategory ?? '').trim()
   const requestedCategory = normalizeCategory(body.category)
@@ -814,25 +820,29 @@ export async function POST(request: Request) {
           waNumber: string
           mapsUrl: string | null
           type: string
+          ont: string | null
+          paket: string | null
           openedAt: string
           closedAt: string | null
           notes: string | null
           closeBy: string | null
+          problemCategory: string | null
+          resolutionAction: string | null
           status: string
         }>
       >(
         `INSERT INTO "TroubleTicket" (
            "ticketCode","ticketPrefix","ticketNumber","category",
            "periodMonth","periodYear",
-           "customerName","user","waNumber","mapsUrl","type","ont","notes",
+           "customerName","user","waNumber","mapsUrl","type","ont","paket","notes",
            "problemCategory","resolutionAction",
            "status","openedAt"
          )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'OPEN',NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'OPEN',NOW())
          RETURNING
            "id","ticketCode","ticketPrefix","ticketNumber","category",
            "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
-         "type","ont","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
+         "type","ont","paket","openedAt","closedAt","notes","closeBy","problemCategory","resolutionAction","status";`,
         allocated.ticketCode,
         allocated.ticketPrefix,
         allocated.ticketNumber,
@@ -845,6 +855,7 @@ export async function POST(request: Request) {
         mapsUrlRaw || null,
         typeKey,
         ont || null,
+        paket || null,
         notes || null,
         problemCategory || null,
         null
