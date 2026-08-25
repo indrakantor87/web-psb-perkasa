@@ -262,7 +262,7 @@ export function canDeleteListTickets(role: string | null | undefined) {
 }
 
 export function canImportListTickets(role: string | null | undefined) {
-  return canDeleteListTickets(role)
+  return hasAnyRole(role, ['ADMIN', 'ADMIN_CS', 'CS', 'NOC', 'MARKETING', 'CREATOR_DIGITAL'])
 }
 
 export function canAccessTroubleTicketRecords(role: string | null | undefined) {
