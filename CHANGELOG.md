@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.1.2] - 2026-11-06
+
+### Fixed
+- Port ODP mengelompokkan ODP legacy berdasarkan pola nama POP/ODC, misalnya `PTI/39 - 02` menjadi ODC 39 di POP Pati.
+
 ## [1.1.1] - 2026-11-06
 
 ### Fixed
@@ -42,5 +47,6 @@ Riwayat perubahan sebelum versi ini tidak didokumentasikan secara terpisah
 pada file ini (dapat ditelusuri melalui riwayat commit Git).
 
 [1.1.0]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.0.0...v1.1.0
+[1.1.2]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.0...v1.1.1
 [1.0.0]: https://github.com/indrakantor87/web-psb-perkasa/releases/tag/v1.0.0

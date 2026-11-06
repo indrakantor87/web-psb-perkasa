@@ -41,6 +41,7 @@ export type OdcRow = {
 type OdcDisplayRow = OdcRow & {
   isOdc: true
   isUnassigned?: boolean
+  isNameDerived?: boolean
   wilayah?: string
 }
 
@@ -55,6 +56,16 @@ type OdpCustomerRow = {
 }
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
+
+function parseLegacyOdpName(name: string) {
+  const match = String(name ?? '').trim().match(/^([A-Z0-9]+)\s*\/\s*(\d+)\s*-\s*(\d+)$/i)
+  if (!match) return null
+  return {
+    popCode: match[1].toUpperCase(),
+    odcCode: match[2],
+    odpCode: match[3],
+  }
+}
 
 function toInt(v: string) {
   const n = Number(v)
@@ -254,20 +265,57 @@ export function OdpManager({
         const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
           ...odc,
           isOdc: true,
+          wilayah,
         }))
         const unassignedOdps = Array.isArray(unassignedData) ? unassignedData as OdpRow[] : []
-        if (unassignedOdps.length > 0) {
+        const verifiedPopCodes: Record<string, string[]> = { pati: ['PTI'] }
+        const expectedPopCodes = verifiedPopCodes[wilayah.trim().toLowerCase()]
+        const groupedOdps = new globalThis.Map<string, { popCode: string; odcCode: string; rows: OdpRow[] }>()
+        const unparsedOdps: OdpRow[] = []
+
+        for (const odp of unassignedOdps) {
+          const parsed = parseLegacyOdpName(odp.nama_odp)
+          if (!parsed || (expectedPopCodes && !expectedPopCodes.includes(parsed.popCode))) {
+            unparsedOdps.push(odp)
+            continue
+          }
+          const key = `${parsed.popCode}/${parsed.odcCode}`
+          const group = groupedOdps.get(key) ?? { popCode: parsed.popCode, odcCode: parsed.odcCode, rows: [] }
+          group.rows.push(odp)
+          groupedOdps.set(key, group)
+        }
+
+        const derivedChildren: Record<number, OdpRow[]> = {}
+        const sortedGroups = Array.from(groupedOdps.entries()).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+        sortedGroups.forEach(([, group], index) => {
+          const id = -(index + 1)
           hierarchyRows.push({
-            id: -1,
-            nama_odc: 'ODP belum terhubung ke ODC',
+            id,
+            nama_odc: `ODC ${group.odcCode} (${group.popCode})`,
             pop_id: selectedPop?.id ?? 0,
-            lokasi: `${unassignedOdps.length} ODP perlu dipetakan`,
+            lokasi: `${group.rows.length} ODP`,
+            isOdc: true,
+            isNameDerived: true,
+            wilayah,
+          })
+          derivedChildren[id] = group.rows.sort((a, b) => a.nama_odp.localeCompare(b.nama_odp, undefined, { numeric: true }))
+        })
+
+        if (unparsedOdps.length > 0) {
+          const id = -(sortedGroups.length + 1)
+          hierarchyRows.push({
+            id,
+            nama_odc: 'ODP belum terpetakan dari nama',
+            pop_id: selectedPop?.id ?? 0,
+            lokasi: `${unparsedOdps.length} ODP`,
             isOdc: true,
             isUnassigned: true,
             wilayah,
           })
+          derivedChildren[id] = unparsedOdps
         }
 
+        setOdpsByOdc(derivedChildren)
         setRows(hierarchyRows)
         setTotal(hierarchyRows.length)
         return
@@ -1196,7 +1244,7 @@ export function OdpManager({
                           <td className="py-3 pl-3 text-center text-xs text-gray-400">#</td>
                           <td className="py-3 pr-4 font-bold text-emerald-600 dark:text-emerald-400">
                             <span className="flex items-center gap-2">
-                              {row.isUnassigned ? row.nama_odc : `ODC: ${row.nama_odc}`}
+                              {row.isUnassigned || row.isNameDerived ? row.nama_odc : `ODC: ${row.nama_odc}`}
                               {isLoading && <span className="text-[10px] animate-pulse font-normal text-gray-400">(Loading...)</span>}
                             </span>
                           </td>
