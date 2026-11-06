@@ -37,6 +37,12 @@ type TroubleTicketRow = {
   sn?: string | null
 }
 
+type OdpOption = {
+  id: number
+  nama_odp: string
+  wilayah: string
+}
+
 type TroubleTicketCreatePayload = {
   category: 'TT' | 'PV'
   ticketCode: string
@@ -360,7 +366,7 @@ export function TroubleTicketView({
   const [copied, setCopied] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
-  const [odps, setOdps] = useState<any[]>([])
+  const [odps, setOdps] = useState<OdpOption[]>([])
 
   const fetchOdps = useCallback(async () => {
     try {
@@ -1835,7 +1841,7 @@ export function TroubleTicketView({
 
         <div className={clsx('rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800', isMobilePortrait ? 'block' : 'hidden md:block')}>
           <div className="mp-table-enhanced overflow-x-auto">
-            <table className="w-full min-w-[1100px] table-auto">
+            <table className="w-full min-w-[900px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
@@ -1849,28 +1855,21 @@ export function TroubleTicketView({
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">User</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No WA</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">In Maps</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Type</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Paket</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">ONT</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Gangguan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Tindakan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Open</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Close</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Durasi</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Keterangan</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={15} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={15} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
                 </td>
               </tr>
@@ -1922,33 +1921,16 @@ export function TroubleTicketView({
                             type="button"
                             onClick={() => setExpandedId((prev) => (prev === r.id ? null : r.id))}
                             className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300 focus:outline-none"
-                            aria-label="Toggle"
+                            aria-label={expandedId === r.id ? 'Tutup detail ticket' : 'Buka detail ticket'}
+                            aria-expanded={expandedId === r.id}
                           >
                             {expandedId === r.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void openDetail(r)
-                            }}
-                            className="text-left hover:underline"
-                          >
-                            {(() => {
-                              return getDisplayTicketId(r)
-                            })()}
-                          </button>
+                          <span>{getDisplayTicketId(r)}</span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void openDetail(r)
-                          }}
-                          className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                        >
-                          {r.customerName}
-                        </button>
+                        {r.customerName}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.user || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm">
@@ -1965,45 +1947,82 @@ export function TroubleTicketView({
                           <span className="text-gray-500 dark:text-gray-400">{r.waNumber || '-'}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-sm">
-                        {mapsLink ? (
-                          <a
-                            href={mapsLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            View
-                          </a>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">-</span>
-                        )}
-                      </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{formatTypeLabel(r.type)}</td>
-                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.paket || '').trim() || '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.ont || '').trim() || '-'}</td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.problemCategory || '').trim() || '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.resolutionAction || '').trim() || '-'}</td>
-                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDateTime(r.openedAt)}</td>
-                      <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDateTime(r.closedAt)}</td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDurationMs(durationMs)}</td>
-                      <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">
-                        <span
-                          className={clsx(
-                            'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                            (r.status || '').toUpperCase() === 'CLOSE'
-                              ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                              : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                          )}
-                        >
-                          {(r.notes || '').trim() || '-'}
-                        </span>
-                      </td>
                     </tr>
                     {expandedId === r.id && (
                       <tr>
-                        <td colSpan={15} className="px-3 pb-4">
+                        <td colSpan={8} className="px-3 pb-4">
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 p-4">
+                            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</div>
+                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
+                                  {isClosed ? 'Close' : r.temporaryAt ? 'Temporary' : 'Open'}
+                                </div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">In Maps</div>
+                                {mapsLink ? (
+                                  <a href={mapsLink} target="_blank" rel="noreferrer" className="mt-1 block break-all font-semibold text-blue-600 hover:underline dark:text-blue-400">
+                                    Buka Lokasi
+                                  </a>
+                                ) : (
+                                  <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">-</div>
+                                )}
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Paket</div>
+                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.paket || '').trim() || '-'}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ONT</div>
+                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.ont || '').trim() || '-'}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ODP</div>
+                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">
+                                  {r.odpId ? odps.find((odp) => odp.id === r.odpId)?.nama_odp ?? r.odpId : '-'}
+                                </div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP</div>
+                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{r.portNumber ?? '-'}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Serial Number</div>
+                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.sn || '').trim() || '-'}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Open</div>
+                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{formatDateTime(r.openedAt)}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Close</div>
+                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{formatDateTime(r.closedAt)}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ditutup Oleh</div>
+                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">
+                                  {closeByLoadingId === r.id ? 'Memuat...' : (closeByMap[r.id] ?? r.closeBy ?? '-')}
+                                </div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tindakan</div>
+                                <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{(r.resolutionAction || '').trim() || '-'}</div>
+                              </div>
+                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</div>
+                                <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{(r.notes || '').trim() || '-'}</div>
+                              </div>
+                              {r.closeNotes?.trim() && (
+                                <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
+                                  <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Catatan Penutupan</div>
+                                  <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{r.closeNotes.trim()}</div>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
                                 <div className="flex items-center gap-2 font-semibold">
