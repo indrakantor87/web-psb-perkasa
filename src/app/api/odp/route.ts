@@ -74,6 +74,8 @@ export async function GET(req: Request) {
   const map = (url.searchParams.get('map') ?? '').trim() === '1'
   const wilayah = (url.searchParams.get('wilayah') ?? '').trim()
   const odcId = url.searchParams.get('odcId')
+  const popId = url.searchParams.get('popId')
+  const withoutOdc = (url.searchParams.get('withoutOdc') ?? '').trim() === '1'
   const divisionParam = (url.searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(1, toInt(url.searchParams.get('page'), 1))
   const pageSize = Math.min(100, Math.max(5, toInt(url.searchParams.get('pageSize'), 10)))
@@ -86,7 +88,7 @@ export async function GET(req: Request) {
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
-  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, odcId, divisionFilter, page, pageSize })}`
+  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, odcId, popId, withoutOdc, divisionFilter, page, pageSize })}`
 
   try {
     if (!bypassCache) {
@@ -105,8 +107,13 @@ export async function GET(req: Request) {
       }
     }
     const whereParts = [Prisma.sql`o.is_active = TRUE`]
-    if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
+    if (wilayah && withoutOdc && popId) {
+      whereParts.push(Prisma.sql`(o.pop_id = ${Number(popId)} OR lower(o.wilayah) = lower(${wilayah}))`)
+    } else if (wilayah) {
+      whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
+    }
     if (odcId) whereParts.push(Prisma.sql`o.odc_id = ${Number(odcId)}`)
+    if (withoutOdc) whereParts.push(Prisma.sql`o.odc_id IS NULL`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
     if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
     if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'CS_ADMIN') {
@@ -152,11 +159,12 @@ export async function GET(req: Request) {
           if (!parsed) return { ...r, latitude: null, longitude: null }
           return { ...r, latitude: parsed.latitude, longitude: parsed.longitude }
         })
-        .filter((r) => r.latitude !== null && r.longitude !== null)
-        .slice(0, map ? 5000 : 50000)
+      const result = map
+        ? mapped.filter((r) => r.latitude !== null && r.longitude !== null).slice(0, 5000)
+        : mapped.slice(0, 50000)
 
-      if (!bypassCache) cache.set(cacheKey, mapped, 60_000)
-      return NextResponse.json(mapped, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
+      if (!bypassCache) cache.set(cacheKey, result, 60_000)
+      return NextResponse.json(result, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
     }
 
     const wilayahCacheKey = 'odp:wilayahList'

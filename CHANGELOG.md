@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.1.1] - 2026-11-06
+
+### Fixed
+- Filter POP Port ODP tetap menampilkan hierarki ODC, termasuk ODP lama yang belum dipetakan ke ODC.
+- Endpoint ODP `all=1` tidak lagi membuang data ODP yang tidak memiliki koordinat.
+
 ## [1.1.0] - 2026-11-06
 
 ### Added
@@ -36,4 +42,5 @@ Riwayat perubahan sebelum versi ini tidak didokumentasikan secara terpisah
 pada file ini (dapat ditelusuri melalui riwayat commit Git).
 
 [1.1.0]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.0.0...v1.1.0
+[1.1.1]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.0...v1.1.1
 [1.0.0]: https://github.com/indrakantor87/web-psb-perkasa/releases/tag/v1.0.0

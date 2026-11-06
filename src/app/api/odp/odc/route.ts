@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { ensureOdpTable } from '@/lib/odp-init'
-import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
@@ -15,16 +15,30 @@ export async function GET(req: Request) {
   
   const url = new URL(req.url)
   const popId = url.searchParams.get('popId')
+  const popName = (url.searchParams.get('popName') ?? '').trim()
 
   try {
     await ensureOdpTable()
     let rows;
     if (popId) {
+      const parsedPopId = Number(popId)
+      if (!Number.isInteger(parsedPopId) || parsedPopId < 1) {
+        return NextResponse.json({ error: 'popId tidak valid' }, { status: 400 })
+      }
       rows = await prisma.$queryRaw<Array<{ id: number; nama_odc: string; pop_id: number; lokasi: string }>>`
         SELECT id, nama_odc, pop_id, lokasi
         FROM psb_odc
-        WHERE is_active = TRUE AND pop_id = ${Number(popId)}
+        WHERE is_active = TRUE AND pop_id = ${parsedPopId}
         ORDER BY nama_odc ASC
+      `
+    } else if (popName) {
+      rows = await prisma.$queryRaw<Array<{ id: number; nama_odc: string; pop_id: number; lokasi: string }>>`
+        SELECT d.id, d.nama_odc, d.pop_id, d.lokasi
+        FROM psb_odc d
+        INNER JOIN psb_pop p ON p.id = d.pop_id
+        WHERE d.is_active = TRUE AND p.is_active = TRUE
+          AND lower(trim(p.nama_pop)) = lower(trim(${popName}))
+        ORDER BY d.nama_odc ASC
       `
     } else {
       rows = await prisma.$queryRaw<Array<{ id: number; nama_odc: string; pop_id: number; lokasi: string }>>`
@@ -35,7 +49,7 @@ export async function GET(req: Request) {
       `
     }
     return NextResponse.json(rows)
-  } catch (e: unknown) {
+  } catch {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }
@@ -67,7 +81,7 @@ export async function POST(req: Request) {
     `)
     cache.invalidateByPrefix('odp:')
     return NextResponse.json({ message: 'ODC created' }, { status: 201 })
-  } catch (e: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Gagal menyimpan ODC' }, { status: 500 })
   }
 }

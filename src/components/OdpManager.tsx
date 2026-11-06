@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, Fragment } from 'react'
 import { clsx } from 'clsx'
-import { Map, Maximize2, Minimize2, Pencil, Plus, Trash2, Upload, ChevronRight, ChevronDown, User } from 'lucide-react'
+import { Map, Maximize2, Minimize2, Pencil, Plus, Trash2, Upload, ChevronRight, ChevronDown } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 // Komponen peta diload secara dinamis hanya di sisi klien untuk menghindari error 'window is not defined'
@@ -36,6 +36,22 @@ export type OdcRow = {
   nama_odc: string
   pop_id: number
   lokasi: string
+}
+
+type OdcDisplayRow = OdcRow & {
+  isOdc: true
+  isUnassigned?: boolean
+  wilayah?: string
+}
+
+type OdpTableRow = OdpRow | OdcDisplayRow
+type OdpCustomerRow = {
+  id: number
+  customerName: string
+  phoneNumber: string
+  package: string
+  status: string
+  portNumber: number | null
 }
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -136,7 +152,7 @@ export function OdpManager({
   const [wilayahList, setWilayahList] = useState<string[]>(defaultWilayah)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [rows, setRows] = useState<OdpRow[]>([])
+  const [rows, setRows] = useState<OdpTableRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -175,7 +191,7 @@ export function OdpManager({
   const [expandedOdcs, setExpandedOdcs] = useState<Set<number>>(new Set())
   const [expandedOdps, setExpandedOdps] = useState<Set<number>>(new Set())
   const [odpsByOdc, setOdpsByOdc] = useState<Record<number, OdpRow[]>>({})
-  const [customersByOdp, setCustomersByOdp] = useState<Record<number, any[]>>({})
+  const [customersByOdp, setCustomersByOdp] = useState<Record<number, OdpCustomerRow[]>>({})
   const [loadingOdcDetails, setLoadingOdcDetails] = useState<Set<number>>(new Set())
   const [loadingOdpDetails, setLoadingOdpDetails] = useState<Set<number>>(new Set())
 
@@ -207,27 +223,54 @@ export function OdpManager({
   }, [qQuery])
 
   const fetchRows = useCallback(async (signal?: AbortSignal, bypassCache?: boolean) => {
-      // Jika wilayah dipilih, kita tampilkan ODC sebagai level utama
+      // POP terpilih selalu menampilkan baris ODC, bukan daftar ODP tanpa hierarki.
       if (wilayah) {
-        const selectedPop = pops.find(p => p.nama_pop.toLowerCase() === wilayah.toLowerCase())
+        const selectedPop = pops.find((p) => p.nama_pop.trim().toLowerCase() === wilayah.trim().toLowerCase())
+        const odcUrl = new URL('/api/odp/odc', window.location.origin)
         if (selectedPop) {
-          const url = new URL('/api/odp/odc', window.location.origin)
-          url.searchParams.set('popId', String(selectedPop.id))
-          const r = await fetch(url.toString(), { cache: 'no-store', signal })
-          const data = await r.json().catch(() => [])
-          if (!r.ok) throw new Error('Gagal memuat ODC')
-          
-          // Kita simpan ODC di state odcs (untuk dropdown) dan juga di rows (untuk tabel)
-          // Namun agar tabel tidak error karena interface berbeda, kita transform sedikit
-          const odcRows = data.map((d: any) => ({
-            ...d,
-            isOdc: true,
-            nama_odp: d.nama_odc // Gunakan nama_odc untuk kolom Nama ODP
-          }))
-          setRows(odcRows)
-          setTotal(odcRows.length)
-          return
+          odcUrl.searchParams.set('popId', String(selectedPop.id))
+        } else {
+          odcUrl.searchParams.set('popName', wilayah)
         }
+        const [odcResponse, unassignedResponse] = await Promise.all([
+          fetch(odcUrl.toString(), { cache: 'no-store', signal }),
+          (() => {
+            const url = new URL('/api/odp', window.location.origin)
+            url.searchParams.set('q', qDebounced)
+            url.searchParams.set('wilayah', wilayah)
+            url.searchParams.set('withoutOdc', '1')
+            url.searchParams.set('all', '1')
+            url.searchParams.set('bypassCache', bypassCache ? '1' : '0')
+            if (selectedPop) url.searchParams.set('popId', String(selectedPop.id))
+            if (isAdmin && division !== 'ALL') url.searchParams.set('division', division)
+            return fetch(url.toString(), { cache: 'no-store', signal })
+          })(),
+        ])
+        const odcData = await odcResponse.json().catch(() => [])
+        const unassignedData = await unassignedResponse.json().catch(() => [])
+        if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
+        if (!unassignedResponse.ok) throw new Error(unassignedData?.error ?? 'Gagal memuat ODP yang belum terhubung')
+
+        const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
+          ...odc,
+          isOdc: true,
+        }))
+        const unassignedOdps = Array.isArray(unassignedData) ? unassignedData as OdpRow[] : []
+        if (unassignedOdps.length > 0) {
+          hierarchyRows.push({
+            id: -1,
+            nama_odc: 'ODP belum terhubung ke ODC',
+            pop_id: selectedPop?.id ?? 0,
+            lokasi: `${unassignedOdps.length} ODP perlu dipetakan`,
+            isOdc: true,
+            isUnassigned: true,
+            wilayah,
+          })
+        }
+
+        setRows(hierarchyRows)
+        setTotal(hierarchyRows.length)
+        return
       }
 
       const url = new URL('/api/odp', window.location.origin)
@@ -247,7 +290,7 @@ export function OdpManager({
       setWilayahList(merged)
     }, [defaultWilayah, division, isAdmin, page, pageSize, qDebounced, wilayah, pops])
 
-  const toggleOdcExpand = async (odcId: number) => {
+  const toggleOdcExpand = async (odcId: number, isUnassigned = false, popName = '') => {
     const newExpanded = new Set(expandedOdcs)
     if (newExpanded.has(odcId)) {
       newExpanded.delete(odcId)
@@ -260,13 +303,22 @@ export function OdpManager({
         setLoadingOdcDetails(prev => new Set(prev).add(odcId))
         try {
           const url = new URL('/api/odp', window.location.origin)
-          url.searchParams.set('odcId', String(odcId))
+          if (isUnassigned) {
+            url.searchParams.set('wilayah', popName)
+            url.searchParams.set('withoutOdc', '1')
+            const selectedPop = pops.find((p) => p.nama_pop.trim().toLowerCase() === popName.trim().toLowerCase())
+            if (selectedPop) url.searchParams.set('popId', String(selectedPop.id))
+          } else {
+            url.searchParams.set('odcId', String(odcId))
+          }
           url.searchParams.set('all', '1')
+          url.searchParams.set('bypassCache', '1')
           const r = await fetch(url.toString())
           const data = await r.json()
-          if (r.ok) {
-            setOdpsByOdc(prev => ({ ...prev, [odcId]: data }))
-          }
+          if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat ODP')
+          setOdpsByOdc(prev => ({ ...prev, [odcId]: Array.isArray(data) ? data : [] }))
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Gagal memuat ODP')
         } finally {
           setLoadingOdcDetails(prev => {
             const next = new Set(prev)
@@ -295,7 +347,7 @@ export function OdpManager({
           const r = await fetch(url.toString())
           const data = await r.json()
           if (r.ok) {
-            setCustomersByOdp(prev => ({ ...prev, [odpId]: data }))
+            setCustomersByOdp(prev => ({ ...prev, [odpId]: Array.isArray(data) ? data as OdpCustomerRow[] : [] }))
           }
         } finally {
           setLoadingOdpDetails(prev => {
@@ -484,6 +536,13 @@ export function OdpManager({
   useEffect(() => {
     setPage(1)
   }, [division, q, pageSize, wilayah])
+
+  useEffect(() => {
+    setExpandedOdcs(new Set())
+    setExpandedOdps(new Set())
+    setOdpsByOdc({})
+    setCustomersByOdp({})
+  }, [wilayah])
 
   useEffect(() => {
     setSelectedIds([])
@@ -1089,7 +1148,7 @@ export function OdpManager({
                 )}
                 <th className="py-3 pr-4 pl-3 w-8"></th>
                 <th className="py-3 pr-4 pl-3">#</th>
-                <th className="py-3 pr-4">Nama ODP</th>
+                <th className="py-3 pr-4">{wilayah ? 'ODC / ODP' : 'Nama ODP'}</th>
                 <th className="py-3 pr-4">POP</th>
                 <th className="py-3 pr-4">Lokasi</th>
                 <th className="py-3 pr-4">Kapasitas</th>
@@ -1110,14 +1169,16 @@ export function OdpManager({
               ) : rows.length === 0 ? (
                 <tr>
                   <td className="py-6 text-center text-gray-500 dark:text-gray-400" colSpan={canEdit ? 12 : 10}>
-                    {supportsOdpWorkflow ? 'Tidak ada data.' : 'Belum ada data untuk divisi ini di modul PORT ODP.'}
+                    {wilayah
+                      ? `Belum ada ODC atau ODP terdaftar di POP ${wilayah}. Tambahkan ODC, lalu hubungkan ODP melalui form edit.`
+                      : supportsOdpWorkflow
+                        ? 'Tidak ada data.'
+                        : 'Belum ada data untuk divisi ini di modul PORT ODP.'}
                   </td>
                 </tr>
               ) : (
-                rows.map((row: any, idx) => {
-                  const isOdcRow = !!row.isOdc
-                  
-                  if (isOdcRow) {
+                rows.map((row, idx) => {
+                  if ('isOdc' in row) {
                     // Render ODC Row
                     const isExpanded = expandedOdcs.has(row.id)
                     const children = odpsByOdc[row.id] || []
@@ -1128,14 +1189,14 @@ export function OdpManager({
                         <tr className="bg-gray-50/50 border-b border-gray-100 dark:bg-gray-800/30 dark:border-gray-800">
                           {canEdit && <td className="py-3 pl-3"></td>}
                           <td className="py-3 pl-3 text-center">
-                            <button onClick={() => toggleOdcExpand(row.id)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
+                            <button onClick={() => toggleOdcExpand(row.id, row.isUnassigned, row.wilayah || wilayah)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
                               {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </button>
                           </td>
                           <td className="py-3 pl-3 text-center text-xs text-gray-400">#</td>
                           <td className="py-3 pr-4 font-bold text-emerald-600 dark:text-emerald-400">
                             <span className="flex items-center gap-2">
-                              ODC: {row.nama_odp}
+                              {row.isUnassigned ? row.nama_odc : `ODC: ${row.nama_odc}`}
                               {isLoading && <span className="text-[10px] animate-pulse font-normal text-gray-400">(Loading...)</span>}
                             </span>
                           </td>
