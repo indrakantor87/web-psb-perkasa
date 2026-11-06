@@ -1841,7 +1841,7 @@ export function TroubleTicketView({
 
         <div className={clsx('rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800', isMobilePortrait ? 'block' : 'hidden md:block')}>
           <div className="mp-table-enhanced overflow-x-auto">
-            <table className="w-full min-w-[900px] table-auto">
+            <table className="w-full min-w-[1000px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
@@ -1857,19 +1857,20 @@ export function TroubleTicketView({
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No WA</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Type</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Gangguan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Status</th>
               <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Durasi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                   {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
                 </td>
               </tr>
@@ -1883,6 +1884,7 @@ export function TroubleTicketView({
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
+                const statusLabel = isClosed ? 'Close' : r.temporaryAt ? 'Temporary' : 'Open'
                 const userKey = String(r.user ?? '').trim().toLowerCase()
                 const isRepeatedUser = !!userKey && repeatedUserSet.has(userKey)
                 const typeKey = normalizeTypeKey(r.type)
@@ -1949,19 +1951,27 @@ export function TroubleTicketView({
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{formatTypeLabel(r.type)}</td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{(r.problemCategory || '').trim() || '-'}</td>
+                      <td className="px-3 py-3 text-sm">
+                        <span
+                          className={clsx(
+                            'inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold',
+                            isClosed
+                              ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+                              : r.temporaryAt
+                                ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300'
+                                : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          )}
+                        >
+                          {statusLabel}
+                        </span>
+                      </td>
                       <td className="px-3 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDurationMs(durationMs)}</td>
                     </tr>
                     {expandedId === r.id && (
                       <tr>
-                        <td colSpan={8} className="px-3 pb-4">
+                        <td colSpan={9} className="px-3 pb-4">
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 p-4">
                             <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</div>
-                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">
-                                  {isClosed ? 'Close' : r.temporaryAt ? 'Temporary' : 'Open'}
-                                </div>
-                              </div>
                               <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
                                 <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">In Maps</div>
                                 {mapsLink ? (
@@ -2026,20 +2036,7 @@ export function TroubleTicketView({
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">
                                 <div className="flex items-center gap-2 font-semibold">
-                                  <span>Action</span>
-                                  {r.temporaryAt && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 px-2 py-0.5 text-[10px] font-extrabold">
-                                      <AlertTriangle className="h-3 w-3" />
-                                      TEMPORARY
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {isClosed
-                                    ? `Ticket CLOSE by ${(closeByMap[r.id] ?? '').trim() || '-'}`
-                                    : r.temporaryAt
-                                      ? 'Ticket TEMPORARY (durasi berhenti)'
-                                      : 'Ticket masih OPEN'}
+                                  <span>Aksi Ticket</span>
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-2">

@@ -13,15 +13,20 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
-## [1.1.2] - 2026-11-06
+## [1.1.4] - 2026-11-06
 
-### Fixed
-- Port ODP mengelompokkan ODP legacy berdasarkan pola nama POP/ODC, misalnya `PTI/39 - 02` menjadi ODC 39 di POP Pati.
+### Changed
+- Status Trouble Ticket dipindahkan dari detail chevron ke kolom utama setelah Gangguan.
 
 ## [1.1.3] - 2026-11-06
 
 ### Changed
 - Tabel Trouble Ticket diringkas menjadi ID Ticket, Nama Pelanggan, User, No WA, Type, Gangguan, dan Durasi; detail lainnya tersedia melalui chevron.
+
+## [1.1.2] - 2026-11-06
+
+### Fixed
+- Port ODP mengelompokkan ODP legacy berdasarkan pola nama POP/ODC, misalnya `PTI/39 - 02` menjadi ODC 39 di POP Pati.
 
 ## [1.1.1] - 2026-11-06
 
