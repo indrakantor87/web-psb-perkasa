@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState, useCallback } from 'react'
+import { Fragment, useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
@@ -105,6 +105,34 @@ function normalizeTypeKey(type: unknown) {
     .trim()
     .toUpperCase()
     .replace(/\s+/g, '_')
+}
+
+function TroubleTicketDetailSection({
+  title,
+  rows,
+}: {
+  title: string
+  rows: Array<{ label: string; value: ReactNode }>
+}) {
+  return (
+    <section className="min-w-0">
+      <h3 className="border-b border-gray-200 px-3 py-3 text-sm font-semibold text-gray-800 dark:border-gray-600 dark:text-gray-100">
+        {title}
+      </h3>
+      <dl className="divide-y divide-gray-200 dark:divide-gray-600">
+        {rows.map(({ label, value }) => (
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(6.5rem,0.8fr)_auto_minmax(0,1.4fr)] items-start gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200"
+          >
+            <dt className="text-gray-600 dark:text-gray-300">{label}</dt>
+            <span aria-hidden="true" className="text-gray-400 dark:text-gray-500">:</span>
+            <dd className="min-w-0 whitespace-pre-wrap break-words">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
 }
 
 function formatTypeLabel(type: unknown) {
@@ -1971,67 +1999,49 @@ export function TroubleTicketView({
                       <tr>
                         <td colSpan={9} className="px-3 pb-4">
                           <div className="rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 p-4">
-                            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">In Maps</div>
-                                {mapsLink ? (
-                                  <a href={mapsLink} target="_blank" rel="noreferrer" className="mt-1 block break-all font-semibold text-blue-600 hover:underline dark:text-blue-400">
-                                    Buka Lokasi
-                                  </a>
-                                ) : (
-                                  <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">-</div>
-                                )}
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Paket</div>
-                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.paket || '').trim() || '-'}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ONT</div>
-                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.ont || '').trim() || '-'}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ODP</div>
-                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">
-                                  {r.odpId ? odps.find((odp) => odp.id === r.odpId)?.nama_odp ?? r.odpId : '-'}
-                                </div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP</div>
-                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{r.portNumber ?? '-'}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Serial Number</div>
-                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">{(r.sn || '').trim() || '-'}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Open</div>
-                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{formatDateTime(r.openedAt)}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Close</div>
-                                <div className="mt-1 font-semibold text-gray-800 dark:text-gray-100">{formatDateTime(r.closedAt)}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Ditutup Oleh</div>
-                                <div className="mt-1 break-words font-semibold text-gray-800 dark:text-gray-100">
-                                  {closeByLoadingId === r.id ? 'Memuat...' : (closeByMap[r.id] ?? r.closeBy ?? '-')}
-                                </div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tindakan</div>
-                                <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{(r.resolutionAction || '').trim() || '-'}</div>
-                              </div>
-                              <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</div>
-                                <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{(r.notes || '').trim() || '-'}</div>
-                              </div>
-                              {r.closeNotes?.trim() && (
-                                <div className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800 sm:col-span-2 lg:col-span-4">
-                                  <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Catatan Penutupan</div>
-                                  <div className="mt-1 whitespace-pre-wrap break-words font-semibold text-gray-800 dark:text-gray-100">{r.closeNotes.trim()}</div>
-                                </div>
-                              )}
+                            <div className="grid grid-cols-1 gap-x-8 lg:grid-cols-2">
+                              <TroubleTicketDetailSection
+                                title="Detail Tiket"
+                                rows={[
+                                  {
+                                    label: 'In Maps',
+                                    value: mapsLink ? (
+                                      <a href={mapsLink} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                        Buka Lokasi
+                                      </a>
+                                    ) : '-',
+                                  },
+                                  { label: 'Open', value: formatDateTime(r.openedAt) },
+                                  { label: 'Close', value: formatDateTime(r.closedAt) },
+                                  {
+                                    label: 'Ditutup Oleh',
+                                    value: closeByLoadingId === r.id ? 'Memuat...' : (closeByMap[r.id] ?? r.closeBy ?? '-'),
+                                  },
+                                ]}
+                              />
+                              <TroubleTicketDetailSection
+                                title="Data Teknis"
+                                rows={[
+                                  { label: 'Paket', value: (r.paket || '').trim() || '-' },
+                                  { label: 'ONT', value: (r.ont || '').trim() || '-' },
+                                  {
+                                    label: 'ODP',
+                                    value: r.odpId ? odps.find((odp) => odp.id === r.odpId)?.nama_odp ?? String(r.odpId) : '-',
+                                  },
+                                  { label: 'Port ODP', value: r.portNumber == null ? '-' : String(r.portNumber) },
+                                  { label: 'Serial Number', value: (r.sn || '').trim() || '-' },
+                                ]}
+                              />
+                            </div>
+                            <div className="mt-4">
+                              <TroubleTicketDetailSection
+                                title="Keterangan & Penanganan"
+                                rows={[
+                                  { label: 'Tindakan', value: (r.resolutionAction || '').trim() || '-' },
+                                  { label: 'Keterangan', value: (r.notes || '').trim() || '-' },
+                                  ...(r.closeNotes?.trim() ? [{ label: 'Catatan Penutupan', value: r.closeNotes.trim() }] : []),
+                                ]}
+                              />
                             </div>
                             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                               <div className="text-sm text-gray-700 dark:text-gray-200">

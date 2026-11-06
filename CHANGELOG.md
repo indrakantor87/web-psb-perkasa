@@ -18,6 +18,11 @@ Kategori perubahan:
 ### Changed
 - Status Trouble Ticket dipindahkan dari detail chevron ke kolom utama setelah Gangguan.
 
+## [1.1.5] - 2026-11-06
+
+### Changed
+- Detail dalam chevron Trouble Ticket ditata ulang menjadi baris label-nilai tanpa kotak per field.
+
 ## [1.1.3] - 2026-11-06
 
 ### Changed
