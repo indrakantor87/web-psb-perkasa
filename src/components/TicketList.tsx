@@ -28,6 +28,8 @@ interface Ticket {
   pembayaran?: string | null
   status: string
   closedBy?: { name: string } | null
+  odpId?: number | null
+  portNumber?: number | null
 }
 
 function getVisibleMarketingName(value: string | null | undefined) {
@@ -98,8 +100,25 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
 
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
+  const [odps, setOdps] = useState<any[]>([])
 
   const colSpan = userRole !== 'MARKETING' ? 16 : 15
+
+  const fetchOdps = useCallback(async () => {
+    try {
+      const res = await fetch('/api/odp?all=1')
+      const data = await res.json()
+      if (res.ok) setOdps(data)
+    } catch (e) {
+      console.error('Failed to fetch ODPs', e)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (editTicket) {
+      fetchOdps()
+    }
+  }, [editTicket, fetchOdps])
 
   // Sync local state when props change
   useEffect(() => {
@@ -422,6 +441,10 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
       if (editTicket.pembayaran) formData.append('pembayaran', editTicket.pembayaran)
       if (editTicket.teknisi) formData.append('teknisi', editTicket.teknisi)
       if (canEditStatus) formData.append('status', normalizeStatus(editTicket.status))
+      
+      // ODP Integration
+      if (editTicket.odpId) formData.append('odpId', String(editTicket.odpId))
+      if (editTicket.portNumber) formData.append('portNumber', String(editTicket.portNumber))
       
       // New fields
       if (editTicket.installedDate) formData.append('installedDate', editTicket.installedDate)
@@ -1515,6 +1538,35 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     <option value="Cash">Cash</option>
                     <option value="TF">TF</option>
                   </select>
+                </div>
+
+                {/* ODP & Port Integration */}
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ODP</label>
+                  <select
+                    value={editTicket.odpId || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, odpId: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">- Pilih ODP -</option>
+                    {odps.map(odp => (
+                      <option key={odp.id} value={odp.id}>
+                        {odp.nama_odp} ({odp.terpakai}/{odp.kapasitas})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">No. Port</label>
+                  <input
+                    type="number"
+                    value={editTicket.portNumber || ''}
+                    onChange={(e) => setEditTicket({ ...editTicket, portNumber: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="Contoh: 1"
+                    min="1"
+                    max="128"
+                  />
                 </div>
 
                 <div className="md:col-span-2">

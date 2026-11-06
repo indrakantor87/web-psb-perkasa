@@ -73,6 +73,7 @@ export async function GET(req: Request) {
   const all = (url.searchParams.get('all') ?? '').trim() === '1'
   const map = (url.searchParams.get('map') ?? '').trim() === '1'
   const wilayah = (url.searchParams.get('wilayah') ?? '').trim()
+  const odcId = url.searchParams.get('odcId')
   const divisionParam = (url.searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const page = Math.max(1, toInt(url.searchParams.get('page'), 1))
   const pageSize = Math.min(100, Math.max(5, toInt(url.searchParams.get('pageSize'), 10)))
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
-  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, divisionFilter, page, pageSize })}`
+  const cacheKey = `odp:${JSON.stringify({ q, all, map, wilayah, odcId, divisionFilter, page, pageSize })}`
 
   try {
     if (!bypassCache) {
@@ -105,6 +106,7 @@ export async function GET(req: Request) {
     }
     const whereParts = [Prisma.sql`o.is_active = TRUE`]
     if (wilayah) whereParts.push(Prisma.sql`o.wilayah = ${wilayah}`)
+    if (odcId) whereParts.push(Prisma.sql`o.odc_id = ${Number(odcId)}`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
     if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
     if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'CS_ADMIN') {
@@ -131,9 +133,11 @@ export async function GET(req: Request) {
         status_tiang: string
         latitude: number | null
         longitude: number | null
+        pop_id: number | null
+        odc_id: number | null
       }>
     >(Prisma.sql`
-      SELECT o.id, o.nama_odp, o.wilayah, o.lokasi, o.kapasitas, o.terpakai, o.status_tiang, o.latitude, o.longitude
+      SELECT o.id, o.nama_odp, o.wilayah, o.lokasi, o.kapasitas, o.terpakai, o.status_tiang, o.latitude, o.longitude, o.pop_id, o.odc_id
       FROM psb_odp o
       WHERE ${whereSql}
       ORDER BY o.id DESC
@@ -202,6 +206,9 @@ export async function POST(req: Request) {
   const parsed = parseLatLng(lokasi)
   const finalLatitude = Number.isFinite(latitude) ? latitude : parsed?.latitude ?? null
   const finalLongitude = Number.isFinite(longitude) ? longitude : parsed?.longitude ?? null
+  const pop_id = body?.pop_id ? Number(body.pop_id) : null
+  const odc_id = body?.odc_id ? Number(body.odc_id) : null
+
   if (finalLatitude !== null && (finalLatitude < -90 || finalLatitude > 90)) return NextResponse.json({ error: 'Latitude tidak valid' }, { status: 400 })
   if (finalLongitude !== null && (finalLongitude < -180 || finalLongitude > 180)) return NextResponse.json({ error: 'Longitude tidak valid' }, { status: 400 })
 
@@ -214,8 +221,8 @@ export async function POST(req: Request) {
   if (terpakai > kapasitas) return NextResponse.json({ error: 'Terpakai melebihi kapasitas' }, { status: 400 })
 
   await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, latitude, longitude, is_active, created_at, updated_at)
-    VALUES (${nama_odp}, ${wilayah}, ${lokasi}, ${kapasitas}, ${terpakai}, ${status_tiang}, ${finalLatitude}, ${finalLongitude}, TRUE, NOW(), NOW())
+    INSERT INTO psb_odp (nama_odp, wilayah, lokasi, kapasitas, terpakai, status_tiang, latitude, longitude, pop_id, odc_id, is_active, created_at, updated_at)
+    VALUES (${nama_odp}, ${wilayah}, ${lokasi}, ${kapasitas}, ${terpakai}, ${status_tiang}, ${finalLatitude}, ${finalLongitude}, ${pop_id}, ${odc_id}, TRUE, NOW(), NOW())
     ON CONFLICT ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE
     DO UPDATE SET
       wilayah = EXCLUDED.wilayah,
@@ -225,6 +232,8 @@ export async function POST(req: Request) {
       status_tiang = EXCLUDED.status_tiang,
       latitude = EXCLUDED.latitude,
       longitude = EXCLUDED.longitude,
+      pop_id = EXCLUDED.pop_id,
+      odc_id = EXCLUDED.odc_id,
       updated_at = NOW()
   `)
 

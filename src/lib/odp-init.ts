@@ -10,6 +10,38 @@ export async function ensureOdpTable() {
   if (!g.__odpInitPromise) {
     g.__odpInitPromise = (async () => {
       try {
+        // --- 1. POP Table ---
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS psb_pop (
+            id SERIAL PRIMARY KEY,
+            nama_pop VARCHAR(100) NOT NULL,
+            lokasi TEXT,
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_pop_nama_active ON psb_pop (lower(nama_pop)) WHERE is_active = TRUE;`)
+
+        // --- 2. ODC Table ---
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS psb_odc (
+            id SERIAL PRIMARY KEY,
+            nama_odc VARCHAR(100) NOT NULL,
+            pop_id INT REFERENCES psb_pop(id),
+            lokasi TEXT,
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `)
+        await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odc_nama_active ON psb_odc (lower(nama_odc)) WHERE is_active = TRUE;`)
+
+        // --- 3. ODP Table ---
         const checks = await prisma.$queryRaw<
           Array<{
             table_exists: boolean
@@ -143,7 +175,12 @@ export async function ensureOdpTable() {
 
       await prisma.$executeRawUnsafe(`
         ALTER TABLE psb_odp
-        ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+        ADD COLUMN IF NOT EXISTS pop_id INT REFERENCES psb_pop(id);
+      `)
+
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE psb_odp
+        ADD COLUMN IF NOT EXISTS odc_id INT REFERENCES psb_odc(id);
       `)
 
       try {
@@ -191,6 +228,31 @@ export async function ensureOdpTable() {
           `CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odp_key_active ON psb_odp ((lower(nama_odp)), (lower(wilayah))) WHERE is_active = TRUE;`
         )
       }
+
+      // --- 4. Add columns to Ticket and TroubleTicket ---
+      await prisma.$executeRawUnsafe(`
+        DO $$ 
+        BEGIN 
+          -- Ticket columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Ticket' AND column_name='odpId') THEN
+            ALTER TABLE "Ticket" ADD COLUMN "odpId" INTEGER;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Ticket' AND column_name='portNumber') THEN
+            ALTER TABLE "Ticket" ADD COLUMN "portNumber" INTEGER;
+          END IF;
+
+          -- TroubleTicket columns
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='TroubleTicket' AND column_name='odpId') THEN
+            ALTER TABLE "TroubleTicket" ADD COLUMN "odpId" INTEGER;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='TroubleTicket' AND column_name='portNumber') THEN
+            ALTER TABLE "TroubleTicket" ADD COLUMN "portNumber" INTEGER;
+          END IF;
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='TroubleTicket' AND column_name='sn') THEN
+            ALTER TABLE "TroubleTicket" ADD COLUMN "sn" VARCHAR(100);
+          END IF;
+        END $$;
+      `)
     })()
   }
   await g.__odpInitPromise

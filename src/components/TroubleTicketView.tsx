@@ -32,6 +32,9 @@ type TroubleTicketRow = {
   closePhotosCount?: number | null
   closeBy?: string | null
   status: string
+  odpId?: number | null
+  portNumber?: number | null
+  sn?: string | null
 }
 
 type TroubleTicketCreatePayload = {
@@ -46,6 +49,9 @@ type TroubleTicketCreatePayload = {
   paket: string
   notes: string
   problemCategory: string
+  odpId?: number | null
+  portNumber?: number | null
+  sn?: string | null
 }
 
 type TroubleTicketEditPayload = {
@@ -59,6 +65,9 @@ type TroubleTicketEditPayload = {
   problemCategory: string
   status: 'OPEN' | 'CLOSE'
   notes: string
+  odpId?: number | null
+  portNumber?: number | null
+  sn?: string | null
 }
 
 const DEFAULT_PROBLEM_CATEGORIES = [
@@ -201,7 +210,7 @@ function formatWaDisplay(value: string) {
   return `+${digits}`
 }
 
-function buildTicketDetailText(row: TroubleTicketRow) {
+function buildTicketDetailText(row: TroubleTicketRow, odps: Array<{ id: number; nama_odp: string }> = []) {
   const ticketId = getDisplayTicketId(row)
   const maps = (row.mapsUrl || '').trim()
   const type = formatTypeLabel(row.type)
@@ -222,6 +231,9 @@ function buildTicketDetailText(row: TroubleTicketRow) {
     `Type : ${type}`,
     `Paket\t: ${(row.paket || '').trim() || '-'}`,
     `ONT : ${(row.ont || '').trim() || '-'}`,
+    ...(row.odpId ? [`ODP : ${odps.find((o) => o.id === row.odpId)?.nama_odp ?? row.odpId}`] : []),
+    ...(row.portNumber ? [`Port : ${row.portNumber}`] : []),
+    ...(row.sn ? [`SN : ${row.sn}`] : []),
     `Gangguan : ${(row.problemCategory || '').trim() || '-'}`,
     `Tindakan : ${(row.resolutionAction || '').trim() || '-'}`,
     `Keterangan : ${(row.notes || '').trim() || '-'}`,
@@ -348,6 +360,24 @@ export function TroubleTicketView({
   const [copied, setCopied] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const [odps, setOdps] = useState<any[]>([])
+
+  const fetchOdps = useCallback(async () => {
+    try {
+      const res = await fetch('/api/odp?all=1')
+      const data = await res.json()
+      if (res.ok) setOdps(data)
+    } catch (e) {
+      console.error('Failed to fetch ODPs', e)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isCreateOpen || isEditOpen) {
+      fetchOdps()
+    }
+  }, [isCreateOpen, isEditOpen, fetchOdps])
+
   const [form, setForm] = useState<TroubleTicketCreatePayload>({
     category: 'TT',
     ticketCode: '',
@@ -360,6 +390,9 @@ export function TroubleTicketView({
     paket: '',
     notes: '',
     problemCategory: '',
+    odpId: null,
+    portNumber: null,
+    sn: '',
   })
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editingCategory, setEditingCategory] = useState<'TT' | 'PV'>('TT')
@@ -374,6 +407,9 @@ export function TroubleTicketView({
     problemCategory: '',
     status: 'OPEN',
     notes: '',
+    odpId: null,
+    portNumber: null,
+    sn: '',
   })
   const [slaDays, setSlaDays] = useState<Record<string, number>>(DEFAULT_SLA_DAYS)
   const [slaTypes, setSlaTypes] = useState<string[]>(Object.keys(DEFAULT_SLA_DAYS))
@@ -748,6 +784,9 @@ export function TroubleTicketView({
         paket: form.paket.trim(),
         notes: form.notes.trim(),
         problemCategory: form.problemCategory.trim(),
+        odpId: form.odpId,
+        portNumber: form.portNumber,
+        sn: form.sn?.trim() || null,
         month,
         year,
       }
@@ -774,6 +813,9 @@ export function TroubleTicketView({
         paket: '',
         notes: '',
         problemCategory: '',
+        odpId: null,
+        portNumber: null,
+        sn: '',
       })
       try {
         const res2 = await fetch(`/api/trouble-ticket-id?month=${month}&year=${year}&category=${category}`)
@@ -813,6 +855,9 @@ export function TroubleTicketView({
       problemCategory: String(row.problemCategory ?? '').trim(),
       status: ((row.status || '').toUpperCase() === 'CLOSE' || row.closedAt) ? 'CLOSE' : 'OPEN',
       notes: row.notes || '',
+      odpId: row.odpId ?? null,
+      portNumber: row.portNumber ?? null,
+      sn: row.sn || '',
     })
     setIsEditOpen(true)
   }
@@ -842,6 +887,9 @@ export function TroubleTicketView({
         notes: editForm.notes.trim(),
         problemCategory: editForm.problemCategory.trim(),
         status: editForm.status,
+        odpId: editForm.odpId,
+        portNumber: editForm.portNumber,
+        sn: editForm.sn?.trim() || null,
       }
       const res = await fetch(`/api/trouble-tickets/${editingId}`, {
         method: 'PUT',
@@ -860,7 +908,7 @@ export function TroubleTicketView({
     }
   }
 
-  const detailText = useMemo(() => (detailRow ? buildTicketDetailText(detailRow) : ''), [detailRow])
+  const detailText = useMemo(() => (detailRow ? buildTicketDetailText(detailRow, odps) : ''), [detailRow, odps])
 
   const handleCopyDetail = async () => {
     if (!detailText) return
@@ -1056,7 +1104,7 @@ export function TroubleTicketView({
 
   const copyRowDetail = async (row: TroubleTicketRow) => {
     try {
-      await navigator.clipboard.writeText(buildTicketDetailText(row))
+      await navigator.clipboard.writeText(buildTicketDetailText(row, odps))
       setCopied(true)
       setTimeout(() => setCopied(false), 1200)
     } catch {
@@ -2226,6 +2274,41 @@ export function TroubleTicketView({
                     ))}
                   </select>
                 </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pilih ODP</span>
+                  <select
+                    value={form.odpId || ''}
+                    onChange={(e) => setForm({ ...form, odpId: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">-- Pilih ODP --</option>
+                    {odps.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nama_odp} ({o.wilayah})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP</span>
+                  <input
+                    type="number"
+                    value={form.portNumber || ''}
+                    onChange={(e) => setForm({ ...form, portNumber: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="1-128"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">SN (Serial Number)</span>
+                  <input
+                    type="text"
+                    value={form.sn || ''}
+                    onChange={(e) => setForm({ ...form, sn: e.target.value })}
+                    placeholder="ZTEG / FHTT..."
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
               </div>
               <div className="flex flex-col">
                 <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Keterangan</span>
@@ -2387,6 +2470,41 @@ export function TroubleTicketView({
                     <option value="OPEN">OPEN</option>
                     <option value="CLOSE">CLOSE</option>
                   </select>
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pilih ODP</span>
+                  <select
+                    value={editForm.odpId || ''}
+                    onChange={(e) => setEditForm({ ...editForm, odpId: e.target.value ? Number(e.target.value) : null })}
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">-- Pilih ODP --</option>
+                    {odps.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nama_odp} ({o.wilayah})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP</span>
+                  <input
+                    type="number"
+                    value={editForm.portNumber || ''}
+                    onChange={(e) => setEditForm({ ...editForm, portNumber: e.target.value ? Number(e.target.value) : null })}
+                    placeholder="1-128"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">SN (Serial Number)</span>
+                  <input
+                    type="text"
+                    value={editForm.sn || ''}
+                    onChange={(e) => setEditForm({ ...editForm, sn: e.target.value })}
+                    placeholder="ZTEG / FHTT..."
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
                 </div>
               </div>
               <div className="flex flex-col">

@@ -7,6 +7,26 @@ import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketi
 import { canDeleteListTickets, canMutateMenu } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
+async function syncOdpUsage(oldOdpId: number | null, newOdpId: number | null, isClosing: boolean, wasClosed: boolean) {
+  // If moving from not-closed to closed
+  if (isClosing && !wasClosed && newOdpId) {
+    await prisma.$executeRawUnsafe(`UPDATE psb_odp SET terpakai = terpakai + 1 WHERE id = ${newOdpId}`)
+  }
+  // If moving from closed to not-closed (reopen)
+  else if (!isClosing && wasClosed && oldOdpId) {
+    await prisma.$executeRawUnsafe(`UPDATE psb_odp SET terpakai = GREATEST(0, terpakai - 1) WHERE id = ${oldOdpId}`)
+  }
+  // If closed and ODP changed
+  else if (isClosing && wasClosed && oldOdpId !== newOdpId) {
+    if (oldOdpId) {
+      await prisma.$executeRawUnsafe(`UPDATE psb_odp SET terpakai = GREATEST(0, terpakai - 1) WHERE id = ${oldOdpId}`)
+    }
+    if (newOdpId) {
+      await prisma.$executeRawUnsafe(`UPDATE psb_odp SET terpakai = terpakai + 1 WHERE id = ${newOdpId}`)
+    }
+  }
+}
+
 function statusOrderFor(status: string) {
   const s = (status || '').toUpperCase()
   if (s === 'OPEN') return 0
@@ -94,6 +114,12 @@ export async function PUT(
       const locationMap = formData.get('locationMap')
       if (typeof locationMap === 'string' && locationMap) updateData.locationMap = locationMap
 
+      const odpId = formData.get('odpId')
+      if (odpId) updateData.odpId = parseInt(odpId.toString())
+
+      const portNumber = formData.get('portNumber')
+      if (portNumber) updateData.portNumber = parseInt(portNumber.toString())
+
       const birthDate = formData.get('birthDate')
       if (birthDate) updateData.birthDate = new Date(birthDate.toString())
 
@@ -117,13 +143,15 @@ export async function PUT(
       kmz = typeof body.kmz === 'string' ? body.kmz : undefined
       priority = typeof body.priority === 'string' ? body.priority : undefined
 
-      const allowed = ['customerName', 'phoneNumber', 'package', 'marketingName', 'teknisi', 'description', 'locationMap', 'birthDate', 'installedDate', 'pembayaran'] as const
+      const allowed = ['customerName', 'phoneNumber', 'package', 'marketingName', 'teknisi', 'description', 'locationMap', 'birthDate', 'installedDate', 'pembayaran', 'odpId', 'portNumber'] as const
       const next: Prisma.TicketUncheckedUpdateInput = {}
       for (const k of allowed) {
         const v = body[k]
         if (typeof v === 'undefined' || v === null) continue
         if (k === 'birthDate' || k === 'installedDate') {
           next[k] = new Date(String(v))
+        } else if (k === 'odpId' || k === 'portNumber') {
+          next[k] = parseInt(String(v))
         } else if (k === 'marketingName') {
           const normalizedMarketingName =
             role === 'MARKETING'
@@ -181,6 +209,17 @@ export async function PUT(
       }
     }
 
+    const current = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { status: true, odpId: true },
+    })
+
+    const isClosing = status === 'CLOSE'
+    const wasClosed = current?.status === 'CLOSE'
+    const newOdpId = typeof updateData.odpId === 'number' ? updateData.odpId : (current?.odpId ?? null)
+
+    await syncOdpUsage(current?.odpId ?? null, newOdpId, isClosing, wasClosed)
+
     let ticket
     if (status === 'CLOSE') {
       if (role === 'MARKETING') {
@@ -190,10 +229,6 @@ export async function PUT(
         )
       }
 
-      const current = await prisma.ticket.findUnique({
-        where: { id: ticketId },
-        select: { status: true },
-      })
       const installedDateForClose =
         updateData.installedDate instanceof Date
           ? updateData.installedDate

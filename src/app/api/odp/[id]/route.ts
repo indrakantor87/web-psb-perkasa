@@ -78,6 +78,9 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   const parsed = parseLatLng(lokasi)
   const finalLatitude = Number.isFinite(latitude) ? latitude : parsed?.latitude ?? null
   const finalLongitude = Number.isFinite(longitude) ? longitude : parsed?.longitude ?? null
+  const pop_id = body?.pop_id ? Number(body.pop_id) : null
+  const odc_id = body?.odc_id ? Number(body.odc_id) : null
+
   if (finalLatitude !== null && (finalLatitude < -90 || finalLatitude > 90)) return NextResponse.json({ error: 'Latitude tidak valid' }, { status: 400 })
   if (finalLongitude !== null && (finalLongitude < -180 || finalLongitude > 180)) return NextResponse.json({ error: 'Longitude tidak valid' }, { status: 400 })
 
@@ -110,6 +113,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
         status_tiang = ${statusNorm},
         latitude = ${finalLatitude},
         longitude = ${finalLongitude},
+        pop_id = ${pop_id},
+        odc_id = ${odc_id},
         updated_at = NOW()
     WHERE id = ${odpId} AND is_active = TRUE
   `

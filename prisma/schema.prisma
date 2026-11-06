@@ -48,6 +48,10 @@ model Ticket {
   closedById    Int?
   closedBy      User?    @relation("ClosedBy", fields: [closedById], references: [id])
   
+  odpId         Int?
+  odp           Odp?     @relation(fields: [odpId], references: [id])
+  portNumber    Int?
+
   isolations    Isolation[]
   digitalLeads  DigitalLead[]
 
@@ -59,6 +63,58 @@ model Ticket {
   @@index([marketingName])
   @@index([customerName])
   @@index([installedDate])
+}
+
+model Odp {
+  id           Int      @id @default(autoincrement())
+  nama_odp     String   @map("nama_odp")
+  wilayah      String   @map("wilayah")
+  lokasi       String   @map("lokasi")
+  kapasitas    Int      @map("kapasitas")
+  terpakai     Int      @map("terpakai")
+  status_tiang String   @map("status_tiang")
+  latitude     Float?   @map("latitude")
+  longitude    Float?   @map("longitude")
+  pop_id       Int?     @map("pop_id")
+  pop          Pop?     @relation(fields: [pop_id], references: [id])
+  odc_id       Int?     @map("odc_id")
+  odc          Odc?     @relation(fields: [odc_id], references: [id])
+  is_active    Boolean  @default(true) @map("is_active")
+  created_at   DateTime @default(now()) @map("created_at")
+  updated_at   DateTime @default(now()) @map("updated_at")
+
+  tickets      Ticket[]
+
+  @@map("psb_odp")
+}
+
+model Pop {
+  id         Int      @id @default(autoincrement())
+  nama_pop   String   @map("nama_pop")
+  lokasi     String?  @map("lokasi")
+  is_active  Boolean  @default(true) @map("is_active")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @default(now()) @map("updated_at")
+
+  odps       Odp[]
+  odcs       Odc[]
+
+  @@map("psb_pop")
+}
+
+model Odc {
+  id         Int      @id @default(autoincrement())
+  nama_odc   String   @map("nama_odc")
+  pop_id     Int?     @map("pop_id")
+  pop        Pop?     @relation(fields: [pop_id], references: [id])
+  lokasi     String?  @map("lokasi")
+  is_active  Boolean  @default(true) @map("is_active")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @default(now()) @map("updated_at")
+
+  odps       Odp[]
+
+  @@map("psb_odc")
 }
 
 model Isolation {
@@ -189,6 +245,10 @@ model TroubleTicket {
   closePhotos  String[]
   closeBy      String?
   status       String   @default("OPEN")
+  
+  odpId        Int?
+  portNumber   Int?
+  sn           String?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
