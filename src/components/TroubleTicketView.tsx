@@ -364,7 +364,7 @@ export function TroubleTicketView({
   const [year, setYear] = useState(nowDate.getFullYear())
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [division, setDivision] = useState<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'>(initialDivision)
+  const division = initialDivision
   const [status, setStatus] = useState<'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE'>(
     (userRole || '').toUpperCase() === 'TROUBLESHOOTS' ? 'OPEN' : 'ALL'
   )
@@ -460,14 +460,6 @@ export function TroubleTicketView({
   const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const isPrivileged = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const supportsTroubleTicketWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
-  const divisionDescriptions: Record<'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL', string> = {
-    ALL: 'Menampilkan seluruh Trouble Ticket pada periode terpilih.',
-    PENJUALAN: 'Belum ada relasi langsung antara divisi Penjualan dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
-    CS_ADMIN: 'Data Trouble Ticket tidak berada di divisi CS & Admin CS. Modul ini hanya aktif untuk perspektif NOC & Troubleshoots.',
-    NOC_TROUBLESHOOTS: 'Seluruh data Trouble Ticket berada di divisi NOC & Troubleshoots, termasuk open dan close ticket.',
-    CREATOR_DIGITAL: 'Belum ada relasi langsung antara Creator Digital dan data Trouble Ticket, jadi tampilan ini masih placeholder.',
-  }
-
   const fileInputId = 'trouble-ticket-import-input'
   const closeCreateModal = useCallback(() => setIsCreateOpen(false), [])
   const closeEditModal = useCallback(() => {
@@ -1427,29 +1419,7 @@ export function TroubleTicketView({
               </select>
             </div>
           )}
-          {!isTroubleshoots && isAdmin && (
-            <div className="flex flex-col">
-              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</span>
-              <select
-                value={division}
-                onChange={(e) => setDivision(e.target.value as 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL')}
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white md:w-52"
-              >
-                <option value="ALL">Semua Divisi</option>
-                <option value="PENJUALAN">Penjualan</option>
-                <option value="CS_ADMIN">CS & Admin CS</option>
-                <option value="NOC_TROUBLESHOOTS">NOC & Troubleshoots</option>
-                <option value="CREATOR_DIGITAL">Creator Digital</option>
-              </select>
-            </div>
-          )}
         </div>
-
-        {!isTroubleshoots && isAdmin && (
-          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            {divisionDescriptions[division]}
-          </div>
-        )}
 
         {!isTroubleshoots && (
           <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-center">

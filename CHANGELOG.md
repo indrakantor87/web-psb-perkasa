@@ -23,6 +23,11 @@ Kategori perubahan:
 ### Changed
 - Detail dalam chevron Trouble Ticket ditata ulang menjadi baris label-nilai tanpa kotak per field.
 
+## [1.1.6] - 2026-11-07
+
+### Changed
+- Filter Divisi dan teks penjelas di toolbar Trouble Ticket dihilangkan; parameter divisi dari halaman tetap diterapkan.
+
 ## [1.1.3] - 2026-11-06
 
 ### Changed
