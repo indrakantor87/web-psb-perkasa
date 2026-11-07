@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { ensureUserDivisionColumn } from '@/lib/db-init'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { getMarketingNameMap, toDashboardMarketingLabel } from '@/lib/marketing-users'
-import { getMenuHref } from '@/lib/access'
+import { getMenuHref, isAdminRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,7 +119,7 @@ export default async function DivisionDetailPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (session.user.role !== 'ADMIN') redirect('/')
+  if (!isAdminRole(session.user.role)) redirect('/')
 
   const params = await searchParams
   const now = jakartaNow()
@@ -379,10 +379,10 @@ export default async function DivisionDetailPage({
       try {
         // Try to fetch Creator Digital data, fall back to 0 if models don't exist yet
         const [cc, c, l, a] = await Promise.all([
-          (prisma as any).contentCalendar?.count().catch(() => 0),
-          (prisma as any).campaign?.count().catch(() => 0),
-          (prisma as any).digitalLead?.count().catch(() => 0),
-          (prisma as any).contentAnalytics?.aggregate({
+          prisma.contentCalendar.count().catch(() => 0),
+          prisma.campaign.count().catch(() => 0),
+          prisma.digitalLead.count().catch(() => 0),
+          prisma.contentAnalytics.aggregate({
             _sum: {
               reach: true,
               impressions: true,
@@ -393,7 +393,7 @@ export default async function DivisionDetailPage({
               clicks: true,
               followersGain: true,
             }
-          }).catch(() => ({ _sum: {} }))
+          }).catch(() => ({ _sum: { reach: 0, likes: 0, comments: 0, shares: 0 } }))
         ])
         
         contentCount = cc || 0

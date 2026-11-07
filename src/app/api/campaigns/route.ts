@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
@@ -13,10 +14,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
 
-    const where: any = {}
+    const where: Prisma.CampaignWhereInput = {}
     if (status) where.status = status
 
-    const campaigns = await (prisma as any).campaign.findMany({
+    const campaigns = await prisma.campaign.findMany({
       where,
       include: {
         createdBy: { select: { id: true, name: true, username: true } }
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const { name, description, startDate, endDate, budget, status, objectives, platforms } = data
 
-    const campaign = await (prisma as any).campaign.create({
+    const campaign = await prisma.campaign.create({
       data: {
         name,
         description,

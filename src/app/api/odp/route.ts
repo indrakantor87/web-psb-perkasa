@@ -5,6 +5,7 @@ import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { isAdminRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -84,7 +85,7 @@ export async function GET(req: Request) {
   const bypassCache = (url.searchParams.get('bypassCache') ?? '').trim() === '1'
   const roleUpper = (activeSession.user.role || '').toUpperCase()
   const divisionFilter =
-    roleUpper === 'ADMIN' &&
+    isAdminRole(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
@@ -116,7 +117,7 @@ export async function GET(req: Request) {
     if (withoutOdc) whereParts.push(Prisma.sql`o.odc_id IS NULL`)
     if (like) whereParts.push(Prisma.sql`(o.nama_odp ILIKE ${like} OR o.lokasi ILIKE ${like})`)
     if (map) whereParts.push(Prisma.sql`((o.latitude IS NOT NULL AND o.longitude IS NOT NULL) OR (o.lokasi ~ ${'[-0-9]{1,3}\\.[0-9]+'} AND o.lokasi LIKE ${'%,%'}))`)
-    if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'CS_ADMIN') {
+    if (isAdminRole(roleUpper) && divisionFilter !== 'ALL' && divisionFilter !== 'CS_ADMIN') {
       whereParts.push(Prisma.sql`1 = 0`)
     }
     const whereSql = Prisma.join(whereParts, ' AND ')

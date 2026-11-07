@@ -86,7 +86,7 @@ export function DigitalLeadView({ userRole, initialDivision = 'ALL' }: DigitalLe
   }, [division])
 
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isCreator = roleUpper === 'CREATOR_DIGITAL' || isAdmin
   const isSales = roleUpper === 'PENJUALAN' || isAdmin
   const canEdit = isCreator || isSales

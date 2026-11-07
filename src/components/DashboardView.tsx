@@ -6,7 +6,8 @@ import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { getDivisionFromRole } from '@/lib/access'
+import { getDivisionFromRole, isAdminRole } from '@/lib/access'
+import { DeveloperMobileDashboard } from '@/components/DeveloperMobileDashboard'
 
 type DivisionSummary = {
   code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -46,12 +47,13 @@ interface DashboardViewProps {
   }
   initialPeriod: { month: number; year: number }
   userRole?: string
+  userName?: string
   divisionSummary?: DivisionSummary[]
   focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -82,7 +84,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isMarketing = userRole === 'MARKETING'
   const isTeknisi = userRole === 'TEKNISI'
   const isNoc = userRole === 'NOC'
-  const isAdmin = userRole === 'ADMIN'
+  const isAdmin = isAdminRole(userRole)
   const roleUpper = String(userRole ?? '').trim().toUpperCase()
   const isCsRole = roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
   const roleDivision = getDivisionFromRole(userRole)
@@ -218,7 +220,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const showTicketingFocus = focusedDivision === 'ALL' || focusedDivision === 'NOC_TROUBLESHOOTS'
   const showCreatorFocus = focusedDivision === 'CREATOR_DIGITAL'
 
-  return (
+  const dashboardContent = (
     <div className="space-y-6 pb-10">
       {/* Header & Filter */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-end md:justify-between md:space-y-0">
@@ -1054,6 +1056,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
     </div>
   )
+
+  return roleUpper === 'DEVELOPER' ? (
+    <>
+      <DeveloperMobileDashboard userName={userName ?? 'Developer'} statusCounts={statusCounts} />
+      <div className="hidden md:block">{dashboardContent}</div>
+    </>
+  ) : dashboardContent
 }
 
 function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref?: string }) {

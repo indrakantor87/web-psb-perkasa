@@ -13,6 +13,32 @@ import {
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
+type IsolationRow = {
+  id?: unknown
+  customerName?: unknown
+  customerAddress?: unknown
+  customerPhone?: unknown
+  userEmail?: unknown
+  activeDate?: unknown
+  marketing?: unknown
+  radboox?: unknown
+  price?: unknown
+  isolationDate?: unknown
+  reason?: unknown
+  status?: unknown
+  restorationDate?: unknown
+  closeNote?: unknown
+  closePhoto?: unknown
+  teknisi?: unknown
+  ticketDismantle?: unknown
+  isArchived?: unknown
+  archivedAt?: unknown
+  importBatchAt?: unknown
+  importRowOrder?: unknown
+  ticketId?: unknown
+  ticket?: unknown
+}
+
 function getIsolationFetchErrorMessage(error: unknown) {
   if (error instanceof Prisma.PrismaClientInitializationError) {
     return 'Koneksi database Isolir gagal. Periksa DATABASE_URL / DIRECT_URL atau kredensial database.'
@@ -156,9 +182,9 @@ function filterToLatestImportSnapshot<T extends { importBatchAt?: unknown }>(ite
   return items.filter((item) => parseSortableTime(item.importBatchAt) === latestBatchTime)
 }
 
-function buildSmartDismantleRows(items: any[]) {
-  const map = new Map<string, any>()
-  const passthrough: any[] = []
+function buildSmartDismantleRows(items: IsolationRow[]) {
+  const map = new Map<string, IsolationRow>()
+  const passthrough: IsolationRow[] = []
 
   for (const item of items) {
     const key = buildDismantleIdentity(item)
@@ -190,8 +216,8 @@ function buildLegacyIsolationWhere(params: {
   userName?: string | null
   divisionFilter: string
 }) {
-  const where: any = {}
-  const appendAnd = (clause: any) => {
+  const where: Prisma.IsolationWhereInput = {}
+  const appendAnd = (clause: Prisma.IsolationWhereInput) => {
     const current = where.AND
     const arr = Array.isArray(current) ? current : current ? [current] : []
     where.AND = [...arr, clause]
@@ -219,7 +245,7 @@ function buildLegacyIsolationWhere(params: {
     }
   }
 
-  const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
+  const privilegedRoles = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
   if (!privilegedRoles.includes(params.roleUpper)) {
     const ownMarketingClause = buildExactMarketingClause(params.userName)
     if (ownMarketingClause) {
@@ -285,15 +311,16 @@ export async function GET(request: Request) {
       ? divisionParam
       : 'ALL'
 
-  const where: any = {}
-  const appendAnd = (clause: any) => {
+  const where: Prisma.IsolationWhereInput = {}
+  const appendAnd = (clause: Prisma.IsolationWhereInput) => {
     const current = where.AND
     const arr = Array.isArray(current) ? current : current ? [current] : []
     where.AND = [...arr, clause]
   }
+  // Kolom isArchived pada baris legacy bisa NULL, sehingga null disertakan eksplisit.
   const archiveVisibilityClause = {
     OR: [{ isArchived: false }, { isArchived: null }],
-  }
+  } as unknown as Prisma.IsolationWhereInput
 
   if (status && status.trim() !== '') {
     where.status = { equals: status.trim().toUpperCase(), mode: 'insensitive' }
@@ -320,7 +347,7 @@ export async function GET(request: Request) {
     appendAnd(archiveVisibilityClause)
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
-  const privilegedRoles = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
+  const privilegedRoles = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
   if (!privilegedRoles.includes(roleUpper)) {
     const ownMarketingClause = buildExactMarketingClause(session.user.name)
     if (ownMarketingClause) {
@@ -361,7 +388,7 @@ export async function GET(request: Request) {
           }
         : {}
 
-    const selectAll: any = {
+    const selectAll: Prisma.IsolationSelect = {
       id: true,
       customerName: true,
       customerAddress: true,
@@ -385,7 +412,7 @@ export async function GET(request: Request) {
       importRowOrder: true,
       ...ticketSelect,
     }
-    const selectNoPrice: any = {
+    const selectNoPrice: Prisma.IsolationSelect = {
       id: true,
       customerName: true,
       customerAddress: true,
@@ -408,30 +435,30 @@ export async function GET(request: Request) {
       importRowOrder: true,
       ...ticketSelect,
     }
-    const selectNoClose: any = {
+    const selectNoClose: Prisma.IsolationSelect = {
       ...selectAll,
     }
     delete selectNoClose.closeNote
     delete selectNoClose.closePhoto
-    const selectNoPriceNoClose: any = {
+    const selectNoPriceNoClose: Prisma.IsolationSelect = {
       ...selectNoPrice,
     }
     delete selectNoPriceNoClose.closeNote
     delete selectNoPriceNoClose.closePhoto
-    const selectNoArchive: any = {
+    const selectNoArchive: Prisma.IsolationSelect = {
       ...selectAll,
     }
     delete selectNoArchive.isArchived
     delete selectNoArchive.archivedAt
-    const selectLegacy: any = {
+    const selectLegacy: Prisma.IsolationSelect = {
       ...selectNoPriceNoClose,
     }
     delete selectLegacy.isArchived
     delete selectLegacy.archivedAt
 
-    let isolationsRaw: any[]
+    let isolationsRaw: IsolationRow[]
     try {
-      isolationsRaw = await (prisma as any).isolation.findMany({
+      isolationsRaw = await prisma.isolation.findMany({
         where,
         orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
         select: selectAll,
@@ -445,17 +472,15 @@ export async function GET(request: Request) {
 
       if (!missingPrice && !missingCloseNote && !missingClosePhoto && !missingIsArchived && !missingArchivedAt) throw e
 
-      const whereFallback =
-        missingIsArchived || missingArchivedAt
-          ? {
-              ...where,
-              AND: Array.isArray(where.AND)
-                ? where.AND.filter((clause: any) => clause !== archiveVisibilityClause)
-                : where.AND === archiveVisibilityClause
-                  ? undefined
-                  : where.AND,
-            }
-          : where
+      const whereFallback: Prisma.IsolationWhereInput = { ...where }
+      if (missingIsArchived || missingArchivedAt) {
+        const currentAnd = where.AND
+        if (Array.isArray(currentAnd)) {
+          whereFallback.AND = currentAnd.filter((clause) => clause !== archiveVisibilityClause)
+        } else {
+          whereFallback.AND = currentAnd === archiveVisibilityClause ? undefined : currentAnd
+        }
+      }
 
       if (whereFallback.AND === undefined) {
         delete whereFallback.AND
@@ -472,13 +497,13 @@ export async function GET(request: Request) {
               : selectNoPrice
             : selectNoClose
 
-      isolationsRaw = await (prisma as any).isolation.findMany({
+      isolationsRaw = await prisma.isolation.findMany({
         where: whereFallback,
         orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
         select: selectFallback,
       })
 
-      isolationsRaw = isolationsRaw.map((x: any) => ({
+      isolationsRaw = isolationsRaw.map((x) => ({
         ...x,
         ...(missingPrice ? { price: null } : {}),
         ...(missingCloseNote ? { closeNote: null } : {}),
@@ -500,7 +525,7 @@ export async function GET(request: Request) {
     )
 
     const inDismantleSet = await getDismantleTicketLinksForIsolationItems(
-      orderedIsolations.map((item: any) => ({
+      orderedIsolations.map((item) => ({
         id: Number(item?.id ?? NaN),
         radboox: item?.radboox,
         userEmail: item?.userEmail,
@@ -509,7 +534,7 @@ export async function GET(request: Request) {
         customerAddress: item?.customerAddress,
       }))
     )
-    const filterByTicketStatus = (item: any) => {
+    const filterByTicketStatus = (item: IsolationRow) => {
       if (ticketStatus === 'WITH') return inDismantleSet.has(Number(item?.id))
       if (ticketStatus === 'WITHOUT') return !inDismantleSet.has(Number(item?.id))
       return true
@@ -521,7 +546,7 @@ export async function GET(request: Request) {
 
     const total = ticketFilteredOrdered.length
     const ticketFilteredIds = ticketFilteredOrdered
-      .map((item: any) => (typeof item?.id === 'number' ? item.id : Number(item?.id ?? NaN)))
+      .map((item) => (typeof item.id === 'number' ? item.id : Number(item.id ?? NaN)))
       .filter((id: number) => Number.isFinite(id))
     const withTicketTotal = ticketFilteredIds.filter((id) => inDismantleSet.has(id)).length
     const withoutTicketTotal = Math.max(0, total - withTicketTotal)
@@ -530,7 +555,7 @@ export async function GET(request: Request) {
       : ticketFilteredOrdered.slice((page - 1) * limit, page * limit)
 
     const payload = {
-      items: isolations.map((item: any) => ({
+      items: isolations.map((item) => ({
         ...item,
         price: normalizePriceNumber(item?.price),
         inDismantle: inDismantleSet.has(Number(item?.id)),
@@ -575,24 +600,24 @@ export async function GET(request: Request) {
         importRowOrder: true,
       }
 
-      let items: any[]
+      let items: IsolationRow[]
       try {
-        items = await (prisma as any).isolation.findMany({
+        items = await prisma.isolation.findMany({
           where: legacyWhere,
           orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
           select: legacySelectBase,
         })
       } catch {
-        const legacySelectFallback = { ...legacySelectBase }
-        delete (legacySelectFallback as any).price
-        items = await (prisma as any).isolation.findMany({
+        const legacySelectFallback: Prisma.IsolationSelect = { ...legacySelectBase }
+        delete legacySelectFallback.price
+        items = await prisma.isolation.findMany({
           where: legacyWhere,
           orderBy: [{ activeDate: 'desc' }, { isolationDate: 'desc' }, { id: 'desc' }],
           select: legacySelectFallback,
         })
       }
 
-      const mappedItems = items.map((item: any) => ({
+      const mappedItems = items.map((item) => ({
         ...item,
         price: normalizePriceNumber(item?.price),
         closeNote: null,
@@ -609,7 +634,7 @@ export async function GET(request: Request) {
         compareIsolationListOrder(a, b, Boolean(radboox && radboox !== 'ALL'))
       )
       const inDismantleSet = await getDismantleTicketLinksForIsolationItems(
-        orderedFallbackItems.map((item: any) => ({
+        orderedFallbackItems.map((item) => ({
           id: Number(item?.id ?? NaN),
           radboox: item?.radboox,
           userEmail: item?.userEmail,
@@ -620,21 +645,21 @@ export async function GET(request: Request) {
       )
       const ticketFilteredFallbackItems =
         ticketStatus === 'WITH' || ticketStatus === 'WITHOUT'
-          ? orderedFallbackItems.filter((item: any) => {
+          ? orderedFallbackItems.filter((item) => {
               const id = Number(item?.id ?? NaN)
               if (!Number.isFinite(id)) return ticketStatus !== 'WITH'
               return ticketStatus === 'WITH' ? inDismantleSet.has(id) : !inDismantleSet.has(id)
             })
           : orderedFallbackItems
       const totalFallback = ticketFilteredFallbackItems.length
-      const withTicketTotalFallback = ticketFilteredFallbackItems.filter((item: any) => inDismantleSet.has(Number(item?.id))).length
+      const withTicketTotalFallback = ticketFilteredFallbackItems.filter((item) => inDismantleSet.has(Number(item?.id))).length
       const withoutTicketTotalFallback = totalFallback - withTicketTotalFallback
       const payload = {
         items: exportAll
-          ? ticketFilteredFallbackItems.map((item: any) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) }))
+          ? ticketFilteredFallbackItems.map((item) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) }))
           : ticketFilteredFallbackItems
               .slice((page - 1) * limit, page * limit)
-              .map((item: any) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) })),
+              .map((item) => ({ ...item, inDismantle: inDismantleSet.has(Number(item?.id)) })),
         total: totalFallback,
         ...(includeTicketDetails ? { withTicketTotal: withTicketTotalFallback, withoutTicketTotal: withoutTicketTotalFallback } : {}),
         page,
@@ -682,7 +707,7 @@ export async function POST(request: Request) {
     const teknisi = typeof body.teknisi === 'string' ? body.teknisi : undefined
     const radboox = typeof body.radboox === 'string' ? body.radboox : null
     const activeDate = body.activeDate ? new Date(String(body.activeDate)) : null
-    const isolationDateRaw = (body as any).isolationDate
+    const isolationDateRaw = body.isolationDate
     const isolationDate =
       typeof isolationDateRaw === 'string' || typeof isolationDateRaw === 'number'
         ? (() => {
@@ -717,14 +742,14 @@ export async function POST(request: Request) {
       status: 'OPEN',
     }
 
-    let isolation: any
+    let isolation: IsolationRow
     try {
-      isolation = await (prisma as any).isolation.create({ data: createData })
+      isolation = await prisma.isolation.create({ data: createData })
     } catch (e) {
       if (!isMissingPriceColumn(e)) throw e
-      const dataNoPrice: any = { ...createData }
+      const dataNoPrice: Prisma.IsolationUncheckedCreateInput = { ...createData }
       delete dataNoPrice.price
-      isolation = await (prisma as any).isolation.create({ data: dataNoPrice })
+      isolation = await prisma.isolation.create({ data: dataNoPrice })
     }
 
     return NextResponse.json(isolation)
@@ -751,7 +776,7 @@ export async function DELETE(request: Request) {
         : null
 
     if (preserveDismantleHistory) {
-      const targets = await (prisma as any).isolation.findMany({
+      const targets = await prisma.isolation.findMany({
         where: ids && ids.length > 0 ? { id: { in: ids } } : undefined,
         select: {
           id: true,
@@ -763,16 +788,16 @@ export async function DELETE(request: Request) {
       })
 
       const archivedIds = targets
-        .filter((item: any) => hasDismantleHistory(item))
-        .map((item: any) => Number(item.id))
+        .filter((item) => hasDismantleHistory(item))
+        .map((item) => Number(item.id))
         .filter((id: number) => Number.isFinite(id))
       const deletedIds = targets
-        .filter((item: any) => !hasDismantleHistory(item))
-        .map((item: any) => Number(item.id))
+        .filter((item) => !hasDismantleHistory(item))
+        .map((item) => Number(item.id))
         .filter((id: number) => Number.isFinite(id))
 
       if (archivedIds.length > 0) {
-        await (prisma as any).isolation.updateMany({
+        await prisma.isolation.updateMany({
           where: { id: { in: archivedIds } },
           data: {
             isArchived: true,
@@ -782,7 +807,7 @@ export async function DELETE(request: Request) {
       }
 
       const deleted = deletedIds.length > 0
-        ? await (prisma as any).isolation.deleteMany({ where: { id: { in: deletedIds } } })
+        ? await prisma.isolation.deleteMany({ where: { id: { in: deletedIds } } })
         : { count: 0 }
 
       return NextResponse.json({
@@ -794,8 +819,8 @@ export async function DELETE(request: Request) {
     }
 
     const deleted = ids && ids.length > 0
-      ? await (prisma as any).isolation.deleteMany({ where: { id: { in: ids } } })
-      : await (prisma as any).isolation.deleteMany({})
+      ? await prisma.isolation.deleteMany({ where: { id: { in: ids } } })
+      : await prisma.isolation.deleteMany({})
 
     return NextResponse.json({ success: true, count: deleted.count })
   } catch (error) {

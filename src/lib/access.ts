@@ -29,6 +29,11 @@ export function normalizeRole(role?: string | null) {
   return String(role ?? '').trim().toUpperCase()
 }
 
+export function isAdminRole(role?: string | null) {
+  const roleUpper = normalizeRole(role)
+  return roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
+}
+
 export function normalizeDivision(division?: string | null): AppDivisionCode {
   const divisionUpper = String(division ?? '').trim().toUpperCase()
   if (
@@ -119,7 +124,7 @@ function settingsSet(items: AppSettingsKey[]) {
 function getAccessibleMenus(role?: string | null) {
   const roleUpper = normalizeRole(role)
 
-  if (roleUpper === 'ADMIN') {
+  if (isAdminRole(roleUpper)) {
     return menuSet([
       'dashboard',
       'input',
@@ -186,7 +191,7 @@ export function canAccessMenu(role: string | null | undefined, menu: AppMenuKey)
 function getAccessibleSettingsPages(role?: string | null) {
   const roleUpper = normalizeRole(role)
 
-  if (roleUpper === 'ADMIN') {
+  if (isAdminRole(roleUpper)) {
     return settingsSet([
       'areas',
       'packages',
@@ -217,7 +222,7 @@ export function hasAnySettingsAccess(role: string | null | undefined) {
 export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey) {
   const roleUpper = normalizeRole(role)
 
-  if (roleUpper === 'ADMIN') return true
+  if (isAdminRole(roleUpper)) return true
 
   switch (menu) {
     case 'input':
@@ -254,15 +259,15 @@ export function hasAnyRole(role: string | null | undefined, allowedRoles: string
 }
 
 export function canManageListTickets(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI'])
 }
 
 export function canDeleteListTickets(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS', 'NOC'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'])
 }
 
 export function canImportListTickets(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'ADMIN_CS', 'CS', 'NOC', 'MARKETING', 'CREATOR_DIGITAL'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'ADMIN_CS', 'CS', 'NOC', 'MARKETING', 'CREATOR_DIGITAL'])
 }
 
 export function canAccessTroubleTicketRecords(role: string | null | undefined) {
@@ -274,19 +279,19 @@ export function canMutateTroubleTicketRecords(role: string | null | undefined) {
 }
 
 export function canMutateIsolationRecords(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS', 'DISMANTLE'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'DISMANTLE'])
 }
 
 export function canDeleteIsolationRecords(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CS', 'ADMIN_CS'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS'])
 }
 
 export function canUseAdminIsolationDismantleScope(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CS'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS'])
 }
 
 export function canMutateMarketingActivities(role: string | null | undefined) {
-  return normalizeRole(role) === 'ADMIN'
+  return isAdminRole(role)
 }
 
 export function canMutateOdpRecords(role: string | null | undefined) {
@@ -294,5 +299,5 @@ export function canMutateOdpRecords(role: string | null | undefined) {
 }
 
 export function canMutateCreatorDigitalMenu(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'CREATOR_DIGITAL'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CREATOR_DIGITAL'])
 }

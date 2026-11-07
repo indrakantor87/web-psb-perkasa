@@ -71,7 +71,7 @@ export function CampaignView({ userRole, initialDivision = 'ALL' }: CampaignView
   }, [division])
 
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isCreator = roleUpper === 'CREATOR_DIGITAL' || isAdmin
   const canEdit = isCreator
   const canDelete = isCreator

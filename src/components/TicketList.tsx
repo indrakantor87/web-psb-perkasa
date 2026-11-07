@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
 import { toDisplayMarketingName } from '@/lib/marketing-users'
-import { canDeleteListTickets, canManageListTickets } from '@/lib/access'
+import { canDeleteListTickets, canManageListTickets, isAdminRole } from '@/lib/access'
 
 interface Ticket {
   id: number
@@ -97,7 +97,7 @@ interface TicketListProps {
 export function TicketList({ tickets, userRole, readOnly = false, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
-  const isAdmin = (userRole || '').toUpperCase() === 'ADMIN'
+  const isAdmin = isAdminRole(userRole)
   const [loadingId, setLoadingId] = useState<number | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)

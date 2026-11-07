@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const data = await request.json()
     const { name, description, startDate, endDate, budget, status, objectives, platforms } = data
 
-    const campaign = await (prisma as any).campaign.update({
+    const campaign = await prisma.campaign.update({
       where: { id: parseInt(id) },
       data: {
         name,
@@ -44,7 +44,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (accessError) return accessError
 
     const { id } = await params
-    await (prisma as any).campaign.delete({
+    await prisma.campaign.delete({
       where: { id: parseInt(id) }
     })
 

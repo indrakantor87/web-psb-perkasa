@@ -186,6 +186,25 @@ export async function POST(request: Request) {
       status?: unknown
     }
 
+    type PreparedIsolation = {
+      customerName: string
+      userEmail: string | null
+      customerPhone: string | null
+      activeDate: Date | null
+      customerAddress: string | null
+      reason: string | null
+      marketing: string | null
+      radboox: string
+      price: Prisma.Decimal | null
+      status: string
+      isolationDate: Date
+      teknisi: string | null
+      restorationDate: Date | null
+      ticketDismantle: string | null
+      importBatchAt: Date
+      importRowOrder: number
+    }
+
     const toIsoRow = (row: Record<string, unknown>): IsoRow => {
       const out: IsoRow = {}
       for (const [k, v] of Object.entries(row)) {
@@ -195,7 +214,7 @@ export async function POST(request: Request) {
       return out
     }
 
-    const preparedByKey = new Map<string, any>()
+    const preparedByKey = new Map<string, PreparedIsolation>()
     const radbooxSet = new Set<string>()
 
     let parsedCount = 0
@@ -317,7 +336,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Radboox tidak ditemukan di file' }, { status: 400 })
     }
 
-    const existing = await (prisma as any).isolation.findMany({
+    const existing = await prisma.isolation.findMany({
       where: { radboox: { in: radbooxValues } },
       select: {
         id: true,
@@ -334,8 +353,8 @@ export async function POST(request: Request) {
       },
     })
 
-    const existingKeyToRow = new Map<string, any>()
-    for (const row of existing as any[]) {
+    const existingKeyToRow = new Map<string, (typeof existing)[number]>()
+    for (const row of existing) {
       const rad = String(row.radboox ?? '').trim()
       if (!rad) continue
       const email = normalizeEmail(row.userEmail)
@@ -368,7 +387,7 @@ export async function POST(request: Request) {
     for (const [key, data] of preparedByKey.entries()) {
       const existingRow = existingKeyToRow.get(key)
       if (existingRow) {
-        await (prisma as any).isolation.update({
+        await prisma.isolation.update({
           where: { id: existingRow.id },
           data,
         })
@@ -389,7 +408,7 @@ export async function POST(request: Request) {
         continue
       }
 
-      const created = await (prisma as any).isolation.create({ data })
+      const created = await prisma.isolation.create({ data })
       inserted += 1
       relinkCandidates.push({
         id: created.id,
@@ -412,7 +431,7 @@ export async function POST(request: Request) {
     let archived = 0
     for (const rad of radbooxValues) {
       const keepOpen = importedOpenIdsByRadboox.get(rad) ?? new Set<number>()
-      const candidates = (existing as any[])
+      const candidates = existing
         .filter((row) => String(row.radboox ?? '').trim() === rad)
         .filter((row) => String(row.status ?? '').trim().toUpperCase() === 'OPEN')
         .filter((row) => row.isArchived !== true)
@@ -432,14 +451,14 @@ export async function POST(request: Request) {
 
       for (const row of toRemove) {
         if (hasDismantleHistory(row)) {
-          await (prisma as any).isolation.update({
+          await prisma.isolation.update({
             where: { id: row.id },
             data: { isArchived: true, archivedAt: new Date() },
           })
           archived += 1
           continue
         }
-        await (prisma as any).isolation.delete({ where: { id: row.id } })
+        await prisma.isolation.delete({ where: { id: row.id } })
         deleted += 1
       }
     }

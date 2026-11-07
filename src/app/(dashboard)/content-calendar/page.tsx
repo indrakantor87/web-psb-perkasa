@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { canAccessMenu, normalizeDivision } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { ContentCalendarView } from '@/components/ContentCalendarView'
 
@@ -19,7 +19,7 @@ export default async function ContentCalendarPage({
     <div className="space-y-4 sm:space-y-6">
       <ContentCalendarView
         userRole={session.user.role}
-        initialDivision={params?.division as any}
+        initialDivision={normalizeDivision(params?.division)}
       />
     </div>
   )

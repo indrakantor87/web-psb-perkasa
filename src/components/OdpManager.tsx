@@ -153,7 +153,7 @@ export function OdpManager({
 }) {
   const defaultWilayah = useMemo(() => ['Pati', 'Bumiayu', 'Banjarsari', 'Kedungbulus', 'Trangkil', 'Margoyoso'], [])
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const [q, setQ] = useState('')
   const [qQuery, setQQuery] = useState('')

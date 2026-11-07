@@ -135,7 +135,7 @@ export async function PUT(
   if (activeDateParsed === 'INVALID') {
     return NextResponse.json({ error: 'Active Date tidak valid' }, { status: 400 })
   }
-  const isolationDateParsed = normalizeOptionalDate((body as any).isolationDate)
+  const isolationDateParsed = normalizeOptionalDate(body.isolationDate)
   if (isolationDateParsed === 'INVALID') {
     return NextResponse.json({ error: 'Tanggal isolir tidak valid' }, { status: 400 })
   }
@@ -165,7 +165,7 @@ export async function PUT(
   }
 
   try {
-    const data: any = {
+    const data: Prisma.IsolationUncheckedUpdateInput = {
       customerName: typeof body.customerName === 'string' ? body.customerName : undefined,
       customerAddress: normalizeOptionalString(body.customerAddress),
       customerPhone: normalizeOptionalString(body.customerPhone),
@@ -179,27 +179,27 @@ export async function PUT(
       teknisi: normalizeOptionalString(body.teknisi),
       ticketDismantle: normalizeOptionalString(body.ticketDismantle),
       ticketId: Number.isFinite(ticketId as number) ? (ticketId as number) : ticketId === null ? null : undefined,
-      closeNote: normalizeOptionalString((body as any).closeNote),
+      closeNote: normalizeOptionalString(body.closeNote),
       closePhoto: closePhotoDataUri,
       status,
       restorationDate: status === 'CLOSED' ? new Date() : status === 'OPEN' ? null : undefined,
     }
 
-    let isolation: any
+    let isolation: Awaited<ReturnType<typeof prisma.isolation.update>>
     try {
-      isolation = await (prisma as any).isolation.update({
+      isolation = await prisma.isolation.update({
         where: { id: isolationId },
         data,
       })
     } catch (e) {
-      const dataFallback: any = { ...data }
+      const dataFallback: Prisma.IsolationUncheckedUpdateInput = { ...data }
       if (isMissingColumn(e, 'price')) delete dataFallback.price
       if (isMissingColumn(e, 'closeNote')) delete dataFallback.closeNote
       if (isMissingColumn(e, 'closePhoto')) delete dataFallback.closePhoto
       if (dataFallback.price === data.price && dataFallback.closeNote === data.closeNote && dataFallback.closePhoto === data.closePhoto) {
         throw e
       }
-      isolation = await (prisma as any).isolation.update({
+      isolation = await prisma.isolation.update({
         where: { id: isolationId },
         data: dataFallback,
       })
@@ -236,7 +236,7 @@ export async function DELETE(
     await ensureIsolationColumnsOnce()
 
     if (preserveDismantleHistory) {
-      const existing = await (prisma as any).isolation.findUnique({
+      const existing = await prisma.isolation.findUnique({
         where: { id: isolationId },
         select: {
           id: true,
@@ -252,7 +252,7 @@ export async function DELETE(
       }
 
       if (hasDismantleHistory(existing)) {
-        await (prisma as any).isolation.update({
+        await prisma.isolation.update({
           where: { id: isolationId },
           data: {
             isArchived: true,
@@ -264,7 +264,7 @@ export async function DELETE(
       }
     }
 
-    await (prisma as any).isolation.delete({
+    await prisma.isolation.delete({
       where: { id: isolationId },
     })
 

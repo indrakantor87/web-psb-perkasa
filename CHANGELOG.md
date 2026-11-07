@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.3.0] - 2026-11-07
+
+### Added
+- Prototipe mobile khusus role DEVELOPER: beranda ringkas, ringkasan PSB, shortcut modul, navigasi bawah, dan menu modul/pengaturan.
+- Role DEVELOPER mendapat akses operasional setara Admin untuk menguji alur mobile; operasi pembaruan database yang memerlukan `DB_UPDATE_KEY` tetap khusus ADMIN.
+
 ## [1.2.2] - 2026-11-07
 
 ### Fixed

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords } from '@/lib/access'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole } from '@/lib/access'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -473,7 +473,7 @@ export async function GET(request: Request) {
   const { month, year } = parseMonthYear(searchParams)
   const roleUpper = (session.user.role || '').toUpperCase()
   const divisionFilter =
-    roleUpper === 'ADMIN' &&
+    isAdminRole(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
@@ -509,7 +509,7 @@ export async function GET(request: Request) {
       )
     }
 
-    if (roleUpper === 'ADMIN') {
+    if (isAdminRole(roleUpper)) {
       if (divisionFilter === 'CS_ADMIN' || divisionFilter === 'PENJUALAN' || divisionFilter === 'CREATOR_DIGITAL') {
         baseParts.push(`1 = 0`)
       }

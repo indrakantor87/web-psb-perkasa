@@ -76,7 +76,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
   const [marketingSearch, setMarketingSearch] = useState('')
   const [division, setDivision] = useState<MarketingActivityDivision>(initialDivision)
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
   const canMutate = !readOnly && isPenjualanFocus
   const divisionDescriptions: Record<MarketingActivityDivision, string> = {

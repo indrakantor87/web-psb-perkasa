@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    const where: any = {}
+    const where: Prisma.ContentCalendarWhereInput = {}
     if (status) where.status = status
     if (platform) where.platform = platform
     if (startDate && endDate) {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const contentCalendar = await (prisma as any).contentCalendar.findMany({
+    const contentCalendar = await prisma.contentCalendar.findMany({
       where,
       include: {
         creator: { select: { id: true, name: true, username: true } }
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const { title, content, contentType, platform, status, publishDate, notes, tags } = data
 
-    const contentItem = await (prisma as any).contentCalendar.create({
+    const contentItem = await prisma.contentCalendar.create({
       data: {
         title,
         content,

@@ -81,7 +81,7 @@ export function ContentCalendarView({ userRole, initialDivision = 'ALL' }: Conte
   }, [division])
 
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isCreator = roleUpper === 'CREATOR_DIGITAL' || isAdmin
   const canEdit = isCreator
   const canDelete = isCreator

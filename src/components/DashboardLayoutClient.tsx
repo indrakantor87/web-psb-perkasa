@@ -3,6 +3,7 @@
 import { Header } from '@/components/Header'
 import { CapacitorBackHandler } from '@/components/CapacitorBackHandler'
 import { PullToRefresh } from '@/components/PullToRefresh'
+import { DeveloperMobileNavigation } from '@/components/DeveloperMobileNavigation'
 import type { SessionUser } from '@/lib/auth'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -19,6 +20,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
   const [isNative, setIsNative] = useState(false)
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const isDismantle = (user?.role || '').toUpperCase() === 'DISMANTLE'
+  const isDeveloper = (user?.role || '').toUpperCase() === 'DEVELOPER'
   const useCompactOpsLayout = isTroubleshoots || isDismantle
 
   useEffect(() => {
@@ -155,10 +157,12 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
         <main
           ref={setMainElement}
           className={clsx(
-            'relative min-h-0 flex-1 overflow-y-auto md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]',
-            useCompactOpsLayout
-              ? 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]'
-              : 'p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))]'
+            'relative min-h-0 flex-1 overflow-y-auto',
+            isDeveloper
+              ? 'p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4 md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]'
+              : useCompactOpsLayout
+                ? 'p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]'
+                : 'p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]'
           )}
         >
           <PullToRefresh scrollEl={mainElement} enabled={!isNative} onRefresh={onRefresh} />
@@ -167,6 +171,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           </div>
         </main>
       </div>
+      {isDeveloper && <DeveloperMobileNavigation role={user.role} />}
     </div>
   )
 }

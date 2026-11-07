@@ -37,7 +37,7 @@ export function InputForm({
   const [error, setError] = useState('')
   const [division, setDivision] = useState<DivisionFilter>(initialDivision)
   const roleUpper = (user?.role || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isPenjualanFocus = !isAdmin || division === 'ALL' || division === 'PENJUALAN'
   const divisionDescriptions: Record<DivisionFilter, string> = {
     ALL: 'Modul Input PSB saat ini merepresentasikan operasional Penjualan, jadi admin masih memakai formulir utama ini untuk input pelanggan baru.',

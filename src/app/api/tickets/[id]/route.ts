@@ -170,19 +170,19 @@ export async function PUT(
 
     // Only allow authorized roles to update pengawalan
     if (pengawalan !== undefined) {
-      if (['ADMIN', 'CS', 'NOC'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(role)) {
         updateData.pengawalan = pengawalan
       }
     }
     // Only allow authorized roles to update kmz
     if (kmz !== undefined) {
-      if (['ADMIN', 'CS', 'NOC'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(role)) {
         updateData.kmz = kmz
       }
     }
     // Only allow authorized roles to update priority
     if (priority !== undefined) {
-      if (['ADMIN', 'CS', 'NOC', 'TEKNISI'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC', 'TEKNISI'].includes(role)) {
          updateData.priority = priority
        } else {
          return NextResponse.json({ error: 'Unauthorized to update priority' }, { status: 403 })
@@ -205,7 +205,7 @@ export async function PUT(
 
     status = normalizeStatus(status)
     if (typeof status !== 'undefined' && status !== '') {
-      if (!['ADMIN', 'CS', 'NOC', 'TEKNISI', 'MARKETING'].includes(role)) {
+      if (!['ADMIN', 'DEVELOPER', 'CS', 'NOC', 'TEKNISI', 'MARKETING'].includes(role)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     }

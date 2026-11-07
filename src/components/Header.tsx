@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
-import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess } from '@/lib/access'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref } from '@/lib/access'
 import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
 
 function formatDivisionLabel(division?: string | null) {
@@ -106,6 +106,7 @@ export function Header({ user }: { user: SessionUser }) {
   const isMarketing = user?.role === 'MARKETING'
   const roleUpper = (user?.role || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
+  const isDeveloper = roleUpper === 'DEVELOPER'
   const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
   const isDismantle = roleUpper === 'DISMANTLE'
   const roleDivision = getDivisionFromRole(user?.role)
@@ -207,7 +208,9 @@ export function Header({ user }: { user: SessionUser }) {
     return pathname === linkPath || (linkPath !== '/' && pathname.startsWith(linkPath))
   }, [currentDivisionParam, pathname])
 
-  const flatLinks: HeaderNavLink[] = isTroubleshoots
+  const flatLinks: HeaderNavLink[] = isDeveloper
+    ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }]
+    : isTroubleshoots
     ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
     : isDismantle
       ? [
@@ -329,8 +332,6 @@ export function Header({ user }: { user: SessionUser }) {
   const navGroups = isAdmin ? adminDivisionGroups : creatorDigitalGroups
   const usesGroupedNavigation = navGroups.length > 0
 
-  const hasSettingsAccess = hasAnySettingsAccess(user?.role)
-
   const settingsGroups: HeaderSettingsGroup[] = [
     {
       key: 'sales-master',
@@ -405,7 +406,7 @@ export function Header({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          {!isTroubleshoots && !isDismantle && isMobilePortrait && (
+          {!isTroubleshoots && !isDismantle && !isDeveloper && isMobilePortrait && (
             <nav className="flex min-w-0 items-center gap-2">
               <div className="relative" ref={navRefMobile}>
                 <button
@@ -680,7 +681,7 @@ export function Header({ user }: { user: SessionUser }) {
               })
             )}
 
-            <div className="relative" ref={settingsRefDesktop}>
+            <div className={clsx('relative', isDeveloper && 'hidden')} ref={settingsRefDesktop}>
               <button
                 onClick={() => {
                   setIsSettingsOpen(!isSettingsOpen)
@@ -834,7 +835,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isTroubleshoots && !isDismantle && !isMobilePortrait && (
+        {!isTroubleshoots && !isDismantle && !isDeveloper && !isMobilePortrait && (
         <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
           <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>

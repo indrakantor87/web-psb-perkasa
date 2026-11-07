@@ -14,7 +14,7 @@ import {
 import { getMarketingNameMap, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { DivisionPerformanceControls } from '@/components/DivisionPerformanceControls'
 import { DivisionPerformanceExportButton } from '@/components/DivisionPerformanceExportButton'
-import { getMenuHref } from '@/lib/access'
+import { getMenuHref, isAdminRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -248,7 +248,7 @@ export default async function DivisionPerformancePage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (session.user.role !== 'ADMIN') redirect('/')
+  if (!isAdminRole(session.user.role)) redirect('/')
 
   const params = await searchParams
   const now = jakartaNow()

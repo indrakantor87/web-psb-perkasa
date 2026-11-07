@@ -68,7 +68,7 @@ function toImportRow(row: Record<string, unknown>) {
   const mapped: ImportRow = {}
   for (const [key, value] of Object.entries(row)) {
     const field = mapField(key)
-    if (field) (mapped as any)[field] = value
+    if (field) (mapped as Record<string, unknown>)[field] = value
   }
   return mapped
 }

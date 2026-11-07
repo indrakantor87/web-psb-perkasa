@@ -10,7 +10,7 @@ import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
-import { getDivisionFromRole } from '@/lib/access'
+import { getDivisionFromRole, isAdminRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -195,7 +195,7 @@ export default async function DashboardPage({
   const currentMonth = typeof monthParam === 'string' ? parseInt(monthParam) : now.getMonth() + 1
   const currentYear = typeof yearParam === 'string' ? parseInt(yearParam) : now.getFullYear()
   const selectedDivision: DivisionFilter =
-    session.user.role === 'ADMIN'
+    isAdminRole(session.user.role)
       ? typeof divisionParam === 'string' &&
         ['PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
         ? (divisionParam as DivisionSummary['code'])
@@ -227,6 +227,7 @@ export default async function DashboardPage({
         troubleTicketProblemMonthly={payload.troubleTicketProblemMonthly}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
+        userName={session.user.name}
         divisionSummary={payload.divisionSummary}
         focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}
@@ -556,9 +557,9 @@ export default async function DashboardPage({
       }
     })(),
     prisma.isolation.count({ where: { status: 'CLOSED' } }).catch(() => 0),
-    (prisma as any).contentCalendar?.count().catch(() => 0),
-    (prisma as any).campaign?.count().catch(() => 0),
-    (prisma as any).digitalLead?.count().catch(() => 0),
+    prisma.contentCalendar.count().catch(() => 0),
+    prisma.campaign.count().catch(() => 0),
+    prisma.digitalLead.count().catch(() => 0),
     (async () => {
       try {
         await ensureIsolationColumnsOnce()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     const contentId = searchParams.get('contentId')
     const campaignId = searchParams.get('campaignId')
 
-    const where: any = {}
+    const where: Prisma.ContentAnalyticsWhereInput = {}
     if (platform) where.platform = platform
     if (contentId) where.contentId = parseInt(contentId)
     if (campaignId) where.campaignId = parseInt(campaignId)
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const analytics = await (prisma as any).contentAnalytics.findMany({
+    const analytics = await prisma.contentAnalytics.findMany({
       where,
       include: {
         content: true,
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregated summary
-    const summary = await (prisma as any).contentAnalytics.aggregate({
+    const summary = await prisma.contentAnalytics.aggregate({
       where,
       _sum: {
         reach: true,
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const { contentId, campaignId, platform, date, reach, impressions, likes, comments, shares, saves, clicks, followersGain } = data
 
-    const analytics = await (prisma as any).contentAnalytics.create({
+    const analytics = await prisma.contentAnalytics.create({
       data: {
         contentId: contentId ? parseInt(contentId) : null,
         campaignId: campaignId ? parseInt(campaignId) : null,

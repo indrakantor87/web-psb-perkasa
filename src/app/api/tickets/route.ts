@@ -273,7 +273,7 @@ export async function POST(request: Request) {
     } = result.data
 
     // Only allow authorized roles to set pengawalan initially
-    const canSetPengawalan = ['ADMIN', 'CS', 'NOC'].includes(activeSession.user.role)
+    const canSetPengawalan = ['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(activeSession.user.role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
     const finalMarketingName =

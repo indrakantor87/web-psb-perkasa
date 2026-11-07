@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const data = await request.json()
     const { title, content, contentType, platform, status, publishDate, notes, tags } = data
 
-    const contentItem = await (prisma as any).contentCalendar.update({
+    const contentItem = await prisma.contentCalendar.update({
       where: { id: parseInt(id) },
       data: {
         title,
@@ -44,7 +44,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (accessError) return accessError
 
     const { id } = await params
-    await (prisma as any).contentCalendar.delete({
+    await prisma.contentCalendar.delete({
       where: { id: parseInt(id) }
     })
 

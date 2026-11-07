@@ -3,7 +3,7 @@ import { canAccessMenu, canMutateMenu, type AppMenuKey } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { clsx } from 'clsx'
 
-const roles = ['ADMIN', 'MARKETING', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE'] as const
+const roles = ['ADMIN', 'DEVELOPER', 'MARKETING', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE'] as const
 const menus: AppMenuKey[] = [
   'dashboard',
   'input',

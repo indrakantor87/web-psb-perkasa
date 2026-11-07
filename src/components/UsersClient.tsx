@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
+import { isAdminRole } from '@/lib/access'
 
 interface User {
   id: number
@@ -28,6 +29,7 @@ type CreateUserErrorResponse = {
 const ROLE_OPTIONS = [
   { value: 'MARKETING', label: 'Marketing' },
   { value: 'ADMIN', label: 'Admin' },
+  { value: 'DEVELOPER', label: 'Developer' },
   { value: 'CS', label: 'Customer Service (CS)' },
   { value: 'ADMIN_CS', label: 'Admin CS' },
   { value: 'DISMANTLE', label: 'Dismantle' },
@@ -96,7 +98,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   })
 
   // Permissions
-  const isAdmin = currentUser?.role === 'ADMIN'
+  const isAdmin = isAdminRole(currentUser?.role)
   const canCreate = isAdmin
   const derivedDivision = mapRoleToDivision(formData.role)
   const filteredUsers = useMemo(() => {

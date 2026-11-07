@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { normalizeMarketingName, resolveMarketingName } from '@/lib/marketing-users'
-import { canMutateMarketingActivities } from '@/lib/access'
+import { canMutateMarketingActivities, isAdminRole } from '@/lib/access'
 import { ensureMenuAccess, requireSession, unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
@@ -27,12 +27,12 @@ export async function GET(request: Request) {
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const roleUpper = (activeSession.user.role || '').toUpperCase()
   const divisionFilter =
-    roleUpper === 'ADMIN' &&
+    isAdminRole(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
       ? divisionParam
       : 'ALL'
 
-  if (roleUpper === 'ADMIN' && divisionFilter !== 'ALL' && divisionFilter !== 'PENJUALAN') {
+  if (isAdminRole(roleUpper) && divisionFilter !== 'ALL' && divisionFilter !== 'PENJUALAN') {
     return NextResponse.json([])
   }
 

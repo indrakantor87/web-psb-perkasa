@@ -5,7 +5,7 @@ import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
-import { canMutateTroubleTicketRecords } from '@/lib/access'
+import { canMutateTroubleTicketRecords, isAdminRole } from '@/lib/access'
 
 type TroubleTicketRow = {
   id: number
@@ -465,7 +465,7 @@ export function TroubleTicketView({
   const [nextNumber, setNextNumber] = useState(1)
 
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = isAdminRole(roleUpper)
   const isTroubleshoots = roleUpper === 'TROUBLESHOOTS'
   const canCreate = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])

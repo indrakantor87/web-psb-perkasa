@@ -116,6 +116,7 @@ export async function ensureUserRoleValues() {
 
       const allowedRoles = [
         'ADMIN',
+        'DEVELOPER',
         'CS',
         'ADMIN_CS',
         'NOC',

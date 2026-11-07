@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 
 export async function GET(request: NextRequest) {
@@ -14,11 +15,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const source = searchParams.get('source')
 
-    const where: any = {}
+    const where: Prisma.DigitalLeadWhereInput = {}
     if (status) where.status = status
     if (source) where.source = source
 
-    const digitalLeads = await (prisma as any).digitalLead.findMany({
+    const digitalLeads = await prisma.digitalLead.findMany({
       where,
       include: {
         campaign: true,
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     const { name, phone, email, source, campaignId, message, status, notes } = data
 
-    const digitalLead = await (prisma as any).digitalLead.create({
+    const digitalLead = await prisma.digitalLead.create({
       data: {
         name,
         phone,

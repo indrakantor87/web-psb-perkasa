@@ -32,7 +32,7 @@ export const userCreateSchema = z.object({
   name: z.string().min(1, 'Nama harus diisi'),
   username: z.string().min(3, 'Username minimal 3 karakter'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
-  role: z.enum(['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS', 'CREATOR_DIGITAL', 'DISMANTLE']),
+  role: z.enum(['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS', 'CREATOR_DIGITAL', 'DISMANTLE']),
 })
 
 export const userUpdateSchema = z.object({
@@ -40,7 +40,7 @@ export const userUpdateSchema = z.object({
   name: z.string().min(1, 'Nama harus diisi').optional(),
   username: z.string().min(3, 'Username minimal 3 karakter').optional(),
   password: z.string().min(6, 'Password minimal 6 karakter').optional(),
-  role: z.enum(['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS', 'CREATOR_DIGITAL', 'DISMANTLE']).optional(),
+  role: z.enum(['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING', 'TEKNISI', 'TROUBLESHOOTS', 'CREATOR_DIGITAL', 'DISMANTLE']).optional(),
 }).refine((value) => Boolean(value.name || value.username || value.password || value.role), {
   message: 'Tidak ada perubahan yang dikirim',
 })

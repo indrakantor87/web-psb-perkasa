@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
+import { isAdminRole } from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -83,7 +84,7 @@ async function queryTicketsList(args: Args) {
     }
 
     const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
-    if (role === 'ADMIN') {
+    if (isAdminRole(role)) {
       if (normalizedDivision === 'CS_ADMIN') {
         appendAnd({
           OR: [

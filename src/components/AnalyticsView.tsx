@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ComponentType } from 'react'
 import { format } from 'date-fns'
 import { Plus, X, TrendingUp, Eye, ThumbsUp, MessageCircle, Share2, Bookmark, MousePointerClick, Users } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -81,7 +81,7 @@ export function AnalyticsView({ userRole, initialDivision = 'ALL' }: AnalyticsVi
   }, [division])
 
   const roleUpper = (userRole || '').toUpperCase()
-  const isAdmin = roleUpper === 'ADMIN'
+  const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isCreator = roleUpper === 'CREATOR_DIGITAL' || isAdmin
   const canEdit = isCreator
 
@@ -157,7 +157,7 @@ export function AnalyticsView({ userRole, initialDivision = 'ALL' }: AnalyticsVi
     }
   }
 
-  const StatCard = ({ icon: Icon, label, value, color = 'text-gray-900 dark:text-white' }: { icon: any; label: string; value: number; color?: string }) => (
+  const StatCard = ({ icon: Icon, label, value, color = 'text-gray-900 dark:text-white' }: { icon: ComponentType<{ className?: string }>; label: string; value: number; color?: string }) => (
     <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
       <div className="flex items-center justify-between mb-3">
         <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
