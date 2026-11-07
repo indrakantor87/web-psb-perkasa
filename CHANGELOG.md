@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.4.1] - 2026-11-08
+
+### Fixed
+- Navigasi desktop kini menampilkan modul sesuai role untuk semua role, termasuk seluruh grup akses DEVELOPER serta menu operasional TROUBLESHOOTS dan DISMANTLE; navigasi mobile tetap menggunakan bottom navigation.
+
 ## [1.4.0] - 2026-11-08
 
 ### Changed

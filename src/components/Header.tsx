@@ -208,9 +208,7 @@ export function Header({ user }: { user: SessionUser }) {
     return pathname === linkPath || (linkPath !== '/' && pathname.startsWith(linkPath))
   }, [currentDivisionParam, pathname])
 
-  const flatLinks: HeaderNavLink[] = isDeveloper
-    ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }]
-    : isTroubleshoots
+  const flatLinks: HeaderNavLink[] = isTroubleshoots
     ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
     : isDismantle
       ? [
@@ -232,7 +230,7 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
       ]
 
-  const adminDivisionGroups: HeaderNavGroup[] = isAdmin && !isTroubleshoots
+  const adminDivisionGroups: HeaderNavGroup[] = (isAdmin || isDeveloper) && !isTroubleshoots
     ? [
         {
           key: 'penjualan',
@@ -329,7 +327,7 @@ export function Header({ user }: { user: SessionUser }) {
         ]
       : []
 
-  const navGroups = isAdmin ? adminDivisionGroups : creatorDigitalGroups
+  const navGroups = isAdmin || isDeveloper ? adminDivisionGroups : creatorDigitalGroups
   const usesGroupedNavigation = navGroups.length > 0
 
   const settingsGroups: HeaderSettingsGroup[] = [
@@ -585,7 +583,6 @@ export function Header({ user }: { user: SessionUser }) {
             </nav>
           )}
 
-          {!isTroubleshoots && !isDismantle && (
           <nav className="hidden md:flex items-center space-x-1">
             {usesGroupedNavigation ? (
               <>
@@ -681,7 +678,7 @@ export function Header({ user }: { user: SessionUser }) {
               })
             )}
 
-            <div className={clsx('relative', isDeveloper && 'hidden')} ref={settingsRefDesktop}>
+            <div className="relative" ref={settingsRefDesktop}>
               <button
                 onClick={() => {
                   setIsSettingsOpen(!isSettingsOpen)
@@ -769,7 +766,6 @@ export function Header({ user }: { user: SessionUser }) {
               )}
             </div>
           </nav>
-          )}
         </div>
         
           <div className="flex items-center space-x-3 sm:space-x-4">
