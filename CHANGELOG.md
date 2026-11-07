@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.2.1] - 2026-11-07
+
+### Changed
+- Baris Lokasi ODP pada Trouble Ticket sekaligus menjadi tautan ke titik ODP di Maps; baris Maps ODP terpisah dihilangkan.
+
 ## [1.2.0] - 2026-11-07
 
 ### Added

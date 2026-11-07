@@ -1885,10 +1885,11 @@ export function TroubleTicketView({
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const odpInfo = r.odpId ? odps.find((odp) => odp.id === r.odpId) ?? null : null
+                const odpLocation = String(odpInfo?.lokasi ?? '').trim()
                 const odpMapsHref = odpInfo
                   ? typeof odpInfo.latitude === 'number' && typeof odpInfo.longitude === 'number'
                     ? `https://www.google.com/maps?q=${odpInfo.latitude},${odpInfo.longitude}`
-                    : normalizeMapsLink(String(odpInfo.lokasi ?? ''))
+                    : normalizeMapsLink(odpLocation)
                   : ''
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
                 const statusLabel = isClosed ? 'Close' : r.temporaryAt ? 'Temporary' : 'Open'
@@ -2008,12 +2009,11 @@ export function TroubleTicketView({
                                     value: odpInfo?.nama_odp ?? (r.odpId ? String(r.odpId) : '-'),
                                   },
                                   { label: 'Port ODP', value: r.portNumber == null ? '-' : String(r.portNumber) },
-                                  { label: 'Lokasi ODP', value: (odpInfo?.lokasi || '').trim() || '-' },
                                   {
-                                    label: 'Maps ODP',
+                                    label: 'Lokasi ODP',
                                     value: odpMapsHref ? (
                                       <a href={odpMapsHref} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
-                                        Buka Lokasi ODP
+                                        {odpLocation || 'Buka Lokasi ODP'}
                                       </a>
                                     ) : '-',
                                   },
