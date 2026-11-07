@@ -169,6 +169,15 @@ function formatDurationMs(ms: number) {
   return `${days}D:${hours}H:${minutes}M`
 }
 
+// Aturan tunggal: jam berhenti saat Close, atau saat Temporary (dipakai durasi & overdue).
+function getTicketEndMs(row: { closedAt?: string | null; temporaryAt?: string | null }, nowMs: number) {
+  const closedMs = row.closedAt ? new Date(row.closedAt).getTime() : Number.NaN
+  if (Number.isFinite(closedMs)) return closedMs
+  const temporaryMs = row.temporaryAt ? new Date(row.temporaryAt).getTime() : Number.NaN
+  if (Number.isFinite(temporaryMs)) return temporaryMs
+  return nowMs
+}
+
 function formatOverdueShort(ms: number) {
   if (!Number.isFinite(ms) || ms <= 0) return ''
   const totalMinutes = Math.floor(ms / 60_000)
@@ -454,7 +463,6 @@ export function TroubleTicketView({
   const [ontOptions, setOntOptions] = useState<string[]>([])
   const [idPrefix, setIdPrefix] = useState('TT/PKN/')
   const [nextNumber, setNextNumber] = useState(1)
-  const [isMobilePortrait, setIsMobilePortrait] = useState(false)
 
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
@@ -476,20 +484,6 @@ export function TroubleTicketView({
     setCopied(false)
   }, [])
   const hasAnyModalOpen = isCreateOpen || isEditOpen || !!detailRow || isPhotoViewerOpen
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
-    const update = () => setIsMobilePortrait(mq.matches)
-    update()
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', update)
-      return () => mq.removeEventListener('change', update)
-    }
-
-    mq.addListener(update)
-    return () => mq.removeListener(update)
-  }, [])
 
   useEffect(() => {
     if (!hasAnyModalOpen) return
@@ -628,7 +622,8 @@ export function TroubleTicketView({
               const t = new Date(r.openedAt).getTime()
               const days = slaDays[normalizeTypeKey(r.type)] ?? 1
               const limitMs = days * 24 * 60 * 60 * 1000
-              return Number.isFinite(t) && nowMs - t > limitMs
+              const endMs = getTicketEndMs(r, nowMs)
+              return Number.isFinite(t) && endMs - t > limitMs
             })
           : status === 'OVERDUE'
             ? nextRows
@@ -759,7 +754,7 @@ export function TroubleTicketView({
         const typeKey = String(r.type ?? '').trim().toUpperCase().replace(/\s+/g, '_')
         const days = slaDays[typeKey] ?? 1
         const limitMs = days * 24 * 60 * 60 * 1000
-        if (Number.isFinite(t) && now - t > limitMs) overdue += 1
+        if (Number.isFinite(t) && getTicketEndMs(r, now) - t > limitMs) overdue += 1
       }
     }
     return { open, preventiveOpen, close, overdue }
@@ -1203,8 +1198,8 @@ export function TroubleTicketView({
         'CLOSE': formatExcelDate(r.closedAt),
         'DURASI': (() => {
           const openedAtMs = new Date(r.openedAt).getTime()
-          const closedAtMs = r.closedAt ? new Date(r.closedAt).getTime() : null
-          const durationMs = Number.isFinite(openedAtMs) ? (closedAtMs ?? now) - openedAtMs : NaN
+          const endAtMs = getTicketEndMs(r, now)
+          const durationMs = Number.isFinite(openedAtMs) ? endAtMs - openedAtMs : NaN
           return formatDurationMs(durationMs)
         })(),
         'KETERANGAN': r.notes || '',
@@ -1509,10 +1504,11 @@ export function TroubleTicketView({
               const typeKey = normalizeTypeKey(r.type)
               const sla = slaDays[typeKey] ?? 1
               const openedAtMs = new Date(r.openedAt).getTime()
+              const endAtMs = getTicketEndMs(r, now)
               const dueAtMs = openedAtMs + sla * 24 * 60 * 60 * 1000
-              const overdueMs = now - dueAtMs
+              const overdueMs = endAtMs - dueAtMs
               const isOverdue = !isClosed && Number.isFinite(openedAtMs) && overdueMs > 0
-              const remainingMs = dueAtMs - now
+              const remainingMs = dueAtMs - endAtMs
               const isNearOverdue = !isClosed && Number.isFinite(openedAtMs) && remainingMs > 0 && remainingMs <= 6 * 60 * 60 * 1000
               const isVeryNearOverdue = !isClosed && Number.isFinite(openedAtMs) && remainingMs > 0 && remainingMs <= 60 * 60 * 1000
 
@@ -1686,7 +1682,7 @@ export function TroubleTicketView({
 
       {!isTroubleshoots && (
       <div className="space-y-2">
-        <div className={clsx('space-y-2', isMobilePortrait ? 'hidden' : 'md:hidden')}>
+        <div className="space-y-2 md:hidden">
           {loading ? (
             <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
               Memuat...
@@ -1702,10 +1698,7 @@ export function TroubleTicketView({
               const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
               const code = getDisplayTicketId(r)
               const openedAtMs = new Date(r.openedAt).getTime()
-              const closedAtMs = r.closedAt ? new Date(r.closedAt).getTime() : null
-              const temporaryAtMs = r.temporaryAt ? new Date(r.temporaryAt).getTime() : null
-              const endAtMs = closedAtMs ?? temporaryAtMs
-              const durationMs = Number.isFinite(openedAtMs) ? (endAtMs ?? now) - openedAtMs : NaN
+              const durationMs = Number.isFinite(openedAtMs) ? getTicketEndMs(r, now) - openedAtMs : NaN
 
               return (
                 <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
@@ -1840,7 +1833,7 @@ export function TroubleTicketView({
           )}
         </div>
 
-        <div className={clsx('rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800', isMobilePortrait ? 'block' : 'hidden md:block')}>
+        <div className="hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 md:block">
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[1000px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900">
@@ -1878,10 +1871,7 @@ export function TroubleTicketView({
             ) : (
               rows.map((r) => {
                 const openedAtMs = new Date(r.openedAt).getTime()
-                const closedAtMs = r.closedAt ? new Date(r.closedAt).getTime() : null
-                const temporaryAtMs = r.temporaryAt ? new Date(r.temporaryAt).getTime() : null
-                const endAtMs = closedAtMs ?? temporaryAtMs
-                const durationMs = Number.isFinite(openedAtMs) ? (endAtMs ?? now) - openedAtMs : NaN
+                const durationMs = Number.isFinite(openedAtMs) ? getTicketEndMs(r, now) - openedAtMs : NaN
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
                 const odpInfo = r.odpId ? odps.find((odp) => odp.id === r.odpId) ?? null : null

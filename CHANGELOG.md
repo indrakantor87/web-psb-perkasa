@@ -13,6 +13,13 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.2.2] - 2026-11-07
+
+### Fixed
+- Aturan "jam berhenti saat Temporary" kini dipakai konsisten: perhitungan overdue (badge OVERDUE di tampilan Troubleshoots, filter Overdue, ringkasan Overdue di halaman dan API) serta kolom DURASI pada ekspor tidak lagi memakai waktu berjalan sehingga angka tidak terus bertambah setelah tiket di-Temporary.
+- KPI Overdue pada dashboard dan pengingat SLA WhatsApp (cron) ikut menghormati status Temporary; tiket yang dijeda tidak lagi dihitung overdue maupun dikirimi pengingat.
+- Tampilan Trouble Ticket pada ponsel: daftar kartu kini tampil pada layar < 768px (sebelumnya kartu tersembunyi pada ponsel portrait dan tabel 1000px yang dipaksa tampil), sedangkan tabel tetap untuk layar desktop.
+
 ## [1.2.1] - 2026-11-07
 
 ### Changed

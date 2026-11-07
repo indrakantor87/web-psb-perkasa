@@ -533,7 +533,7 @@ export async function GET(request: Request) {
 
     const useSlaJoin = roleUpper !== 'TROUBLESHOOTS' && overdueOnly
     if (useSlaJoin) {
-      whereParts.push(`NOW() - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')`)
+      whereParts.push(`COALESCE("temporaryAt", NOW()) - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')`)
     }
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
@@ -657,17 +657,20 @@ export async function GET(request: Request) {
         "status",
         "openedAt",
         "closedAt",
+        "temporaryAt",
         "category",
         "type"
       FROM "TroubleTicket"
       ${summaryWhereSql};
     `
+
     const summarySourceRows = await prisma.$queryRawUnsafe<
       Array<{
         user: string | null
         status: string | null
         openedAt: Date | string | null
         closedAt: Date | string | null
+        temporaryAt: Date | string | null
         category: string | null
         type: string | null
       }>
@@ -714,9 +717,13 @@ export async function GET(request: Request) {
       }
 
       const openedAtMs = row.openedAt ? new Date(row.openedAt).getTime() : Number.NaN
+      const closedAtMs = row.closedAt ? new Date(row.closedAt).getTime() : Number.NaN
+      const temporaryAtMs = row.temporaryAt ? new Date(row.temporaryAt).getTime() : Number.NaN
+      // Jam berhenti saat Close/Temporary, jadi tiket temporary tidak dihitung overdue.
+      const endMs = Number.isFinite(closedAtMs) ? closedAtMs : Number.isFinite(temporaryAtMs) ? temporaryAtMs : nowMs
       const limitDays = slaMap.get(typeKey) ?? 1
       const limitMs = limitDays * 24 * 60 * 60 * 1000
-      if (Number.isFinite(openedAtMs) && nowMs - openedAtMs > limitMs) {
+      if (Number.isFinite(openedAtMs) && endMs - openedAtMs > limitMs) {
         overdue += 1
       }
     }

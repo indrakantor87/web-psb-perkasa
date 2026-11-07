@@ -210,6 +210,18 @@ export async function POST(req: Request) {
     take: 5000,
   })
 
+  // Jam berhenti saat Temporary: tiket yang dijeda tidak dikirim pengingat SLA.
+  const temporaryIds = new Set<number>()
+  const openTicketIds = openTickets.map((t) => Number(t.id)).filter((id) => Number.isFinite(id))
+  if (openTicketIds.length) {
+    const temporaryRows = await prisma
+      .$queryRawUnsafe<Array<{ id: number }>>(
+        `SELECT "id" FROM "TroubleTicket" WHERE "id" IN (${openTicketIds.join(',')}) AND "temporaryAt" IS NOT NULL`,
+      )
+      .catch(() => [])
+    for (const row of temporaryRows) temporaryIds.add(Number(row.id))
+  }
+
   let considered = 0
   let queued = 0
   let manual = 0
@@ -219,6 +231,7 @@ export async function POST(req: Request) {
   const hasGateway = Boolean(process.env.WA_GATEWAY_URL)
 
   for (const t of openTickets) {
+    if (temporaryIds.has(Number(t.id))) continue
     const typeKey = normalizeTypeKey(t.type)
     const slaDays = SLA_DAYS[typeKey] ?? 3
     const dueAtMs = new Date(t.openedAt).getTime() + slaDays * 24 * 60 * 60 * 1000

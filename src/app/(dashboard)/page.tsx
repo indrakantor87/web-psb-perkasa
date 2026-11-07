@@ -538,6 +538,9 @@ export default async function DashboardPage({
     (async () => {
       try {
         await ensureSlaTableForDashboard()
+        await prisma
+          .$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
+          .catch(() => {})
         const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
           SELECT COUNT(*)::int AS count
           FROM "TroubleTicket" tt
@@ -545,7 +548,7 @@ export default async function DashboardPage({
           WHERE tt."openedAt" >= ${startDate}
             AND tt."openedAt" < ${endDate}
             AND tt."status" = 'OPEN'
-            AND NOW() - tt."openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
+            AND COALESCE(tt."temporaryAt", NOW()) - tt."openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
         `)
         return Number(rows[0]?.count || 0)
       } catch {
