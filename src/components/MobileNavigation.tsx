@@ -4,59 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
+import { ChevronRight, Home, Menu, X } from 'lucide-react'
 import {
-  Activity,
-  Ban,
-  CalendarDays,
-  ChartNoAxesCombined,
-  ChevronRight,
-  FileInput,
-  Home,
-  List,
-  Menu,
-  Megaphone,
-  ShieldCheck,
-  Users,
-  Wifi,
-  Wrench,
-  X,
-} from 'lucide-react'
-import { canAccessMenu, canAccessSettingsPage } from '@/lib/access'
+  canAccessMenu,
+  canAccessSettingsPage,
+  getDivisionFromRole,
+  getMenuHref,
+} from '@/lib/access'
+import { MOBILE_PRIMARY_ORDER, mobileMenuEntries } from '@/lib/mobile-nav'
 
 type Props = {
   role: string
 }
-
-const primaryLinks = [
-  { href: '/', label: 'Beranda', icon: Home, activePath: '/' },
-  { href: '/list?division=ALL', label: 'PSB', icon: List, activePath: '/list' },
-  { href: '/odp?division=ALL', label: 'Port ODP', icon: Wifi, activePath: '/odp' },
-  { href: '/trouble-ticket?division=ALL', label: 'Tiket', icon: Wrench, activePath: '/trouble-ticket' },
-]
-
-const moduleGroups = [
-  {
-    label: 'Operasional',
-    links: [
-      { key: 'input', href: '/input?division=ALL', label: 'Input PSB', icon: FileInput },
-      { key: 'list', href: '/list?division=ALL', label: 'List Data PSB', icon: List },
-      { key: 'marketing-activities', href: '/marketing-activities?division=ALL', label: 'Aktivitas Marketing', icon: Activity },
-      { key: 'isolir', href: '/isolir?division=ALL', label: 'Isolir', icon: Ban },
-      { key: 'dismantle', href: '/dismantle?division=ALL&status=OPEN', label: 'Dismantle', icon: Wrench },
-      { key: 'odp', href: '/odp?division=ALL', label: 'Port ODP', icon: Wifi },
-      { key: 'trouble-ticket', href: '/trouble-ticket?division=ALL', label: 'Trouble Ticket', icon: ShieldCheck },
-    ],
-  },
-  {
-    label: 'Digital',
-    links: [
-      { key: 'content-calendar', href: '/content-calendar?division=CREATOR_DIGITAL', label: 'Content Calendar', icon: CalendarDays },
-      { key: 'campaigns', href: '/campaigns?division=CREATOR_DIGITAL', label: 'Campaign', icon: Megaphone },
-      { key: 'digital-leads', href: '/digital-leads?division=CREATOR_DIGITAL', label: 'Digital Leads', icon: Users },
-      { key: 'analytics', href: '/analytics?division=CREATOR_DIGITAL', label: 'Analytics', icon: ChartNoAxesCombined },
-    ],
-  },
-]
 
 const settingsLinks = [
   { key: 'users', href: '/settings/users', label: 'Manajemen Pengguna' },
@@ -67,11 +26,12 @@ const settingsLinks = [
   { key: 'priorities', href: '/settings/priorities', label: 'Prioritas' },
   { key: 'role-audit', href: '/settings/role-audit', label: 'Audit Role' },
   { key: 'security-logs', href: '/settings/security-logs', label: 'Log Aktivitas' },
-]
+] as const
 
-export function DeveloperMobileNavigation({ role }: Props) {
+export function MobileNavigation({ role }: Props) {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const roleDivision = getDivisionFromRole(role)
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -81,6 +41,21 @@ export function DeveloperMobileNavigation({ role }: Props) {
       document.body.style.overflow = previousOverflow
     }
   }, [isMenuOpen])
+
+  const primaryLinks = MOBILE_PRIMARY_ORDER
+    .filter((key) => canAccessMenu(role, key))
+    .slice(0, 4)
+    .map((key) => mobileMenuEntries.find((item) => item.key === key))
+    .filter((item): item is (typeof mobileMenuEntries)[number] => Boolean(item))
+
+  const menuGroups = (['Operasional', 'Digital'] as const)
+    .map((label) => ({
+      label,
+      links: mobileMenuEntries.filter((item) => item.group === label && canAccessMenu(role, item.key)),
+    }))
+    .filter((group) => group.links.length > 0)
+
+  const accessibleSettings = settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
 
   const menuSheet = isMenuOpen && typeof document !== 'undefined'
     ? createPortal(
@@ -98,7 +73,7 @@ export function DeveloperMobileNavigation({ role }: Props) {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">Semua Menu</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Akses modul dan pengaturan</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Modul yang dapat Anda akses</p>
               </div>
               <button
                 type="button"
@@ -111,47 +86,44 @@ export function DeveloperMobileNavigation({ role }: Props) {
             </div>
 
             <div className="space-y-5">
-              {moduleGroups.map((group) => (
+              {menuGroups.map((group) => (
                 <section key={group.label}>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {group.label}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
-                    {group.links
-                      .filter((item) => canAccessMenu(role, item.key as Parameters<typeof canAccessMenu>[1]))
-                      .map((item) => {
-                        const Icon = item.icon
-                        const active = pathname === item.href.split('?')[0]
-                        return (
-                          <Link
-                            key={item.key}
-                            href={item.href}
-                            prefetch={false}
-                            onClick={() => setIsMenuOpen(false)}
-                            className={`flex min-h-14 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${
-                              active
-                                ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300'
-                                : 'border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
-                            }`}
-                          >
-                            <Icon className="h-4 w-4 shrink-0" />
-                            <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
-                            <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-                          </Link>
-                        )
-                      })}
+                    {group.links.map((item) => {
+                      const Icon = item.icon
+                      const active = pathname === item.activePath
+                      return (
+                        <Link
+                          key={item.key}
+                          href={getMenuHref(item.key, roleDivision)}
+                          prefetch={false}
+                          onClick={() => setIsMenuOpen(false)}
+                          className={`flex min-h-14 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${
+                            active
+                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300'
+                              : 'border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                        </Link>
+                      )
+                    })}
                   </div>
                 </section>
               ))}
 
-              <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Pengaturan
-                </h3>
-                <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                  {settingsLinks
-                    .filter((item) => canAccessSettingsPage(role, item.key as Parameters<typeof canAccessSettingsPage>[1]))
-                    .map((item) => (
+              {accessibleSettings.length > 0 && (
+                <section>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Pengaturan
+                  </h3>
+                  <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                    {accessibleSettings.map((item) => (
                       <Link
                         key={item.key}
                         href={item.href}
@@ -163,8 +135,9 @@ export function DeveloperMobileNavigation({ role }: Props) {
                         <ChevronRight className="h-4 w-4 text-slate-400" />
                       </Link>
                     ))}
-                </div>
-              </section>
+                  </div>
+                </section>
+              )}
             </div>
           </section>
         </div>,
@@ -175,21 +148,32 @@ export function DeveloperMobileNavigation({ role }: Props) {
   return (
     <>
       <nav
-        aria-label="Navigasi utama mobile Developer"
+        aria-label="Navigasi utama mobile"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-1 pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 md:hidden"
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="mx-auto grid max-w-lg grid-cols-5">
+        <div className="mx-auto flex max-w-lg">
+          <Link
+            href="/"
+            prefetch={false}
+            aria-current={pathname === '/' ? 'page' : undefined}
+            className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
+              pathname === '/' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Home className="h-5 w-5" />
+            Beranda
+          </Link>
           {primaryLinks.map((link) => {
             const Icon = link.icon
-            const active = link.activePath === '/' ? pathname === '/' : pathname.startsWith(link.activePath)
+            const active = pathname.startsWith(link.activePath)
             return (
               <Link
-                key={link.label}
-                href={link.href}
+                key={link.key}
+                href={getMenuHref(link.key, roleDivision)}
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
+                className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
                   active ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
@@ -202,7 +186,7 @@ export function DeveloperMobileNavigation({ role }: Props) {
             type="button"
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen(true)}
-            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
+            className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
               isMenuOpen ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
             }`}
           >

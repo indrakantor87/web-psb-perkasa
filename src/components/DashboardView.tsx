@@ -7,7 +7,7 @@ import { clsx } from 'clsx'
 import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getDivisionFromRole, isAdminRole } from '@/lib/access'
-import { DeveloperMobileDashboard } from '@/components/DeveloperMobileDashboard'
+import { MobileHome } from '@/components/MobileHome'
 
 type DivisionSummary = {
   code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -1057,12 +1057,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     </div>
   )
 
-  return roleUpper === 'DEVELOPER' ? (
+  return (
     <>
-      <DeveloperMobileDashboard userName={userName ?? 'Developer'} statusCounts={statusCounts} />
+      <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
       <div className="hidden md:block">{dashboardContent}</div>
     </>
-  ) : dashboardContent
+  )
 }
 
 function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref?: string }) {

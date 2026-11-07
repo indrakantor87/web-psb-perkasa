@@ -13,6 +13,16 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.4.0] - 2026-11-08
+
+### Changed
+- Tampilan mobile (beranda ringkas + navigasi bawah) kini berlaku untuk semua role, dengan menu tetap dibatasi sesuai izin akses masing-masing.
+- Beranda mobile adaptif: kartu "Ringkasan PSB" hanya tampil bila role memiliki akses data PSB, dan grid "Akses Cepat" hanya menampilkan modul yang boleh diakses role tersebut.
+- Navigasi bawah menampilkan maksimal 4 modul utama sesuai akses role, ditambah tombol Menu untuk seluruh modul dan pengaturan yang diizinkan.
+
+### Removed
+- Komponen khusus mobile DEVELOPER digantikan oleh komponen mobile generik.
+
 ## [1.3.0] - 2026-11-07
 
 ### Added
