@@ -41,6 +41,9 @@ type OdpOption = {
   id: number
   nama_odp: string
   wilayah: string
+  lokasi?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 type TroubleTicketCreatePayload = {
@@ -1881,6 +1884,12 @@ export function TroubleTicketView({
                 const durationMs = Number.isFinite(openedAtMs) ? (endAtMs ?? now) - openedAtMs : NaN
                 const wa = normalizeWaNumber(r.waNumber)
                 const mapsLink = (r.mapsUrl || '').trim()
+                const odpInfo = r.odpId ? odps.find((odp) => odp.id === r.odpId) ?? null : null
+                const odpMapsHref = odpInfo
+                  ? typeof odpInfo.latitude === 'number' && typeof odpInfo.longitude === 'number'
+                    ? `https://www.google.com/maps?q=${odpInfo.latitude},${odpInfo.longitude}`
+                    : normalizeMapsLink(String(odpInfo.lokasi ?? ''))
+                  : ''
                 const isClosed = (r.status || '').toUpperCase() === 'CLOSE' || !!r.closedAt
                 const statusLabel = isClosed ? 'Close' : r.temporaryAt ? 'Temporary' : 'Open'
                 const userKey = String(r.user ?? '').trim().toLowerCase()
@@ -1996,9 +2005,18 @@ export function TroubleTicketView({
                                   { label: 'ONT', value: (r.ont || '').trim() || '-' },
                                   {
                                     label: 'ODP',
-                                    value: r.odpId ? odps.find((odp) => odp.id === r.odpId)?.nama_odp ?? String(r.odpId) : '-',
+                                    value: odpInfo?.nama_odp ?? (r.odpId ? String(r.odpId) : '-'),
                                   },
                                   { label: 'Port ODP', value: r.portNumber == null ? '-' : String(r.portNumber) },
+                                  { label: 'Lokasi ODP', value: (odpInfo?.lokasi || '').trim() || '-' },
+                                  {
+                                    label: 'Maps ODP',
+                                    value: odpMapsHref ? (
+                                      <a href={odpMapsHref} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                        Buka Lokasi ODP
+                                      </a>
+                                    ) : '-',
+                                  },
                                   { label: 'Serial Number', value: (r.sn || '').trim() || '-' },
                                 ]}
                               />

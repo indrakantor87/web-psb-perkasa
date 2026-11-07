@@ -6,6 +6,7 @@ import { cache } from '@/lib/cache'
 import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketing-users'
 import { canDeleteListTickets, canMutateMenu } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
+import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
 async function syncOdpUsage(oldOdpId: number | null, newOdpId: number | null, isClosing: boolean, wasClosed: boolean) {
   // If moving from not-closed to closed
@@ -302,12 +303,21 @@ export async function DELETE(
   }
 
   const { id } = await params
-  
+  const ticketId = parseInt(id)
+
   try {
+    const existing = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { status: true, odpId: true },
+    })
     await prisma.ticket.delete({
-      where: { id: parseInt(id) },
+      where: { id: ticketId },
       select: { id: true }
     })
+    // Tiket yang sudah terpasang (CLOSE) menahan satu port ODP; lepaskan saat dihapus.
+    if (existing?.status === 'CLOSE') {
+      await adjustOdpTerpakai(existing.odpId, -1)
+    }
     cache.invalidateByPrefix('tickets-list:')
     cache.invalidateByPrefix('tickets:')
     return NextResponse.json({ message: 'Ticket deleted' })

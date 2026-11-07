@@ -6,6 +6,7 @@ import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureDismantleHistoryTable, getDismantleHistoryById } from '@/lib/dismantle-history'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { ensureDismantleTicketsTable } from '@/lib/dismantle-tickets'
+import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
 export const runtime = 'nodejs'
 
@@ -36,18 +37,17 @@ export async function POST(
     }
 
     await prisma.$transaction(async (tx) => {
-      const txAny = tx as any
       let reopenedIsolationId: number | null = null
 
       if (history.sourceIsolationId != null) {
-        const existingIsolation = await txAny.isolation.findUnique({
+        const existingIsolation = await tx.isolation.findUnique({
           where: { id: Number(history.sourceIsolationId) },
           select: { id: true },
         })
 
         if (existingIsolation) {
           reopenedIsolationId = Number(existingIsolation.id)
-          await txAny.isolation.update({
+          await tx.isolation.update({
             where: { id: reopenedIsolationId },
             data: {
               customerName: history.customerName,
@@ -71,7 +71,7 @@ export async function POST(
       }
 
       if (reopenedIsolationId == null) {
-        const created = await txAny.isolation.create({
+        const created = await tx.isolation.create({
           data: {
             customerName: history.customerName,
             customerAddress: history.customerAddress ?? null,
@@ -109,9 +109,11 @@ export async function POST(
             "status",
             "ticketNumber",
             "createdAt",
-            "updatedAt"
+            "updatedAt",
+            "odpId",
+            "portNumber"
           ) VALUES (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',$10,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',$10,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,$11,$12
           )
           ON CONFLICT ("sourceIsolationId") WHERE "sourceIsolationId" IS NOT NULL
           DO UPDATE SET
@@ -124,6 +126,8 @@ export async function POST(
             "isolationDate" = EXCLUDED."isolationDate",
             "reason" = EXCLUDED."reason",
             "ticketNumber" = EXCLUDED."ticketNumber",
+            "odpId" = EXCLUDED."odpId",
+            "portNumber" = EXCLUDED."portNumber",
             "status" = 'OPEN',
             "updatedAt" = CURRENT_TIMESTAMP
         `,
@@ -137,7 +141,14 @@ export async function POST(
         history.isolationDate ? new Date(history.isolationDate) : new Date(),
         history.reason ?? null,
         history.ticketDismantle ?? null,
+        history.odpId ?? null,
+        history.portNumber ?? null,
       )
+
+      // Reopen membatalkan dismantle: port ODP dipakai kembali.
+      if (history.odpId != null) {
+        await adjustOdpTerpakai(Number(history.odpId), 1, tx)
+      }
 
       await tx.$executeRawUnsafe(`DELETE FROM "DismantleHistory" WHERE "id" = $1`, historyId)
     })

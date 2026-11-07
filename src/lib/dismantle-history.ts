@@ -30,6 +30,8 @@ export type DismantleHistoryRow = {
   ticketId: number | null
   ticketLocationMap: string | null
   ticketDescription: string | null
+  odpId: number | null
+  portNumber: number | null
   closeNote: string | null
   closePhoto: string | null
   closePhotos: string[] | null
@@ -56,6 +58,8 @@ export async function ensureDismantleHistoryTable() {
           "ticketId" INTEGER,
           "ticketLocationMap" TEXT,
           "ticketDescription" TEXT,
+          "odpId" INTEGER,
+          "portNumber" INTEGER,
           "closeNote" TEXT,
           "closePhoto" TEXT,
           "closePhotos" TEXT[],
@@ -77,6 +81,8 @@ export async function ensureDismantleHistoryTable() {
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketId" INTEGER`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketLocationMap" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "ticketDescription" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "odpId" INTEGER`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "portNumber" INTEGER`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closeNote" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhoto" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleHistory" ADD COLUMN IF NOT EXISTS "closePhotos" TEXT[]`).catch(() => {})
@@ -114,6 +120,8 @@ export function mapDismantleHistoryRow(row: DismantleHistoryRow) {
     status: 'CLOSED',
     ticketDismantle: row.ticketDismantle ?? null,
     ticketId: row.ticketId == null ? null : Number(row.ticketId),
+    odpId: row.odpId == null ? null : Number(row.odpId),
+    portNumber: row.portNumber == null ? null : Number(row.portNumber),
     closeNote: row.closeNote ?? null,
     closePhoto: row.closePhoto ?? null,
     closePhotos: photoList.length > 0 ? photoList : (row.closePhoto ? [row.closePhoto] : []),
@@ -193,6 +201,8 @@ export async function listDismantleHistory(params: DismantleHistoryListParams) {
         "ticketId",
         "ticketLocationMap",
         "ticketDescription",
+        "odpId",
+        "portNumber",
         "closeNote",
         "closePhoto",
         "closePhotos",
@@ -245,6 +255,8 @@ export async function getDismantleHistoryById(id: number) {
         "ticketId",
         "ticketLocationMap",
         "ticketDescription",
+        "odpId",
+        "portNumber",
         "closeNote",
         "closePhoto",
         "closePhotos",

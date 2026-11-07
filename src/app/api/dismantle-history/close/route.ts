@@ -6,6 +6,7 @@ import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
 import { prisma } from '@/lib/prisma'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { ensureDismantleTicketsTable, getDismantleTicketById } from '@/lib/dismantle-tickets'
+import { adjustOdpTerpakai, resolveTicketOdpPort } from '@/lib/odp-usage'
 
 export const runtime = 'nodejs'
 
@@ -54,6 +55,14 @@ export async function POST(request: Request) {
     const ticketDismantle =
       typeof ticketInput === 'string' && ticketInput.trim() !== '' ? ticketInput.trim() : null
 
+    // Override manual ODP/port (opsional). Bila kosong, diwarisi dari tiket PSB terkait.
+    const odpIdInput = form.get('odpId')
+    const odpIdOverride =
+      odpIdInput != null && String(odpIdInput).trim() !== '' ? parseInt(String(odpIdInput), 10) : NaN
+    const portInput = form.get('portNumber')
+    const portNumberOverride =
+      portInput != null && String(portInput).trim() !== '' ? parseInt(String(portInput), 10) : NaN
+
     const rawFiles = form.getAll('closePhotos')
     const files = rawFiles.filter((entry): entry is File => {
       return typeof entry !== 'string' && typeof (entry as File).arrayBuffer === 'function' && entry.size > 0
@@ -73,7 +82,7 @@ export async function POST(request: Request) {
 
     const existing = useDismantleTicket ? await getDismantleTicketById(dismantleTicketId) : null
     const existingIsolation = !useDismantleTicket
-      ? await (prisma as any).isolation.findUnique({
+      ? await prisma.isolation.findUnique({
           where: { id: isolationId },
           select: {
             id: true,
@@ -104,6 +113,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Data isolir tidak ditemukan' }, { status: 404 })
     }
 
+    // Tentukan ODP/port yang dibebaskan: override manual > record dismantle > tiket PSB tertaut.
+    let resolvedOdpId = Number.isFinite(odpIdOverride) ? odpIdOverride : null
+    let resolvedPortNumber = Number.isFinite(portNumberOverride) ? portNumberOverride : null
+
+    if (resolvedOdpId == null && useDismantleTicket && existing?.odpId != null) {
+      resolvedOdpId = Number(existing.odpId)
+    }
+    if (resolvedPortNumber == null && useDismantleTicket && existing?.portNumber != null) {
+      resolvedPortNumber = Number(existing.portNumber)
+    }
+
+    if (resolvedOdpId == null) {
+      let linkedTicketId: number | null = null
+      if (useDismantleTicket) {
+        if (existing?.sourceIsolationId != null) {
+          const linkedIsolation = await prisma.isolation.findUnique({
+            where: { id: Number(existing.sourceIsolationId) },
+            select: { ticketId: true },
+          })
+          linkedTicketId = typeof linkedIsolation?.ticketId === 'number' ? linkedIsolation.ticketId : null
+        }
+      } else {
+        linkedTicketId = typeof existingIsolation?.ticketId === 'number' ? existingIsolation.ticketId : null
+      }
+      const linked = await resolveTicketOdpPort(linkedTicketId)
+      resolvedOdpId = linked.odpId
+      if (resolvedPortNumber == null) resolvedPortNumber = linked.portNumber
+    }
+
     const now = new Date()
     await prisma.$transaction(async (tx) => {
       const base = useDismantleTicket
@@ -121,6 +159,8 @@ export async function POST(request: Request) {
             ticketId: null,
             ticketLocationMap: null,
             ticketDescription: null,
+            odpId: resolvedOdpId,
+            portNumber: resolvedPortNumber,
           }
         : {
             sourceIsolationId: existingIsolation?.id ?? null,
@@ -138,6 +178,8 @@ export async function POST(request: Request) {
             ticketId: typeof existingIsolation?.ticketId === 'number' ? existingIsolation.ticketId : null,
             ticketLocationMap: existingIsolation?.ticket?.locationMap ?? null,
             ticketDescription: existingIsolation?.ticket?.description ?? null,
+            odpId: resolvedOdpId,
+            portNumber: resolvedPortNumber,
           }
 
       await tx.$queryRawUnsafe(
@@ -162,9 +204,11 @@ export async function POST(request: Request) {
             "closedAt",
             "closedBy",
             "createdAt",
-            "updatedAt"
+            "updatedAt",
+            "odpId",
+            "portNumber"
           ) VALUES (
-            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
           )
         `,
         base.sourceIsolationId,
@@ -187,12 +231,19 @@ export async function POST(request: Request) {
         session.user.name ?? null,
         now,
         now,
+        base.odpId,
+        base.portNumber,
       )
+
+      // Dismantle = perangkat dibongkar, port ODP kembali bebas.
+      if (resolvedOdpId != null) {
+        await adjustOdpTerpakai(resolvedOdpId, -1, tx)
+      }
 
       if (useDismantleTicket) {
         await tx.$executeRawUnsafe(`DELETE FROM "DismantleTickets" WHERE "id" = $1`, dismantleTicketId)
       } else {
-        await (tx as any).isolation.update({
+        await tx.isolation.update({
           where: { id: isolationId },
           data: {
             status: 'CLOSED',

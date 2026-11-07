@@ -22,6 +22,8 @@ export type DismantleTicketRow = {
   fieldNote: string | null
   status: string
   ticketNumber: string | null
+  odpId: number | null
+  portNumber: number | null
   createdAt: Date | string
   updatedAt: Date | string
 }
@@ -106,6 +108,8 @@ export async function ensureDismantleTicketsTable() {
           "fieldNote" TEXT,
           "status" TEXT NOT NULL DEFAULT 'OPEN',
           "ticketNumber" TEXT,
+          "odpId" INTEGER,
+          "portNumber" INTEGER,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -128,6 +132,8 @@ export async function ensureDismantleTicketsTable() {
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "fieldNote" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "status" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "ticketNumber" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "odpId" INTEGER`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "portNumber" INTEGER`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3)`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3)`).catch(() => {})
 
@@ -214,6 +220,8 @@ export function mapDismantleTicketRow(row: DismantleTicketRow) {
     fieldNote: row.fieldNote ?? null,
     status: String(row.status ?? 'OPEN').toUpperCase() === 'CLOSED' ? 'CLOSED' : 'OPEN',
     ticketDismantle: row.ticketNumber ?? null,
+    odpId: row.odpId == null ? null : Number(row.odpId),
+    portNumber: row.portNumber == null ? null : Number(row.portNumber),
     ticketId: null,
     closeNote: null,
     closePhoto: null,
@@ -289,6 +297,8 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
         "fieldNote",
         "status",
         "ticketNumber",
+        "odpId",
+        "portNumber",
         "createdAt",
         "updatedAt"
       FROM "DismantleTickets"
@@ -366,6 +376,8 @@ export async function getDismantleTicketById(id: number) {
         "reason",
         "status",
         "ticketNumber",
+        "odpId",
+        "portNumber",
         "createdAt",
         "updatedAt"
       FROM "DismantleTickets"

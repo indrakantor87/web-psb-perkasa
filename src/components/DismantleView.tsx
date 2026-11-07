@@ -26,6 +26,8 @@ type DismantleItem = {
   status: string
   ticketDismantle?: string | null
   ticketId?: number | null
+  odpId?: number | null
+  portNumber?: number | null
   closeNote?: string | null
   closePhoto?: string | null
   closePhotos?: string[] | null
@@ -44,6 +46,12 @@ type DismantleResponse = {
   withoutTicketTotal?: number
   localNotice?: string
   error?: string
+}
+
+type OdpOption = {
+  id: number
+  nama_odp: string
+  wilayah: string
 }
 
 function formatDate(value?: string | null) {
@@ -322,6 +330,11 @@ export function DismantleView({
   const [closeModalOpen, setCloseModalOpen] = useState(false)
   const [closeRow, setCloseRow] = useState<DismantleItem | null>(null)
   const [closeNote, setCloseNote] = useState('')
+  const [closeOdpId, setCloseOdpId] = useState('')
+  const [closePortNumber, setClosePortNumber] = useState('')
+  const [odpValue, setOdpValue] = useState('')
+  const [portValue, setPortValue] = useState('')
+  const [odpOptions, setOdpOptions] = useState<OdpOption[]>([])
   const [closePhotoFiles, setClosePhotoFiles] = useState<File[]>([])
   const [isClosing, setIsClosing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -369,6 +382,22 @@ export function DismantleView({
   useEffect(() => {
     setPage(1)
   }, [debouncedSearch, division, limit, radbooxFilter, statusFilter, ticketFilter])
+
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/odp?all=1', { cache: 'no-store' })
+        const data = (await res.json().catch(() => [])) as OdpOption[]
+        if (active && Array.isArray(data)) setOdpOptions(data)
+      } catch {
+        /* daftar ODP opsional untuk override */
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const buildQueryParams = useCallback(
     (targetPage: number, targetLimit: number) => {
@@ -529,6 +558,8 @@ export function DismantleView({
     setReasonValue(String(row.reason ?? ''))
     setFieldNoteValue(String(row.fieldNote ?? ''))
     setProblemValue(String(row.ticket?.description ?? row.radboox ?? ''))
+    setOdpValue(row.odpId ? String(row.odpId) : '')
+    setPortValue(row.portNumber ? String(row.portNumber) : '')
     setModalOpen(true)
   }
 
@@ -549,6 +580,8 @@ export function DismantleView({
           fieldNote: fieldNoteValue,
           radboox: problemValue,
           ticketNumber: ticketValue,
+          odpId: odpValue ? Number(odpValue) : null,
+          portNumber: portValue ? Number(portValue) : null,
           status: 'OPEN',
         }),
       })
@@ -671,6 +704,8 @@ export function DismantleView({
   const openCloseForm = (row: DismantleItem) => {
     setCloseRow(row)
     setCloseNote('')
+    setCloseOdpId(row.odpId ? String(row.odpId) : '')
+    setClosePortNumber(row.portNumber ? String(row.portNumber) : '')
     setClosePhotoFiles([])
     setCloseModalOpen(true)
   }
@@ -721,6 +756,8 @@ export function DismantleView({
       form.append('closeNote', closeNote)
       const existingTicket = String(closeRow.ticketDismantle ?? '').trim()
       if (existingTicket) form.append('ticketDismantle', existingTicket)
+      if (closeOdpId) form.append('odpId', closeOdpId)
+      if (closePortNumber) form.append('portNumber', closePortNumber)
       closePhotoFiles.forEach((file) => form.append('closePhotos', file))
 
       const res = await fetch('/api/dismantle-history/close', {
@@ -733,6 +770,8 @@ export function DismantleView({
       setCloseModalOpen(false)
       setCloseRow(null)
       setCloseNote('')
+      setCloseOdpId('')
+      setClosePortNumber('')
       setClosePhotoFiles([])
       await fetchRows()
     } catch (e) {
@@ -845,6 +884,9 @@ export function DismantleView({
               const normalizedWa = normalizeWaNumber(String(row.customerPhone ?? ''))
               const mapsHref = normalizeMapsLink(mapsLink)
               const detailText = String(row.ticket?.description ?? row.radboox ?? '').trim()
+              const odpLabel = row.odpId
+                ? odpOptions.find((opt) => opt.id === row.odpId)?.nama_odp ?? String(row.odpId)
+                : ''
 
               return (
                 <div key={row.id} className="rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
@@ -905,6 +947,14 @@ export function DismantleView({
                         <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
                           <div className="text-xs text-gray-500 dark:text-gray-400">Problem</div>
                           <div className="whitespace-pre-wrap break-words">{detailText || '-'}</div>
+                        </div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">ODP</div>
+                          <div className="font-semibold">{odpLabel || '-'}</div>
+                        </div>
+                        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Port ODP</div>
+                          <div className="font-semibold">{row.portNumber == null ? '-' : String(row.portNumber)}</div>
                         </div>
                         <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900">
                           <div className="text-xs text-gray-500 dark:text-gray-400">Keterangan</div>
@@ -1083,6 +1133,34 @@ export function DismantleView({
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ODP (opsional)</label>
+                <select
+                  value={closeOdpId}
+                  onChange={(e) => setCloseOdpId(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Otomatis dari tiket PSB</option>
+                  {odpOptions.map((odp) => (
+                    <option key={odp.id} value={String(odp.id)}>
+                      {odp.nama_odp} ({odp.wilayah})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP (opsional)</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={closePortNumber}
+                  onChange={(e) => setClosePortNumber(e.target.value)}
+                  placeholder="Nomor port"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Upload Foto</label>
               <input
@@ -1189,6 +1267,35 @@ export function DismantleView({
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Catatan ini untuk kendala di lapangan tanpa perlu close ticket.</p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ODP</label>
+                <select
+                  value={odpValue}
+                  onChange={(e) => setOdpValue(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Otomatis dari tiket PSB</option>
+                  {odpOptions.map((odp) => (
+                    <option key={odp.id} value={String(odp.id)}>
+                      {odp.nama_odp} ({odp.wilayah})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Port ODP</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={portValue}
+                  onChange={(e) => setPortValue(e.target.value)}
+                  placeholder="Nomor port"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
             </div>
 
             <div>

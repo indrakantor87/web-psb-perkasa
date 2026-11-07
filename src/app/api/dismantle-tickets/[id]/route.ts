@@ -13,6 +13,12 @@ function normalizeOptionalString(value: unknown) {
   return normalized === '' ? null : normalized
 }
 
+function normalizeOptionalInt(value: unknown) {
+  if (value == null || String(value).trim() === '') return null
+  const parsed = parseInt(String(value), 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -52,6 +58,8 @@ export async function PUT(
           "reason" = $8,
           "fieldNote" = $9,
           "ticketNumber" = $10,
+          "odpId" = $12,
+          "portNumber" = $13,
           "updatedAt" = $11
         WHERE "id" = $1
         RETURNING "id"
@@ -64,9 +72,11 @@ export async function PUT(
       normalizeOptionalString(body.marketing),
       normalizeOptionalString(body.radboox),
       normalizeOptionalString(body.reason),
-      normalizeOptionalString((body as any).fieldNote),
-      normalizeOptionalString((body as any).ticketNumber),
+      normalizeOptionalString(body.fieldNote),
+      normalizeOptionalString(body.ticketNumber),
       now,
+      normalizeOptionalInt(body.odpId),
+      normalizeOptionalInt(body.portNumber),
     )
 
     if (!updated[0]?.id) {

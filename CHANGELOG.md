@@ -13,6 +13,13 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.2.0] - 2026-11-07
+
+### Added
+- Integrasi pemakaian port ODP dengan List PSB: tiket berstatus CLOSE menambah `terpakai` ODP secara otomatis, dan dilepas saat reopen, ganti ODP, atau saat tiket dihapus (termasuk hapus massal).
+- Integrasi Dismantle dengan port ODP: kolom `odpId`/`portNumber` pada `DismantleTickets` dan `DismantleHistory`, penentuan ODP otomatis dari tiket PSB dengan opsi override manual, pengurangan `terpakai` saat Close, dan pengembalian saat Reopen.
+- Trouble Ticket menampilkan Lokasi ODP dan tautan Maps ODP pada bagian Data Teknis.
+
 ## [1.1.7] - 2026-11-07
 
 ### Changed

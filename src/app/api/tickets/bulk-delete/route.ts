@@ -6,6 +6,7 @@ import type { Prisma } from '@prisma/client'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { canDeleteListTickets } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
+import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
 export const runtime = 'nodejs'
 
@@ -69,7 +70,23 @@ export async function POST(req: Request) {
     where.status = status
   }
 
+  // Tiket CLOSE menahan port ODP; hitung dulu per ODP sebelum dihapus.
+  const closedWithOdp = await prisma.ticket.findMany({
+    where: { ...where, status: 'CLOSE', odpId: { not: null } },
+    select: { odpId: true },
+  })
+  const portCountByOdp = new Map<number, number>()
+  for (const item of closedWithOdp) {
+    if (item.odpId == null) continue
+    portCountByOdp.set(item.odpId, (portCountByOdp.get(item.odpId) ?? 0) + 1)
+  }
+
   const deleted = await prisma.ticket.deleteMany({ where })
+
+  for (const [odpId, count] of portCountByOdp) {
+    await adjustOdpTerpakai(odpId, -count)
+  }
+
   cache.invalidateByPrefix('tickets-list:')
   cache.invalidateByPrefix('tickets:')
   return NextResponse.json({ ok: true, deleted: deleted.count })
