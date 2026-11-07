@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment, useCallback } from 'react'
+import { useState, useEffect, Fragment, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
@@ -32,8 +32,43 @@ interface Ticket {
   portNumber?: number | null
 }
 
+interface OdpOption {
+  id: number
+  nama_odp: string
+  kapasitas: number
+  terpakai: number
+}
+
 function getVisibleMarketingName(value: string | null | undefined) {
   return toDisplayMarketingName(value) || '-'
+}
+
+function TicketDetailSection({
+  title,
+  rows,
+}: {
+  title: string
+  rows: Array<{ label: string; value: ReactNode }>
+}) {
+  return (
+    <section className="min-w-0">
+      <h3 className="border-b border-gray-200 px-3 py-3 text-sm font-semibold text-gray-800 dark:border-gray-600 dark:text-gray-100">
+        {title}
+      </h3>
+      <dl className="divide-y divide-gray-200 dark:divide-gray-600">
+        {rows.map(({ label, value }) => (
+          <div
+            key={label}
+            className="grid grid-cols-[minmax(7rem,0.8fr)_auto_minmax(0,1.4fr)] items-start gap-2 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200"
+          >
+            <dt className="text-gray-600 dark:text-gray-300">{label}</dt>
+            <span aria-hidden="true" className="text-gray-400 dark:text-gray-500">:</span>
+            <dd className="min-w-0 whitespace-pre-wrap break-words">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
 }
 
 interface TicketListProps {
@@ -100,14 +135,12 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
 
   // Local state for tickets to support optimistic updates
   const [ticketsState, setTicketsState] = useState(tickets)
-  const [odps, setOdps] = useState<any[]>([])
-
-  const colSpan = userRole !== 'MARKETING' ? 16 : 15
+  const [odps, setOdps] = useState<OdpOption[]>([])
 
   const fetchOdps = useCallback(async () => {
     try {
       const res = await fetch('/api/odp?all=1')
-      const data = await res.json()
+      const data = (await res.json()) as OdpOption[]
       if (res.ok) setOdps(data)
     } catch (e) {
       console.error('Failed to fetch ODPs', e)
@@ -389,6 +422,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const canEditStatus = canManageRows
   const canBulkDelete = !readOnly && canDeleteListTickets(role)
   const canCreateSchedule = !readOnly && (role === 'CS' || role === 'ADMIN_CS')
+  const colSpan = 10 + (canCreateSchedule ? 1 : 0)
   const divisionDescriptions: Record<string, string> = {
     ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
     PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
@@ -936,21 +970,13 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
               )}
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No</th>
               <th className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Lahir</th>
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Lokasi Maps</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Request</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Tanggal Pasang</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Paket</th>
-              {canManageRows && (
-                <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
-              )}
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Foto Rumah</th>
+              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Marketing</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pengawalan</th>
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">KMZ</th>
-              <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Pembayaran</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Keterangan</th>
               <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Status</th>
-              <th className="px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">Aksi</th>
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No WA Aktif</th>
             </tr>
           </thead>
@@ -993,42 +1019,15 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     </button>
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
-                    {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
-                  </td>
-                  <td className="hidden md:table-cell max-w-xs px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                    <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="hover:underline">
-                      Map Link
-                    </a>
-                  </td>
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                     {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
                   </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{ticket.package}</td>
-                  {userRole !== 'MARKETING' && (
-                    <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{getVisibleMarketingName(ticket.marketingName)}</td>
-                  )}
-
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
-                    {ticket.hasPhoto || ticket.fotoRumah ? (
-                      <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="hover:underline">
-                        View Photo
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  
+                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{getVisibleMarketingName(ticket.marketingName)}</td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300 capitalize">
                     {ticket.pengawalan ? ticket.pengawalan : '-'}
-                  </td>
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
-                    {ticket.kmz || '-'}
-                  </td>
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
-                    {ticket.pembayaran || '-'}
                   </td>
                   <td className="hidden md:table-cell max-w-xs px-3 py-3 text-left text-xs text-gray-700 dark:text-gray-300" title={ticket.description || ''}>
                     <div className="line-clamp-3 whitespace-normal">
@@ -1050,11 +1049,6 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                       {(ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status).replace(/_/g, ' ')}
                     </span>
                   </td>
-                  <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-gray-700 dark:text-gray-300">
-                    {ticket.status === 'CLOSE' && ticket.closedBy?.name
-                      ? `oleh ${ticket.closedBy.name}`
-                      : '-'}
-                  </td>
                   <td className="hidden md:table-cell whitespace-nowrap px-3 py-3 text-xs text-blue-600 dark:text-blue-400">
                     <a
                       href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}${defaultTemplate ? `?text=${encodeURIComponent(formatMessage(defaultTemplate, ticket))}` : ''}`}
@@ -1066,106 +1060,85 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     </a>
                   </td>
                   <td className="table-cell md:hidden px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {canCreateSchedule && (
-                            <input
-                              type="checkbox"
-                              checked={selectedSet.has(ticket.id)}
-                              onChange={() => toggleSelectedTicket(ticket.id)}
-                              className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
-                              aria-label={`Pilih ${ticket.customerName}`}
-                            />
-                          )}
-                          <button
-                            onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
-                            className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300 focus:outline-none"
-                          >
-                            {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                          <span className="text-gray-500 dark:text-gray-400">{startingNumber - index}</span>
-                        </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        {canCreateSchedule && (
+                          <input
+                            type="checkbox"
+                            checked={selectedSet.has(ticket.id)}
+                            onChange={() => toggleSelectedTicket(ticket.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                            aria-label={`Pilih ${ticket.customerName}`}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
+                          className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
+                          aria-label={`${expandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
+                        >
+                          {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                        <span className="text-gray-500 dark:text-gray-400">{startingNumber - index}</span>
                         <button
                           type="button"
                           onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                          className="min-w-0 truncate text-left font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                         >
                           {ticket.customerName}
                         </button>
                       </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Tanggal Lahir:</span> {ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}
-                      </div>
-                      <div>
-                        <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">Link Maps</a>
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Tanggal Request:</span> {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Tanggal Pasang:</span> {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Paket:</span> {ticket.package}
-                      </div>
-                      {userRole !== 'MARKETING' && (
-                        <div className="text-gray-500 dark:text-gray-400">
-                          <span className="font-medium">Marketing:</span> {getVisibleMarketingName(ticket.marketingName)}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Request</span>
+                          {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
                         </div>
-                      )}
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Foto Rumah:</span>{' '}
-                        {ticket.hasPhoto || ticket.fotoRumah ? (
-                          <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                            Lihat Foto
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Pasang</span>
+                          {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Paket</span>
+                          <span className="line-clamp-1">{ticket.package || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Marketing</span>
+                          <span className="line-clamp-1">{getVisibleMarketingName(ticket.marketingName)}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Pengawalan</span>
+                          <span className="capitalize">{ticket.pengawalan || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Status</span>
+                          <span className={clsx(
+                            'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                            ticket.status === 'OPEN'
+                              ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
+                              : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
+                                ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                : ticket.status === 'CLOSE'
+                                  ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                                  : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                          )}>
+                            {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Keterangan</span>
+                          <span className="line-clamp-2 whitespace-pre-wrap">{ticket.description || '-'}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">No WA Aktif</span>
+                          <a
+                            href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}${defaultTemplate ? `?text=${encodeURIComponent(formatMessage(defaultTemplate, ticket))}` : ''}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            {ticket.phoneNumber}
                           </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Keterangan:</span> <span className="text-gray-700 dark:text-gray-300">{ticket.description || '-'}</span>
-                      </div>
-                      <div>
-                        <span className={clsx(
-                          'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                          ticket.status === 'OPEN' 
-                            ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
-                            : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                              : ticket.status === 'CLOSE' 
-                                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-                                : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                        )}>
-                          {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
-                        </span>
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Pengawalan:</span> {ticket.pengawalan ? ticket.pengawalan : '-'}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">KMZ:</span>{' '}
-                        {ticket.kmz ? (
-                          <a href={ticket.kmz} target="_blank" rel="noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
-                            Link
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Pembayaran:</span> {ticket.pembayaran || '-'}
-                      </div>
-                      <div>
-                        <a
-                          href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          {ticket.phoneNumber}
-                        </a>
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -1173,81 +1146,100 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                 {expandedTicketId === ticket.id && (
                   <tr className="bg-gray-50 dark:bg-gray-800">
                     <td colSpan={colSpan} className="px-4 py-4 text-left">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div className="space-y-3">
-                          <div className="space-y-1">
-                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pengawalan</label>
-                            {canClose ? (
-                              <select
-                                value={(ticket.pengawalan || '').toLowerCase()}
-                                onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
-                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                              >
-                                <option value="">-</option>
-                                <option value="tidak">Tidak</option>
-                                <option value="onsite">Onsite</option>
-                                <option value="onchat">Onchat</option>
-                              </select>
-                            ) : (
-                              <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">{ticket.pengawalan ? ticket.pengawalan : '-'}</div>
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Pembayaran</label>
-                            {!canManageRows ? (
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.pembayaran || '-'}</div>
-                            ) : (
-                              <select
-                                value={ticket.pembayaran || ''}
-                                onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
-                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white text-xs py-1.5 focus:border-blue-500 focus:ring-blue-500"
-                              >
-                                <option value="">- Pilih -</option>
-                                <option value="Cash">Cash</option>
-                                <option value="TF">TF</option>
-                              </select>
-                            )}
-                          </div>
-                        </div>
-
-                        {canManageRows && (
-                          <div className="space-y-3">
-                            <div className="rounded-lg border border-gray-300 dark:border-gray-600 p-3 bg-white dark:bg-gray-700">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
-                                <div className="space-y-1">
-                                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-300">KMZ</label>
-                                </div>
-                                {canEditKmz && (
-                                  <div className="flex items-center justify-end gap-2">
+                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                        <div className="grid grid-cols-1 gap-x-8 lg:grid-cols-2">
+                          <TicketDetailSection
+                            title="Detail Pelanggan"
+                            rows={[
+                              { label: 'Tanggal Lahir', value: ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-' },
+                              {
+                                label: 'Lokasi Maps',
+                                value: ticket.locationMap?.trim() ? (
+                                  <a href={ticket.locationMap} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                    Buka Lokasi
+                                  </a>
+                                ) : '-',
+                              },
+                              {
+                                label: 'Foto Rumah',
+                                value: ticket.hasPhoto || ticket.fotoRumah ? (
+                                  <a href={ticket.fotoRumah || `/api/tickets/${ticket.id}/photo`} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                    Lihat Foto
+                                  </a>
+                                ) : '-',
+                              },
+                            ]}
+                          />
+                          <TicketDetailSection
+                            title="Data Layanan"
+                            rows={[
+                              {
+                                label: 'Pengawalan',
+                                value: canClose ? (
+                                  <select
+                                    value={(ticket.pengawalan || '').toLowerCase()}
+                                    onChange={(e) => handleUpdatePengawalan(ticket.id, e.target.value)}
+                                    className="w-full max-w-xs rounded border-gray-300 bg-white py-1.5 text-xs text-black focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  >
+                                    <option value="">-</option>
+                                    <option value="tidak">Tidak</option>
+                                    <option value="onsite">Onsite</option>
+                                    <option value="onchat">Onchat</option>
+                                  </select>
+                                ) : <span className="capitalize">{ticket.pengawalan || '-'}</span>,
+                              },
+                              {
+                                label: 'KMZ',
+                                value: canEditKmz ? (
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <input
                                       value={kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')}
                                       onChange={(e) => setKmzEdit({ id: ticket.id, value: e.target.value })}
-                                      className="w-full md:w-auto flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-black dark:text-white px-2 py-1 text-xs"
-                                      placeholder="Enter/edit KMZ here"
+                                      className="min-w-0 flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-xs text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                      placeholder="Masukkan atau edit KMZ"
                                     />
                                     <button
-                                      onClick={() => handleSaveKmz(ticket.id, (kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || '')))}
-                                      className="rounded bg-blue-600 px-2 py-1 text-[10px] text-white hover:bg-blue-700"
+                                      type="button"
+                                      onClick={() => handleSaveKmz(ticket.id, kmzEdit?.id === ticket.id ? kmzEdit.value : (ticket.kmz || ''))}
+                                      className="rounded bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white hover:bg-blue-700"
                                     >
-                                      Save
+                                      Simpan
                                     </button>
                                     {kmzEdit?.id === ticket.id && (
                                       <button
+                                        type="button"
                                         onClick={() => setKmzEdit(null)}
-                                        className="rounded bg-gray-100 dark:bg-gray-600 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500"
+                                        className="rounded bg-gray-200 px-2 py-1 text-[10px] text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
                                       >
-                                        Cancel
+                                        Batal
                                       </button>
                                     )}
                                   </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                                ) : ticket.kmz ? (
+                                  <a href={ticket.kmz} target="_blank" rel="noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Buka KMZ</a>
+                                ) : '-',
+                              },
+                              {
+                                label: 'Pembayaran',
+                                value: canManageRows ? (
+                                  <select
+                                    value={ticket.pembayaran || ''}
+                                    onChange={(e) => handleUpdatePembayaran(ticket.id, e.target.value)}
+                                    className="w-full max-w-xs rounded border-gray-300 bg-white py-1.5 text-xs text-black focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                  >
+                                    <option value="">- Pilih -</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="TF">TF</option>
+                                  </select>
+                                ) : ticket.pembayaran || '-',
+                              },
+                              { label: 'Ditutup Oleh', value: ticket.closedBy?.name || '-' },
+                            ]}
+                          />
+                        </div>
 
-                        <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">Action</label>
+                        <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-600">
+                          <div className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">Aksi</div>
                           <div className="flex flex-wrap gap-3">
                             {canManageRows ? (
                               <>

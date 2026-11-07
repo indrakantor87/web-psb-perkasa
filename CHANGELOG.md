@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.1.7] - 2026-11-07
+
+### Changed
+- Tabel List PSB diringkas menjadi No, Nama Pelanggan, Tanggal Request, Tanggal Pasang, Paket, Marketing, Pengawalan, Keterangan, Status, dan No WA Aktif; informasi serta aksi lainnya tersedia di chevron.
+
 ## [1.1.4] - 2026-11-06
 
 ### Changed
@@ -67,6 +72,7 @@ Riwayat perubahan sebelum versi ini tidak didokumentasikan secara terpisah
 pada file ini (dapat ditelusuri melalui riwayat commit Git).
 
 [1.1.0]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.0.0...v1.1.0
+[1.1.7]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.6...v1.1.7
 [1.1.2]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/indrakantor87/web-psb-perkasa/compare/v1.1.0...v1.1.1
 [1.0.0]: https://github.com/indrakantor87/web-psb-perkasa/releases/tag/v1.0.0
