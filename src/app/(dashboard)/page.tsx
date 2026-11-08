@@ -48,6 +48,7 @@ type DashboardPayload = {
   marketingActivityTotal: number
   odpTotal: number
   ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
+  troubleTicketClosedMonthly: { months: string[]; counts: number[] }
   troubleTicketProblemMonthly: {
     months: string[]
     rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
@@ -91,6 +92,10 @@ function createEmptyDashboardPayload(): DashboardPayload {
     marketingActivityTotal: 0,
     odpTotal: 0,
     ticketingMonthRecap: [],
+    troubleTicketClosedMonthly: {
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+      counts: Array.from({ length: 12 }, () => 0),
+    },
     troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
     focusedDivisionKpis: [],
     divisionSummary: [
@@ -207,6 +212,7 @@ export default async function DashboardPage({
         yearMarketingMonthly={payload.yearMarketingMonthly}
         statusCounts={payload.statusCounts}
         ticketingMonthRecap={payload.ticketingMonthRecap}
+        troubleTicketClosedMonthly={payload.troubleTicketClosedMonthly}
         troubleTicketProblemMonthly={payload.troubleTicketProblemMonthly}
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
@@ -538,18 +544,47 @@ export default async function DashboardPage({
               )
           )::int AS preventive_open,
           COUNT(*) FILTER (
-            WHERE "closedAt" IS NOT NULL
-              OR COALESCE(NULLIF(TRIM(UPPER("status")), ''), '') IN ('CLOSE', 'CLOSED')
+            WHERE "closedAt" >= ${startDate}
+              AND "closedAt" < ${endDate}
           )::int AS close
         FROM "TroubleTicket"
-        WHERE "periodMonth" = ${currentMonth}
+        WHERE (
+          "periodMonth" = ${currentMonth}
           AND "periodYear" = ${currentYear}
+        )
+        OR (
+          "closedAt" >= ${startDate}
+          AND "closedAt" < ${endDate}
+        )
       `)
       .catch(() => [])
     const nocTicketCounts = {
       troubleOpen: Number(nocTicketCountRows[0]?.trouble_open || 0),
       preventiveOpen: Number(nocTicketCountRows[0]?.preventive_open || 0),
       close: Number(nocTicketCountRows[0]?.close || 0),
+    }
+
+    const troubleTicketClosedMonthlyRows = await prisma
+      .$queryRaw<Array<{ month: number; count: number }>>(PrismaSql.sql`
+        SELECT
+          EXTRACT(MONTH FROM date_trunc('month', "closedAt"))::int AS month,
+          COUNT(*)::int AS count
+        FROM "TroubleTicket"
+        WHERE "closedAt" >= ${yearStart}
+          AND "closedAt" < ${yearEnd}
+          AND COALESCE(NULLIF(TRIM(UPPER("category")), ''), 'TT') = 'TT'
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `)
+      .catch(() => [])
+    const troubleTicketClosedMonthlyCounts = Array.from({ length: 12 }, () => 0)
+    for (const row of troubleTicketClosedMonthlyRows) {
+      const monthIndex = Math.max(1, Math.min(12, Number(row.month || 0))) - 1
+      troubleTicketClosedMonthlyCounts[monthIndex] = Number(row.count || 0)
+    }
+    const troubleTicketClosedMonthly = {
+      months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+      counts: troubleTicketClosedMonthlyCounts,
     }
 
     const troubleTicketProblemMonthlyRows = await prisma
@@ -895,6 +930,7 @@ export default async function DashboardPage({
       marketingActivityTotal,
       odpTotal,
       ticketingMonthRecap,
+      troubleTicketClosedMonthly,
       yearMarketingMonthly,
       troubleTicketProblemMonthly,
       focusedDivisionKpis,

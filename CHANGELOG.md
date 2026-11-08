@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.6] - 2026-11-08
+
+### Changed
+- Hitungan Close pada kartu NOC dan tren tahunan Trouble Ticket kini mengacu ke tanggal penutupan (`closedAt`), bukan bulan tiket dibuat.
+
 ## [1.7.5] - 2026-11-08
 
 ### Changed

@@ -47,6 +47,7 @@ interface DashboardViewProps {
   }
   statusCounts: { total: number; open: number; close: number; on_progress: number }
   ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
+  troubleTicketClosedMonthly?: { months: string[]; counts: number[] }
   troubleTicketProblemMonthly?: {
     months: string[]
     rows: Array<{ problemCategory: string; total: number; byMonth: number[] }>
@@ -59,7 +60,7 @@ interface DashboardViewProps {
   selectedDivision?: DivisionFilter
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -181,17 +182,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     return rows.slice(0, 7)
   }, [troubleTicketProblemMonthly?.rows])
 
-  const troubleYearTotalSeries = useMemo(() => {
-    const months = (troubleTicketProblemMonthly?.months ?? defaultMonthShort).map((m) => String(m ?? '').trim() || '-')
-    const rows = troubleTicketProblemMonthly?.rows ?? []
-    const totals = months.map((label, i) => {
-      const total = rows.reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
-      return { label, total }
-    })
+  const troubleCloseYearSeries = useMemo(() => {
+    const months = (troubleTicketClosedMonthly?.months ?? defaultMonthShort).map((m) => String(m ?? '').trim() || '-')
+    const counts = troubleTicketClosedMonthly?.counts ?? []
+    const totals = months.map((label, i) => ({ label, total: Number(counts[i] ?? 0) }))
     return totals.filter((x) => x.total > 0)
-  }, [defaultMonthShort, troubleTicketProblemMonthly?.months, troubleTicketProblemMonthly?.rows])
+  }, [defaultMonthShort, troubleTicketClosedMonthly?.counts, troubleTicketClosedMonthly?.months])
 
-  const troubleYearTotal = useMemo(() => troubleYearTotalSeries.reduce((acc, x) => acc + x.total, 0), [troubleYearTotalSeries])
+  const troubleCloseYearTotal = useMemo(() => troubleCloseYearSeries.reduce((acc, x) => acc + x.total, 0), [troubleCloseYearSeries])
 
   const packageChartWidth = useMemo(() => Math.max(360, packageBarData.length * 90), [packageBarData.length])
   const ticketingChartWidth = useMemo(() => Math.max(360, ticketingBarData.length * 110), [ticketingBarData.length])
@@ -421,15 +419,15 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           {!isMarketing && (showTicketingFocus || isCsRole) && (
             <ChartCard
               title={`Tren Trouble Ticket ${year}`}
-              description="Total per bulan yang terisi"
-              badge={<Chip tone="warning">{troubleYearTotal} tiket</Chip>}
+              description="Jumlah tiket yang ditutup pada tiap bulan"
+              badge={<Chip tone="warning">{troubleCloseYearTotal} tiket ditutup</Chip>}
             >
-              {troubleYearTotalSeries.length === 0 ? (
-                <div className="py-10 text-center text-sm text-ink-muted italic">Belum ada data Trouble Ticket untuk tahun ini</div>
+              {troubleCloseYearSeries.length === 0 ? (
+                <div className="py-10 text-center text-sm text-ink-muted italic">Belum ada Trouble Ticket yang ditutup pada tahun ini</div>
               ) : (
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
+                    <LineChart data={troubleCloseYearSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
                       <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} interval={0} />
                       <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={28} />
@@ -437,7 +435,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       <Line
                         type="monotone"
                         dataKey="total"
-                        name="Total"
+                        name="Ditutup"
                         stroke="#f59e0b"
                         strokeWidth={3}
                         dot={{ r: 4, strokeWidth: 2, fill: '#f59e0b' }}
