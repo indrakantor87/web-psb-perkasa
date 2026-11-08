@@ -13,6 +13,14 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.8.2] - 2026-11-09
+
+### Fixed
+- Absensi HR: jam masuk/keluar tidak lagi bergeser +7 jam. Waktu mesin fingerprint dinormalkan ke WIB secara independen dari timezone server (`src/lib/hr-machine.ts`), sehingga tampilan jam dan pengelompokan tanggal konsisten.
+
+### Changed
+- Tabel Absensi HR disesuaikan dengan acuan modul finance: tambah kolom `No`, label status manusiawi (Hadir/Alfa/Terlambat/Invalid) menggantikan enum mentah, header `Jam Masuk`/`Jam Pulang`, format tanggal `dd Mmm yyyy`, jam berwarna hijau beserta pill "Terlambat", dan format lembur `hh.mm Jam`.
+
 ## [1.8.1] - 2026-11-08
 
 ### Fixed

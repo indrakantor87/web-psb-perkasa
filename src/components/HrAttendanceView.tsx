@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { Card } from '@/components/ui/Card'
-import { Chip } from '@/components/ui/Chip'
+import { Chip, type ChipTone } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
@@ -66,9 +66,14 @@ function currentMonthRange() {
 }
 
 function formatDateLabel(value: string) {
-  const iso = new Date(value).toISOString().split('T')[0]
-  const [year, month, day] = iso.split('-')
-  return `${day}/${month}/${year}`
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Jakarta',
+  })
 }
 
 function formatTimeWIB(value: string | null) {
@@ -83,8 +88,17 @@ function formatOvertime(minutes: number) {
   if (!minutes || minutes <= 0) return '-'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  if (hours <= 0) return `${mins} mnt`
-  return mins > 0 ? `${hours} j ${mins} mnt` : `${hours} j`
+  return `${hours}.${pad(mins)} Jam`
+}
+
+function describeAttendance(row: AttendanceRow): { label: string; tone: ChipTone } {
+  const hasIn = Boolean(row.checkIn)
+  const hasOut = Boolean(row.checkOut)
+  const status = (row.status || '').toUpperCase()
+  if (!hasIn && !hasOut) return { label: 'Alfa', tone: 'danger' }
+  if (status === 'LATE' || status === 'TERLAMBAT') return { label: 'Terlambat', tone: 'warning' }
+  if (hasIn && hasOut) return { label: 'Hadir', tone: 'success' }
+  return { label: 'Invalid', tone: 'warning' }
 }
 
 export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps) {
@@ -470,29 +484,43 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
                 <table className="w-full text-left text-sm">
                   <thead className="bg-surface-muted text-xs uppercase tracking-wide text-ink-muted">
                     <tr>
+                      <th className="px-4 py-3 font-semibold">No</th>
                       <th className="px-4 py-3 font-semibold">Tanggal</th>
                       <th className="px-4 py-3 font-semibold">Karyawan</th>
                       <th className="px-4 py-3 font-semibold">Departemen</th>
-                      <th className="px-4 py-3 font-semibold">Masuk</th>
-                      <th className="px-4 py-3 font-semibold">Keluar</th>
-                      <th className="px-4 py-3 font-semibold">Lembur</th>
+                      <th className="px-4 py-3 font-semibold">Jam Masuk</th>
+                      <th className="px-4 py-3 font-semibold">Jam Pulang</th>
+                      <th className="px-4 py-3 font-semibold">Lembur (Jam)</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((row) => (
-                      <tr key={row.id} className="border-t border-line">
-                        <td className="px-4 py-3 tabular-nums text-ink">{formatDateLabel(row.date)}</td>
-                        <td className="px-4 py-3 font-medium text-ink">{row.employeeName}</td>
-                        <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
-                        <td className="px-4 py-3 tabular-nums text-ink">{formatTimeWIB(row.checkIn)}</td>
-                        <td className="px-4 py-3 tabular-nums text-ink">{formatTimeWIB(row.checkOut)}</td>
-                        <td className="px-4 py-3 tabular-nums text-ink">{formatOvertime(row.overtimeMinutes)}</td>
-                        <td className="px-4 py-3">
-                          <Chip tone={row.status === 'PRESENT' ? 'success' : 'neutral'}>{row.status}</Chip>
-                        </td>
-                      </tr>
-                    ))}
+                    {items.map((row, index) => {
+                      const status = describeAttendance(row)
+                      return (
+                        <tr key={row.id} className="border-t border-line">
+                          <td className="px-4 py-3 tabular-nums text-ink-muted">{index + 1}</td>
+                          <td className="px-4 py-3 tabular-nums text-ink">{formatDateLabel(row.date)}</td>
+                          <td className="px-4 py-3 font-medium text-ink">{row.employeeName}</td>
+                          <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                                {formatTimeWIB(row.checkIn)}
+                              </span>
+                              {status.label === 'Terlambat' && <Chip tone="warning">Terlambat</Chip>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                            {formatTimeWIB(row.checkOut)}
+                          </td>
+                          <td className="px-4 py-3 tabular-nums text-ink">{formatOvertime(row.overtimeMinutes)}</td>
+                          <td className="px-4 py-3">
+                            <Chip tone={status.tone}>{status.label}</Chip>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -501,6 +529,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
             <div className="divide-y divide-line md:hidden">
               {items.map((row) => {
                 const expanded = mobileExpandedId === row.id
+                const status = describeAttendance(row)
                 return (
                   <div key={row.id} className="px-4 py-3">
                     <button
@@ -543,7 +572,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
                         </div>
                         <div className="flex justify-between gap-3">
                           <dt className="text-ink-muted">Status</dt>
-                          <dd className="text-right font-medium text-ink">{row.status}</dd>
+                          <dd className="text-right font-medium text-ink">{status.label}</dd>
                         </div>
                         <div className="flex justify-between gap-3">
                           <dt className="text-ink-muted">Sumber</dt>

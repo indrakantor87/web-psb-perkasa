@@ -83,15 +83,27 @@ export function normalizeLogs(value: unknown): RawMachineLog[] {
   return result
 }
 
+// zkteco-js membangun waktu mesin dengan new Date(y, m, d, H, M, S) memakai TZ server,
+// sehingga bila container ber-TZ UTC jam dinding WIB bergeser +7 jam. Normalkan agar
+// hasil selalu merepresentasikan jam dinding mesin sebagai WIB (UTC+7), terlepas dari TZ server.
+const JAKARTA_OFFSET_MINUTES = 7 * 60
+
+function toWibInstant(date: Date): Date {
+  // getTimezoneOffset() = menit ke barat UTC; offset timur = negasinya.
+  const serverOffsetMinutes = -date.getTimezoneOffset()
+  const correctionMs = (serverOffsetMinutes - JAKARTA_OFFSET_MINUTES) * 60 * 1000
+  return correctionMs === 0 ? date : new Date(date.getTime() + correctionMs)
+}
+
 function parseMachineTime(value: unknown): Date | null {
   if (value === undefined || value === null || value === '') return null
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : toWibInstant(value)
   if (typeof value === 'number') {
     const d = new Date(value)
-    return Number.isNaN(d.getTime()) ? null : d
+    return Number.isNaN(d.getTime()) ? null : toWibInstant(d)
   }
   const d = new Date(String(value).trim())
-  return Number.isNaN(d.getTime()) ? null : d
+  return Number.isNaN(d.getTime()) ? null : toWibInstant(d)
 }
 
 // Mengikuti perhitungan lembur pada finance; hasil dikonversi ke menit.
