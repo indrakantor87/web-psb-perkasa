@@ -178,7 +178,7 @@ export function MobileNavigation({ role }: Props) {
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                {link.label}
+                {link.shortLabel ?? link.label}
               </Link>
             )
           })}

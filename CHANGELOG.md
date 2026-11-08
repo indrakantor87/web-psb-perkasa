@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.5] - 2026-11-08
+
+### Changed
+- Label Trouble Ticket di bottom navigation mobile disingkat menjadi TT agar muat satu baris; nama lengkap tetap dipakai di menu lainnya.
+
 ## [1.7.4] - 2026-11-08
 
 ### Changed

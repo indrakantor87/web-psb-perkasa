@@ -19,6 +19,7 @@ export type MobileMenuKey = Exclude<AppMenuKey, 'dashboard' | 'settings'>
 export type MobileMenuEntry = {
   key: MobileMenuKey
   label: string
+  shortLabel?: string
   detail: string
   group: 'Operasional' | 'Digital'
   activePath: string
@@ -33,7 +34,7 @@ export const mobileMenuEntries: MobileMenuEntry[] = [
   { key: 'isolir', label: 'Isolir', detail: 'Kelola isolasi layanan', group: 'Operasional', activePath: '/isolir', icon: Ban, tone: 'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300' },
   { key: 'dismantle', label: 'Dismantle', detail: 'Proses perangkat pelanggan', group: 'Operasional', activePath: '/dismantle', icon: Wrench, tone: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' },
   { key: 'odp', label: 'Port ODP', detail: 'Cek kapasitas dan pelanggan', group: 'Operasional', activePath: '/odp', icon: Wifi, tone: 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300' },
-  { key: 'trouble-ticket', label: 'Trouble Ticket', detail: 'Pantau gangguan jaringan', group: 'Operasional', activePath: '/trouble-ticket', icon: ShieldCheck, tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
+  { key: 'trouble-ticket', label: 'Trouble Ticket', shortLabel: 'TT', detail: 'Pantau gangguan jaringan', group: 'Operasional', activePath: '/trouble-ticket', icon: ShieldCheck, tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
   { key: 'content-calendar', label: 'Content Calendar', detail: 'Jadwal konten', group: 'Digital', activePath: '/content-calendar', icon: CalendarDays, tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
   { key: 'campaigns', label: 'Campaign', detail: 'Kelola campaign', group: 'Digital', activePath: '/campaigns', icon: Megaphone, tone: 'bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
   { key: 'digital-leads', label: 'Digital Leads', detail: 'Pantau leads digital', group: 'Digital', activePath: '/digital-leads', icon: Users, tone: 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
