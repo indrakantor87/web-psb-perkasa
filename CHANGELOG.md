@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.10] - 2026-11-08
+
+### Fixed
+- Kembalikan tombol aksi (Process, Close, Edit, Reopen, Delete) pada kartu mobile List PSB agar role Developer, Admin, dan CS tetap dapat menindaklanjuti tiket dari perangkat seluler.
+
 ## [1.7.9] - 2026-11-08
 
 ### Changed

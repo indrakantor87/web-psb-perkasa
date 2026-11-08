@@ -1049,6 +1049,64 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     </a>
                   </div>
                 </div>
+
+                <div className="mt-3 border-t border-line pt-3">
+                  <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">Aksi</div>
+                  <div className="flex flex-wrap gap-2">
+                    {canManageRows ? (
+                      <>
+                        {ticket.status !== 'OPEN' && canClose && (
+                          <button
+                            onClick={(e) => handleReopenTicket(e, ticket.id)}
+                            disabled={loadingId === ticket.id}
+                            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50"
+                          >
+                            Reopen
+                          </button>
+                        )}
+
+                        <button
+                          onClick={(e) => handleOnProgressTicket(e, ticket.id)}
+                          disabled={loadingId === ticket.id || !(ticket.status === 'OPEN' && canClose)}
+                          className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-100 disabled:opacity-50"
+                        >
+                          Process
+                        </button>
+
+                        <button
+                          onClick={(e) => handleCloseTicket(e, ticket.id)}
+                          disabled={loadingId === ticket.id || !(canClose && ['OPEN', 'ON_PROGRESS'].includes(ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status))}
+                          className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-600 hover:bg-green-100 disabled:opacity-50"
+                        >
+                          Close
+                        </button>
+
+                        <button
+                          onClick={(e) => handleEditTicket(e, ticket.id)}
+                          className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+
+                        {canDelete && (
+                          <button
+                            onClick={(e) => handleDeleteTicket(e, ticket.id)}
+                            disabled={loadingId === ticket.id}
+                            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      ticket.status === 'CLOSE' && (
+                        <div className="rounded border border-green-100 bg-green-50 px-2 py-1 text-xs font-medium text-green-600 dark:border-green-800 dark:bg-green-950 dark:text-green-400">
+                          by {ticket.closedBy?.name}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </Card>
