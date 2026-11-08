@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.8] - 2026-11-08
+
+### Changed
+- Ringkas kartu mobile List PSB dan sembunyikan filter Divisi serta kontrol Import/Export pada tampilan mobile.
+
 ## [1.7.7] - 2026-11-08
 
 ### Changed

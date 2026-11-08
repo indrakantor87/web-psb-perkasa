@@ -117,6 +117,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
+  const [mobileExpandedTicketId, setMobileExpandedTicketId] = useState<number | null>(null)
   const [editFile, setEditFile] = useState<File | null>(null)
   const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([])
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
@@ -846,7 +847,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             </select>
           </div>
           {isAdmin && (
-            <div className="flex flex-col min-w-0">
+            <div className="hidden min-w-0 flex-col md:flex">
               <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</span>
               <select
                 value={division}
@@ -907,7 +908,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                 <button
                   onClick={handleImportClick}
                   disabled={isImporting}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 md:w-auto disabled:opacity-60"
+                  className="hidden w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 md:inline-flex md:w-auto disabled:opacity-60"
                   title="Import Excel (Admin/CS/NOC)"
                 >
                   <span className="inline-flex items-center gap-2">
@@ -920,7 +921,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             <button
               onClick={handleExportExcel}
               disabled={isExporting}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 md:w-auto disabled:opacity-60"
+              className="hidden w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 md:inline-flex md:w-auto disabled:opacity-60"
             >
               {isExporting ? 'Mengekspor...' : 'Ekspor ke Excel'}
             </button>
@@ -939,7 +940,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
       </Card>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <div className="hidden rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 md:block">
           {divisionDescriptions[division] || divisionDescriptions.ALL}
         </div>
       )}
@@ -1063,7 +1064,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     </a>
                   </td>
                   <td className="table-cell md:hidden px-2 py-2 text-left text-xs text-gray-900 dark:text-white">
-                    <div className="space-y-2 rounded-xl border border-line bg-surface p-3 text-ink">
+                    <div className="rounded-xl border border-line bg-surface p-2.5 text-ink">
                       <div className="flex items-center gap-2">
                         {canCreateSchedule && (
                           <input
@@ -1074,44 +1075,43 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                             aria-label={`Pilih ${ticket.customerName}`}
                           />
                         )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
+                              className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-ink hover:underline"
+                            >
+                              {ticket.customerName}
+                            </button>
+                            <span className={clsx(
+                              'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                              ticket.status === 'OPEN'
+                                ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
+                                : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
+                                  ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                                  : ticket.status === 'CLOSE'
+                                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                                    : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                            )}>
+                              {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
+                            </span>
+                          </div>
+                          <div className="truncate text-[11px] text-ink-muted">
+                            #{startingNumber - index} · {format(new Date(ticket.requestDate), 'dd/MM/yyyy')} · {ticket.package || '-'}
+                          </div>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
-                          className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
-                          aria-label={`${expandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
-                          aria-expanded={expandedTicketId === ticket.id}
+                          onClick={() => setMobileExpandedTicketId(mobileExpandedTicketId === ticket.id ? null : ticket.id)}
+                          className="shrink-0 text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
+                          aria-label={`${mobileExpandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
+                          aria-expanded={mobileExpandedTicketId === ticket.id}
                         >
-                          {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          {mobileExpandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 text-[11px] text-ink-muted">
-                            <span>#{startingNumber - index}</span>
-                            <span>·</span>
-                            <span>{format(new Date(ticket.requestDate), 'dd/MM/yyyy')}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
-                            className="block max-w-full truncate text-left text-sm font-semibold text-ink hover:underline"
-                          >
-                            {ticket.customerName}
-                          </button>
-                          <div className="truncate text-xs text-ink-muted">{ticket.package || '-'}</div>
-                        </div>
-                        <span className={clsx(
-                          'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                          ticket.status === 'OPEN'
-                            ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
-                            : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                              : ticket.status === 'CLOSE'
-                                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-                                : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                        )}>
-                          {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
-                        </span>
                       </div>
-                      {expandedTicketId === ticket.id && (
+                      {mobileExpandedTicketId === ticket.id && (
                       <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3">
                         <div>
                           <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Request</span>
