@@ -24,7 +24,7 @@ type DivisionSummary = {
   primaryLabel: string
   secondaryValue: number
   secondaryLabel: string
-  extraStats?: Array<{ label: string; value: number }>
+  extraStats?: Array<{ label: string; value: number; tone?: 'danger' | 'info' | 'success' }>
   note?: string
 }
 
@@ -1055,20 +1055,25 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
     ? division.extraStats.map((item) => ({
         label: item.label,
         value: item.value,
+        icon: undefined,
+        tone: item.tone,
       }))
     : [
         {
           label: 'Member',
           value: division.members,
           icon: <Users className="h-4 w-4" />,
+          tone: undefined,
         },
         {
           label: division.primaryLabel,
           value: division.primaryValue,
+          tone: undefined,
         },
         {
           label: division.secondaryLabel,
           value: division.secondaryValue,
+          tone: undefined,
         },
       ]
 
@@ -1093,13 +1098,42 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
         {statCards.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-line bg-surface-muted px-3 py-3"
+            className={clsx(
+              'rounded-xl border px-3 py-3',
+              item.tone && 'text-center',
+              item.tone === 'danger'
+                ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/70'
+                : item.tone === 'info'
+                  ? 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/70'
+                  : item.tone === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/70'
+                    : 'border-line bg-surface-muted',
+            )}
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+            <div className={clsx(
+              'flex items-center gap-2 text-xs font-semibold',
+              item.tone ? 'justify-center' : 'uppercase tracking-wide',
+              item.tone === 'danger'
+                ? 'text-red-700 dark:text-red-300'
+                : item.tone === 'info'
+                  ? 'text-sky-700 dark:text-sky-300'
+                  : item.tone === 'success'
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-ink-muted',
+            )}>
               {item.icon}
               {item.label}
             </div>
-            <div className="mt-1 text-xl font-bold tabular-nums tracking-tight text-ink sm:text-2xl">{item.value}</div>
+            <div className={clsx(
+              'mt-1 text-xl font-bold tabular-nums tracking-tight sm:text-2xl',
+              item.tone === 'danger'
+                ? 'text-red-700 dark:text-red-300'
+                : item.tone === 'info'
+                  ? 'text-sky-700 dark:text-sky-300'
+                  : item.tone === 'success'
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-ink',
+            )}>{item.value}</div>
           </div>
         ))}
       </div>

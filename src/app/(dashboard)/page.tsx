@@ -23,7 +23,7 @@ type DivisionSummary = {
   primaryLabel: string
   secondaryValue: number
   secondaryLabel: string
-  extraStats?: Array<{ label: string; value: number }>
+  extraStats?: Array<{ label: string; value: number; tone?: 'danger' | 'info' | 'success' }>
   note?: string
 }
 
@@ -48,7 +48,6 @@ type DashboardPayload = {
   isolationCount: number
   marketingActivityTotal: number
   odpTotal: number
-  ticketingTotal: number
   ticketingMonthRecap: Array<{ type: string; total: number; open: number; close: number }>
   troubleTicketProblemMonthly: {
     months: string[]
@@ -56,20 +55,6 @@ type DashboardPayload = {
   }
   divisionSummary: DivisionSummary[]
   focusedDivisionKpis: DashboardKpiCard[]
-}
-
-async function ensureSlaTableForDashboard() {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "TroubleTicketSla" (
-      "id" SERIAL NOT NULL,
-      "type" TEXT NOT NULL,
-      "durationDays" INT NOT NULL,
-      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "TroubleTicketSla_pkey" PRIMARY KEY ("id")
-    );
-  `).catch(() => {})
-  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicketSla_type_key" ON "TroubleTicketSla"("type");`).catch(() => {})
 }
 
 function aggregateMarketingRows<T extends { name: string }>(
@@ -106,7 +91,6 @@ function createEmptyDashboardPayload(): DashboardPayload {
     isolationCount: 0,
     marketingActivityTotal: 0,
     odpTotal: 0,
-    ticketingTotal: 0,
     ticketingMonthRecap: [],
     troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
     focusedDivisionKpis: [],
@@ -146,9 +130,9 @@ function createEmptyDashboardPayload(): DashboardPayload {
         secondaryValue: 0,
         secondaryLabel: 'Ticket open',
         extraStats: [
-          { label: 'Trouble Ticket', value: 0 },
-          { label: 'Ticket Berulang', value: 0 },
-          { label: 'Ticket Overdue', value: 0 },
+          { label: 'Trouble Open', value: 0, tone: 'danger' },
+          { label: 'Preventive Open', value: 0, tone: 'info' },
+          { label: 'Close', value: 0, tone: 'success' },
         ],
       },
       {
@@ -477,7 +461,7 @@ export default async function DashboardPage({
     }
     const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-    const [marketingActivityTotal, odpTotal, ticketingTotal, repeatedTicketCount, overdueTicketCount, isolationClosedCount, creatorContentCount, creatorCampaignCount, creatorLeadCount, dismantleOpenCount, dismantleHistoryCount] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, isolationClosedCount, creatorContentCount, creatorLeadCount, dismantleOpenCount, dismantleHistoryCount] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
         ...(marketingRole
@@ -504,61 +488,8 @@ export default async function DashboardPage({
         return 0
       }
     })(),
-    prisma
-      .$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
-        SELECT COUNT(*)::int AS count
-        FROM "TroubleTicket"
-        WHERE "periodMonth" = ${currentMonth}
-          AND "periodYear" = ${currentYear}
-      `)
-      .then((rows) => Number(rows[0]?.count || 0))
-      .catch(() => 0),
-    prisma
-      .$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
-        WITH monthly_tickets AS (
-          SELECT LOWER(TRIM("user")) AS "userKey"
-          FROM "TroubleTicket"
-          WHERE "openedAt" >= ${startDate}
-            AND "openedAt" < ${endDate}
-            AND COALESCE(TRIM("user"), '') <> ''
-            AND COALESCE(NULLIF(TRIM(UPPER("category")), ''), 'TT') <> 'PV'
-            AND COALESCE(NULLIF(TRIM(UPPER("type")), ''), 'UNKNOWN') <> 'PREVENTIVE'
-        ),
-        duplicate_users AS (
-          SELECT "userKey"
-          FROM monthly_tickets
-          GROUP BY "userKey"
-          HAVING COUNT(*) > 1
-        )
-        SELECT COUNT(*)::int AS count
-        FROM monthly_tickets mt
-        INNER JOIN duplicate_users du ON du."userKey" = mt."userKey"
-      `)
-      .then((rows) => Number(rows[0]?.count || 0))
-      .catch(() => 0),
-    (async () => {
-      try {
-        await ensureSlaTableForDashboard()
-        await prisma
-          .$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
-          .catch(() => {})
-        const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
-          SELECT COUNT(*)::int AS count
-          FROM "TroubleTicket" tt
-          LEFT JOIN "TroubleTicketSla" s ON s."type" = tt."type"
-          WHERE tt."openedAt" >= ${startDate}
-            AND tt."openedAt" < ${endDate}
-            AND tt."status" = 'OPEN'
-            AND COALESCE(tt."temporaryAt", NOW()) - tt."openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')
-        `)
-        return Number(rows[0]?.count || 0)
-      } catch {
-        return 0
-      }
-    })(),
     prisma.isolation.count({ where: { status: 'CLOSED' } }).catch(() => 0),
     prisma.contentCalendar.count().catch(() => 0),
-    prisma.campaign.count().catch(() => 0),
     prisma.digitalLead.count().catch(() => 0),
     (async () => {
       try {
@@ -603,6 +534,38 @@ export default async function DashboardPage({
       ORDER BY COUNT(*) DESC, type ASC
     `)
     .catch(() => [])
+
+    const nocTicketCountRows = await prisma
+      .$queryRaw<Array<{ trouble_open: number; preventive_open: number; close: number }>>(PrismaSql.sql`
+        SELECT
+          COUNT(*) FILTER (
+            WHERE "closedAt" IS NULL
+              AND COALESCE(NULLIF(TRIM(UPPER("status")), ''), 'OPEN') = 'OPEN'
+              AND COALESCE(NULLIF(TRIM(UPPER("category")), ''), 'TT') <> 'PV'
+              AND COALESCE(NULLIF(TRIM(UPPER("type")), ''), '') <> 'PREVENTIVE'
+          )::int AS trouble_open,
+          COUNT(*) FILTER (
+            WHERE "closedAt" IS NULL
+              AND COALESCE(NULLIF(TRIM(UPPER("status")), ''), 'OPEN') = 'OPEN'
+              AND (
+                COALESCE(NULLIF(TRIM(UPPER("category")), ''), 'TT') = 'PV'
+                OR COALESCE(NULLIF(TRIM(UPPER("type")), ''), '') = 'PREVENTIVE'
+              )
+          )::int AS preventive_open,
+          COUNT(*) FILTER (
+            WHERE "closedAt" IS NOT NULL
+              OR COALESCE(NULLIF(TRIM(UPPER("status")), ''), '') IN ('CLOSE', 'CLOSED')
+          )::int AS close
+        FROM "TroubleTicket"
+        WHERE "periodMonth" = ${currentMonth}
+          AND "periodYear" = ${currentYear}
+      `)
+      .catch(() => [])
+    const nocTicketCounts = {
+      troubleOpen: Number(nocTicketCountRows[0]?.trouble_open || 0),
+      preventiveOpen: Number(nocTicketCountRows[0]?.preventive_open || 0),
+      close: Number(nocTicketCountRows[0]?.close || 0),
+    }
 
     const troubleTicketProblemMonthlyRows = await prisma
     .$queryRaw<Array<{ month: number; problemCategory: string; count: number }>>(PrismaSql.sql`
@@ -658,8 +621,6 @@ export default async function DashboardPage({
     const divisionCounts = new Map<string, number>(
       divisionCountRows.map((row) => [String(row.division || 'UNASSIGNED').trim().toUpperCase(), Number(row.count || 0)])
     )
-    const ticketOpenTotal = ticketingMonthRecap.reduce((acc, row) => acc + Number(row.open || 0), 0)
-    const ticketCloseTotal = ticketingMonthRecap.reduce((acc, row) => acc + Number(row.close || 0), 0)
     const divisionSummary: DivisionSummary[] = [
       {
         code: 'PENJUALAN',
@@ -691,14 +652,14 @@ export default async function DashboardPage({
         label: 'NOC',
         description: 'Fokus pada penanganan dan penyelesaian gangguan',
         members: divisionCounts.get('NOC_TROUBLESHOOTS') || 0,
-        primaryValue: ticketCloseTotal,
+        primaryValue: nocTicketCounts.close,
         primaryLabel: 'Ticket close',
-        secondaryValue: ticketOpenTotal,
+        secondaryValue: nocTicketCounts.troubleOpen + nocTicketCounts.preventiveOpen,
         secondaryLabel: 'Ticket open',
         extraStats: [
-          { label: 'Trouble Ticket', value: ticketingTotal },
-          { label: 'Ticket Berulang', value: repeatedTicketCount },
-          { label: 'Ticket Overdue', value: overdueTicketCount },
+          { label: 'Trouble Open', value: nocTicketCounts.troubleOpen, tone: 'danger' },
+          { label: 'Preventive Open', value: nocTicketCounts.preventiveOpen, tone: 'info' },
+          { label: 'Close', value: nocTicketCounts.close, tone: 'success' },
         ],
       },
       {
@@ -948,7 +909,6 @@ export default async function DashboardPage({
       isolationCount,
       marketingActivityTotal,
       odpTotal,
-      ticketingTotal,
       ticketingMonthRecap,
       yearMarketingMonthly,
       troubleTicketProblemMonthly,

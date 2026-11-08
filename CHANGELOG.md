@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.3] - 2026-11-08
+
+### Changed
+- Kartu ringkasan NOC menampilkan Trouble Open, Preventive Open, dan Close dengan jumlah berdasarkan data tiket pada periode dashboard.
+
 ## [1.7.2] - 2026-11-08
 
 ### Changed
