@@ -52,41 +52,6 @@ type HeaderSettingsGroup = {
   items: HeaderSettingsLink[]
 }
 
-function getDivisionGroupTone(key: string) {
-  switch (key) {
-    case 'penjualan':
-      return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
-        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
-        panel: 'border-gray-200 dark:border-gray-700',
-      }
-    case 'cs-admin':
-      return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
-        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
-        panel: 'border-gray-200 dark:border-gray-700',
-      }
-    case 'noc-troubleshoots':
-      return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
-        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
-        panel: 'border-gray-200 dark:border-gray-700',
-      }
-    case 'creator-digital':
-      return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
-        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
-        panel: 'border-gray-200 dark:border-gray-700',
-      }
-    default:
-      return {
-        buttonActive: 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white',
-        badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200',
-        panel: 'border-gray-200 dark:border-gray-700',
-      }
-  }
-}
-
 export function Header({ user }: { user: SessionUser }) {
   const [isOpen, setIsOpen] = useState(false)
   const [isNavOpen, setIsNavOpen] = useState(false)
@@ -220,7 +185,9 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
         ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
         ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
-        ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
+        ...(canAccessMenu(user?.role, 'isolir')
+          ? [{ href: isAdmin || isDeveloper ? '/isolir?division=ALL' : getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }]
+          : []),
         ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench }] : []),
         ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),
         ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
@@ -235,7 +202,7 @@ export function Header({ user }: { user: SessionUser }) {
       ? []
       : [
           ...(canAccessMenu(user?.role, 'list')
-            ? [{ href: getMenuHref('list', roleDivision), label: 'Data PSB', icon: List }]
+            ? [{ href: isAdmin || isDeveloper ? '/list?division=ALL' : getMenuHref('list', roleDivision), label: 'Data PSB', icon: List }]
             : []),
           ...(canAccessMenu(user?.role, 'trouble-ticket')
             ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: ClipboardList }]
@@ -256,10 +223,48 @@ export function Header({ user }: { user: SessionUser }) {
         }
       : null
 
-  const isTicketingLink = (link: HeaderNavLink) => ticketingLinks.some((item) => item.href === link.href)
-  const desktopFlatLinks = ticketingGroup ? flatLinks.filter((link) => !isTicketingLink(link)) : flatLinks
-  const isTicketingActive = ticketingGroup ? ticketingGroup.items.some((item) => matchesLink(item)) : false
+  const digitalGroup: HeaderNavGroup | null = isAdmin || isDeveloper
+    ? {
+        key: 'digital',
+        label: 'Digital',
+        icon: TrendingUp,
+        description: 'Konten, campaign, leads, dan analytics digital.',
+        items: [
+          ...(canAccessMenu(user?.role, 'content-calendar')
+            ? [{ href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Content Calendar', icon: Calendar }]
+            : []),
+          ...(canAccessMenu(user?.role, 'campaigns')
+            ? [{ href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target }]
+            : []),
+          ...(canAccessMenu(user?.role, 'digital-leads')
+            ? [{ href: getMenuHref('digital-leads', 'CREATOR_DIGITAL'), label: 'Digital Leads', icon: Users }]
+            : []),
+          ...(canAccessMenu(user?.role, 'analytics')
+            ? [{ href: getMenuHref('analytics', 'CREATOR_DIGITAL'), label: 'Analytics', icon: TrendingUp }]
+            : []),
+        ],
+      }
+    : null
 
+  const matchesGroupPath = (link: HeaderNavLink, group: HeaderNavGroup | null) =>
+    group?.items.some((item) => item.href.split('?')[0] === link.href.split('?')[0]) ?? false
+  const desktopFlatLinks = flatLinks.filter(
+    (link) => !matchesGroupPath(link, ticketingGroup) && !matchesGroupPath(link, digitalGroup),
+  )
+  const operationalLinks = desktopFlatLinks.filter((link) => link.href !== '/')
+  const operationalGroup: HeaderNavGroup | null = isAdmin || isDeveloper
+    ? {
+        key: 'operations',
+        label: 'Operasional',
+        icon: LayoutDashboard,
+        description: 'Input PSB, aktivitas marketing, isolir, dan port ODP.',
+        items: operationalLinks,
+      }
+    : null
+  const navGroups = (isAdmin || isDeveloper)
+    ? [ticketingGroup, operationalGroup, digitalGroup].filter((group): group is HeaderNavGroup => group !== null)
+    : []
+  const usesGroupedNavigation = navGroups.length > 0
   const renderFlatNavLink = (link: HeaderNavLink) => {
     const Icon = link.icon
     const isActive = matchesLink(link)
@@ -268,6 +273,7 @@ export function Header({ user }: { user: SessionUser }) {
         key={link.href}
         href={link.href}
         prefetch={false}
+        onClick={() => setOpenDivisionMenu(null)}
         className={clsx(
           'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
           isActive
@@ -281,67 +287,55 @@ export function Header({ user }: { user: SessionUser }) {
     )
   }
 
-  const adminDivisionGroups: HeaderNavGroup[] = (isAdmin || isDeveloper) && !isTroubleshoots
-    ? [
-        {
-          key: 'penjualan',
-          label: 'Penjualan',
-          icon: FileInput,
-          description: 'PSB baru dan aktivitas marketing.',
-          items: [
-            { href: '/division-performance?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
-            { href: getMenuHref('input', 'PENJUALAN'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('marketing-activities', 'PENJUALAN'), label: 'Aktivitas Marketing', icon: ClipboardList },
-            { href: getMenuHref('isolir', 'PENJUALAN'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('odp', 'PENJUALAN'), label: 'PORT ODP', icon: Wifi },
-          ],
-        },
-        {
-          key: 'cs-admin',
-          label: 'CS',
-          icon: Ban,
-          description: 'Follow up pelanggan, isolir, dan administrasi layanan.',
-          items: [
-            { href: '/division-performance?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
-            { href: getMenuHref('input', 'CS_ADMIN'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('isolir', 'CS_ADMIN'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('odp', 'CS_ADMIN'), label: 'PORT ODP', icon: Wifi },
-          ],
-        },
-        {
-          key: 'noc-troubleshoots',
-          label: 'NOC',
-          icon: Wrench,
-          description: 'Aset jaringan dan tindak lanjut teknis.',
-          items: [
-            { href: '/division-performance?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
-            { href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'), label: 'PORT ODP', icon: Wifi },
-          ],
-        },
-        {
-          key: 'creator-digital',
-          label: 'Creator Digital',
-          icon: TrendingUp,
-          description: 'Konten, campaign, leads, dan analytics digital.',
-          items: [
-            { href: '/division-performance?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
-            { href: getMenuHref('input', 'CREATOR_DIGITAL'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('isolir', 'CREATOR_DIGITAL'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('odp', 'CREATOR_DIGITAL'), label: 'PORT ODP', icon: Wifi },
-            { href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Content Calendar', icon: Calendar },
-            { href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target },
-            { href: getMenuHref('digital-leads', 'CREATOR_DIGITAL'), label: 'Digital Leads', icon: Users },
-            { href: getMenuHref('analytics', 'CREATOR_DIGITAL'), label: 'Analytics', icon: TrendingUp },
-          ],
-        },
-      ]
-    : []
+  const renderNavGroup = (group: HeaderNavGroup) => {
+    const isOpenGroup = openDivisionMenu === group.key
+    const isActive = group.items.some((item) => matchesLink(item))
 
-  const navGroups: HeaderNavGroup[] =
-    ticketingGroup && adminDivisionGroups.length > 0
-      ? [ticketingGroup, ...adminDivisionGroups]
-      : adminDivisionGroups
-  const usesGroupedNavigation = navGroups.length > 0
+    return (
+      <div key={group.key} className="relative">
+        <button
+          onClick={() => {
+            setOpenDivisionMenu((current) => (current === group.key ? null : group.key))
+            setIsSettingsOpen(false)
+          }}
+          className={clsx(
+            'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
+            isActive || isOpenGroup
+              ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white',
+          )}
+        >
+          {group.label}
+          <ChevronDown className={clsx('ml-1 h-3 w-3 transition-transform', isOpenGroup && 'rotate-180')} />
+        </button>
+
+        {isOpenGroup && (
+          <div className="absolute left-0 z-50 mt-2 w-72 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
+            <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.label}</span>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{group.description}</p>
+            </div>
+            {group.items.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                prefetch={false}
+                onClick={() => setOpenDivisionMenu(null)}
+                className={clsx(
+                  'block px-4 py-2.5 text-sm transition-colors',
+                  matchesLink(link)
+                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700',
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const settingsGroups: HeaderSettingsGroup[] = [
     {
@@ -596,130 +590,11 @@ export function Header({ user }: { user: SessionUser }) {
             </nav>
           )}
 
-          <nav className="hidden md:flex items-center space-x-1">
-            {usesGroupedNavigation ? (
-              <>
-                <Link
-                  href="/"
-                  prefetch={false}
-                  className={clsx(
-                    'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
-                    pathname === '/'
-                      ? 'border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-700 dark:bg-gray-700 dark:text-white'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                  )}
-                >
-                  Dashboard
-                </Link>
-
-                <div className="flex items-center space-x-1" ref={divisionNavRef}>
-                  {navGroups.map((group) => {
-                    const isActive = group.items.some((item) => matchesLink(item))
-                    const isOpenGroup = openDivisionMenu === group.key
-                    const tone = getDivisionGroupTone(group.key)
-                    return (
-                      <div key={group.key} className="relative">
-                        <button
-                          onClick={() => {
-                            setOpenDivisionMenu((current) => current === group.key ? null : group.key)
-                            setIsSettingsOpen(false)
-                          }}
-                          className={clsx(
-                            'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
-                            isActive || isOpenGroup
-                              ? tone.buttonActive
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                          )}
-                        >
-                          {group.label}
-                          <ChevronDown className={clsx("ml-1 h-3 w-3 transition-transform", isOpenGroup && "rotate-180")} />
-                        </button>
-
-                        {isOpenGroup && (
-                          <div className={clsx('absolute left-0 z-50 mt-2 w-72 overflow-hidden rounded-md border bg-white py-1 shadow-md dark:bg-gray-800', tone.panel)}>
-                            <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
-                              <span className="text-sm font-semibold text-gray-900 dark:text-white">{group.label}</span>
-                              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                {group.description}
-                              </p>
-                            </div>
-                            {group.items.map((link) => {
-                              return (
-                                <Link
-                                  key={link.href}
-                                  href={link.href}
-                                  prefetch={false}
-                                  onClick={() => setOpenDivisionMenu(null)}
-                                  className={clsx(
-                                    'block px-4 py-2.5 text-sm transition-colors',
-                                    matchesLink(link)
-                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                                  )}
-                                >
-                                  {link.label}
-                                </Link>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
-            ) : (
-              <>
-                {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
-
-                {ticketingGroup && (
-                  <div className="relative" ref={divisionNavRef}>
-                    <button
-                      onClick={() => {
-                        setOpenDivisionMenu((current) => (current === 'ticketing' ? null : 'ticketing'))
-                        setIsSettingsOpen(false)
-                      }}
-                      className={clsx(
-                        'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
-                        isTicketingActive || openDivisionMenu === 'ticketing'
-                          ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                      )}
-                    >
-                      {ticketingGroup.label}
-                      <ChevronDown className={clsx('ml-1 h-3 w-3 transition-transform', openDivisionMenu === 'ticketing' && 'rotate-180')} />
-                    </button>
-
-                    {openDivisionMenu === 'ticketing' && (
-                      <div className="absolute left-0 z-50 mt-2 w-72 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-                        <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{ticketingGroup.label}</span>
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{ticketingGroup.description}</p>
-                        </div>
-                        {ticketingGroup.items.map((link) => (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            prefetch={false}
-                            onClick={() => setOpenDivisionMenu(null)}
-                            className={clsx(
-                              'block px-4 py-2.5 text-sm transition-colors',
-                              matchesLink(link)
-                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                            )}
-                          >
-                            {link.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {desktopFlatLinks.slice(1).map(renderFlatNavLink)}
-              </>
-            )}
+          <nav ref={divisionNavRef} className="hidden md:flex items-center space-x-1">
+            {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
+            {ticketingGroup && renderNavGroup(ticketingGroup)}
+            {desktopFlatLinks.slice(1).map(renderFlatNavLink)}
+            {digitalGroup && renderNavGroup(digitalGroup)}
 
             <div className="relative" ref={settingsRefDesktop}>
               <button
@@ -923,8 +798,8 @@ export function Header({ user }: { user: SessionUser }) {
                               <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {group.label}
                               </div>
-                              <span className={clsx('rounded-full px-2 py-0.5 text-[10px] font-semibold', getDivisionGroupTone(group.key).badge)}>
-                                Divisi
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
+                                Menu
                               </span>
                             </div>
                             <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">

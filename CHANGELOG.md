@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.2] - 2026-11-08
+
+### Changed
+- Navigasi desktop ADMIN/DEVELOPER dan dropdown menu ADMIN di layar kecil kini menampilkan menu berdasarkan fitur, bukan dropdown Penjualan, CS, NOC, dan Creator Digital.
+- Tautan berulang disatukan; Ticketing, Operasional, dan Digital menampilkan akses fitur tanpa mengubah matriks akses role. Cakupan divisi tetap dapat dipilih pada modul yang mendukung filter.
+
 ## [1.7.1] - 2026-11-08
 
 ### Added
