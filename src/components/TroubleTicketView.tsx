@@ -400,6 +400,7 @@ export function TroubleTicketView({
   const [isExporting, setIsExporting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [mobileExpandedId, setMobileExpandedId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [detailRow, setDetailRow] = useState<TroubleTicketRow | null>(null)
   const [detailFetching, setDetailFetching] = useState(false)
@@ -1705,46 +1706,76 @@ export function TroubleTicketView({
               const code = getDisplayTicketId(r)
               const openedAtMs = new Date(r.openedAt).getTime()
               const durationMs = Number.isFinite(openedAtMs) ? getTicketEndMs(r, now) - openedAtMs : NaN
+              const typeKey = normalizeTypeKey(r.type)
+              const dueAtMs = Number.isFinite(openedAtMs) ? openedAtMs + (slaDays[typeKey] ?? 1) * 24 * 60 * 60 * 1000 : NaN
+              const overdueMs = Number.isFinite(dueAtMs) ? getTicketEndMs(r, now) - dueAtMs : 0
+              const isOverdue = !isClosed && Number.isFinite(dueAtMs) && overdueMs > 0
 
               return (
-                <Card key={r.id} className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => void openDetail(r)}
-                        className="block text-left text-sm font-bold text-ink hover:underline break-words"
-                      >
-                        {code}
-                      </button>
-                      <div className="mt-0.5 text-sm font-semibold text-ink break-words">
-                        {r.customerName}
-                      </div>
-                      <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-300 break-words">
-                        {(r.user || '').trim() || '-'}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedSet.has(r.id)}
-                        onChange={() => toggleRowSelected(r.id)}
-                        aria-label="Pilih"
-                      />
-                      <span
-                        className={clsx(
-                          'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold',
-                          isClosed
-                            ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
-                            : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                        )}
-                      >
-                        {isClosed ? 'CLOSE' : 'OPEN'}
+                <Card
+                  key={r.id}
+                  className={clsx(
+                    'overflow-hidden p-0',
+                    isOverdue && 'tt-near-overdue tt-near-overdue-blink border-red-300 dark:border-red-800',
+                    !isOverdue && r.temporaryAt && 'border-amber-300 dark:border-amber-800',
+                    !isOverdue && repeatedUserSet.has(String(r.user ?? '').trim().toLowerCase()) && 'border-orange-400 dark:border-orange-700'
+                  )}
+                >
+                  <div className="flex items-start gap-3 p-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(r.id)}
+                      onChange={() => toggleRowSelected(r.id)}
+                      aria-label={`Pilih ${r.customerName || code}`}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMobileExpandedId((prev) => (prev === r.id ? null : r.id))}
+                      aria-expanded={mobileExpandedId === r.id}
+                      aria-label={`${mobileExpandedId === r.id ? 'Tutup' : 'Buka'} detail ${code}`}
+                      className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                    >
+                      {isOverdue || r.temporaryAt ? (
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                      ) : isClosed ? (
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+                      ) : (
+                        <ArrowUp className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink">
+                          <span>{code} · {formatDateTime(r.openedAt)}</span>
+                          <span className={clsx(
+                            'inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold',
+                            isClosed
+                              ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+                              : r.temporaryAt
+                                ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300'
+                                : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                          )}>
+                            {isClosed ? 'CLOSE' : r.temporaryAt ? 'TEMPORARY' : 'OPEN'}
+                          </span>
+                          {isOverdue && (
+                            <span className="inline-flex rounded-full bg-red-700 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                              OVERDUE {formatOverdueShort(overdueMs)}
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-1 block break-words text-sm font-semibold text-ink">{r.customerName}</span>
+                        <span className="mt-1 block truncate text-xs text-ink-muted">
+                          {(r.problemCategory || formatTypeLabel(r.type)).trim() || '-'} · {(r.user || '').trim() || '-'}
+                        </span>
                       </span>
-                    </div>
+                      <span className="pt-0.5 text-ink-muted">
+                        {mobileExpandedId === r.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </span>
+                    </button>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-200">
+                  {mobileExpandedId === r.id && (
+                  <div className="border-t border-line px-3 pb-3 pt-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-200">
                     <div className="min-w-0">
                       <div className="text-[11px] text-ink-muted">Type</div>
                       <div className="font-semibold break-words">{formatTypeLabel(r.type)}</div>
@@ -1833,6 +1864,8 @@ export function TroubleTicketView({
                       </button>
                     )}
                   </div>
+                  </div>
+                  )}
                 </Card>
               )
             })

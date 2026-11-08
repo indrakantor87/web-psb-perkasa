@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.7] - 2026-11-08
+
+### Changed
+- Ringkas tampilan mobile List PSB, Trouble Ticket, Dismantle, dan Isolir dengan kartu yang dapat dibuka untuk melihat detail dan aksi.
+
 ## [1.7.6] - 2026-11-08
 
 ### Changed

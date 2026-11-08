@@ -331,6 +331,7 @@ export function DismantleView({
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const [mobileExpandedId, setMobileExpandedId] = useState<number | null>(null)
   const [detailRow, setDetailRow] = useState<DismantleItem | null>(null)
   const [copied, setCopied] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
@@ -1532,23 +1533,12 @@ export function DismantleView({
               const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
               const rowTone = getRowTone(row)
               const textTone = getCellTextTone(row)
+              const ticketCode = String(row.ticketDismantle ?? '').trim() || `DSM-${row.id}`
+              const headerLabel = `${ticketCode} - ${formatDateTime(row.isolationDate)}`
 
               return (
-                <div key={row.id} className={clsx('rounded-lg border border-gray-200 p-3 dark:border-gray-700', rowTone)}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => openDetail(row)}
-                        className={clsx('block text-left text-sm font-semibold hover:underline break-words', textTone)}
-                      >
-                        {row.customerName || '-'}
-                      </button>
-                      <div className={clsx('mt-0.5 text-xs break-words', textTone)}>
-                        {row.userEmail || row.marketing || '-'}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                <div key={row.id} className={clsx('overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700', rowTone)}>
+                  <div className="flex items-start gap-3 p-3">
                       {showSelection && (
                         <input
                           type="checkbox"
@@ -1558,13 +1548,36 @@ export function DismantleView({
                           aria-label={`Pilih ${row.customerName || `ID ${row.id}`}`}
                         />
                       )}
-                      <span className={clsx('inline-flex rounded-md px-2 py-1 text-[11px] font-semibold', getStatusBadgeTone(row.status))}>
-                        {row.status || '-'}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className={clsx('truncate text-xs font-semibold', textTone)}>{headerLabel}</div>
+                      <button
+                        type="button"
+                        onClick={() => openDetail(row)}
+                        className={clsx('mt-1 block max-w-full truncate text-left text-sm font-semibold hover:underline', textTone)}
+                      >
+                        {row.customerName || '-'}
+                      </button>
+                      <div className={clsx('mt-1 truncate text-xs text-gray-500 dark:text-gray-400', textTone)}>
+                        {row.userEmail || row.marketing || '-'} {' · '} {problemText || '-'}
+                      </div>
                     </div>
+                    <span className={clsx('inline-flex shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold', getStatusBadgeTone(row.status))}>
+                      {row.status || '-'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMobileExpandedId((prev) => (prev === row.id ? null : row.id))}
+                      aria-expanded={mobileExpandedId === row.id}
+                      aria-label={`${mobileExpandedId === row.id ? 'Tutup' : 'Buka'} detail ${row.customerName || `ID ${row.id}`}`}
+                      className="mt-0.5 shrink-0 text-gray-500 dark:text-gray-300"
+                    >
+                      {mobileExpandedId === row.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  {mobileExpandedId === row.id && (
+                  <div className="border-t border-gray-200 px-3 pb-3 pt-3 dark:border-gray-700">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="min-w-0">
                       <div className="text-[11px] text-gray-500 dark:text-gray-400">Ticket</div>
                       <div className={clsx('font-semibold break-words', textTone)}>
@@ -1643,6 +1656,8 @@ export function DismantleView({
                       </button>
                     )}
                   </div>
+                  </div>
+                  )}
                 </div>
               )
             })

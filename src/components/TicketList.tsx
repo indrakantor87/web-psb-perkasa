@@ -1062,8 +1062,8 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                       {ticket.phoneNumber}
                     </a>
                   </td>
-                  <td className="table-cell md:hidden px-3 py-3 text-left text-xs text-gray-900 dark:text-white">
-                    <div className="space-y-3">
+                  <td className="table-cell md:hidden px-2 py-2 text-left text-xs text-gray-900 dark:text-white">
+                    <div className="space-y-2 rounded-xl border border-line bg-surface p-3 text-ink">
                       <div className="flex items-center gap-2">
                         {canCreateSchedule && (
                           <input
@@ -1079,19 +1079,40 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                           onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}
                           className="text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
                           aria-label={`${expandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
+                          aria-expanded={expandedTicketId === ticket.id}
                         >
                           {expandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
-                        <span className="text-gray-500 dark:text-gray-400">{startingNumber - index}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
-                          className="min-w-0 truncate text-left font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                        >
-                          {ticket.customerName}
-                        </button>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-[11px] text-ink-muted">
+                            <span>#{startingNumber - index}</span>
+                            <span>·</span>
+                            <span>{format(new Date(ticket.requestDate), 'dd/MM/yyyy')}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
+                            className="block max-w-full truncate text-left text-sm font-semibold text-ink hover:underline"
+                          >
+                            {ticket.customerName}
+                          </button>
+                          <div className="truncate text-xs text-ink-muted">{ticket.package || '-'}</div>
+                        </div>
+                        <span className={clsx(
+                          'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                          ticket.status === 'OPEN'
+                            ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
+                            : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
+                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              : ticket.status === 'CLOSE'
+                                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                                : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                        )}>
+                          {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
+                        </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      {expandedTicketId === ticket.id && (
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3">
                         <div>
                           <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Request</span>
                           {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
@@ -1112,21 +1133,6 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                           <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Pengawalan</span>
                           <span className="capitalize">{ticket.pengawalan || '-'}</span>
                         </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Status</span>
-                          <span className={clsx(
-                            'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                            ticket.status === 'OPEN'
-                              ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
-                              : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                                ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                : ticket.status === 'CLOSE'
-                                  ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-                                  : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                          )}>
-                            {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
-                          </span>
-                        </div>
                         <div className="col-span-2">
                           <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Keterangan</span>
                           <span className="line-clamp-2 whitespace-pre-wrap">{ticket.description || '-'}</span>
@@ -1143,6 +1149,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                           </a>
                         </div>
                       </div>
+                      )}
                     </div>
                   </td>
                 </tr>

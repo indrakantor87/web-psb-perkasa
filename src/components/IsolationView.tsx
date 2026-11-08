@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
-import { Search, Plus, X, Edit3, Trash2, Upload, Download } from 'lucide-react'
+import { Search, Plus, X, Edit3, Trash2, Upload, Download, ChevronDown, ChevronUp } from 'lucide-react'
 import { clsx } from 'clsx'
 import { formatSuspendDuration, getSuspendDurationParts, hasMonthlySuspend } from '@/lib/isolation-suspend'
 import {
@@ -138,6 +138,7 @@ export function IsolationView({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
+  const [mobileExpandedId, setMobileExpandedId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -841,10 +842,10 @@ export function IsolationView({
                     )}
 
                     {/* Mobile View (Card Style) */}
-                    <td className="table-cell md:hidden px-4 py-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-start gap-3">
-                          <div className="flex items-start gap-3">
+                    <td className="table-cell md:hidden px-2 py-2">
+                      <div className="overflow-hidden rounded-xl border border-line bg-surface text-ink">
+                        <div className="flex items-start gap-3 p-3">
+                          <div className="flex min-w-0 flex-1 items-start gap-3">
                             {showSelection && (
                               <input
                                 type="checkbox"
@@ -854,15 +855,27 @@ export function IsolationView({
                                 aria-label={`Pilih ${item.customerName}`}
                               />
                             )}
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{item.customerName}</div>
-                              {item.userEmail && (
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.userEmail}</div>
-                              )}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setMobileExpandedId((prev) => (prev === item.id ? null : item.id))}
+                              aria-expanded={mobileExpandedId === item.id}
+                              aria-label={`${mobileExpandedId === item.id ? 'Tutup' : 'Buka'} detail ${item.customerName}`}
+                              className="flex min-w-0 flex-1 items-start justify-between gap-2 text-left"
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-semibold text-ink">{item.customerName}</span>
+                                <span className="mt-0.5 block truncate text-xs text-ink-muted">{item.userEmail || item.marketing || '-'}</span>
+                                <span className="mt-1 block text-xs text-ink-muted">
+                                  Suspend {suspendLabel(item.isolationDate)} {' · '} Ticket {getTicketStatusLabel(item)}
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-ink-muted">
+                                {mobileExpandedId === item.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                              </span>
+                            </button>
                           </div>
                           <span className={clsx(
-                            "px-2 py-0.5 text-[10px] font-semibold rounded-full",
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
                             item.status === 'OPEN' 
                               ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
                               : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
@@ -871,6 +884,8 @@ export function IsolationView({
                           </span>
                         </div>
                         
+                        {mobileExpandedId === item.id && (
+                        <div className="border-t border-line px-3 pb-3 pt-3">
                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
                           <div>
                             <span className="font-medium block text-gray-700 dark:text-gray-300">Kontak:</span>
@@ -948,6 +963,8 @@ export function IsolationView({
                             </button>
                           )}
                         </div>
+                        </div>
+                        )}
                       </div>
                     </td>
                   </tr>
