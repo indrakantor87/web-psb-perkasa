@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card'
 import { Chip, type ChipTone } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
+import { HR_DIVISIONS } from '@/lib/hr-departments'
 
 type AttendanceRow = {
   id: number
@@ -43,6 +44,13 @@ type Summary = {
   totalRecords: number
   totalEmployees: number
   totalOvertimeMinutes: number
+}
+
+type DivisionRow = {
+  department: string
+  records: number
+  employees: number
+  overtimeMinutes: number
 }
 
 type MachineConfig = { ip: string; port: number }
@@ -106,6 +114,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   const [items, setItems] = useState<AttendanceRow[]>([])
   const [employees, setEmployees] = useState<EmployeeOption[]>([])
   const [summary, setSummary] = useState<Summary>({ totalRecords: 0, totalEmployees: 0, totalOvertimeMinutes: 0 })
+  const [divisions, setDivisions] = useState<DivisionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -114,6 +123,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   const [from, setFrom] = useState(initialRange.from)
   const [to, setTo] = useState(initialRange.to)
   const [query, setQuery] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [mobileExpandedId, setMobileExpandedId] = useState<number | null>(null)
 
@@ -132,6 +142,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
     try {
       const params = new URLSearchParams({ from, to })
       if (query.trim()) params.set('q', query.trim())
+      if (departmentFilter) params.set('department', departmentFilter)
       if (employeeId) params.set('employeeId', employeeId)
 
       const res = await fetch(`/api/hr/attendance?${params.toString()}`, { cache: 'no-store' })
@@ -139,6 +150,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
         items?: AttendanceRow[]
         employees?: EmployeeOption[]
         summary?: Summary
+        divisions?: DivisionRow[]
         error?: string
       }
       if (!res.ok) {
@@ -149,12 +161,13 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
       setItems(data.items ?? [])
       setEmployees(data.employees ?? [])
       setSummary(data.summary ?? { totalRecords: 0, totalEmployees: 0, totalOvertimeMinutes: 0 })
+      setDivisions(data.divisions ?? [])
     } catch {
       setFeedback({ tone: 'danger', message: 'Gagal memuat data absensi' })
     } finally {
       setLoading(false)
     }
-  }, [from, to, query, employeeId])
+  }, [from, to, query, departmentFilter, employeeId])
 
   useEffect(() => {
     loadAttendance()
@@ -417,8 +430,32 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
         </Card>
       </div>
 
+      {divisions.length > 0 && (
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-ink">Rekap per Divisi</h2>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {divisions.map((division) => (
+              <div key={division.department} className="rounded-xl border border-line bg-surface-muted px-3 py-2">
+                <p className="truncate text-sm font-semibold text-ink">{division.department}</p>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                  <span>
+                    Kehadiran: <span className="font-medium tabular-nums text-ink">{division.records}</span>
+                  </span>
+                  <span>
+                    Karyawan: <span className="font-medium tabular-nums text-ink">{division.employees}</span>
+                  </span>
+                  <span>
+                    Lembur: <span className="font-medium tabular-nums text-ink">{formatOvertime(division.overtimeMinutes)}</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
           <label className="text-xs font-medium text-ink-muted">
             Dari tanggal
             <input
@@ -449,6 +486,21 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
                 className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink focus:outline-none"
               />
             </div>
+          </label>
+          <label className="text-xs font-medium text-ink-muted">
+            Divisi
+            <select
+              value={departmentFilter}
+              onChange={(event) => setDepartmentFilter(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
+            >
+              <option value="">Semua divisi</option>
+              {HR_DIVISIONS.map((division) => (
+                <option key={division} value={division}>
+                  {division}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="hidden text-xs font-medium text-ink-muted md:block">
             Karyawan

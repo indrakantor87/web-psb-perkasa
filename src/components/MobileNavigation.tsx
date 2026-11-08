@@ -94,7 +94,7 @@ export function MobileNavigation({ role }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     {group.links.map((item) => {
                       const Icon = item.icon
-                      const active = pathname === item.activePath
+                      const active = pathname.startsWith(item.activePath)
                       return (
                         <Link
                           key={item.key}

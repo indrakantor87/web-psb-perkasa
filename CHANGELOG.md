@@ -13,6 +13,17 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.9.0] - 2026-11-09
+
+### Added
+- Menu HR kini memiliki tab **Absensi** dan **Daftar Karyawan** (`src/components/HrTabs.tsx`).
+- Halaman **Daftar Karyawan** (`/hr/employees`): kelola nama, divisi (dropdown tetap), jabatan, status kepegawaian, tanggal masuk, ID fingerprint, dan status aktif; lengkap dengan pencarian, filter divisi, tabel desktop, kartu mobile, serta form tambah/ubah.
+- API `/api/hr/employees`: GET (daftar), POST (tambah), PUT (ubah/aktifkan-nonaktifkan), DELETE (hapus — ditolak bila sudah ada riwayat absensi, agar audit tetap utuh). Dijaga `ensureMenuAccess('hr')` + `ensureMenuMutation`.
+- Filter **Divisi** pada Absensi HR beserta kartu **Rekap per Divisi** (kehadiran, jumlah karyawan, total lembur).
+
+### Changed
+- Sumber daftar divisi disentralkan di `src/lib/hr-departments.ts` (Pemasaran dan Pelayanan, Customer Service, NOC & Teknisi, Creator Digital, HR & Kepegawaian).
+
 ## [1.8.2] - 2026-11-09
 
 ### Fixed

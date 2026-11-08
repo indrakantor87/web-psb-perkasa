@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     const from = DATE_PATTERN.test(fromParam) ? fromParam : fallback.from
     const to = DATE_PATTERN.test(toParam) ? toParam : fallback.to
     const query = (url.searchParams.get('q') || '').trim()
+    const department = (url.searchParams.get('department') || '').trim()
     const employeeIdRaw = Number(url.searchParams.get('employeeId'))
     const limitRaw = Number(url.searchParams.get('limit'))
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 1000) : 500
@@ -50,8 +51,11 @@ export async function GET(request: Request) {
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {
       where.employeeId = employeeIdRaw
     }
-    if (query) {
-      where.employee = { is: { name: { contains: query, mode: 'insensitive' } } }
+    const employeeFilter: Record<string, unknown> = {}
+    if (query) employeeFilter.name = { contains: query, mode: 'insensitive' }
+    if (department) employeeFilter.department = department
+    if (Object.keys(employeeFilter).length > 0) {
+      where.employee = { is: employeeFilter }
     }
 
     const records = await prisma.attendance.findMany({
@@ -63,9 +67,23 @@ export async function GET(request: Request) {
 
     const employeeIds = new Set<number>()
     let totalOvertimeMinutes = 0
+    const divisionMap = new Map<string, { department: string; records: number; employees: Set<number>; overtimeMinutes: number }>()
     const items = records.map((row) => {
+      const departmentName = row.employee?.department || 'Tanpa Divisi'
       employeeIds.add(row.employeeId)
       totalOvertimeMinutes += row.overtimeMinutes
+
+      const bucket = divisionMap.get(departmentName) ?? {
+        department: departmentName,
+        records: 0,
+        employees: new Set<number>(),
+        overtimeMinutes: 0,
+      }
+      bucket.records += 1
+      bucket.employees.add(row.employeeId)
+      bucket.overtimeMinutes += row.overtimeMinutes
+      divisionMap.set(departmentName, bucket)
+
       return {
         id: row.id,
         date: row.date,
@@ -80,6 +98,15 @@ export async function GET(request: Request) {
       }
     })
 
+    const divisions = Array.from(divisionMap.values())
+      .map((bucket) => ({
+        department: bucket.department,
+        records: bucket.records,
+        employees: bucket.employees.size,
+        overtimeMinutes: bucket.overtimeMinutes,
+      }))
+      .sort((a, b) => a.department.localeCompare(b.department))
+
     const employees = await prisma.employee.findMany({
       select: { id: true, name: true, department: true, fingerprintId: true, isActive: true },
       orderBy: { name: 'asc' },
@@ -93,6 +120,7 @@ export async function GET(request: Request) {
         totalEmployees: employeeIds.size,
         totalOvertimeMinutes,
       },
+      divisions,
       employees,
     })
   } catch {
