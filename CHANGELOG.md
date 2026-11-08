@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.12] - 2026-11-08
+
+### Fixed
+- Aktifkan tampilan kartu ringkas pada mobile untuk menu Isolir dengan menghapus pemaksaan tabel desktop 1100px sehingga tidak lagi perlu menggeser tabel ke samping; tombol aksi Edit dan Transfer tetap tersedia di kartu untuk role yang berwenang.
+
 ## [1.7.11] - 2026-11-08
 
 ### Changed

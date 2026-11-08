@@ -688,7 +688,7 @@ export function IsolationView({
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="mp-desktop-table mp-table-enhanced overflow-x-auto">
+        <div className="mp-table-enhanced overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
               <tr>
