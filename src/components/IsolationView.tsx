@@ -686,9 +686,146 @@ export function IsolationView({
         </div>
       )}
 
-      {/* Table */}
+      {/* Mobile (Card Style) */}
+      <div className="space-y-2 md:hidden">
+        {loading ? (
+          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-ink-muted">Memuat...</div>
+        ) : isolations.length === 0 ? (
+          <div className="rounded-xl border border-line bg-surface px-4 py-6 text-center text-sm text-ink-muted">
+            {supportsIsolationWorkflow ? 'Tidak ada data ditemukan' : 'Belum ada data untuk divisi ini di modul Isolir'}
+          </div>
+        ) : (
+          isolations.map((item) => (
+            <div key={item.id} className="overflow-hidden rounded-xl border border-line bg-surface text-ink">
+              <div className="flex items-start gap-3 p-3">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  {showSelection && (
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(item.id)}
+                      onChange={() => toggleSelected(item.id)}
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                      aria-label={`Pilih ${item.customerName}`}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMobileExpandedId((prev) => (prev === item.id ? null : item.id))}
+                    aria-expanded={mobileExpandedId === item.id}
+                    aria-label={`${mobileExpandedId === item.id ? 'Tutup' : 'Buka'} detail ${item.customerName}`}
+                    className="flex min-w-0 flex-1 items-start justify-between gap-2 text-left"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-ink">{item.customerName}</span>
+                      <span className="mt-0.5 block truncate text-xs text-ink-muted">{item.userEmail || item.marketing || '-'}</span>
+                      <span className="mt-1 block text-xs text-ink-muted">
+                        Suspend {suspendLabel(item.isolationDate)} {' · '} Ticket {getTicketStatusLabel(item)}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-ink-muted">
+                      {mobileExpandedId === item.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </span>
+                  </button>
+                </div>
+                <span className={clsx(
+                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                  item.status === 'OPEN'
+                    ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                    : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+                )}>
+                  {item.status === 'OPEN' ? 'TERISOLIR' : 'NORMAL'}
+                </span>
+              </div>
+
+              {mobileExpandedId === item.id && (
+                <div className="border-t border-line px-3 pb-3 pt-3">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div>
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Kontak:</span>
+                      {item.customerPhone ? (
+                        <a
+                          href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {item.customerPhone}
+                        </a>
+                      ) : '-'}
+                    </div>
+                    <div>
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Active Date:</span>
+                      {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
+                    </div>
+                    <div>
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Suspend:</span>
+                      {suspendLabel(item.isolationDate)}
+                    </div>
+                    <div>
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
+                      {formatPrice(item.price)}
+                    </div>
+                    <div>
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
+                      <div className="flex items-center gap-2">
+                        <span>{getTicketStatusLabel(item)}</span>
+                        {canMutate &&
+                          getTicketStatusLabel(item) === 'Belum' &&
+                          String(item.status ?? '').toUpperCase() === 'OPEN' && (
+                            <button
+                              type="button"
+                              onClick={() => handleTransferToDismantle(item.id)}
+                              disabled={transferringId === item.id}
+                              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 disabled:opacity-60"
+                            >
+                              {transferringId === item.id ? '...' : 'Transfer'}
+                            </button>
+                          )}
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
+                      <span
+                        className={clsx(
+                          String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
+                            ? 'text-red-700 dark:text-red-300 font-semibold'
+                            : undefined
+                        )}
+                      >
+                        {item.reason || '-'}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Marketing:</span>
+                      {item.marketing || '-'}
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium block text-gray-700 dark:text-gray-300">Radboox:</span>
+                      {item.radboox || '-'}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
+                    {canEdit && (
+                      <button
+                        onClick={() => openEdit(item)}
+                        className="flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Table (Desktop) */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="mp-table-enhanced overflow-x-auto">
+        <div className="mp-table-enhanced hidden overflow-x-auto overflow-y-hidden md:block">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
               <tr>
@@ -840,133 +977,6 @@ export function IsolationView({
                         </div>
                       </td>
                     )}
-
-                    {/* Mobile View (Card Style) */}
-                    <td className="table-cell md:hidden px-2 py-2">
-                      <div className="overflow-hidden rounded-xl border border-line bg-surface text-ink">
-                        <div className="flex items-start gap-3 p-3">
-                          <div className="flex min-w-0 flex-1 items-start gap-3">
-                            {showSelection && (
-                              <input
-                                type="checkbox"
-                                checked={selectedSet.has(item.id)}
-                                onChange={() => toggleSelected(item.id)}
-                                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
-                                aria-label={`Pilih ${item.customerName}`}
-                              />
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setMobileExpandedId((prev) => (prev === item.id ? null : item.id))}
-                              aria-expanded={mobileExpandedId === item.id}
-                              aria-label={`${mobileExpandedId === item.id ? 'Tutup' : 'Buka'} detail ${item.customerName}`}
-                              className="flex min-w-0 flex-1 items-start justify-between gap-2 text-left"
-                            >
-                              <span className="min-w-0">
-                                <span className="block truncate text-sm font-semibold text-ink">{item.customerName}</span>
-                                <span className="mt-0.5 block truncate text-xs text-ink-muted">{item.userEmail || item.marketing || '-'}</span>
-                                <span className="mt-1 block text-xs text-ink-muted">
-                                  Suspend {suspendLabel(item.isolationDate)} {' · '} Ticket {getTicketStatusLabel(item)}
-                                </span>
-                              </span>
-                              <span className="shrink-0 text-ink-muted">
-                                {mobileExpandedId === item.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                              </span>
-                            </button>
-                          </div>
-                          <span className={clsx(
-                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            item.status === 'OPEN' 
-                              ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-                              : "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-                          )}>
-                            {item.status === 'OPEN' ? 'TERISOLIR' : 'NORMAL'}
-                          </span>
-                        </div>
-                        
-                        {mobileExpandedId === item.id && (
-                        <div className="border-t border-line px-3 pb-3 pt-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                          <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Kontak:</span>
-                            {item.customerPhone ? (
-                              <a 
-                                href={`https://wa.me/${item.customerPhone.replace(/^0/, '62').replace(/\D/g, '')}`} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                {item.customerPhone}
-                              </a>
-                            ) : '-'}
-                          </div>
-                          <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Active Date:</span>
-                            {item.activeDate ? format(new Date(item.activeDate), 'dd/MM/yyyy') : '-'}
-                          </div>
-                          <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Suspend:</span>
-                            {suspendLabel(item.isolationDate)}
-                          </div>
-                          <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Harga:</span>
-                            {formatPrice(item.price)}
-                          </div>
-                          <div>
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Ticket:</span>
-                            <div className="flex items-center gap-2">
-                              <span>{getTicketStatusLabel(item)}</span>
-                              {canMutate &&
-                                getTicketStatusLabel(item) === 'Belum' &&
-                                String(item.status ?? '').toUpperCase() === 'OPEN' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTransferToDismantle(item.id)}
-                                    disabled={transferringId === item.id}
-                                    className="rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 disabled:opacity-60"
-                                  >
-                                    {transferringId === item.id ? '...' : 'Transfer'}
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Alasan:</span>
-                            <span
-                              className={clsx(
-                                String(item.reason ?? '').trim().toLowerCase() === 'tidak dilanjutkan'
-                                  ? 'text-red-700 dark:text-red-300 font-semibold'
-                                  : undefined
-                              )}
-                            >
-                              {item.reason || '-'}
-                            </span>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Marketing:</span>
-                            {item.marketing || '-'}
-                          </div>
-                          <div className="col-span-2">
-                            <span className="font-medium block text-gray-700 dark:text-gray-300">Radboox:</span>
-                            {item.radboox || '-'}
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 border-t border-gray-100 dark:border-gray-700 pt-2 mt-2">
-                          {canEdit && (
-                            <button
-                              onClick={() => openEdit(item)}
-                              className="flex items-center gap-1 text-xs font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
-                            >
-                              <Edit3 className="h-3.5 w-3.5" />
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                        </div>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}

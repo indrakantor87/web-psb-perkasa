@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.8.1] - 2026-11-08
+
+### Fixed
+- Tampilan mobile menu Isolir: kartu ringkas dipindahkan keluar dari tabel (blok `md:hidden`) dan tabel desktop dikunci hanya untuk layar >= 768px, sehingga tidak lagi ada tabel yang bergeser horizontal di perangkat seluler.
+
 ## [1.8.0] - 2026-11-08
 
 ### Added
