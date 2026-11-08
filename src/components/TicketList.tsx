@@ -7,6 +7,9 @@ import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
 import { toDisplayMarketingName } from '@/lib/marketing-users'
 import { canDeleteListTickets, canManageListTickets, isAdminRole } from '@/lib/access'
+import { Card } from '@/components/ui/Card'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Ticket {
   id: number
@@ -803,7 +806,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
         </div>
       )}
 
-      <div className="flex w-full flex-col rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 md:flex-row md:items-center md:justify-between md:gap-4">
+      <Card className="flex w-full flex-col p-3 md:flex-row md:items-center md:justify-between md:gap-4">
         <div className="grid w-full grid-cols-2 gap-2 md:w-auto md:flex md:flex-row md:items-center md:gap-4">
           <div className="flex flex-col min-w-0">
             <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bulan</span>
@@ -933,7 +936,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
       {isAdmin && (
         <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
@@ -953,7 +956,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
         </div>
       )}
 
-      <div className="mp-desktop-table mp-table-enhanced overflow-x-auto overflow-y-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      <Card className="mp-desktop-table mp-table-enhanced overflow-x-auto overflow-y-hidden">
         <table className="min-w-full border-collapse">
           <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
             <tr>
@@ -980,7 +983,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
               <th className="hidden md:table-cell px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">No WA Aktif</th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 text-center divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody className="bg-surface text-center divide-y divide-gray-100 dark:divide-gray-700">
             {currentTickets.map((ticket, index) => (
               <Fragment key={ticket.id}>
                 <tr key={ticket.id} className={clsx("hover:bg-gray-50 dark:hover:bg-gray-700", !isMarketing && "transition-colors")}>
@@ -1303,14 +1306,14 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             ))}
             {ticketsState.length === 0 && (
               <tr>
-                <td colSpan={colSpan} className="border border-gray-200 dark:border-gray-700 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400 italic">
-                  No data for this period
+                <td colSpan={colSpan} className="border border-line">
+                  <EmptyState compact title="No data for this period" />
                 </td>
               </tr>
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       <div className="flex flex-col items-center justify-between space-y-2 py-1 mt-1 md:flex-row md:space-y-0">
         <div className="flex items-center space-x-4">
@@ -1376,10 +1379,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-700">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Ringkasan Tiket</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Lihat data utama pelanggan secara cepat.</p>
-              </div>
+              <SectionHeading title="Ringkasan Tiket" description="Lihat data utama pelanggan secara cepat." />
               <button
                 onClick={closeSummaryModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -1449,10 +1449,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Tiket</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Perbarui data pelanggan dan tindak lanjutnya.</p>
-              </div>
+              <SectionHeading title="Edit Tiket" description="Perbarui data pelanggan dan tindak lanjutnya." />
               <button
                 onClick={closeEditModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
@@ -1690,10 +1687,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3 sm:px-6 sm:py-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Buat Jadwal PSB</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Ringkasan siap di-copy untuk WA.</p>
-              </div>
+              <SectionHeading title="Buat Jadwal PSB" description="Ringkasan siap di-copy untuk WA." />
               <button
                 onClick={closeScheduleModal}
                 className="rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"

@@ -13,6 +13,16 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.6.0] - 2026-11-08
+
+### Changed
+- Design system kini diterapkan konsisten ke modul List PSB, Trouble Ticket, dan Dismantle: kartu, judul seksi, dan warna mengikuti token yang sama dengan dashboard, tanpa mengubah fitur, logika, maupun alur data.
+- Tampilan status kosong (empty state) dan pemuatan (skeleton/loading) diseragamkan di modul List PSB, Trouble Ticket, dan Dismantle, serta pada halaman pemuatan dashboard.
+- Interaksi mikro halus (lift + bayangan saat hover) pada kartu ringkasan (`StatCard`), dengan dukungan `prefers-reduced-motion`.
+
+### Added
+- Primitif UI bersama: `EmptyState` dan `Skeleton`.
+
 ## [1.5.0] - 2026-11-08
 
 ### Changed

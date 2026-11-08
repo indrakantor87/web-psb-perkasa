@@ -37,7 +37,7 @@ export function StatCard({
   return (
     <div
       className={clsx(
-        'rounded-xl border border-line bg-surface p-4 transition duration-200 hover:border-brand/30 dark:hover:border-brand/40',
+        'rounded-xl border border-line bg-surface p-4 transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-card-hover motion-reduce:transform-none motion-reduce:transition-none dark:hover:border-brand/40',
         className
       )}
     >

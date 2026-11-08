@@ -6,6 +6,11 @@ import { clsx } from 'clsx'
 import { CheckCircle2, ChevronDown, ChevronUp, Clipboard, Download, Info, Pencil, Trash2, Upload } from 'lucide-react'
 import { formatSuspendDuration } from '@/lib/isolation-suspend'
 import { canDeleteIsolationRecords, canMutateMenu, canUseAdminIsolationDismantleScope } from '@/lib/access'
+import { Card } from '@/components/ui/Card'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { StatCard } from '@/components/ui/StatCard'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 type DivisionFilter = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 type TicketFilter = 'ALL' | 'WITH' | 'WITHOUT'
@@ -259,15 +264,19 @@ function Modal({
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 sm:p-4">
       <div className="absolute inset-0 bg-gray-900" onClick={onClose} />
       <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
-          >
-            Tutup
-          </button>
+        <div className="border-b border-line px-4 py-3">
+          <SectionHeading
+            title={title}
+            action={
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md border border-gray-300 bg-surface px-3 py-2 text-sm font-medium text-gray-700 hover:bg-surface-muted dark:border-gray-600 dark:text-gray-100"
+              >
+                Tutup
+              </button>
+            }
+          />
         </div>
         <div className="overflow-y-auto p-4 sm:p-5">{children}</div>
       </div>
@@ -812,7 +821,7 @@ export function DismantleView({
           onChange={handleImportFile}
         />
 
-        <div className="rounded-xl border border-gray-200 bg-white p-3 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+        <Card className="p-3 text-ink">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="grid grid-cols-1 gap-3 md:flex md:flex-row md:items-end">
               <div className="flex flex-col">
@@ -856,7 +865,7 @@ export function DismantleView({
                 : 'Menu open hanya menampilkan data Isolir aktif yang sudah memiliki nomor ticket dismantle.'}
             </div>
           </div>
-        </div>
+        </Card>
 
         {error && (
           <div className="rounded-md border border-red-800 bg-red-950 px-3 py-2 text-sm text-red-200">
@@ -872,9 +881,9 @@ export function DismantleView({
 
         <div className="space-y-2">
           {loading ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Memuat...</div>
+            <Skeleton className="h-16 w-full" />
           ) : rows.length === 0 ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Tidak ada data</div>
+            <EmptyState title="Tidak ada data" compact />
           ) : (
             rows.map((row) => {
               const isClosed = String(row.status ?? '').toUpperCase() === 'CLOSED'
@@ -889,7 +898,7 @@ export function DismantleView({
                 : ''
 
               return (
-                <div key={row.id} className="rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                <Card key={row.id} className="text-ink">
                   <button
                     type="button"
                     onClick={() => setExpandedId((prev) => (prev === row.id ? null : row.id))}
@@ -1033,13 +1042,13 @@ export function DismantleView({
                       </div>
                     </div>
                   )}
-                </div>
+                </Card>
               )
             })
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+        <Card className="px-3 py-3 text-sm text-ink">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>{total > 0 ? `Menampilkan ${rows.length} dari total ${total} data` : 'Tidak ada data'}</div>
             <div className="flex items-center gap-2">
@@ -1062,7 +1071,7 @@ export function DismantleView({
               </button>
             </div>
           </div>
-        </div>
+        </Card>
 
         <Modal
           open={!!detailRow}
@@ -1234,7 +1243,7 @@ export function DismantleView({
           }}
         >
           <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+            <Card variant="muted" className="p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pelanggan</div>
@@ -1245,7 +1254,7 @@ export function DismantleView({
                   <div className="mt-1 text-sm text-gray-800 dark:text-gray-200">{selectedRow?.customerPhone || '-'}</div>
                 </div>
               </div>
-            </div>
+            </Card>
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nomor Ticket Dismantle</label>
@@ -1348,36 +1357,36 @@ export function DismantleView({
       />
 
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Total Data</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{total}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {isClosedView
+        <StatCard
+          label="Total Data"
+          value={total}
+          hint={
+            isClosedView
               ? 'Riwayat ticket dismantle yang sudah ditutup dan dipisahkan dari Isolir aktif.'
-              : `Data Isolir aktif dengan ticket dismantle status ${statusLabel.toLowerCase()}.`}
-          </div>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Sudah Ada Ticket</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{filledCount}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {isClosedView
+              : `Data Isolir aktif dengan ticket dismantle status ${statusLabel.toLowerCase()}.`
+          }
+        />
+        <StatCard
+          label="Sudah Ada Ticket"
+          value={filledCount}
+          hint={
+            isClosedView
               ? 'Jumlah pada halaman saat ini yang sudah memiliki nomor ticket.'
-              : 'Jumlah seluruh data sesuai filter yang sudah memiliki nomor ticket.'}
-          </div>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-sm text-gray-500 dark:text-gray-400">Belum Ada Ticket</div>
-          <div className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{emptyCount}</div>
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {isClosedView
+              : 'Jumlah seluruh data sesuai filter yang sudah memiliki nomor ticket.'
+          }
+        />
+        <StatCard
+          label="Belum Ada Ticket"
+          value={emptyCount}
+          hint={
+            isClosedView
               ? 'Histori close tetap aman walau data Isolir aktif dibersihkan atau di-import ulang.'
-              : 'Data tanpa ticket tetap dipantau dari menu Isolir dan tidak otomatis masuk ke menu Dismantle.'}
-          </div>
-        </div>
+              : 'Data tanpa ticket tetap dipantau dari menu Isolir dan tidak otomatis masuk ke menu Dismantle.'
+          }
+        />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+      <Card className="p-4 sm:p-5">
         <div
           className={clsx(
             'grid gap-3 lg:items-end',
@@ -1509,13 +1518,12 @@ export function DismantleView({
 
         <div className="mt-4 space-y-3 md:hidden">
           {loading ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-              Memuat data dismantle...
-            </div>
+            <Skeleton className="h-16 w-full" />
           ) : rows.length === 0 ? (
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-              {supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
-            </div>
+            <EmptyState
+              title={supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
+              compact
+            />
           ) : (
             rows.map((row) => {
               const hasTicket = String(row.ticketDismantle ?? '').trim() !== ''
@@ -1671,14 +1679,17 @@ export function DismantleView({
             <tbody className="bg-transparent">
               {loading ? (
                 <tr>
-                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    Memuat data dismantle...
+                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-2">
+                    <Skeleton className="h-12 w-full" />
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    {supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
+                  <td colSpan={showSelection ? 11 : 10} className="px-3 py-2">
+                    <EmptyState
+                      title={supportsWorkflow ? 'Belum ada data dismantle yang sesuai filter.' : 'Belum ada data untuk divisi ini.'}
+                      compact
+                    />
                   </td>
                 </tr>
               ) : (
@@ -1837,7 +1848,7 @@ export function DismantleView({
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       <Modal
         open={!!detailRow}
@@ -1981,7 +1992,7 @@ export function DismantleView({
         }}
       >
         <div className="space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+          <Card variant="muted" className="p-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pelanggan</div>
@@ -1992,7 +2003,7 @@ export function DismantleView({
                 <div className="mt-1 text-sm text-gray-800 dark:text-gray-200">{selectedRow?.customerPhone || '-'}</div>
               </div>
             </div>
-          </div>
+          </Card>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">

@@ -6,6 +6,9 @@ import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Inf
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { canMutateTroubleTicketRecords, isAdminRole } from '@/lib/access'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { SectionHeading } from '@/components/ui/SectionHeading'
 
 type TroubleTicketRow = {
   id: number
@@ -1350,13 +1353,13 @@ export function TroubleTicketView({
         </div>
       )}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+      <Card className="p-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:items-end">
           {!isTroubleshoots && (
             <>
               <div className="flex flex-col">
-                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Bulan</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Bulan</span>
                 <select
                   value={month}
                   onChange={(e) => setMonth(Number(e.target.value))}
@@ -1368,7 +1371,7 @@ export function TroubleTicketView({
                 </select>
               </div>
               <div className="flex flex-col">
-                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tahun</span>
+                <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Tahun</span>
                 <select
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
@@ -1382,7 +1385,7 @@ export function TroubleTicketView({
             </>
           )}
           <div className="col-span-2 flex flex-col md:col-span-1">
-            <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Cari</span>
+            <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Cari</span>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -1392,7 +1395,7 @@ export function TroubleTicketView({
           </div>
           {!isTroubleshoots ? (
             <div className="flex flex-col">
-              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
+              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Status</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'ALL' | 'OPEN' | 'CLOSE' | 'OVERDUE')}
@@ -1406,7 +1409,7 @@ export function TroubleTicketView({
             </div>
           ) : (
             <div className="flex flex-col">
-              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</span>
+              <span className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Status</span>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'OPEN' | 'CLOSE')}
@@ -1470,7 +1473,7 @@ export function TroubleTicketView({
           </div>
         )}
       </div>
-      </div>
+      </Card>
 
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
@@ -1684,13 +1687,16 @@ export function TroubleTicketView({
       <div className="space-y-2">
         <div className="space-y-2 md:hidden">
           {loading ? (
-            <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
+            <Card className="px-4 py-6 text-center text-sm text-ink-muted">
               Memuat...
-            </div>
+            </Card>
           ) : rows.length === 0 ? (
-            <div className="rounded-lg bg-white dark:bg-gray-800 px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300 shadow">
-              {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
-            </div>
+            <Card>
+              <EmptyState
+                compact
+                title={supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
+              />
+            </Card>
           ) : (
             rows.map((r) => {
               const wa = normalizeWaNumber(r.waNumber)
@@ -1701,17 +1707,17 @@ export function TroubleTicketView({
               const durationMs = Number.isFinite(openedAtMs) ? getTicketEndMs(r, now) - openedAtMs : NaN
 
               return (
-                <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                <Card key={r.id} className="p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <button
                         type="button"
                         onClick={() => void openDetail(r)}
-                        className="block text-left text-sm font-bold text-gray-900 dark:text-white hover:underline break-words"
+                        className="block text-left text-sm font-bold text-ink hover:underline break-words"
                       >
                         {code}
                       </button>
-                      <div className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white break-words">
+                      <div className="mt-0.5 text-sm font-semibold text-ink break-words">
                         {r.customerName}
                       </div>
                       <div className="mt-0.5 text-xs text-gray-600 dark:text-gray-300 break-words">
@@ -1740,11 +1746,11 @@ export function TroubleTicketView({
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-200">
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Type</div>
+                      <div className="text-[11px] text-ink-muted">Type</div>
                       <div className="font-semibold break-words">{formatTypeLabel(r.type)}</div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">No WA</div>
+                      <div className="text-[11px] text-ink-muted">No WA</div>
                       {wa ? (
                         <a
                           href={`https://wa.me/${wa}`}
@@ -1759,31 +1765,31 @@ export function TroubleTicketView({
                       )}
                     </div>
                     <div className="col-span-2 min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Gangguan</div>
+                      <div className="text-[11px] text-ink-muted">Gangguan</div>
                       <div className="font-semibold break-words">{(r.problemCategory || '').trim() || '-'}</div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">ONT</div>
+                      <div className="text-[11px] text-ink-muted">ONT</div>
                       <div className="font-semibold break-words">{(r.ont || '').trim() || '-'}</div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Durasi</div>
+                      <div className="text-[11px] text-ink-muted">Durasi</div>
                       <div className="font-semibold break-words">{formatDurationMs(durationMs)}</div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Open</div>
+                      <div className="text-[11px] text-ink-muted">Open</div>
                       <div className="font-semibold break-words">{formatDateTime(r.openedAt)}</div>
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Close</div>
+                      <div className="text-[11px] text-ink-muted">Close</div>
                       <div className="font-semibold break-words">{formatDateTime(r.closedAt || r.temporaryAt)}</div>
                     </div>
                     <div className="col-span-2 min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Tindakan</div>
+                      <div className="text-[11px] text-ink-muted">Tindakan</div>
                       <div className="font-semibold break-words">{(r.resolutionAction || '').trim() || '-'}</div>
                     </div>
                     <div className="col-span-2 min-w-0">
-                      <div className="text-[11px] text-gray-500 dark:text-gray-400">Keterangan</div>
+                      <div className="text-[11px] text-ink-muted">Keterangan</div>
                       <div className="font-semibold break-words">{(r.notes || '').trim() || '-'}</div>
                     </div>
                   </div>
@@ -1827,45 +1833,48 @@ export function TroubleTicketView({
                       </button>
                     )}
                   </div>
-                </div>
+                </Card>
               )
             })
           )}
         </div>
 
-        <div className="hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 md:block">
+        <Card className="hidden md:block">
           <div className="mp-table-enhanced overflow-x-auto">
             <table className="w-full min-w-[1000px] table-auto">
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
                 <input
                   type="checkbox"
                   checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
                   onChange={toggleSelectAllCurrent}
                 />
               </th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">ID Ticket</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Pelanggan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">User</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">No WA</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Type</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Gangguan</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Status</th>
-              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Durasi</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">ID Ticket</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Nama Pelanggan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">User</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">No WA</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Type</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Gangguan</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Status</th>
+              <th className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Durasi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-muted">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                  {supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
+                <td colSpan={9} className="px-4 py-6">
+                  <EmptyState
+                    compact
+                    title={supportsTroubleTicketWorkflow ? 'Tidak ada data' : 'Belum ada data untuk divisi ini di modul Trouble Ticket'}
+                  />
                 </td>
               </tr>
             ) : (
@@ -1915,7 +1924,7 @@ export function TroubleTicketView({
                           onChange={() => toggleRowSelected(r.id)}
                         />
                       </td>
-                      <td className="px-3 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <td className="px-3 py-3 text-sm font-semibold text-ink">
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
@@ -1944,7 +1953,7 @@ export function TroubleTicketView({
                             {r.waNumber}
                           </a>
                         ) : (
-                          <span className="text-gray-500 dark:text-gray-400">{r.waNumber || '-'}</span>
+                          <span className="text-ink-muted">{r.waNumber || '-'}</span>
                         )}
                       </td>
                       <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{formatTypeLabel(r.type)}</td>
@@ -1968,7 +1977,7 @@ export function TroubleTicketView({
                     {expandedId === r.id && (
                       <tr>
                         <td colSpan={9} className="px-3 pb-4">
-                          <div className="rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700 p-4">
+                          <Card variant="muted" className="p-4">
                             <div className="grid grid-cols-1 gap-x-8 lg:grid-cols-2">
                               <TroubleTicketDetailSection
                                 title="Detail Tiket"
@@ -2089,7 +2098,7 @@ export function TroubleTicketView({
                                 </button>
                               </div>
                             </div>
-                          </div>
+                          </Card>
                         </td>
                       </tr>
                     )}
@@ -2100,16 +2109,16 @@ export function TroubleTicketView({
           </tbody>
             </table>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-3">
+        <Card className="px-3 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-200">
               {total > 0 ? `Menampilkan ${pageStart}–${pageEnd} dari ${total} data` : 'Tidak ada data'}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Tampil</span>
+                <span className="text-xs text-ink-muted">Tampil</span>
                 <select
                   value={pageSize}
                   onChange={(e) => setPageSize(Number(e.target.value))}
@@ -2139,7 +2148,7 @@ export function TroubleTicketView({
               </button>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
       )}
 
@@ -2157,10 +2166,10 @@ export function TroubleTicketView({
               className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
             >
               <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
-                <div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Buat Trouble Ticket</div>
-                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Isi data gangguan atau preventive secara singkat dan jelas.</div>
-                </div>
+                <SectionHeading
+                  title="Buat Trouble Ticket"
+                  description="Isi data gangguan atau preventive secara singkat dan jelas."
+                />
                 <button
                   type="button"
                   onClick={closeCreateModal}
@@ -2358,10 +2367,10 @@ export function TroubleTicketView({
               className="w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
             >
               <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700">
-                <div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Edit Trouble Ticket</div>
-                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">Perbarui data inti tiket tanpa mengubah alur kerja.</div>
-                </div>
+                <SectionHeading
+                  title="Edit Trouble Ticket"
+                  description="Perbarui data inti tiket tanpa mengubah alur kerja."
+                />
                 <button
                   type="button"
                   onClick={closeEditModal}
@@ -2556,10 +2565,10 @@ export function TroubleTicketView({
             >
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">Rincian Trouble Ticket</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Salin, kirim, atau lihat lampiran tiket dari satu tempat.</div>
-                </div>
+                <SectionHeading
+                  title="Rincian Trouble Ticket"
+                  description="Salin, kirim, atau lihat lampiran tiket dari satu tempat."
+                />
                 {detailRow.temporaryAt && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300 px-2 py-0.5 text-[11px] font-extrabold">
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -2660,7 +2669,7 @@ export function TroubleTicketView({
             className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800"
           >
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <div className="text-lg font-bold text-gray-900 dark:text-white">Foto Lokasi</div>
+              <SectionHeading title="Foto Lokasi" />
               <div className="flex items-center gap-2">
                 <button
                   type="button"
