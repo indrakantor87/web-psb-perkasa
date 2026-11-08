@@ -13,6 +13,16 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.5.0] - 2026-11-08
+
+### Changed
+- Tampilan dashboard dimodernisasi (gaya Modern SaaS bersih) tanpa mengubah fitur, fungsi, maupun perhitungan data: tata letak kartu yang lebih lega, hierarki judul seksi yang konsisten, dan aksen warna yang lebih jelas.
+- Font global aplikasi kini menggunakan Inter.
+- Design token semantik baru (permukaan, garis, tinta, dan brand) untuk konsistensi tema terang/gelap.
+
+### Added
+- Primitif UI bersama: `Card`, `Chip`, `SectionHeading`, `StatCard`, `ChartCard`, serta gaya grafik (tooltip/tick/kursor) yang seragam.
+
 ## [1.4.1] - 2026-11-08
 
 ### Fixed

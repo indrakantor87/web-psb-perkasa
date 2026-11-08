@@ -5,17 +5,49 @@
 :root {
   --background: #f3f4f6; /* gray-100 */
   --foreground: #1f2937; /* gray-800 */
+
+  /* Token permukaan (light) */
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --line: #e2e8f0;
+  --ink: #0f172a;
+  --ink-muted: #64748b;
+  --brand: #2563eb;
 }
 
 .dark {
   --background: #111827; /* gray-900 */
   --foreground: #f9fafb; /* gray-50 */
+
+  /* Token permukaan (dark) */
+  --surface: #1e293b;
+  --surface-muted: #0f172a;
+  --line: #334155;
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --brand: #3b82f6;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-brand: var(--brand);
+
+  --radius-card: 1rem;
+
+  --shadow-card: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 8px 24px -8px rgba(15, 23, 42, 0.18), 0 4px 8px -4px rgba(15, 23, 42, 0.08);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html, body {

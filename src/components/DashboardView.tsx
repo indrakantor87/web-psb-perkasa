@@ -8,6 +8,12 @@ import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapp
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getDivisionFromRole, isAdminRole } from '@/lib/access'
 import { MobileHome } from '@/components/MobileHome'
+import { Card, cardClassName } from '@/components/ui/Card'
+import { ChartCard } from '@/components/ui/ChartCard'
+import { Chip } from '@/components/ui/Chip'
+import { SectionHeading } from '@/components/ui/SectionHeading'
+import { StatCard } from '@/components/ui/StatCard'
+import { chartAxisTick, chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type DivisionSummary = {
   code: 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
@@ -223,34 +229,34 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const dashboardContent = (
     <div className="space-y-6 pb-10">
       {/* Header & Filter */}
-      <div className="flex flex-col space-y-4 md:flex-row md:items-end md:justify-between md:space-y-0">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           {isMobilePortrait ? (
             <div className="flex items-start justify-between gap-3">
-              <h1 className="text-xl font-bold leading-tight text-gray-800 dark:text-white">Dashboard</h1>
+              <h1 className="text-xl font-bold leading-tight tracking-tight text-ink">Dashboard</h1>
               <div className="min-w-0 text-right">
-                <h2 className="text-lg font-medium leading-tight text-gray-500 dark:text-gray-400">Operasional</h2>
-                <p className="text-sm leading-tight text-gray-400">Pantauan kerja harian</p>
+                <h2 className="text-lg font-medium leading-tight text-ink-muted">Operasional</h2>
+                <p className="text-sm leading-tight text-ink-muted">Pantauan kerja harian</p>
               </div>
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Dashboard Operasional</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Ringkasan kerja harian lintas modul.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard Operasional</h1>
+              <p className="mt-1 text-sm text-ink-muted">Ringkasan kerja harian lintas modul.</p>
             </>
           )}
         </div>
-        
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800 md:flex md:items-center md:gap-2">
-          <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-            <Calendar className="h-4 w-4 text-gray-400" />
+
+        <Card className="grid grid-cols-2 gap-2 p-2 md:flex md:items-center">
+          <div className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2">
+            <Calendar className="h-4 w-4 text-ink-muted" />
             <select
               value={month}
               onChange={(e) => {
                 const newMonth = Number(e.target.value)
                 pushFilters(newMonth, year, focusedDivision)
               }}
-              className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
+              className="w-full cursor-pointer rounded-md bg-transparent text-sm font-semibold text-ink focus:outline-none dark:[color-scheme:dark]"
             >
               {months.map((m, i) => (
                 <option key={i} value={i + 1}>
@@ -259,14 +265,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               ))}
             </select>
           </div>
-          <div className="flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+          <div className="flex items-center rounded-lg bg-surface-muted px-3 py-2">
             <select
               value={year}
               onChange={(e) => {
                 const newYear = Number(e.target.value)
                 pushFilters(month, newYear, focusedDivision)
               }}
-              className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
+              className="w-full cursor-pointer rounded-md bg-transparent text-sm font-semibold text-ink focus:outline-none dark:[color-scheme:dark]"
             >
               {years.map((y) => (
                 <option key={y} value={y}>
@@ -276,14 +282,14 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </select>
           </div>
           {isAdmin && (
-            <div className="col-span-2 flex items-center rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900 md:col-span-1">
+            <div className="col-span-2 flex items-center rounded-lg bg-surface-muted px-3 py-2 md:col-span-1">
               <select
                 value={focusedDivision}
                 onChange={(e) => {
                   const newDivision = e.target.value as DivisionFilter
                   pushFilters(month, year, newDivision)
                 }}
-                className="w-full cursor-pointer rounded-md bg-gray-50 text-sm font-semibold text-gray-700 focus:outline-none dark:bg-gray-900 dark:text-gray-200 dark:[color-scheme:dark]"
+                className="w-full cursor-pointer rounded-md bg-transparent text-sm font-semibold text-ink focus:outline-none dark:[color-scheme:dark]"
               >
                 <option value="ALL">Semua Divisi</option>
                 <option value="PENJUALAN">Penjualan</option>
@@ -293,21 +299,19 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </select>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {visibleDivisionSummary.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">Performa Divisi</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {isAdmin && focusedDivision === 'ALL'
-                  ? 'Ringkasan per divisi dari data yang sudah aktif'
-                  : 'Ringkasan disesuaikan dengan divisi akun yang sedang aktif'}
-              </p>
-            </div>
-          </div>
+          <SectionHeading
+            title="Performa Divisi"
+            description={
+              isAdmin && focusedDivision === 'ALL'
+                ? 'Ringkasan per divisi dari data yang sudah aktif'
+                : 'Ringkasan disesuaikan dengan divisi akun yang sedang aktif'
+            }
+          />
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {visibleDivisionSummary.map((division) => (
               <DivisionCard
@@ -326,28 +330,10 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
       {focusedDivision !== 'ALL' && focusedDivisionKpis.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">KPI Divisi</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                KPI utama untuk periode bulanan yang sedang aktif.
-              </p>
-            </div>
-          </div>
+          <SectionHeading title="KPI Divisi" description="KPI utama untuk periode bulanan yang sedang aktif." />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {focusedDivisionKpis.map((card) => (
-              <div
-                key={card.label}
-                className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800"
-              >
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {card.label}
-                </div>
-                <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
-                  {card.value}
-                </div>
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">{card.hint}</div>
-              </div>
+              <StatCard key={card.label} label={card.label} value={card.value} hint={card.hint} />
             ))}
           </div>
         </div>
@@ -356,41 +342,41 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       {showCreatorFocus && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Link href={`/content-calendar?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
-                  <Calendar className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <Link href={`/content-calendar?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+                  <Calendar className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Content Calendar</h3>
+                <h3 className="text-lg font-semibold text-ink">Content Calendar</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola jadwal dan konten marketing digital</p>
+              <p className="text-sm text-ink-muted">Kelola jadwal dan konten marketing digital</p>
             </Link>
-            <Link href={`/campaigns?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
-                  <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <Link href={`/campaigns?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                  <Megaphone className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Campaign</h3>
+                <h3 className="text-lg font-semibold text-ink">Campaign</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola campaign marketing digital</p>
+              <p className="text-sm text-ink-muted">Kelola campaign marketing digital</p>
             </Link>
-            <Link href={`/digital-leads?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
-                  <Users className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <Link href={`/digital-leads?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                  <Users className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Digital Leads</h3>
+                <h3 className="text-lg font-semibold text-ink">Digital Leads</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Kelola leads dari channel digital</p>
+              <p className="text-sm text-ink-muted">Kelola leads dari channel digital</p>
             </Link>
-            <Link href={`/analytics?division=CREATOR_DIGITAL`} className="rounded-xl border border-gray-200 bg-white p-6 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
-                  <LayoutDashboard className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <Link href={`/analytics?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                  <LayoutDashboard className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Analytics</h3>
+                <h3 className="text-lg font-semibold text-ink">Analytics</h3>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Lihat performa konten dan campaign</p>
+              <p className="text-sm text-ink-muted">Lihat performa konten dan campaign</p>
             </Link>
           </div>
         </div>
@@ -399,27 +385,21 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       {!showCreatorFocus && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {(showSalesFocus || isCsRole) && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Tren PSB {year}</h3>
-                  <p className="text-xs text-gray-500">Berdasarkan tanggal pasang</p>
-                </div>
-                <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-100">
-                  {psbYearTotal} data
-                </div>
-              </div>
-
+            <ChartCard
+              title={`Tren PSB ${year}`}
+              description="Berdasarkan tanggal pasang"
+              badge={<Chip tone="brand">{psbYearTotal} data</Chip>}
+            >
               {psbYearSeries.length === 0 ? (
-                <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data PSB untuk tahun ini</div>
+                <div className="py-10 text-center text-sm text-ink-muted italic">Belum ada data PSB untuk tahun ini</div>
               ) : (
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={psbYearSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                      <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                      <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} interval={0} />
+                      <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={28} />
+                      <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} />
                       <Line
                         type="monotone"
                         dataKey="total"
@@ -435,31 +415,25 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   </ResponsiveContainer>
                 </div>
               )}
-            </div>
+            </ChartCard>
           )}
 
           {!isMarketing && (showTicketingFocus || isCsRole) && (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Tren Trouble Ticket {year}</h3>
-                  <p className="text-xs text-gray-500">Total per bulan yang terisi</p>
-                </div>
-                <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:text-gray-100">
-                  {troubleYearTotal} tiket
-                </div>
-              </div>
-
+            <ChartCard
+              title={`Tren Trouble Ticket ${year}`}
+              description="Total per bulan yang terisi"
+              badge={<Chip tone="warning">{troubleYearTotal} tiket</Chip>}
+            >
               {troubleYearTotalSeries.length === 0 ? (
-                <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400 italic">Belum ada data Trouble Ticket untuk tahun ini</div>
+                <div className="py-10 text-center text-sm text-ink-muted italic">Belum ada data Trouble Ticket untuk tahun ini</div>
               ) : (
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={troubleYearTotalSeries} margin={{ top: 18, right: 16, left: 6, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                      <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} interval={0} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                      <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                      <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} interval={0} />
+                      <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={28} />
+                      <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} />
                       <Line
                         type="monotone"
                         dataKey="total"
@@ -475,7 +449,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   </ResponsiveContainer>
                 </div>
               )}
-            </div>
+            </ChartCard>
           )}
         </div>
       )}
@@ -641,51 +615,48 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
       {/* Marketing Table */}
       {!isMobilePortrait && !isTeknisi && !isNoc && (showSalesFocus || isCsRole) && !showCreatorFocus && (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Kinerja Marketing</h3>
-            <p className="text-xs text-gray-500">Ringkasan progres per marketing</p>
-          </div>
-          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
-            Target close
-          </div>
-        </div>
-        
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title="Kinerja Marketing"
+          description="Ringkasan progres per marketing"
+          badge={<Chip tone="neutral">Target close</Chip>}
+          className="mb-5"
+        />
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Nama Marketing</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progres</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wider">On Process</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
-                <th className="px-4 py-2 text-center text-[11px] font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Isolir</th>
+              <tr className="border-b border-line">
+                <th className="sticky left-0 z-20 border-r border-line bg-surface px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted sm:static sm:border-r-0 sm:bg-transparent">Nama Marketing</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Progres</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Close</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">On Process</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">Open</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-ink">Total</th>
+                <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-orange-600 dark:text-orange-400">Isolir</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+            <tbody className="divide-y divide-line">
               {marketingData.map((item, index) => {
                 const target = 20
                 const progress = (item.close / target) * 100
-                
+
                 return (
-                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-2 whitespace-nowrap dark:border-gray-700 dark:bg-gray-800 sm:static sm:border-r-0 sm:bg-transparent">
+                  <tr key={index} className="transition-colors hover:bg-surface-muted">
+                    <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-2 whitespace-nowrap sm:static sm:border-r-0 sm:bg-transparent">
                       <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
+                        <span className="text-sm font-medium text-ink">{item.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-2 align-middle">
-                      <div className="w-full max-w-[110px] mx-auto">
-                        <div className="mb-1 text-right text-[10px] leading-none text-gray-500">
+                      <div className="mx-auto w-full max-w-[110px]">
+                        <div className="mb-1 text-right text-[10px] leading-none tabular-nums text-ink-muted">
                           {Math.round(progress)}%
                         </div>
-                        <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-line">
                           {(() => {
                             const pct = Math.round(progress)
-                            const colorClass = pct < 50 ? 'bg-red-500' : pct < 75 ? 'bg-amber-500' : 'bg-green-500'
+                            const colorClass = pct < 50 ? 'bg-rose-500' : pct < 75 ? 'bg-amber-500' : 'bg-emerald-500'
                             return (
                               <div
                                 className={`${colorClass} h-1 rounded-full`}
@@ -697,29 +668,23 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       </div>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400">
-                        {item.close}
-                      </span>
+                      <Chip tone="success">{item.close}</Chip>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
-                        {item.on_progress}
-                      </span>
+                      <Chip tone="info">{item.on_progress}</Chip>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400">
-                        {item.open}
-                      </span>
+                      <Chip tone="danger">{item.open}</Chip>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
-                      <span className="text-sm font-bold text-gray-800 dark:text-white leading-none">
+                      <span className="text-sm font-bold leading-none tabular-nums text-ink">
                         {item.count}
                       </span>
                     </td>
                     <td className="px-4 py-2 text-center whitespace-nowrap">
                       <button
                         onClick={() => router.push(`/isolir?marketing=${encodeURIComponent(item.name)}&status=OPEN`)}
-                        className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-400 hover:underline"
+                        className="inline-flex items-center justify-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-amber-700 transition hover:bg-amber-100 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20"
                         title={`Lihat isolir untuk ${item.name}`}
                       >
                         {item.isolir ?? 0}
@@ -729,33 +694,33 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 )
               })}
               {marketingData.length > 0 && (
-                <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold dark:border-gray-700 dark:bg-gray-900">
-                  <td className="sticky left-0 z-10 border-r border-gray-200 bg-gray-50 px-4 py-2 whitespace-nowrap text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white sm:static sm:border-r-0">
+                <tr className="border-t border-line bg-surface-muted font-bold">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface-muted px-4 py-2 whitespace-nowrap text-ink sm:static sm:border-r-0">
                     TOTAL
                   </td>
                   <td className="px-4 py-2 text-center">
                     {/* Empty for progress column */}
                   </td>
-                  <td className="px-4 py-2 text-center whitespace-nowrap text-green-700 dark:text-green-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap tabular-nums text-emerald-700 dark:text-emerald-400">
                     {totalClose}
                   </td>
-                  <td className="px-4 py-2 text-center whitespace-nowrap text-blue-700 dark:text-blue-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap tabular-nums text-blue-700 dark:text-blue-400">
                     {totalOnProgress}
                   </td>
-                  <td className="px-4 py-2 text-center whitespace-nowrap text-red-700 dark:text-red-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap tabular-nums text-rose-700 dark:text-rose-400">
                     {totalOpen}
                   </td>
-                  <td className="px-4 py-2 text-center whitespace-nowrap text-gray-900 dark:text-white">
+                  <td className="px-4 py-2 text-center whitespace-nowrap tabular-nums text-ink">
                     {totalCount}
                   </td>
-                  <td className="px-4 py-2 text-center whitespace-nowrap text-orange-700 dark:text-orange-400">
+                  <td className="px-4 py-2 text-center whitespace-nowrap tabular-nums text-orange-700 dark:text-orange-400">
                     {totalIsolir}
                   </td>
                 </tr>
               )}
               {marketingData.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={7} className="px-4 py-10 text-center text-sm italic text-ink-muted">
                     Tidak ada data marketing untuk periode ini
                   </td>
                 </tr>
@@ -763,29 +728,26 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
       )}
 
       {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorFocus && (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Rekap Ticketing {months[month - 1]} {year}</h3>
-            <p className="text-xs text-gray-500">Ringkasan per kategori</p>
-          </div>
-          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
-            Open vs close
-          </div>
-        </div>
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title={`Rekap Ticketing ${months[month - 1]} ${year}`}
+          description="Ringkasan per kategori"
+          badge={<Chip tone="neutral">Open vs close</Chip>}
+          className="mb-5"
+        />
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <div className="lg:w-72 lg:shrink-0">
             {ticketingPieData.length === 0 ? (
-              <div className="h-60 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-900 text-sm text-gray-500 dark:text-gray-400 italic">
+              <div className="flex h-60 items-center justify-center rounded-xl bg-surface-muted text-sm italic text-ink-muted">
                 Tidak ada data
               </div>
             ) : (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-                <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">Komposisi Open vs Close</div>
+              <div className="rounded-xl border border-line bg-surface-muted p-4">
+                <div className="mb-2 text-xs font-semibold text-ink-muted">Komposisi Open vs Close</div>
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -796,19 +758,19 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       </Pie>
                       <Tooltip
                         formatter={(value: unknown, name: unknown) => [Number(value ?? 0), String(name ?? '')]}
-                        contentStyle={{ borderRadius: '10px', border: 'none' }}
+                        contentStyle={chartTooltipStyle}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-red-50 dark:bg-red-950 px-3 py-2 text-center">
-                    <div className="text-[11px] font-semibold text-red-700 dark:text-red-200">OPEN</div>
-                    <div className="text-sm font-bold text-red-800 dark:text-red-100">{ticketingTotals.open}</div>
+                  <div className="rounded-lg bg-rose-50 px-3 py-2 text-center dark:bg-rose-500/10">
+                    <div className="text-[11px] font-semibold text-rose-700 dark:text-rose-300">OPEN</div>
+                    <div className="text-sm font-bold tabular-nums text-rose-800 dark:text-rose-200">{ticketingTotals.open}</div>
                   </div>
-                  <div className="rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2 text-center">
-                    <div className="text-[11px] font-semibold text-green-700 dark:text-green-200">CLOSE</div>
-                    <div className="text-sm font-bold text-green-800 dark:text-green-100">{ticketingTotals.close}</div>
+                  <div className="rounded-lg bg-emerald-50 px-3 py-2 text-center dark:bg-emerald-500/10">
+                    <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">CLOSE</div>
+                    <div className="text-sm font-bold tabular-nums text-emerald-800 dark:text-emerald-200">{ticketingTotals.close}</div>
                   </div>
                 </div>
               </div>
@@ -818,23 +780,23 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           <div className="min-w-0 flex-1 overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kategori</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">Open</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wider">Close</th>
+                <tr className="border-b border-line">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Kategori</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">Open</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Close</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              <tbody className="divide-y divide-line">
                 {ticketingMonthRecap.map((r) => (
-                  <tr key={r.type} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200">{r.type}</td>
-                    <td className="px-4 py-3 text-center text-sm text-red-700 dark:text-red-300">{r.open}</td>
-                    <td className="px-4 py-3 text-center text-sm text-green-700 dark:text-green-300">{r.close}</td>
+                  <tr key={r.type} className="transition-colors hover:bg-surface-muted">
+                    <td className="px-4 py-3 text-sm font-medium text-ink">{r.type}</td>
+                    <td className="px-4 py-3 text-center text-sm tabular-nums text-rose-700 dark:text-rose-300">{r.open}</td>
+                    <td className="px-4 py-3 text-center text-sm tabular-nums text-emerald-700 dark:text-emerald-300">{r.close}</td>
                   </tr>
                 ))}
                 {ticketingMonthRecap.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    <td colSpan={3} className="px-4 py-10 text-center text-sm italic text-ink-muted">
                       Tidak ada data ticketing untuk bulan ini
                     </td>
                   </tr>
@@ -842,12 +804,12 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </tbody>
               {ticketingMonthRecap.length > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Total</td>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-red-700 dark:text-red-300">
+                  <tr className="border-t border-line bg-surface-muted">
+                    <td className="px-4 py-3 text-sm font-semibold text-ink">Total</td>
+                    <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-rose-700 dark:text-rose-300">
                       {ticketingTotals.open}
                     </td>
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-green-700 dark:text-green-300">
+                    <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
                       {ticketingTotals.close}
                     </td>
                   </tr>
@@ -856,54 +818,51 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </table>
           </div>
         </div>
-      </div>
+      </Card>
       )}
 
       {!isMobilePortrait && !isMarketing && showTicketingFocus && !showCreatorFocus && (
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Gangguan Trouble Ticket {year}</h3>
-            <p className="text-xs text-gray-500">Top gangguan berdasarkan total tahunan</p>
-          </div>
-          <div className="rounded-md border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-200">
-            Top gangguan
-          </div>
-        </div>
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title={`Gangguan Trouble Ticket ${year}`}
+          description="Top gangguan berdasarkan total tahunan"
+          badge={<Chip tone="warning">Top gangguan</Chip>}
+          className="mb-5"
+        />
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-700">
-                <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Gangguan</th>
+              <tr className="border-b border-line">
+                <th className="sticky left-0 z-20 border-r border-line bg-surface px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted sm:static sm:border-r-0 sm:bg-transparent">Gangguan</th>
                 {troubleVisibleMonthIdx.map((i) => (
-                  <th key={troubleMonths[i]} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th key={troubleMonths[i]} className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted">
                     {troubleMonths[i]}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+            <tbody className="divide-y divide-line">
               {(troubleTicketProblemMonthly?.rows ?? []).map((r) => (
-                <tr key={r.problemCategory} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.problemCategory}</td>
+                <tr key={r.problemCategory} className="transition-colors hover:bg-surface-muted">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-sm font-medium text-ink sm:static sm:border-r-0 sm:bg-transparent">{r.problemCategory}</td>
                   {troubleVisibleMonthIdx.map((i) => {
                     const v = Number(r.byMonth?.[i] ?? 0)
                     return (
-                      <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                      <td key={i} className="px-3 py-3 text-center text-sm tabular-nums text-ink-muted">
                         {v}
                       </td>
                     )
                   })}
-                  <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                  <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-ink">
                     {r.total}
                   </td>
                 </tr>
               ))}
               {(troubleTicketProblemMonthly?.rows?.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                  <td colSpan={14} className="px-4 py-10 text-center text-sm italic text-ink-muted">
                     Tidak ada data gangguan trouble ticket untuk tahun ini
                   </td>
                 </tr>
@@ -911,17 +870,17 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </tbody>
             {(troubleTicketProblemMonthly?.rows?.length ?? 0) > 0 && (
               <tfoot>
-                <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
+                <tr className="border-t border-line bg-surface-muted">
+                  <td className="sticky left-0 z-10 border-r border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink sm:static sm:border-r-0">Total</td>
                   {troubleVisibleMonthIdx.map((i) => {
                     const v = (troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                     return (
-                      <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      <td key={i} className="px-3 py-3 text-center text-sm font-semibold tabular-nums text-ink">
                         {v}
                       </td>
                     )
                   })}
-                  <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
+                  <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">
                     {(troubleTicketProblemMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
                   </td>
                 </tr>
@@ -929,23 +888,22 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             )}
           </table>
         </div>
-      </div>
+      </Card>
       )}
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
       {!isMobilePortrait && !isMarketing && !isTeknisi && showSalesFocus && !showCreatorFocus && (
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Paket Terlaris (Tahun {year})</h3>
-              <p className="text-xs text-gray-500">5 paket dengan pemasangan terbanyak</p>
-            </div>
-            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <LayoutDashboard className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-            </div>
-          </div>
+        <ChartCard
+          title={`Paket Terlaris (Tahun ${year})`}
+          description="5 paket dengan pemasangan terbanyak"
+          action={
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted text-ink-muted">
+              <LayoutDashboard className="h-5 w-5" />
+            </span>
+          }
+        >
           {yearTopPackageBarData.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-sm text-gray-500 dark:text-gray-400 italic">
+            <div className="py-8 text-center text-sm italic text-ink-muted">
               Tidak ada data paket untuk tahun ini
             </div>
           ) : (
@@ -955,7 +913,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 10, fill: '#9ca3af' }}
+                    tick={chartAxisTick}
                     axisLine={false}
                     tickLine={false}
                     interval={0}
@@ -965,8 +923,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                     tickMargin={8}
                     tickFormatter={(v) => shortLabel(v, 14)}
                   />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none' }} cursor={{ fill: 'rgba(156, 163, 175, 0.08)' }} />
+                  <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={28} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} />
                   <Bar dataKey="count" name="Jumlah" barSize={34} radius={[10, 10, 0, 0]}>
                     {yearTopPackageBarData.map((_, index) => {
                       const palette = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#ef4444']
@@ -978,54 +936,55 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </ChartCard>
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
       {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
-        <div className="rounded-2xl bg-white dark:bg-gray-800 p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Pelanggan per Marketing (Tahun {year})</h3>
-              <p className="text-xs text-gray-500">15 marketing dengan jumlah pelanggan terbanyak</p>
-            </div>
-            <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <User className="h-5 w-5 text-gray-500 dark:text-gray-300" />
-            </div>
-          </div>
+        <Card className="p-5 sm:p-6">
+          <SectionHeading
+            title={`Pelanggan per Marketing (Tahun ${year})`}
+            description="15 marketing dengan jumlah pelanggan terbanyak"
+            action={
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-muted text-ink-muted">
+                <User className="h-5 w-5" />
+              </span>
+            }
+            className="mb-5"
+          />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-700">
-                  <th className="sticky left-0 z-20 border-r border-gray-100 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 sm:static sm:border-r-0 sm:bg-transparent">Marketing</th>
+                <tr className="border-b border-line">
+                  <th className="sticky left-0 z-20 border-r border-line bg-surface px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted sm:static sm:border-r-0 sm:bg-transparent">Marketing</th>
                   {marketingVisibleMonthIdx.map((i) => (
-                    <th key={marketingMonths[i]} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th key={marketingMonths[i]} className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted">
                       {marketingMonths[i]}
                     </th>
                   ))}
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+              <tbody className="divide-y divide-line">
                 {(yearMarketingMonthly?.rows ?? []).map((r) => (
-                  <tr key={r.name} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-white px-4 py-3 text-sm font-medium text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 sm:static sm:border-r-0 sm:bg-transparent">{r.name}</td>
+                  <tr key={r.name} className="transition-colors hover:bg-surface-muted">
+                    <td className="sticky left-0 z-10 border-r border-line bg-surface px-4 py-3 text-sm font-medium text-ink sm:static sm:border-r-0 sm:bg-transparent">{r.name}</td>
                     {marketingVisibleMonthIdx.map((i) => {
                       const v = Number(r.byMonth?.[i] ?? 0)
                       return (
-                        <td key={i} className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                        <td key={i} className="px-3 py-3 text-center text-sm tabular-nums text-ink-muted">
                           {v}
                         </td>
                       )
                     })}
-                    <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-white">
+                    <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-ink">
                       {r.total}
                     </td>
                   </tr>
                 ))}
                 {(yearMarketingMonthly?.rows?.length ?? 0) === 0 && (
                   <tr>
-                    <td colSpan={14} className="px-4 py-10 text-center text-sm text-gray-400 italic">
+                    <td colSpan={14} className="px-4 py-10 text-center text-sm italic text-ink-muted">
                       Tidak ada data untuk tahun ini
                     </td>
                   </tr>
@@ -1033,17 +992,17 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </tbody>
               {(yearMarketingMonthly?.rows?.length ?? 0) > 0 && (
                 <tfoot>
-                  <tr className="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <td className="sticky left-0 z-10 border-r border-gray-100 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 sm:static sm:border-r-0">Total</td>
+                  <tr className="border-t border-line bg-surface-muted">
+                    <td className="sticky left-0 z-10 border-r border-line bg-surface-muted px-4 py-3 text-sm font-semibold text-ink sm:static sm:border-r-0">Total</td>
                     {marketingVisibleMonthIdx.map((i) => {
                       const v = (yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.byMonth?.[i] ?? 0), 0)
                       return (
-                        <td key={i} className="px-3 py-3 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
+                        <td key={i} className="px-3 py-3 text-center text-sm font-semibold tabular-nums text-ink">
                           {v}
                         </td>
                       )
                     })}
-                    <td className="px-4 py-3 text-center text-sm font-bold text-gray-900 dark:text-white">
+                    <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">
                       {(yearMarketingMonthly?.rows ?? []).reduce((acc, r) => acc + Number(r.total ?? 0), 0)}
                     </td>
                   </tr>
@@ -1051,8 +1010,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               )}
             </table>
           </div>
-
-        </div>
+        </Card>
       )}
     </div>
   )
@@ -1066,28 +1024,32 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 }
 
 function DivisionCard({ division, detailHref }: { division: DivisionSummary; detailHref?: string }) {
-  const config = {
+  const config = ({
     PENJUALAN: {
-      icon: <Megaphone className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      Icon: Megaphone,
+      iconClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+      badgeTone: 'brand',
       badgeLabel: 'Penjualan',
     },
     CS_ADMIN: {
-      icon: <Headset className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      Icon: Headset,
+      iconClass: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
+      badgeTone: 'success',
       badgeLabel: 'CS',
     },
     NOC_TROUBLESHOOTS: {
-      icon: <ShieldCheck className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      Icon: ShieldCheck,
+      iconClass: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
+      badgeTone: 'warning',
       badgeLabel: 'NOC',
     },
     CREATOR_DIGITAL: {
-      icon: <Clapperboard className="h-5 w-5 text-gray-700 dark:text-gray-200" />,
-      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+      Icon: Clapperboard,
+      iconClass: 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
+      badgeTone: 'info',
       badgeLabel: 'Creator Digital',
     },
-  }[division.code]
+  } as const)[division.code]
 
   const statCards = division.extraStats?.length
     ? division.extraStats.map((item) => ({
@@ -1110,38 +1072,40 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
         },
       ]
 
+  const { Icon } = config
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+    <Card className="p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="rounded-md border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-700">{config.icon}</div>
+          <div className={clsx('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', config.iconClass)}>
+            <Icon className="h-5 w-5" />
+          </div>
           <div>
-            <h4 className="text-base font-semibold text-gray-900 dark:text-white">{division.label}</h4>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{division.description}</p>
+            <h4 className="text-base font-semibold tracking-tight text-ink">{division.label}</h4>
+            <p className="mt-1 text-sm text-ink-muted">{division.description}</p>
           </div>
         </div>
-        <div className={clsx('rounded-md px-2.5 py-1 text-[11px] font-semibold', config.badge)}>
-          {config.badgeLabel}
-        </div>
+        <Chip tone={config.badgeTone}>{config.badgeLabel}</Chip>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
         {statCards.map((item) => (
           <div
             key={item.label}
-            className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 dark:border-gray-700 dark:bg-gray-900"
+            className="rounded-xl border border-line bg-surface-muted px-3 py-3"
           >
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
               {item.icon}
               {item.label}
             </div>
-            <div className="mt-1 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{item.value}</div>
+            <div className="mt-1 text-xl font-bold tabular-nums tracking-tight text-ink sm:text-2xl">{item.value}</div>
           </div>
         ))}
       </div>
 
       {division.note && (
-        <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <div className="mt-3 rounded-xl border border-line bg-surface-muted px-3 py-3 text-sm text-ink-muted">
           {division.note}
         </div>
       )}
@@ -1150,13 +1114,13 @@ function DivisionCard({ division, detailHref }: { division: DivisionSummary; det
         <div className="mt-3 flex justify-end">
           <Link
             href={detailHref}
-            className="inline-flex items-center rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-700"
+            className="inline-flex items-center rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink transition hover:bg-surface-muted"
           >
             Lihat detail
           </Link>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
