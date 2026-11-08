@@ -291,10 +291,8 @@ export function Header({ user }: { user: SessionUser }) {
           items: [
             { href: '/division-performance?division=PENJUALAN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'PENJUALAN' },
             { href: getMenuHref('input', 'PENJUALAN'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('list', 'PENJUALAN'), label: 'List Data', icon: List },
             { href: getMenuHref('marketing-activities', 'PENJUALAN'), label: 'Aktivitas Marketing', icon: ClipboardList },
             { href: getMenuHref('isolir', 'PENJUALAN'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('dismantle', 'PENJUALAN'), label: 'Dismantle', icon: Wrench },
             { href: getMenuHref('odp', 'PENJUALAN'), label: 'PORT ODP', icon: Wifi },
           ],
         },
@@ -306,11 +304,8 @@ export function Header({ user }: { user: SessionUser }) {
           items: [
             { href: '/division-performance?division=CS_ADMIN', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CS_ADMIN' },
             { href: getMenuHref('input', 'CS_ADMIN'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('list', 'CS_ADMIN'), label: 'List Data', icon: List },
             { href: getMenuHref('isolir', 'CS_ADMIN'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('dismantle', 'CS_ADMIN'), label: 'Dismantle Perangkat', icon: Wrench },
             { href: getMenuHref('odp', 'CS_ADMIN'), label: 'PORT ODP', icon: Wifi },
-            { href: getMenuHref('trouble-ticket', 'CS_ADMIN'), label: 'Trouble Ticket', icon: ClipboardList },
           ],
         },
         {
@@ -320,10 +315,7 @@ export function Header({ user }: { user: SessionUser }) {
           description: 'Aset jaringan dan tindak lanjut teknis.',
           items: [
             { href: '/division-performance?division=NOC_TROUBLESHOOTS', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'NOC_TROUBLESHOOTS' },
-            { href: getMenuHref('list', 'NOC_TROUBLESHOOTS'), label: 'List Data', icon: List },
-            { href: getMenuHref('dismantle', 'NOC_TROUBLESHOOTS'), label: 'Dismantle Perangkat', icon: Wrench },
             { href: getMenuHref('odp', 'NOC_TROUBLESHOOTS'), label: 'PORT ODP', icon: Wifi },
-            { href: getMenuHref('trouble-ticket', 'NOC_TROUBLESHOOTS'), label: 'Trouble Ticket', icon: Wrench },
           ],
         },
         {
@@ -334,9 +326,7 @@ export function Header({ user }: { user: SessionUser }) {
           items: [
             { href: '/division-performance?division=CREATOR_DIGITAL', label: 'Ringkasan Divisi', icon: LayoutDashboard, matchDivision: 'CREATOR_DIGITAL' },
             { href: getMenuHref('input', 'CREATOR_DIGITAL'), label: 'Input PSB', icon: FileInput },
-            { href: getMenuHref('list', 'CREATOR_DIGITAL'), label: 'List Data', icon: List },
             { href: getMenuHref('isolir', 'CREATOR_DIGITAL'), label: 'Isolir', icon: Ban },
-            { href: getMenuHref('dismantle', 'CREATOR_DIGITAL'), label: 'Dismantle', icon: Wrench },
             { href: getMenuHref('odp', 'CREATOR_DIGITAL'), label: 'PORT ODP', icon: Wifi },
             { href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Content Calendar', icon: Calendar },
             { href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target },
@@ -347,7 +337,10 @@ export function Header({ user }: { user: SessionUser }) {
       ]
     : []
 
-  const navGroups = adminDivisionGroups
+  const navGroups: HeaderNavGroup[] =
+    ticketingGroup && adminDivisionGroups.length > 0
+      ? [ticketingGroup, ...adminDivisionGroups]
+      : adminDivisionGroups
   const usesGroupedNavigation = navGroups.length > 0
 
   const settingsGroups: HeaderSettingsGroup[] = [

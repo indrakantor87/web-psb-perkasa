@@ -13,6 +13,15 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.1] - 2026-11-08
+
+### Added
+- Menu **Ticketing** (dropdown) kini juga tampil untuk role **ADMIN** dan **DEVELOPER**, sehingga semua role memiliki satu pintu masuk tiket yang seragam.
+
+### Changed
+- Grup divisi ADMIN/DEVELOPER (Penjualan, CS, NOC, Creator Digital) dirapikan: entri tiket (List Data, Dismantle, Trouble Ticket) dipindahkan ke dropdown Ticketing agar tidak duplikat. Setiap grup divisi kini hanya berisi item non-tiket (Ringkasan Divisi, Input PSB, Aktivitas Marketing, Isolir, PORT ODP, dan menu digital).
+- Tautan Ticketing untuk ADMIN/DEVELOPER tetap mengikuti perilaku navigasi lain yang sudah ada (Data PSB → divisi Penjualan, Trouble Ticket → NOC, Dismantle → CS).
+
 ## [1.7.0] - 2026-11-08
 
 ### Added
