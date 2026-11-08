@@ -1237,7 +1237,7 @@ export function OdpManager({
           <button
             onClick={handleExportExcel}
             disabled={isExporting || !supportsOdpWorkflow}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
+            className="hidden w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 md:inline-flex dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
           >
             {isExporting ? 'Export...' : 'Export Excel'}
           </button>
@@ -1247,7 +1247,7 @@ export function OdpManager({
               <button
                 onClick={handleImportClick}
                 disabled={isImporting || !canMutate}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
+                className="hidden w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 md:inline-flex dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:w-auto"
                 title="Import Excel (Admin/CS/NOC/TEKNISI)"
               >
                 <Upload className="h-4 w-4" />
@@ -1259,7 +1259,7 @@ export function OdpManager({
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <div className="hidden rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600 md:block dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}
@@ -1288,7 +1288,7 @@ export function OdpManager({
               </select>
               {isAdmin && (
                 <select
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-700 dark:bg-gray-950 dark:text-white sm:w-auto"
+                  className="hidden w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 md:block dark:border-gray-700 dark:bg-gray-950 dark:text-white sm:w-auto"
                   value={division}
                   onChange={(e) => setDivision(e.target.value as DivisionFilter)}
                 >

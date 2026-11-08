@@ -505,7 +505,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
               </div>
             )}
             {isAdmin && (
-              <div className="col-span-2 sm:col-span-1">
+              <div className="hidden col-span-2 sm:col-span-1 md:block">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Divisi</label>
                 <select
                   value={division}
@@ -528,7 +528,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
             <>
               <button
                 disabled={isImporting || !isPenjualanFocus}
-                className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none"
+                className="hidden flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none md:flex"
                 onClick={() => document.getElementById('marketing-import-input')?.click()}
               >
                 <Upload className="h-4 w-4" />
@@ -546,7 +546,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
           <button
             onClick={handleExport}
             disabled={isExporting || activities.length === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none"
+            className="hidden flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 lg:flex-none md:flex"
           >
             <Download className="h-4 w-4" />
             Export
@@ -563,7 +563,7 @@ export function MarketingActivityView({ userRole, userName, initialDivision = 'A
       </div>
 
       {isAdmin && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <div className="hidden rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 md:block dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}

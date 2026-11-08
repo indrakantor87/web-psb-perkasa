@@ -1432,7 +1432,7 @@ export function DismantleView({
             </select>
           </div>
           {canUseAdminScope && (
-            <div>
+            <div className="hidden md:block">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
               <select
                 value={division}
@@ -1476,7 +1476,7 @@ export function DismantleView({
               type="button"
               onClick={handleImportClick}
               disabled={!canEdit || !supportsWorkflow || isImporting}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              className="hidden items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 md:inline-flex dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
             >
               <Upload className="h-4 w-4" />
               {isImporting ? 'Import...' : 'Import Excel'}
@@ -1485,7 +1485,7 @@ export function DismantleView({
               type="button"
               onClick={handleExport}
               disabled={!supportsWorkflow || isExporting || loading}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              className="hidden items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 md:inline-flex dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
             >
               <Download className="h-4 w-4" />
               {isExporting ? 'Export...' : 'Export Excel'}

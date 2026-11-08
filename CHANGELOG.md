@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.11] - 2026-11-08
+
+### Changed
+- Sembunyikan filter Divisi beserta keterangannya dan tombol Import/Export pada tampilan mobile di modul Trouble Ticket, Dismantle, Isolir, Port ODP, dan Aktivitas Marketing agar tampilan lebih ringkas.
+
 ## [1.7.10] - 2026-11-08
 
 ### Fixed

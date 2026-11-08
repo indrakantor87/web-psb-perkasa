@@ -603,7 +603,7 @@ export function IsolationView({
             <select
               value={division}
               onChange={(e) => setDivision(e.target.value as DivisionFilter)}
-              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:w-56"
+              className="hidden w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 md:block dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:w-56"
             >
               <option value="ALL">Semua Divisi</option>
               <option value="PENJUALAN">Penjualan</option>
@@ -619,7 +619,7 @@ export function IsolationView({
               type="button"
               onClick={handleExportExcel}
               disabled={isExporting || !supportsIsolationWorkflow}
-              className="w-full flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-60 sm:w-auto"
+              className="hidden w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-60 sm:w-auto md:flex"
             >
               <Download className="h-4 w-4" />
               {isExporting ? 'Export...' : 'Export Excel'}
@@ -628,7 +628,7 @@ export function IsolationView({
               type="button"
               onClick={handleImportClick}
               disabled={!canMutate}
-              className="w-full flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-60 sm:w-auto"
+              className="hidden w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-60 sm:w-auto md:flex"
             >
               <Upload className="h-4 w-4" />
               Import Excel
@@ -675,7 +675,7 @@ export function IsolationView({
       </div>
 
       {canUseAdminScope && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+        <div className="hidden rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 md:block dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
           {divisionDescriptions[division]}
         </div>
       )}

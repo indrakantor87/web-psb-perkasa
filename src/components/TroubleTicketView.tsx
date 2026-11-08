@@ -1435,7 +1435,7 @@ export function TroubleTicketView({
             <button
               onClick={handleExport}
               disabled={isExporting || rows.length === 0 || !supportsTroubleTicketWorkflow}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 md:w-auto"
+              className="hidden w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 md:inline-block md:w-auto"
             >
               Export Excel
             </button>
@@ -1443,7 +1443,7 @@ export function TroubleTicketView({
               <label
                 htmlFor={fileInputId}
                 className={clsx(
-                  'w-full cursor-pointer rounded-md px-3 py-2 text-center text-sm font-medium md:w-auto',
+                  'hidden w-full cursor-pointer rounded-md px-3 py-2 text-center text-sm font-medium md:inline-block md:w-auto',
                   isImporting || !supportsTroubleTicketWorkflow ? 'pointer-events-none border border-gray-300 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
                 )}
               >
