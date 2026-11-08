@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.6.1] - 2026-11-08
+
+### Changed
+- Tampilan Port ODP dengan filter Semua POP kini menampilkan hierarki bertahap POP → ODC → ODP → pelanggan; filter satu POP tetap dimulai dari daftar ODC.
+- Nama POP dari master dan data ODP lama tetap muncul di hierarki, dengan pengelompokan otomatis untuk ODP legacy berdasarkan pola nama.
+
 ## [1.6.0] - 2026-11-08
 
 ### Changed

@@ -45,7 +45,11 @@ type OdcDisplayRow = OdcRow & {
   wilayah?: string
 }
 
-type OdpTableRow = OdpRow | OdcDisplayRow
+type PopDisplayRow = PopRow & {
+  isPop: true
+}
+
+type OdpTableRow = OdpRow | OdcDisplayRow | PopDisplayRow
 type OdpCustomerRow = {
   id: number
   customerName: string
@@ -65,6 +69,14 @@ function parseLegacyOdpName(name: string) {
     odcCode: match[2],
     odpCode: match[3],
   }
+}
+
+function stableNegativeId(value: string, index = 0) {
+  let hash = 0
+  for (const char of value.trim().toLowerCase()) {
+    hash = (hash * 31 + char.charCodeAt(0)) | 0
+  }
+  return -(Math.abs(hash) * 1000 + index + 1)
 }
 
 function toInt(v: string) {
@@ -175,6 +187,9 @@ export function OdpManager({
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const currentOdpIds = rows
+    .filter((row): row is OdpRow => !('isOdc' in row) && !('isPop' in row))
+    .map((row) => row.id)
 
   const [mapOpen, setMapOpen] = useState(false)
   const [mapRows, setMapRows] = useState<OdpRow[]>([])
@@ -199,10 +214,13 @@ export function OdpManager({
   const [editing, setEditing] = useState<OdpRow | null>(null)
   
   // Hierarchical view states
+  const [expandedPops, setExpandedPops] = useState<Set<number>>(new Set())
   const [expandedOdcs, setExpandedOdcs] = useState<Set<number>>(new Set())
   const [expandedOdps, setExpandedOdps] = useState<Set<number>>(new Set())
+  const [odcsByPop, setOdcsByPop] = useState<Record<number, OdcDisplayRow[]>>({})
   const [odpsByOdc, setOdpsByOdc] = useState<Record<number, OdpRow[]>>({})
   const [customersByOdp, setCustomersByOdp] = useState<Record<number, OdpCustomerRow[]>>({})
+  const [loadingPopDetails, setLoadingPopDetails] = useState<Set<number>>(new Set())
   const [loadingOdcDetails, setLoadingOdcDetails] = useState<Set<number>>(new Set())
   const [loadingOdpDetails, setLoadingOdpDetails] = useState<Set<number>>(new Set())
 
@@ -327,16 +345,157 @@ export function OdpManager({
       url.searchParams.set('page', String(page))
       url.searchParams.set('pageSize', String(pageSize))
       if (isAdmin && division !== 'ALL') url.searchParams.set('division', division)
+      if (qDebounced) {
+        url.searchParams.set('all', '1')
+        url.searchParams.set('bypassCache', bypassCache ? '1' : '0')
+      }
       if (bypassCache) url.searchParams.set('bypassCache', '1')
       const r = await fetch(url.toString(), { cache: 'no-store', signal })
       const data = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(data?.error ?? 'Gagal memuat data')
-      setRows((data.rows ?? []) as OdpRow[])
-      setTotal(data.total ?? 0)
+
       const fromServer = Array.isArray(data?.wilayahList) ? (data.wilayahList as string[]) : []
-      const merged = Array.from(new Set([...defaultWilayah, ...fromServer].map((x) => String(x).trim()).filter(Boolean)))
+      const merged = Array.from(new Set([
+        ...defaultWilayah,
+        ...pops.map((pop) => pop.nama_pop),
+        ...fromServer,
+      ].map((x) => String(x).trim()).filter(Boolean)))
       setWilayahList(merged)
+
+      if (isAdmin && division !== 'ALL' && division !== 'CS_ADMIN') {
+        setRows([])
+        setTotal(0)
+        return
+      }
+
+      const matchedOdps: OdpRow[] = qDebounced
+        ? (Array.isArray(data) ? data : [])
+        : []
+      const sourcePopNames = qDebounced
+        ? Array.from(new Set(matchedOdps.map((odp) => odp.wilayah.trim()).filter(Boolean)))
+        : Array.from(new Set([
+            ...pops.map((pop) => pop.nama_pop.trim()),
+            ...fromServer,
+          ].filter(Boolean)))
+      const popNames = Array.from(new globalThis.Map(
+        sourcePopNames.map((name): [string, string] => [name.toLowerCase(), name])
+      ).values())
+      const sortedPopNames = popNames.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+      const popRows: PopDisplayRow[] = sortedPopNames.map((name) => {
+        const existingPop = pops.find((pop) => pop.nama_pop.trim().toLowerCase() === name.toLowerCase())
+        return {
+          id: existingPop?.id ?? stableNegativeId(name),
+          nama_pop: name,
+          lokasi: existingPop?.lokasi ?? '',
+          isPop: true,
+        }
+      })
+      const offset = (page - 1) * pageSize
+      setRows(popRows.slice(offset, offset + pageSize))
+      setTotal(popRows.length)
     }, [defaultWilayah, division, isAdmin, page, pageSize, qDebounced, wilayah, pops])
+
+  const togglePopExpand = async (pop: PopDisplayRow) => {
+    const newExpanded = new Set(expandedPops)
+    if (newExpanded.has(pop.id)) {
+      newExpanded.delete(pop.id)
+      setExpandedPops(newExpanded)
+      return
+    }
+
+    newExpanded.add(pop.id)
+    setExpandedPops(newExpanded)
+    if (odcsByPop[pop.id]) return
+
+    setLoadingPopDetails((prev) => new Set(prev).add(pop.id))
+    try {
+      const odcUrl = new URL('/api/odp/odc', window.location.origin)
+      if (pop.id > 0) odcUrl.searchParams.set('popId', String(pop.id))
+      else odcUrl.searchParams.set('popName', pop.nama_pop)
+
+      const odpUrl = new URL('/api/odp', window.location.origin)
+      odpUrl.searchParams.set('q', qDebounced)
+      odpUrl.searchParams.set('wilayah', pop.nama_pop)
+      odpUrl.searchParams.set('withoutOdc', '1')
+      odpUrl.searchParams.set('all', '1')
+      odpUrl.searchParams.set('bypassCache', '1')
+      if (pop.id > 0) odpUrl.searchParams.set('popId', String(pop.id))
+      if (isAdmin && division !== 'ALL') odpUrl.searchParams.set('division', division)
+
+      const [odcResponse, odpResponse] = await Promise.all([
+        fetch(odcUrl.toString(), { cache: 'no-store' }),
+        fetch(odpUrl.toString(), { cache: 'no-store' }),
+      ])
+      const odcData = await odcResponse.json().catch(() => [])
+      const odpData = await odpResponse.json().catch(() => [])
+      if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
+      if (!odpResponse.ok) throw new Error(odpData?.error ?? 'Gagal memuat ODP yang belum terhubung')
+
+      const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
+        ...odc,
+        isOdc: true,
+        wilayah: pop.nama_pop,
+      }))
+      const unassignedOdps = Array.isArray(odpData) ? odpData as OdpRow[] : []
+      const verifiedPopCodes: Record<string, string[]> = { pati: ['PTI'] }
+      const expectedPopCodes = verifiedPopCodes[pop.nama_pop.trim().toLowerCase()]
+      const groupedOdps = new globalThis.Map<string, { popCode: string; odcCode: string; rows: OdpRow[] }>()
+      const unparsedOdps: OdpRow[] = []
+
+      for (const odp of unassignedOdps) {
+        const parsed = parseLegacyOdpName(odp.nama_odp)
+        if (!parsed || (expectedPopCodes && !expectedPopCodes.includes(parsed.popCode))) {
+          unparsedOdps.push(odp)
+          continue
+        }
+        const key = `${parsed.popCode}/${parsed.odcCode}`
+        const group = groupedOdps.get(key) ?? { popCode: parsed.popCode, odcCode: parsed.odcCode, rows: [] }
+        group.rows.push(odp)
+        groupedOdps.set(key, group)
+      }
+
+      const derivedChildren: Record<number, OdpRow[]> = {}
+      const sortedGroups = Array.from(groupedOdps.entries()).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+      sortedGroups.forEach(([, group], index) => {
+        const id = stableNegativeId(pop.nama_pop, index)
+        hierarchyRows.push({
+          id,
+          nama_odc: `ODC ${group.odcCode} (${group.popCode})`,
+          pop_id: pop.id > 0 ? pop.id : 0,
+          lokasi: `${group.rows.length} ODP`,
+          isOdc: true,
+          isNameDerived: true,
+          wilayah: pop.nama_pop,
+        })
+        derivedChildren[id] = group.rows.sort((a, b) => a.nama_odp.localeCompare(b.nama_odp, undefined, { numeric: true }))
+      })
+
+      if (unparsedOdps.length > 0) {
+        const id = stableNegativeId(pop.nama_pop, sortedGroups.length)
+        hierarchyRows.push({
+          id,
+          nama_odc: 'ODP belum terpetakan dari nama',
+          pop_id: pop.id > 0 ? pop.id : 0,
+          lokasi: `${unparsedOdps.length} ODP`,
+          isOdc: true,
+          isUnassigned: true,
+          wilayah: pop.nama_pop,
+        })
+        derivedChildren[id] = unparsedOdps
+      }
+
+      setOdcsByPop((prev) => ({ ...prev, [pop.id]: hierarchyRows }))
+      setOdpsByOdc((prev) => ({ ...prev, ...derivedChildren }))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gagal memuat ODC')
+    } finally {
+      setLoadingPopDetails((prev) => {
+        const next = new Set(prev)
+        next.delete(pop.id)
+        return next
+      })
+    }
+  }
 
   const toggleOdcExpand = async (odcId: number, isUnassigned = false, popName = '') => {
     const newExpanded = new Set(expandedOdcs)
@@ -530,6 +689,81 @@ export function OdpManager({
     )
   }
 
+  const renderOdcRow = (row: OdcDisplayRow, key: string, idx: number, isNested: boolean) => {
+    const isExpanded = expandedOdcs.has(row.id)
+    const children = odpsByOdc[row.id] || []
+    const isLoading = loadingOdcDetails.has(row.id)
+
+    return (
+      <Fragment key={key}>
+        <tr className="border-b border-gray-100 bg-gray-50/50 dark:border-gray-800 dark:bg-gray-800/30">
+          {canEdit && <td className="py-3 pl-3"></td>}
+          <td className="py-3 pl-3 text-center">
+            <button onClick={() => toggleOdcExpand(row.id, row.isUnassigned, row.wilayah || wilayah)} className="rounded p-1 transition-colors hover:bg-gray-200 dark:hover:bg-gray-700" aria-label={`${isExpanded ? 'Tutup' : 'Buka'} ODC ${row.nama_odc}`}>
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          </td>
+          <td className="py-3 pl-3 text-center text-xs text-gray-400">{isNested ? '↳' : '#'}</td>
+          <td className="py-3 pr-4 font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="flex items-center gap-2">
+              {row.isUnassigned || row.isNameDerived ? row.nama_odc : `ODC: ${row.nama_odc}`}
+              {isLoading && <span className="animate-pulse text-[10px] font-normal text-gray-400">(Loading...)</span>}
+            </span>
+          </td>
+          <td className="py-3 pr-4">{row.wilayah || wilayah}</td>
+          <td className="py-3 pr-4">{row.lokasi || '-'}</td>
+          <td className="py-3 pr-4 text-gray-400 dark:text-gray-500" colSpan={canEdit ? 6 : 5}>ODC</td>
+        </tr>
+        {isExpanded && children.map((odp, odpIndex) => renderOdpRow(odp, `${row.id}-${odp.id}`, odpIndex, true))}
+        {isExpanded && children.length === 0 && !isLoading && (
+          <tr className="bg-gray-50/30 dark:bg-gray-900/50">
+            <td colSpan={canEdit ? 12 : 10} className="py-3 pl-16 text-sm text-gray-500 dark:text-gray-400">
+              Belum ada ODP terhubung ke ODC ini.
+            </td>
+          </tr>
+        )}
+      </Fragment>
+    )
+  }
+
+  const renderPopRow = (row: PopDisplayRow, idx: number) => {
+    const isExpanded = expandedPops.has(row.id)
+    const children = odcsByPop[row.id] || []
+    const isLoading = loadingPopDetails.has(row.id)
+
+    return (
+      <Fragment key={`pop-${row.id}`}>
+        <tr className="border-b border-blue-100 bg-blue-50/70 dark:border-blue-900/40 dark:bg-blue-950/30">
+          {canEdit && <td className="py-3 pl-3"></td>}
+          <td className="py-3 pl-3 text-center">
+            <button onClick={() => togglePopExpand(row)} className="rounded p-1 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50" aria-label={`${isExpanded ? 'Tutup' : 'Buka'} POP ${row.nama_pop}`}>
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          </td>
+          <td className="py-3 pl-3 text-center text-xs text-gray-500 dark:text-gray-400">{(page - 1) * pageSize + idx + 1}</td>
+          <td className="py-3 pr-4 font-bold text-blue-700 dark:text-blue-300">
+            <span className="flex items-center gap-2">
+              POP: {row.nama_pop}
+              {isLoading && <span className="animate-pulse text-[10px] font-normal text-gray-400">(Loading...)</span>}
+            </span>
+          </td>
+          <td className="py-3 pr-4">{row.nama_pop}</td>
+          <td className="py-3 pr-4">{row.lokasi || '-'}</td>
+          <td className="py-3 pr-4 text-sm text-gray-500 dark:text-gray-400" colSpan={canEdit ? 6 : 5}>
+            {isExpanded
+              ? isLoading
+                ? 'Memuat daftar ODC...'
+                : children.length > 0
+                  ? `${children.length} ODC`
+                  : 'Belum ada ODC pada POP ini.'
+              : 'Klik chevron untuk melihat daftar ODC.'}
+          </td>
+        </tr>
+        {isExpanded && children.map((odc, odcIndex) => renderOdcRow(odc, `pop-${row.id}-odc-${odc.id}`, odcIndex, true))}
+      </Fragment>
+    )
+  }
+
   const fetchPops = useCallback(async () => {
     try {
       const r = await fetch('/api/odp/pop')
@@ -586,11 +820,13 @@ export function OdpManager({
   }, [division, q, pageSize, wilayah])
 
   useEffect(() => {
+    setExpandedPops(new Set())
     setExpandedOdcs(new Set())
     setExpandedOdps(new Set())
+    setOdcsByPop({})
     setOdpsByOdc({})
     setCustomersByOdp({})
-  }, [wilayah])
+  }, [wilayah, qDebounced])
 
   useEffect(() => {
     setSelectedIds([])
@@ -793,7 +1029,7 @@ export function OdpManager({
   }
 
   const toggleSelectAllCurrent = () => {
-    const pageIds = rows.map((r) => r.id)
+    const pageIds = currentOdpIds
     const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedSet.has(id))
     if (allSelected) {
       setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)))
@@ -1188,7 +1424,8 @@ export function OdpManager({
                   <th className="py-3 pr-4 pl-3 w-10">
                     <input
                       type="checkbox"
-                      checked={rows.length > 0 && rows.every((r) => selectedSet.has(r.id))}
+                      checked={currentOdpIds.length > 0 && currentOdpIds.every((id) => selectedSet.has(id))}
+                      disabled={currentOdpIds.length === 0}
                       onChange={toggleSelectAllCurrent}
                       className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
                     />
@@ -1196,7 +1433,7 @@ export function OdpManager({
                 )}
                 <th className="py-3 pr-4 pl-3 w-8"></th>
                 <th className="py-3 pr-4 pl-3">#</th>
-                <th className="py-3 pr-4">{wilayah ? 'ODC / ODP' : 'Nama ODP'}</th>
+                <th className="py-3 pr-4">{wilayah ? 'ODC / ODP' : 'POP / ODC / ODP'}</th>
                 <th className="py-3 pr-4">POP</th>
                 <th className="py-3 pr-4">Lokasi</th>
                 <th className="py-3 pr-4">Kapasitas</th>
@@ -1226,33 +1463,12 @@ export function OdpManager({
                 </tr>
               ) : (
                 rows.map((row, idx) => {
-                  if ('isOdc' in row) {
-                    // Render ODC Row
-                    const isExpanded = expandedOdcs.has(row.id)
-                    const children = odpsByOdc[row.id] || []
-                    const isLoading = loadingOdcDetails.has(row.id)
+                  if ('isPop' in row) {
+                    return renderPopRow(row, idx)
+                  }
 
-                    return (
-                      <Fragment key={`odc-${row.id}`}>
-                        <tr className="bg-gray-50/50 border-b border-gray-100 dark:bg-gray-800/30 dark:border-gray-800">
-                          {canEdit && <td className="py-3 pl-3"></td>}
-                          <td className="py-3 pl-3 text-center">
-                            <button onClick={() => toggleOdcExpand(row.id, row.isUnassigned, row.wilayah || wilayah)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors">
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                          </td>
-                          <td className="py-3 pl-3 text-center text-xs text-gray-400">#</td>
-                          <td className="py-3 pr-4 font-bold text-emerald-600 dark:text-emerald-400">
-                            <span className="flex items-center gap-2">
-                              {row.isUnassigned || row.isNameDerived ? row.nama_odc : `ODC: ${row.nama_odc}`}
-                              {isLoading && <span className="text-[10px] animate-pulse font-normal text-gray-400">(Loading...)</span>}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4" colSpan={canEdit ? 8 : 7}>{row.lokasi || '-'}</td>
-                        </tr>
-                        {isExpanded && children.map((odp, oIdx) => renderOdpRow(odp, `${row.id}-${odp.id}`, oIdx, true))}
-                      </Fragment>
-                    )
+                  if ('isOdc' in row) {
+                    return renderOdcRow(row, `odc-${row.id}`, idx, false)
                   }
 
                   // Render normal ODP Row (Flat view)
