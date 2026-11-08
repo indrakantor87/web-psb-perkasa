@@ -170,7 +170,7 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (roleUpper === 'TEKNISI') {
-    return menuSet(['dashboard', 'list', 'odp', 'trouble-ticket'])
+    return menuSet(['dashboard', 'list', 'odp', 'trouble-ticket', 'dismantle'])
   }
 
   if (roleUpper === 'TROUBLESHOOTS') {
@@ -234,7 +234,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'isolir':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
     case 'dismantle':
-      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || roleUpper === 'DISMANTLE'
+      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || roleUpper === 'TEKNISI' || roleUpper === 'DISMANTLE'
     case 'odp':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || roleUpper === 'TEKNISI'
     case 'trouble-ticket':

@@ -230,6 +230,57 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
       ]
 
+  const ticketingLinks: HeaderNavLink[] =
+    isTroubleshoots || isDismantle
+      ? []
+      : [
+          ...(canAccessMenu(user?.role, 'list')
+            ? [{ href: getMenuHref('list', roleDivision), label: 'Data PSB', icon: List }]
+            : []),
+          ...(canAccessMenu(user?.role, 'trouble-ticket')
+            ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: ClipboardList }]
+            : []),
+          ...(canAccessMenu(user?.role, 'dismantle')
+            ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench }]
+            : []),
+        ]
+
+  const ticketingGroup: HeaderNavGroup | null =
+    ticketingLinks.length > 1
+      ? {
+          key: 'ticketing',
+          label: 'Ticketing',
+          icon: ClipboardList,
+          description: 'Data PSB, Trouble Ticket, dan Dismantle dalam satu menu.',
+          items: ticketingLinks,
+        }
+      : null
+
+  const isTicketingLink = (link: HeaderNavLink) => ticketingLinks.some((item) => item.href === link.href)
+  const desktopFlatLinks = ticketingGroup ? flatLinks.filter((link) => !isTicketingLink(link)) : flatLinks
+  const isTicketingActive = ticketingGroup ? ticketingGroup.items.some((item) => matchesLink(item)) : false
+
+  const renderFlatNavLink = (link: HeaderNavLink) => {
+    const Icon = link.icon
+    const isActive = matchesLink(link)
+    return (
+      <Link
+        key={link.href}
+        href={link.href}
+        prefetch={false}
+        className={clsx(
+          'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          isActive
+            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+        )}
+      >
+        <Icon className="h-4 w-4 mr-2" />
+        {link.label}
+      </Link>
+    )
+  }
+
   const adminDivisionGroups: HeaderNavGroup[] = (isAdmin || isDeveloper) && !isTroubleshoots
     ? [
         {
@@ -296,38 +347,7 @@ export function Header({ user }: { user: SessionUser }) {
       ]
     : []
 
-  const creatorDigitalGroups: HeaderNavGroup[] =
-    roleUpper === 'CREATOR_DIGITAL' && !isTroubleshoots && !isDismantle
-      ? [
-          {
-            key: 'creator-marketing',
-            label: 'Pemasaran',
-            icon: FileInput,
-            description: 'Akses operasional PSB dan tindak lanjut pelanggan.',
-            items: [
-              { href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput },
-              { href: getMenuHref('list', roleDivision), label: 'List Data', icon: List },
-              { href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban },
-              { href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench },
-              { href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi },
-            ],
-          },
-          {
-            key: 'creator-digital-menu',
-            label: 'Digital',
-            icon: TrendingUp,
-            description: 'Perencanaan konten, campaign, leads, dan analytics digital.',
-            items: [
-              { href: getMenuHref('content-calendar', roleDivision), label: 'Content Calendar', icon: Calendar },
-              { href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target },
-              { href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users },
-              { href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp },
-            ],
-          },
-        ]
-      : []
-
-  const navGroups = isAdmin || isDeveloper ? adminDivisionGroups : creatorDigitalGroups
+  const navGroups = adminDivisionGroups
   const usesGroupedNavigation = navGroups.length > 0
 
   const settingsGroups: HeaderSettingsGroup[] = [
@@ -656,26 +676,56 @@ export function Header({ user }: { user: SessionUser }) {
                 </div>
               </>
             ) : (
-              flatLinks.map((link) => {
-                const Icon = link.icon
-                const isActive = matchesLink(link)
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    prefetch={false}
-                    className={clsx(
-                      'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+              <>
+                {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
+
+                {ticketingGroup && (
+                  <div className="relative" ref={divisionNavRef}>
+                    <button
+                      onClick={() => {
+                        setOpenDivisionMenu((current) => (current === 'ticketing' ? null : 'ticketing'))
+                        setIsSettingsOpen(false)
+                      }}
+                      className={clsx(
+                        'flex items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors',
+                        isTicketingActive || openDivisionMenu === 'ticketing'
+                          ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-white'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                      )}
+                    >
+                      {ticketingGroup.label}
+                      <ChevronDown className={clsx('ml-1 h-3 w-3 transition-transform', openDivisionMenu === 'ticketing' && 'rotate-180')} />
+                    </button>
+
+                    {openDivisionMenu === 'ticketing' && (
+                      <div className="absolute left-0 z-50 mt-2 w-72 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
+                        <div className="border-b border-gray-100 px-4 py-3 dark:border-gray-700">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{ticketingGroup.label}</span>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{ticketingGroup.description}</p>
+                        </div>
+                        {ticketingGroup.items.map((link) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            prefetch={false}
+                            onClick={() => setOpenDivisionMenu(null)}
+                            className={clsx(
+                              'block px-4 py-2.5 text-sm transition-colors',
+                              matchesLink(link)
+                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                            )}
+                          >
+                            {link.label}
+                          </Link>
+                        ))}
+                      </div>
                     )}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {link.label}
-                  </Link>
-                )
-              })
+                  </div>
+                )}
+
+                {desktopFlatLinks.slice(1).map(renderFlatNavLink)}
+              </>
             )}
 
             <div className="relative" ref={settingsRefDesktop}>

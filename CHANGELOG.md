@@ -13,6 +13,18 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.0] - 2026-11-08
+
+### Added
+- Menu **Ticketing** (dropdown) pada navigasi header desktop yang menyatukan Data PSB, Trouble Ticket, dan Dismantle dalam satu tempat.
+- Role **TEKNISI** kini memiliki akses menu **Dismantle** (termasuk wewenang mengubah status ticket dismantle).
+
+### Changed
+- Isi menu Ticketing mengikuti matriks akses yang sudah ada (`canAccessMenu`), sehingga tidak ada role yang kehilangan akses: MARKETING & CREATOR_DIGITAL (Data PSB, Dismantle), CS/ADMIN_CS & NOC (Data PSB, Trouble Ticket, Dismantle), TEKNISI (Data PSB, Trouble Ticket, Dismantle).
+- Navigasi **Creator Digital** disamakan dengan Marketing (navigasi datar dengan dropdown Ticketing); menu digital (Content Calendar, Campaign, Digital Leads, Analytics) tampil sebagai tautan langsung.
+- Role ADMIN dan DEVELOPER tetap memakai navigasi bergrup per-divisi (tanpa duplikasi menu).
+- Fase ini hanya menyentuh navigasi header desktop; rute, API, komponen view, database, dan bottom-nav mobile tidak diubah.
+
 ## [1.6.1] - 2026-11-08
 
 ### Changed
