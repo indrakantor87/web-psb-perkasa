@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ChevronDown,
@@ -62,10 +62,16 @@ type HrAttendanceViewProps = {
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
-function currentMonthRange() {
+function currentMonthValue() {
   const nowWIB = new Date(Date.now() + JAKARTA_OFFSET_MS)
-  const year = nowWIB.getUTCFullYear()
-  const month = nowWIB.getUTCMonth() + 1
+  return `${nowWIB.getUTCFullYear()}-${pad(nowWIB.getUTCMonth() + 1)}`
+}
+
+function monthToRange(value: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value)
+  const nowWIB = new Date(Date.now() + JAKARTA_OFFSET_MS)
+  const year = match ? Number(match[1]) : nowWIB.getUTCFullYear()
+  const month = match ? Number(match[2]) : nowWIB.getUTCMonth() + 1
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
   return {
     from: `${year}-${pad(month)}-01`,
@@ -110,7 +116,8 @@ function describeAttendance(row: AttendanceRow): { label: string; tone: ChipTone
 }
 
 export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps) {
-  const initialRange = useMemo(currentMonthRange, [])
+  const [month, setMonth] = useState(currentMonthValue)
+  const range = useMemo(() => monthToRange(month), [month])
   const [items, setItems] = useState<AttendanceRow[]>([])
   const [employees, setEmployees] = useState<EmployeeOption[]>([])
   const [summary, setSummary] = useState<Summary>({ totalRecords: 0, totalEmployees: 0, totalOvertimeMinutes: 0 })
@@ -120,12 +127,9 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   const [importing, setImporting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
 
-  const [from, setFrom] = useState(initialRange.from)
-  const [to, setTo] = useState(initialRange.to)
   const [query, setQuery] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
-  const [mobileExpandedId, setMobileExpandedId] = useState<number | null>(null)
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<number | null>(null)
 
   const [machine, setMachine] = useState<MachineConfig>({ ip: '', port: 4370 })
   const [machineConnected, setMachineConnected] = useState<boolean | null>(null)
@@ -140,10 +144,9 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   const loadAttendance = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ from, to })
+      const params = new URLSearchParams({ from: range.from, to: range.to })
       if (query.trim()) params.set('q', query.trim())
       if (departmentFilter) params.set('department', departmentFilter)
-      if (employeeId) params.set('employeeId', employeeId)
 
       const res = await fetch(`/api/hr/attendance?${params.toString()}`, { cache: 'no-store' })
       const data = (await res.json().catch(() => ({}))) as {
@@ -167,11 +170,34 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
     } finally {
       setLoading(false)
     }
-  }, [from, to, query, departmentFilter, employeeId])
+  }, [range, query, departmentFilter])
 
   useEffect(() => {
     loadAttendance()
   }, [loadAttendance])
+
+  const employeeGroups = useMemo(() => {
+    const byEmployee = new Map<number, AttendanceRow[]>()
+    for (const row of items) {
+      const bucket = byEmployee.get(row.employeeId)
+      if (bucket) bucket.push(row)
+      else byEmployee.set(row.employeeId, [row])
+    }
+    const needle = query.trim().toLowerCase()
+    return employees
+      .filter((employee) => !departmentFilter || employee.department === departmentFilter)
+      .filter((employee) => !needle || employee.name.toLowerCase().includes(needle))
+      .map((employee) => {
+        const records = (byEmployee.get(employee.id) ?? []).slice().sort((a, b) => a.date.localeCompare(b.date))
+        const presentDays = records.filter((row) => Boolean(row.checkIn)).length
+        const overtimeMinutes = records.reduce((sum, row) => sum + row.overtimeMinutes, 0)
+        return { employee, records, presentDays, overtimeMinutes }
+      })
+      .sort((a, b) => {
+        const byDepartment = a.employee.department.localeCompare(b.employee.department)
+        return byDepartment !== 0 ? byDepartment : a.employee.name.localeCompare(b.employee.name)
+      })
+  }, [items, employees, departmentFilter, query])
 
   const loadMachine = useCallback(async () => {
     try {
@@ -455,22 +481,13 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
       )}
 
       <Card className="p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <label className="text-xs font-medium text-ink-muted">
-            Dari tanggal
+            Bulan
             <input
-              type="date"
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
-            />
-          </label>
-          <label className="text-xs font-medium text-ink-muted">
-            Sampai tanggal
-            <input
-              type="date"
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
+              type="month"
+              value={month}
+              onChange={(event) => setMonth(event.target.value || currentMonthValue())}
               className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
             />
           </label>
@@ -502,32 +519,17 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
               ))}
             </select>
           </label>
-          <label className="hidden text-xs font-medium text-ink-muted md:block">
-            Karyawan
-            <select
-              value={employeeId}
-              onChange={(event) => setEmployeeId(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
-            >
-              <option value="">Semua karyawan</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
       </Card>
 
       <Card className="overflow-hidden">
         {loading ? (
           <div className="px-4 py-10 text-center text-sm text-ink-muted">Memuat data absensi...</div>
-        ) : items.length === 0 ? (
+        ) : employeeGroups.length === 0 ? (
           <EmptyState
             icon={Fingerprint}
-            title="Belum ada data absensi"
-            description="Tarik data dari mesin fingerprint untuk periode ini, atau ubah rentang tanggal."
+            title="Belum ada data karyawan"
+            description="Tambahkan karyawan pada tab Daftar Karyawan, lalu tarik absensi dari mesin fingerprint."
           />
         ) : (
           <>
@@ -537,40 +539,92 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
                   <thead className="bg-surface-muted text-xs uppercase tracking-wide text-ink-muted">
                     <tr>
                       <th className="px-4 py-3 font-semibold">No</th>
-                      <th className="px-4 py-3 font-semibold">Tanggal</th>
                       <th className="px-4 py-3 font-semibold">Karyawan</th>
-                      <th className="px-4 py-3 font-semibold">Departemen</th>
-                      <th className="px-4 py-3 font-semibold">Jam Masuk</th>
-                      <th className="px-4 py-3 font-semibold">Jam Pulang</th>
+                      <th className="px-4 py-3 font-semibold">Divisi</th>
+                      <th className="px-4 py-3 font-semibold">Hadir</th>
                       <th className="px-4 py-3 font-semibold">Lembur (Jam)</th>
-                      <th className="px-4 py-3 font-semibold">Status</th>
+                      <th className="px-4 py-3 text-right font-semibold">Detail</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((row, index) => {
-                      const status = describeAttendance(row)
+                    {employeeGroups.map((group, index) => {
+                      const expanded = expandedEmployeeId === group.employee.id
                       return (
-                        <tr key={row.id} className="border-t border-line">
-                          <td className="px-4 py-3 tabular-nums text-ink-muted">{index + 1}</td>
-                          <td className="px-4 py-3 tabular-nums text-ink">{formatDateLabel(row.date)}</td>
-                          <td className="px-4 py-3 font-medium text-ink">{row.employeeName}</td>
-                          <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
-                                {formatTimeWIB(row.checkIn)}
-                              </span>
-                              {status.label === 'Terlambat' && <Chip tone="warning">Terlambat</Chip>}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
-                            {formatTimeWIB(row.checkOut)}
-                          </td>
-                          <td className="px-4 py-3 tabular-nums text-ink">{formatOvertime(row.overtimeMinutes)}</td>
-                          <td className="px-4 py-3">
-                            <Chip tone={status.tone}>{status.label}</Chip>
-                          </td>
-                        </tr>
+                        <Fragment key={group.employee.id}>
+                          <tr
+                            className="cursor-pointer border-t border-line hover:bg-surface-muted"
+                            onClick={() => setExpandedEmployeeId(expanded ? null : group.employee.id)}
+                          >
+                            <td className="px-4 py-3 tabular-nums text-ink-muted">{index + 1}</td>
+                            <td className="px-4 py-3 font-medium text-ink">{group.employee.name}</td>
+                            <td className="px-4 py-3 text-ink-muted">{group.employee.department || '-'}</td>
+                            <td className="px-4 py-3 tabular-nums text-ink">{group.presentDays} hari</td>
+                            <td className="px-4 py-3 tabular-nums text-ink">{formatOvertime(group.overtimeMinutes)}</td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                aria-label={expanded ? 'Tutup detail absensi' : 'Lihat detail absensi'}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setExpandedEmployeeId(expanded ? null : group.employee.id)
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs font-medium text-ink-muted hover:bg-surface-muted"
+                              >
+                                Detail
+                                <ChevronDown
+                                  className={clsx('h-4 w-4 transition-transform', expanded && 'rotate-180')}
+                                />
+                              </button>
+                            </td>
+                          </tr>
+                          {expanded && (
+                            <tr className="border-t border-line bg-surface-muted/60">
+                              <td colSpan={6} className="px-4 py-3">
+                                {group.records.length === 0 ? (
+                                  <p className="text-xs text-ink-muted">Tidak ada absensi pada bulan ini.</p>
+                                ) : (
+                                  <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+                                    <table className="w-full text-left text-xs">
+                                      <thead className="bg-surface-muted uppercase tracking-wide text-ink-muted">
+                                        <tr>
+                                          <th className="px-3 py-2 font-semibold">Tanggal</th>
+                                          <th className="px-3 py-2 font-semibold">Jam Masuk</th>
+                                          <th className="px-3 py-2 font-semibold">Jam Pulang</th>
+                                          <th className="px-3 py-2 font-semibold">Lembur (Jam)</th>
+                                          <th className="px-3 py-2 font-semibold">Status</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {group.records.map((record) => {
+                                          const status = describeAttendance(record)
+                                          return (
+                                            <tr key={record.id} className="border-t border-line">
+                                              <td className="px-3 py-2 tabular-nums text-ink">
+                                                {formatDateLabel(record.date)}
+                                              </td>
+                                              <td className="px-3 py-2 tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                                                {formatTimeWIB(record.checkIn)}
+                                              </td>
+                                              <td className="px-3 py-2 tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
+                                                {formatTimeWIB(record.checkOut)}
+                                              </td>
+                                              <td className="px-3 py-2 tabular-nums text-ink">
+                                                {formatOvertime(record.overtimeMinutes)}
+                                              </td>
+                                              <td className="px-3 py-2">
+                                                <Chip tone={status.tone}>{status.label}</Chip>
+                                              </td>
+                                            </tr>
+                                          )
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       )
                     })}
                   </tbody>
@@ -579,25 +633,24 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
             </div>
 
             <div className="divide-y divide-line md:hidden">
-              {items.map((row) => {
-                const expanded = mobileExpandedId === row.id
-                const status = describeAttendance(row)
+              {employeeGroups.map((group) => {
+                const expanded = expandedEmployeeId === group.employee.id
                 return (
-                  <div key={row.id} className="px-4 py-3">
+                  <div key={group.employee.id} className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => setMobileExpandedId(expanded ? null : row.id)}
+                      onClick={() => setExpandedEmployeeId(expanded ? null : group.employee.id)}
                       className="flex w-full items-center justify-between gap-3 text-left"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-ink">{row.employeeName}</p>
-                        <p className="mt-0.5 text-xs text-ink-muted tabular-nums">
-                          {formatDateLabel(row.date)} · {formatTimeWIB(row.checkIn)}–{formatTimeWIB(row.checkOut)}
+                        <p className="truncate text-sm font-semibold text-ink">{group.employee.name}</p>
+                        <p className="mt-0.5 text-xs text-ink-muted">
+                          {group.employee.department || '-'} · {group.presentDays} hari hadir
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Chip tone={row.overtimeMinutes > 0 ? 'warning' : 'neutral'}>
-                          {formatOvertime(row.overtimeMinutes)}
+                        <Chip tone={group.overtimeMinutes > 0 ? 'warning' : 'neutral'}>
+                          {formatOvertime(group.overtimeMinutes)}
                         </Chip>
                         <ChevronDown
                           className={clsx('h-4 w-4 text-ink-muted transition-transform', expanded && 'rotate-180')}
@@ -605,32 +658,29 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
                       </div>
                     </button>
                     {expanded && (
-                      <dl className="mt-3 space-y-1.5 rounded-xl border border-line bg-surface-muted px-3 py-2 text-xs">
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Departemen</dt>
-                          <dd className="text-right font-medium text-ink">{row.department || '-'}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Jam Masuk</dt>
-                          <dd className="text-right font-medium text-ink tabular-nums">{formatTimeWIB(row.checkIn)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Jam Keluar</dt>
-                          <dd className="text-right font-medium text-ink tabular-nums">{formatTimeWIB(row.checkOut)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Lembur</dt>
-                          <dd className="text-right font-medium text-ink">{formatOvertime(row.overtimeMinutes)}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Status</dt>
-                          <dd className="text-right font-medium text-ink">{status.label}</dd>
-                        </div>
-                        <div className="flex justify-between gap-3">
-                          <dt className="text-ink-muted">Sumber</dt>
-                          <dd className="text-right font-medium text-ink">{row.source}</dd>
-                        </div>
-                      </dl>
+                      <div className="mt-3 rounded-xl border border-line bg-surface-muted px-3 py-2">
+                        {group.records.length === 0 ? (
+                          <p className="text-xs text-ink-muted">Tidak ada absensi pada bulan ini.</p>
+                        ) : (
+                          <ul className="divide-y divide-line">
+                            {group.records.map((record) => {
+                              const status = describeAttendance(record)
+                              return (
+                                <li key={record.id} className="flex items-center justify-between gap-3 py-2 text-xs">
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-ink tabular-nums">{formatDateLabel(record.date)}</p>
+                                    <p className="text-ink-muted tabular-nums">
+                                      {formatTimeWIB(record.checkIn)}–{formatTimeWIB(record.checkOut)}
+                                      {record.overtimeMinutes > 0 ? ` · ${formatOvertime(record.overtimeMinutes)}` : ''}
+                                    </p>
+                                  </div>
+                                  <Chip tone={status.tone}>{status.label}</Chip>
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        )}
+                      </div>
                     )}
                   </div>
                 )

@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.9.1] - 2026-11-09
+
+### Changed
+- Tabel Absensi HR kini menampilkan **satu baris per karyawan** (seluruh nama karyawan) dan difilter **per bulan** (bukan rentang tanggal). Detail absensi harian bulan berjalan muncul saat tombol **Detail** (chevron) diklik. Karyawan tanpa absensi pada bulan tersebut tetap tampil dengan keterangan "Tidak ada absensi pada bulan ini".
+
 ## [1.9.0] - 2026-11-09
 
 ### Added
