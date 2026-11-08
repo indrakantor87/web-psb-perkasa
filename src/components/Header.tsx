@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench, Calendar, Target, Users, TrendingUp } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench, Calendar, Target, Users, TrendingUp, Fingerprint } from 'lucide-react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -195,6 +195,7 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target }] : []),
         ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users }] : []),
         ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
+        ...(canAccessMenu(user?.role, 'hr') ? [{ href: getMenuHref('hr', roleDivision), label: 'Absensi HR', icon: Fingerprint }] : []),
       ]
 
   const ticketingLinks: HeaderNavLink[] =

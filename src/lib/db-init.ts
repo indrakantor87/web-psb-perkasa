@@ -125,6 +125,7 @@ export async function ensureUserRoleValues() {
         'TROUBLESHOOTS',
         'CREATOR_DIGITAL',
         'DISMANTLE',
+        'HR',
       ]
 
       try {

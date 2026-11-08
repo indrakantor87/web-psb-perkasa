@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   FileInput,
+  Fingerprint,
   List,
   Megaphone,
   ShieldCheck,
@@ -21,7 +22,7 @@ export type MobileMenuEntry = {
   label: string
   shortLabel?: string
   detail: string
-  group: 'Operasional' | 'Digital'
+  group: 'Operasional' | 'Digital' | 'HR'
   activePath: string
   icon: LucideIcon
   tone: string
@@ -39,6 +40,7 @@ export const mobileMenuEntries: MobileMenuEntry[] = [
   { key: 'campaigns', label: 'Campaign', detail: 'Kelola campaign', group: 'Digital', activePath: '/campaigns', icon: Megaphone, tone: 'bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
   { key: 'digital-leads', label: 'Digital Leads', detail: 'Pantau leads digital', group: 'Digital', activePath: '/digital-leads', icon: Users, tone: 'bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300' },
   { key: 'analytics', label: 'Analytics', detail: 'Lihat performa digital', group: 'Digital', activePath: '/analytics', icon: ChartNoAxesCombined, tone: 'bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300' },
+  { key: 'hr', label: 'Absensi Karyawan', shortLabel: 'Absen', detail: 'Data absensi dari mesin fingerprint', group: 'HR', activePath: '/hr', icon: Fingerprint, tone: 'bg-lime-50 text-lime-700 dark:bg-lime-950/60 dark:text-lime-300' },
 ]
 
 // Urutan prioritas item bottom-nav; difilter lagi sesuai akses role (maks 4 item).
@@ -54,6 +56,7 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
   'campaigns',
   'analytics',
   'marketing-activities',
+  'hr',
 ]
 
 const ROLE_LABELS: Record<string, string> = {
@@ -67,6 +70,7 @@ const ROLE_LABELS: Record<string, string> = {
   TROUBLESHOOTS: 'Troubleshoots',
   DISMANTLE: 'Dismantle',
   CREATOR_DIGITAL: 'Creator Digital',
+  HR: 'HR',
 }
 
 export function getRoleLabel(role?: string | null) {

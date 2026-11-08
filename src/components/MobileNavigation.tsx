@@ -48,7 +48,7 @@ export function MobileNavigation({ role }: Props) {
     .map((key) => mobileMenuEntries.find((item) => item.key === key))
     .filter((item): item is (typeof mobileMenuEntries)[number] => Boolean(item))
 
-  const menuGroups = (['Operasional', 'Digital'] as const)
+  const menuGroups = (['Operasional', 'Digital', 'HR'] as const)
     .map((label) => ({
       label,
       links: mobileMenuEntries.filter((item) => item.group === label && canAccessMenu(role, item.key)),

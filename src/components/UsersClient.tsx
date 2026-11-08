@@ -37,6 +37,7 @@ const ROLE_OPTIONS = [
   { value: 'TEKNISI', label: 'Teknisi' },
   { value: 'TROUBLESHOOTS', label: 'Troubleshoots' },
   { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
+  { value: 'HR', label: 'HR' },
 ] as const
 
 const DIVISION_OPTIONS = [

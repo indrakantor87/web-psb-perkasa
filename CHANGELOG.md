@@ -13,6 +13,19 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.8.0] - 2026-11-08
+
+### Added
+- Modul HR absensi: menarik data absensi langsung dari mesin fingerprint (ZKTeco) via TCP socket (`zkteco-js`), meniru alur pada proyek finance.
+- Model Prisma baru: `Employee`, `Attendance`, dan `HrMachineSetting` beserta self-healing schema (`src/lib/hr-schema.ts`) dan konfigurasi IP/port mesin.
+- API HR: `GET /api/hr/machine` (status/kredensial mesin), `PUT /api/hr/machine` (simpan IP/port), `GET /api/hr/attendance` (daftar + rekap), `POST /api/hr/attendance/sync` (tarik dari mesin), `POST /api/hr/attendance/import` (impor log mentah JSON).
+- Perhitungan absensi di sisi server: grouping per tanggal WIB, deduplikasi log (<5 menit/state sama), penentuan jam masuk/keluar, dan perhitungan lembur.
+- Menu dan role baru `HR`: halaman `/hr` dengan tabel desktop dan kartu ringkas (chevron) di mobile, pengaturan mesin, serta tombol Tarik dari Mesin.
+- Role `HR` didaftarkan pada RBAC (`access.ts`), validasi user (`validations.ts`), enum role database (`db-init.ts`), opsi role pada Manajemen Pengguna, dan navigasi desktop/mobile.
+
+### Changed
+- Menu admin kini juga memuat tautan "Absensi HR".
+
 ## [1.7.12] - 2026-11-08
 
 ### Fixed

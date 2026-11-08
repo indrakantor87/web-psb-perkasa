@@ -352,3 +352,47 @@ model ContentAnalytics {
   @@index([contentId])
   @@index([campaignId])
 }
+
+// --- Modul HR: absensi yang ditarik dari mesin fingerprint (ZKTeco) ---
+
+model Employee {
+  id               Int      @id @default(autoincrement())
+  name             String
+  department       String   @default("Pemasaran dan Pelayanan")
+  position         String   @default("STAFF")
+  employmentStatus String   @default("Karyawan")
+  joinDate         DateTime @default(now())
+  fingerprintId    String?  @unique
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  attendances Attendance[]
+
+  @@index([name])
+}
+
+model Attendance {
+  id              Int       @id @default(autoincrement())
+  employeeId      Int
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date            DateTime
+  checkIn         DateTime?
+  checkOut        DateTime?
+  status          String    @default("PRESENT")
+  source          String    @default("FINGERPRINT_MACHINE")
+  overtimeMinutes Int       @default(0)
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([date])
+}
+
+model HrMachineSetting {
+  id          Int      @id @default(autoincrement())
+  machineIp   String   @default("")
+  machinePort Int      @default(4370)
+  updatedAt   DateTime @updatedAt
+}

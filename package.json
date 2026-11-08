@@ -1,6 +1,6 @@
 {
   "name": "web-psb-perkasa",
-  "version": "1.7.12",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
     "dev": "prisma generate && next dev",
@@ -12,10 +12,10 @@
     "mobile:open": "npx cap open android"
   },
   "dependencies": {
-    "@ionic/react": "^8.8.3",
     "@aparajita/capacitor-biometric-auth": "^8.0.0",
     "@capacitor/local-notifications": "^6.0.0",
     "@capacitor/push-notifications": "^6.0.0",
+    "@ionic/react": "^8.8.3",
     "@prisma/client": "6.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/pg": "^8.16.0",
@@ -36,6 +36,7 @@
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
+    "zkteco-js": "^1.7.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

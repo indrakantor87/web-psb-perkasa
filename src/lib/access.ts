@@ -11,6 +11,7 @@ export type AppMenuKey =
   | 'campaigns'
   | 'digital-leads'
   | 'analytics'
+  | 'hr'
   | 'settings'
 
 export type AppSettingsKey =
@@ -110,6 +111,8 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
       return '/digital-leads?division=CREATOR_DIGITAL'
     case 'analytics':
       return '/analytics?division=CREATOR_DIGITAL'
+    case 'hr':
+      return '/hr'
   }
 }
 
@@ -138,8 +141,13 @@ function getAccessibleMenus(role?: string | null) {
       'campaigns',
       'digital-leads',
       'analytics',
+      'hr',
       'settings',
     ])
+  }
+
+  if (roleUpper === 'HR') {
+    return menuSet(['dashboard', 'hr'])
   }
 
   if (roleUpper === 'MARKETING') {
@@ -244,6 +252,8 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'digital-leads':
     case 'analytics':
       return roleUpper === 'CREATOR_DIGITAL'
+    case 'hr':
+      return roleUpper === 'HR'
     default:
       return false
   }
