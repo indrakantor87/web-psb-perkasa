@@ -957,7 +957,105 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
         </div>
       )}
 
-      <Card className="mp-desktop-table mp-table-enhanced overflow-x-auto overflow-y-hidden">
+      <div className="space-y-2 md:hidden">
+        {currentTickets.length === 0 ? (
+          <Card>
+            <EmptyState compact title="No data for this period" />
+          </Card>
+        ) : currentTickets.map((ticket, index) => (
+          <Card key={ticket.id} className="overflow-hidden p-0">
+            <div className="flex min-w-0 items-center gap-2 p-3">
+              {canCreateSchedule && (
+                <input
+                  type="checkbox"
+                  checked={selectedSet.has(ticket.id)}
+                  onChange={() => toggleSelectedTicket(ticket.id)}
+                  className="h-4 w-4 shrink-0 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
+                  aria-label={`Pilih ${ticket.customerName}`}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
+                    className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-ink hover:underline"
+                  >
+                    {ticket.customerName}
+                  </button>
+                  <span className={clsx(
+                    'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
+                    ticket.status === 'OPEN'
+                      ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
+                      : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
+                        ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                        : ticket.status === 'CLOSE'
+                          ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                          : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                  )}>
+                    {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
+                  </span>
+                </div>
+                <div className="truncate text-[11px] text-ink-muted">
+                  #{startingNumber - index} · {format(new Date(ticket.requestDate), 'dd/MM/yyyy')} · {ticket.package || '-'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileExpandedTicketId(mobileExpandedTicketId === ticket.id ? null : ticket.id)}
+                className="shrink-0 text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
+                aria-label={`${mobileExpandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
+                aria-expanded={mobileExpandedTicketId === ticket.id}
+              >
+                {mobileExpandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+            {mobileExpandedTicketId === ticket.id && (
+              <div className="border-t border-line px-3 pb-3 pt-3">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Request</span>
+                    {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Pasang</span>
+                    {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Paket</span>
+                    <span className="line-clamp-1">{ticket.package || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Marketing</span>
+                    <span className="line-clamp-1">{getVisibleMarketingName(ticket.marketingName)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Pengawalan</span>
+                    <span className="capitalize">{ticket.pengawalan || '-'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Keterangan</span>
+                    <span className="line-clamp-2 whitespace-pre-wrap">{ticket.description || '-'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">No WA Aktif</span>
+                    <a
+                      href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}${defaultTemplate ? `?text=${encodeURIComponent(formatMessage(defaultTemplate, ticket))}` : ''}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {ticket.phoneNumber}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+
+      <Card className="mp-table-enhanced hidden overflow-x-auto overflow-y-hidden md:block">
         <table className="min-w-full border-collapse">
           <thead className="hidden bg-gray-50 md:table-header-group dark:bg-gray-900">
             <tr>
@@ -1062,95 +1160,6 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     >
                       {ticket.phoneNumber}
                     </a>
-                  </td>
-                  <td className="table-cell md:hidden px-2 py-2 text-left text-xs text-gray-900 dark:text-white">
-                    <div className="rounded-xl border border-line bg-surface p-2.5 text-ink">
-                      <div className="flex items-center gap-2">
-                        {canCreateSchedule && (
-                          <input
-                            type="checkbox"
-                            checked={selectedSet.has(ticket.id)}
-                            onChange={() => toggleSelectedTicket(ticket.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-0 dark:text-gray-100"
-                            aria-label={`Pilih ${ticket.customerName}`}
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
-                              className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-ink hover:underline"
-                            >
-                              {ticket.customerName}
-                            </button>
-                            <span className={clsx(
-                              'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight',
-                              ticket.status === 'OPEN'
-                                ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300'
-                                : (ticket.status === 'ON_PROGRESS' || ticket.status === 'PENDING')
-                                  ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                                  : ticket.status === 'CLOSE'
-                                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
-                                    : 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                            )}>
-                              {ticket.status === 'PENDING' ? 'ON_PROGRESS' : ticket.status}
-                            </span>
-                          </div>
-                          <div className="truncate text-[11px] text-ink-muted">
-                            #{startingNumber - index} · {format(new Date(ticket.requestDate), 'dd/MM/yyyy')} · {ticket.package || '-'}
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setMobileExpandedTicketId(mobileExpandedTicketId === ticket.id ? null : ticket.id)}
-                          className="shrink-0 text-gray-500 hover:text-blue-600 dark:text-white dark:hover:text-blue-300"
-                          aria-label={`${mobileExpandedTicketId === ticket.id ? 'Tutup' : 'Buka'} detail ${ticket.customerName}`}
-                          aria-expanded={mobileExpandedTicketId === ticket.id}
-                        >
-                          {mobileExpandedTicketId === ticket.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
-                      </div>
-                      {mobileExpandedTicketId === ticket.id && (
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3">
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Request</span>
-                          {format(new Date(ticket.requestDate), 'dd/MM/yyyy')}
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Tanggal Pasang</span>
-                          {ticket.installedDate ? format(new Date(ticket.installedDate), 'dd/MM/yyyy') : '-'}
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Paket</span>
-                          <span className="line-clamp-1">{ticket.package || '-'}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Marketing</span>
-                          <span className="line-clamp-1">{getVisibleMarketingName(ticket.marketingName)}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Pengawalan</span>
-                          <span className="capitalize">{ticket.pengawalan || '-'}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">Keterangan</span>
-                          <span className="line-clamp-2 whitespace-pre-wrap">{ticket.description || '-'}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="block text-[10px] uppercase text-gray-500 dark:text-gray-400">No WA Aktif</span>
-                          <a
-                            href={`https://wa.me/${ticket.phoneNumber.replace(/^0/, '62').replace(/\D/g, '')}${defaultTemplate ? `?text=${encodeURIComponent(formatMessage(defaultTemplate, ticket))}` : ''}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 hover:underline dark:text-blue-400"
-                          >
-                            {ticket.phoneNumber}
-                          </a>
-                        </div>
-                      </div>
-                      )}
-                    </div>
                   </td>
                 </tr>
                 {expandedTicketId === ticket.id && (

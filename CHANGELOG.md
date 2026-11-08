@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.9] - 2026-11-08
+
+### Changed
+- Pisahkan kartu mobile List PSB dari tabel desktop agar tampilan mobile tidak mewarisi lebar minimum tabel dan dapat dibaca tanpa scroll horizontal.
+
 ## [1.7.8] - 2026-11-08
 
 ### Changed
