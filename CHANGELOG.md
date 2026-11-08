@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.7.4] - 2026-11-08
+
+### Changed
+- Kartu ringkasan CS kini menampilkan status Open, On Progress, dan Close dari tiket PSB pada periode dashboard, menggantikan ringkasan Port ODP, Isolir, dan Dismantle.
+
 ## [1.7.3] - 2026-11-08
 
 ### Changed

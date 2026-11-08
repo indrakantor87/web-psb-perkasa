@@ -7,9 +7,8 @@ import { ensureDbOptimizations, ensureUserDivisionColumn } from '@/lib/db-init'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { ensureOdpTable } from '@/lib/odp-init'
-import { ensureDismantleHistoryTable } from '@/lib/dismantle-history'
-import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
+import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { getDivisionFromRole, isAdminRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
@@ -108,16 +107,16 @@ function createEmptyDashboardPayload(): DashboardPayload {
       {
         code: 'CS_ADMIN',
         label: 'CS',
-        description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
+        description: 'Ringkasan status tiket PSB pada periode aktif',
         members: 0,
         primaryValue: 0,
-        primaryLabel: 'Isolir aktif',
+        primaryLabel: 'Open',
         secondaryValue: 0,
-        secondaryLabel: 'Riwayat isolir',
+        secondaryLabel: 'On Progress',
         extraStats: [
-          { label: 'Port ODP', value: 0 },
-          { label: 'Total Isolir', value: 0 },
-          { label: 'Total Dismantle', value: 0 },
+          { label: 'Open', value: 0, tone: 'danger' },
+          { label: 'On Progress', value: 0, tone: 'info' },
+          { label: 'Close', value: 0, tone: 'success' },
         ],
       },
       {
@@ -461,7 +460,7 @@ export default async function DashboardPage({
     }
     const isolationCount = isoRows.reduce((acc, r) => acc + Number(r.count || 0), 0)
 
-    const [marketingActivityTotal, odpTotal, isolationClosedCount, creatorContentCount, creatorLeadCount, dismantleOpenCount, dismantleHistoryCount] = await Promise.all([
+    const [marketingActivityTotal, odpTotal, creatorContentCount, creatorLeadCount, dismantleOpenCount] = await Promise.all([
     prisma.marketingActivity.count({
       where: {
         ...(marketingRole
@@ -488,7 +487,6 @@ export default async function DashboardPage({
         return 0
       }
     })(),
-    prisma.isolation.count({ where: { status: 'CLOSED' } }).catch(() => 0),
     prisma.contentCalendar.count().catch(() => 0),
     prisma.digitalLead.count().catch(() => 0),
     (async () => {
@@ -505,20 +503,7 @@ export default async function DashboardPage({
         return 0
       }
     })(),
-    (async () => {
-      try {
-        await ensureDismantleHistoryTable()
-        const rows = await prisma.$queryRaw<Array<{ count: number }>>(PrismaSql.sql`
-          SELECT COUNT(*)::int AS count
-          FROM "DismantleHistory"
-        `)
-        return Number(rows[0]?.count || 0)
-      } catch {
-        return 0
-      }
-    })(),
   ])
-    const dismantleTotal = dismantleOpenCount + dismantleHistoryCount
 
     const ticketingMonthRecap = await prisma
     .$queryRaw<Array<{ type: string; total: number; open: number; close: number }>>(PrismaSql.sql`
@@ -635,16 +620,16 @@ export default async function DashboardPage({
       {
         code: 'CS_ADMIN',
         label: 'CS',
-        description: 'Fokus pada isolir aktif dan tindak lanjut layanan pelanggan',
+        description: 'Ringkasan status tiket PSB pada periode aktif',
         members: divisionCounts.get('CS_ADMIN') || 0,
-        primaryValue: isolationCount,
-        primaryLabel: 'Isolir aktif',
-        secondaryValue: isolationClosedCount,
-        secondaryLabel: 'Riwayat isolir',
+        primaryValue: statusCounts.open,
+        primaryLabel: 'Open',
+        secondaryValue: statusCounts.on_progress,
+        secondaryLabel: 'On Progress',
         extraStats: [
-          { label: 'Port ODP', value: odpTotal },
-          { label: 'Total Isolir', value: isolationCount },
-          { label: 'Total Dismantle', value: dismantleTotal },
+          { label: 'Open', value: statusCounts.open, tone: 'danger' },
+          { label: 'On Progress', value: statusCounts.on_progress, tone: 'info' },
+          { label: 'Close', value: statusCounts.close, tone: 'success' },
         ],
       },
       {
