@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment, useCallback, type ReactNode } from 'reac
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { ChevronDown, ChevronUp, Upload } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clipboard, Upload } from 'lucide-react'
 import { toDisplayMarketingName } from '@/lib/marketing-users'
 import { canDeleteListTickets, canManageListTickets, isAdminRole } from '@/lib/access'
 import { Card } from '@/components/ui/Card'
@@ -44,6 +44,19 @@ interface OdpOption {
 
 function getVisibleMarketingName(value: string | null | undefined) {
   return toDisplayMarketingName(value) || '-'
+}
+
+function buildSummaryText(ticket: Ticket) {
+  return [
+    '*RINGKASAN TIKET PSB*',
+    `Nama: ${ticket.customerName || '-'}`,
+    `Tanggal Lahir: ${ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}`,
+    `Link Maps: ${ticket.locationMap || '-'}`,
+    `No WA: ${ticket.phoneNumber || '-'}`,
+    `Paket: ${ticket.package || '-'}`,
+    `Marketing: ${getVisibleMarketingName(ticket.marketingName)}`,
+    `Keterangan: ${ticket.description || '-'}`,
+  ].join('\n')
 }
 
 function TicketDetailSection({
@@ -115,6 +128,8 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [division, setDivision] = useState((initialDivision || 'ALL').toUpperCase())
   const [kmzEdit, setKmzEdit] = useState<{ id: number; value: string } | null>(null)
   const [summaryTicket, setSummaryTicket] = useState<Ticket | null>(null)
+  const [summaryCopied, setSummaryCopied] = useState(false)
+  const [summaryCopyError, setSummaryCopyError] = useState('')
   const [editTicket, setEditTicket] = useState<Ticket | null>(null)
   const [expandedTicketId, setExpandedTicketId] = useState<number | null>(null)
   const [mobileExpandedTicketId, setMobileExpandedTicketId] = useState<number | null>(null)
@@ -123,7 +138,16 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [scheduleCopied, setScheduleCopied] = useState(false)
-  const closeSummaryModal = useCallback(() => setSummaryTicket(null), [])
+  const closeSummaryModal = useCallback(() => {
+    setSummaryTicket(null)
+    setSummaryCopied(false)
+    setSummaryCopyError('')
+  }, [])
+  const openSummaryModal = (ticket: Ticket) => {
+    setSummaryTicket(ticket)
+    setSummaryCopied(false)
+    setSummaryCopyError('')
+  }
   const closeEditModal = useCallback(() => {
     setEditTicket(null)
     setEditFile(null)
@@ -769,6 +793,18 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     }
   }
 
+  const handleCopySummary = async () => {
+    if (!summaryTicket) return
+    try {
+      await navigator.clipboard.writeText(buildSummaryText(summaryTicket))
+      setSummaryCopyError('')
+      setSummaryCopied(true)
+      window.setTimeout(() => setSummaryCopied(false), 1500)
+    } catch {
+      setSummaryCopyError('Gagal menyalin ringkasan tiket.')
+    }
+  }
+
   const handleShareScheduleWa = () => {
     const selectedTickets = ticketsState.filter((t) => selectedSet.has(t.id))
     const text = buildScheduleText(scheduleDate, selectedTickets)
@@ -978,7 +1014,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                 <div className="flex min-w-0 items-center gap-2">
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); setSummaryTicket(ticket) }}
+                    onClick={(e) => { e.preventDefault(); openSummaryModal(ticket) }}
                     className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-ink hover:underline"
                   >
                     {ticket.customerName}
@@ -1171,7 +1207,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                       type="button"
                       onClick={(e) => {
                         e.preventDefault()
-                        setSummaryTicket(ticket)
+                        openSummaryModal(ticket)
                       }}
                       className="text-left text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline focus:outline-none line-clamp-2"
                     >
@@ -1497,14 +1533,29 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                     </div>
                   </div>
                 </div>
-            <div className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 sm:py-4 dark:border-gray-700 dark:bg-gray-900">
-              <button
-                type="button"
-                className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
-                onClick={closeSummaryModal}
-              >
-                Tutup
-              </button>
+            <div className="rounded-b-xl border-t border-gray-100 bg-gray-50 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-700 dark:bg-gray-900">
+              {summaryCopyError && (
+                <p className="mb-2 text-sm text-red-600 dark:text-red-400" role="alert">
+                  {summaryCopyError}
+                </p>
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-900 sm:w-auto"
+                  onClick={handleCopySummary}
+                >
+                  <Clipboard className="h-4 w-4" />
+                  {summaryCopied ? 'Tersalin' : 'Salin Ringkasan'}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 sm:w-auto"
+                  onClick={closeSummaryModal}
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
           </div>

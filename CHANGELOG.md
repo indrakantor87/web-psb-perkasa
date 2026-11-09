@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.3] - 2026-11-09
+
+### Added
+- Tombol salin pada Ringkasan Tiket PSB menyalin seluruh isi ringkasan ke clipboard dari desktop maupun mobile.
+
 ## [1.11.2] - 2026-11-09
 
 ### Changed
