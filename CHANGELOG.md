@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.8] - 2026-11-09
+
+### Fixed
+- Perbaiki error Beranda pada peran Creator Digital: kolom `Isolation.createdById` kini dipastikan ada sebelum query dashboard dijalankan (sebelumnya query isolir berjalan lebih dulu sehingga memicu error "column does not exist" dan halaman gagal tampil).
+
 ## [1.11.7] - 2026-11-09
 
 ### Added

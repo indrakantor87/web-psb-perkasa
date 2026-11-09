@@ -231,6 +231,7 @@ export default async function DashboardPage({
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
+    await ensureIsolationColumnsOnce().catch(() => {})
     const { start: startDate, end: endDate } = jakartaMonthRange(currentYear, currentMonth)
     const isSelectedCurrentMonth = (() => {
       const n = jakartaNow()
