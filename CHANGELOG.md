@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.6] - 2026-11-09
+
+### Fixed
+- Membersihkan seluruh warning ESLint tanpa mengubah perilaku: variabel dan parameter yang tidak terpakai dihapus pada modul ODP, serta fungsi pengambil data pada komponen Campaign, Analytics, Content Calendar, dan Digital Lead dibungkus `useCallback` agar dependensi efektor terpenuhi. `npm run lint` kini bersih (0 error, 0 warning).
+
 ## [1.11.5] - 2026-11-09
 
 ### Added

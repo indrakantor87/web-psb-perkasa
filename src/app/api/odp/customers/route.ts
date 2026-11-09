@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       },
     })
     return NextResponse.json(rows)
-  } catch (e: unknown) {
+  } catch {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }

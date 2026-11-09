@@ -4,11 +4,11 @@ import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import { ensureOdpTable } from '@/lib/odp-init'
-import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await getSession().catch(() => null)
   const accessError = ensureMenuAccess(session, 'odp')
   if (accessError) return accessError
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       ORDER BY nama_pop ASC
     `
     return NextResponse.json(rows)
-  } catch (e: unknown) {
+  } catch {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     `)
     cache.invalidateByPrefix('odp:')
     return NextResponse.json({ message: 'POP created' }, { status: 201 })
-  } catch (e: unknown) {
+  } catch {
     return NextResponse.json({ error: 'Gagal menyimpan POP' }, { status: 500 })
   }
 }

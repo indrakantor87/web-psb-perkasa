@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type ComponentType } from 'react'
+import { useState, useEffect, useCallback, type ComponentType } from 'react'
 import { format } from 'date-fns'
 import { Plus, X, TrendingUp, Eye, ThumbsUp, MessageCircle, Share2, Bookmark, MousePointerClick, Users } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -85,7 +85,7 @@ export function AnalyticsView({ userRole, initialDivision = 'ALL' }: AnalyticsVi
   const isCreator = roleUpper === 'CREATOR_DIGITAL' || isAdmin
   const canEdit = isCreator
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -102,11 +102,11 @@ export function AnalyticsView({ userRole, initialDivision = 'ALL' }: AnalyticsVi
     } finally {
       setLoading(false)
     }
-  }
+  }, [platformFilter])
 
   useEffect(() => {
     fetchAnalytics()
-  }, [platformFilter])
+  }, [fetchAnalytics])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

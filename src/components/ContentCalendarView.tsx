@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Calendar, CheckCircle2, Clock, FileText } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -86,7 +86,7 @@ export function ContentCalendarView({ userRole, initialDivision = 'ALL' }: Conte
   const canEdit = isCreator
   const canDelete = isCreator
 
-  const fetchContent = async () => {
+  const fetchContent = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -103,11 +103,11 @@ export function ContentCalendarView({ userRole, initialDivision = 'ALL' }: Conte
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, platformFilter])
 
   useEffect(() => {
     fetchContent()
-  }, [statusFilter, platformFilter])
+  }, [fetchContent])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

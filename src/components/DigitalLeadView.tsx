@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { Search, Plus, X, Edit3, Trash2, Phone, Mail, MessageSquare, ExternalLink } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -92,7 +92,7 @@ export function DigitalLeadView({ userRole, initialDivision = 'ALL' }: DigitalLe
   const canEdit = isCreator || isSales
   const canDelete = isCreator || isAdmin
 
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -109,11 +109,11 @@ export function DigitalLeadView({ userRole, initialDivision = 'ALL' }: DigitalLe
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter, sourceFilter])
 
   useEffect(() => {
     fetchLeads()
-  }, [statusFilter, sourceFilter])
+  }, [fetchLeads])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

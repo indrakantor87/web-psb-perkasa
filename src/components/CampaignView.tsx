@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
-import { Search, Plus, X, Edit3, Trash2, Calendar, Target, DollarSign } from 'lucide-react'
+import { Search, Plus, X, Edit3, Trash2, Calendar, DollarSign } from 'lucide-react'
 import { clsx } from 'clsx'
 
 interface Campaign {
@@ -76,7 +76,7 @@ export function CampaignView({ userRole, initialDivision = 'ALL' }: CampaignView
   const canEdit = isCreator
   const canDelete = isCreator
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -92,11 +92,11 @@ export function CampaignView({ userRole, initialDivision = 'ALL' }: CampaignView
     } finally {
       setLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     fetchCampaigns()
-  }, [statusFilter])
+  }, [fetchCampaigns])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
