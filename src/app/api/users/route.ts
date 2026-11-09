@@ -9,22 +9,14 @@ import { ensureUserDivisionColumn, ensureUserRoleValues } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
 import { canManageTargetUser } from '@/lib/access'
+import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 
 type UserWithOptionalDivision = {
   division?: string | null
 }
 
-function mapRoleToDivision(role: string) {
-  const roleUpper = String(role ?? '').trim().toUpperCase()
-  if (roleUpper === 'MARKETING') return 'PENJUALAN'
-  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'DISMANTLE') return 'CS_ADMIN'
-  if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
-  if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
-  return null
-}
-
 function readUserDivision(user: UserWithOptionalDivision) {
-  return user.division ?? null
+  return normalizeUserDivision(user.division)
 }
 
 export async function POST(request: Request) {
@@ -51,7 +43,7 @@ export async function POST(request: Request) {
     if (!canManageTargetUser(session.user.role, role)) {
       return NextResponse.json({ error: 'Hanya Developer yang dapat mengelola akun Developer' }, { status: 403 })
     }
-    const division = mapRoleToDivision(role)
+    const division = getDefaultUserDivision(role)
 
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '')
 
@@ -222,7 +214,7 @@ export async function PUT(request: Request) {
     if (division !== undefined) {
       updateData.division = division
     } else if (typeof role === 'string') {
-      updateData.division = mapRoleToDivision(role)
+      updateData.division = getDefaultUserDivision(role)
     }
     if (typeof password === 'string') {
       updateData.password = await bcrypt.hash(password, 10)

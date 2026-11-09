@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.19] - 2026-11-09
+
+### Changed
+- Daftar divisi Manajemen User mengikuti sumber HR, termasuk pilihan, validasi, nilai default, filter, dan tampilan profil.
+- Kode divisi lama dinormalisasi ke daftar departemen HR tanpa mengubah ringkasan anggota berdasarkan role.
+
 ## [1.11.18] - 2026-11-09
 
 ### Security

@@ -3,21 +3,7 @@ import { redirect } from 'next/navigation'
 import ChangePasswordForm from '@/components/ChangePasswordForm'
 import { prisma } from '@/lib/prisma'
 import { ProfileAvatarForm } from '@/components/ProfileAvatarForm'
-
-function formatDivisionLabel(division?: string | null) {
-  switch ((division || '').toUpperCase()) {
-    case 'PENJUALAN':
-      return 'Penjualan'
-    case 'CS_ADMIN':
-      return 'CS'
-    case 'NOC_TROUBLESHOOTS':
-      return 'NOC'
-    case 'CREATOR_DIGITAL':
-      return 'Creator Digital'
-    default:
-      return '-'
-  }
-}
+import { normalizeUserDivision } from '@/lib/user-division'
 
 export default async function ProfilePage() {
   const session = await getSession()
@@ -25,12 +11,14 @@ export default async function ProfilePage() {
 
   const user = session.user
   let avatar: string | null = null
+  let division = user.division
   try {
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { avatar: true },
+      select: { avatar: true, division: true },
     })
     avatar = dbUser?.avatar ?? null
+    division = dbUser?.division ?? null
   } catch {
     avatar = null
   }
@@ -84,7 +72,7 @@ export default async function ProfilePage() {
             </div>
             <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Divisi</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{formatDivisionLabel(user.division)}</dd>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">{normalizeUserDivision(division) ?? '-'}</dd>
             </div>
           </dl>
         </div>

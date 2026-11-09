@@ -657,7 +657,13 @@ export default async function DashboardPage({
 
     const divisionCountRows = await prisma
       .$queryRaw<Array<{ division: string; count: number }>>(PrismaSql.sql`
-        SELECT COALESCE(NULLIF(TRIM("division"), ''), 'UNASSIGNED') AS division, COUNT(*)::int AS count
+        SELECT CASE
+          WHEN UPPER(TRIM(CAST("role" AS TEXT))) = 'MARKETING' THEN 'PENJUALAN'
+          WHEN UPPER(TRIM(CAST("role" AS TEXT))) IN ('CS', 'ADMIN_CS') THEN 'CS_ADMIN'
+          WHEN UPPER(TRIM(CAST("role" AS TEXT))) IN ('NOC', 'TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE') THEN 'NOC_TROUBLESHOOTS'
+          WHEN UPPER(TRIM(CAST("role" AS TEXT))) = 'CREATOR_DIGITAL' THEN 'CREATOR_DIGITAL'
+          ELSE 'UNASSIGNED'
+        END AS division, COUNT(*)::int AS count
         FROM "User"
         GROUP BY 1
       `)

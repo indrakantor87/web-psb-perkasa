@@ -9,20 +9,10 @@ import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
 import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, isTechnicianRole } from '@/lib/access'
 import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
+import { normalizeUserDivision } from '@/lib/user-division'
 
 function formatDivisionLabel(division?: string | null) {
-  switch ((division || '').toUpperCase()) {
-    case 'PENJUALAN':
-      return 'Penjualan'
-    case 'CS_ADMIN':
-      return 'CS'
-    case 'NOC_TROUBLESHOOTS':
-      return 'NOC'
-    case 'CREATOR_DIGITAL':
-      return 'Creator Digital'
-    default:
-      return null
-  }
+  return normalizeUserDivision(division)
 }
 
 type HeaderNavLink = {

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 import { isAdminRole } from '@/lib/access'
+import { HR_DIVISIONS } from '@/lib/hr-departments'
+import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 
 interface User {
   id: number
@@ -39,32 +41,16 @@ const ROLE_OPTIONS = [
 ] as const
 
 const DIVISION_OPTIONS = [
-  { value: 'ALL', label: 'Semua Division' },
-  { value: 'PENJUALAN', label: 'Penjualan' },
-  { value: 'CS_ADMIN', label: 'CS & Admin CS' },
-  { value: 'NOC_TROUBLESHOOTS', label: 'NOC & Troubleshoots' },
-  { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
+  { value: 'ALL', label: 'Semua Divisi' },
+  ...HR_DIVISIONS.map((division) => ({ value: division, label: division })),
 ] as const
 
 function formatDivisionLabel(division?: string | null) {
-  const normalized = String(division ?? '').trim().toUpperCase()
-  const found = DIVISION_OPTIONS.find((option) => option.value === normalized)
-  return found?.label ?? '-'
-}
-
-function mapRoleToDivision(role: string) {
-  const roleUpper = String(role ?? '').trim().toUpperCase()
-  if (roleUpper === 'MARKETING') return 'PENJUALAN'
-  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'DISMANTLE') return 'CS_ADMIN'
-  if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
-  if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
-  return ''
+  return normalizeUserDivision(division) ?? '-'
 }
 
 function getEditableDivision(user: Pick<User, 'division' | 'role'>) {
-  const division = String(user.division ?? '').trim().toUpperCase()
-  if (DIVISION_OPTIONS.some((option) => option.value === division)) return division
-  return mapRoleToDivision(user.role)
+  return normalizeUserDivision(user.division) ?? getDefaultUserDivision(user.role) ?? ''
 }
 
 function getLegacyRoleLabel(role: string) {
@@ -116,12 +102,12 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   const canCreate = isAdmin
   const roleOptions = isDeveloper ? ROLE_OPTIONS : ROLE_OPTIONS.filter((option) => option.value !== 'DEVELOPER')
   const canManageUser = (user: User) => isAdmin && (isDeveloper || user.role !== 'DEVELOPER')
-  const derivedDivision = mapRoleToDivision(formData.role)
+  const derivedDivision = getDefaultUserDivision(formData.role)
   const filteredUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
     return users.filter((user) => {
       const matchesDivision =
-        divisionFilter === 'ALL' || String(user.division ?? '').trim().toUpperCase() === divisionFilter
+        divisionFilter === 'ALL' || normalizeUserDivision(user.division) === divisionFilter
       const matchesSearch =
         normalizedSearch.length === 0 ||
         user.name.toLowerCase().includes(normalizedSearch) ||
@@ -737,10 +723,14 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   onChange={handleEditChange}
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
-                  <option value="">Tidak ditetapkan</option>
-                  {DIVISION_OPTIONS.filter((option) => option.value !== 'ALL').map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {!editFormData.division && (
+                    <option value="" disabled>
+                      Belum ditetapkan
+                    </option>
+                  )}
+                  {HR_DIVISIONS.map((division) => (
+                    <option key={division} value={division}>
+                      {division}
                     </option>
                   ))}
                 </select>
