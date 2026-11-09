@@ -408,7 +408,7 @@ export async function POST(request: Request) {
         continue
       }
 
-      const created = await prisma.isolation.create({ data })
+      const created = await prisma.isolation.create({ data: { ...data, createdById: session.user.id } })
       inserted += 1
       relinkCandidates.push({
         id: created.id,

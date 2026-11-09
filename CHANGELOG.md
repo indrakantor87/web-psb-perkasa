@@ -13,6 +13,17 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.7] - 2026-11-09
+
+### Added
+- Peran Creator Digital kini dapat mengakses Dashboard (desktop dan mobile) serta memiliki hak Input PSB.
+- Data operasional (PSB, Isolir, Dismantle) dan data digital (Calendar, Campaign, Digital Leads, Analytics) dicatat dengan pemilik akun (`createdById`/`creatorId`).
+
+### Changed
+- Label menu "Content Calendar" disingkat menjadi "Calendar" di seluruh navigasi dan judul halaman.
+- Dashboard dan seluruh daftar API untuk Creator Digital dibatasi hanya pada data milik akun yang login; jika id akun tidak tersedia, query ditutup (fail-closed).
+- Trouble Ticket untuk Creator Digital juga dibatasi pada data miliknya sendiri.
+
 ## [1.11.6] - 2026-11-09
 
 ### Fixed

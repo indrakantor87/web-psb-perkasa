@@ -11,7 +11,9 @@ import {
   canMutateTroubleTicketRecords,
   canReadFingerprintMachine,
   canRunAttendanceOperations,
+  isAccountOwnerScopedRole,
   isDeveloperRole,
+  resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { isMarketingOwnerMatch } from '@/lib/marketing-users'
 
@@ -141,4 +143,35 @@ test('ODP mutations follow the ODP menu matrix', () => {
   for (const role of ['PRIORITY', 'MARKETING', 'HR']) {
     assert.equal(canMutateOdpRecords(role), false, `${role} must not mutate ODP`)
   }
+})
+
+test('CREATOR_DIGITAL gains Dashboard and PSB input while keeping read-only operational menus', () => {
+  assert.equal(canAccessMenu('CREATOR_DIGITAL', 'dashboard'), true)
+  for (const menu of [
+    'input',
+    'list',
+    'isolir',
+    'dismantle',
+    'odp',
+    'content-calendar',
+    'campaigns',
+    'digital-leads',
+    'analytics',
+  ] as const) {
+    assert.equal(canAccessMenu('CREATOR_DIGITAL', menu), true, `CREATOR_DIGITAL should access ${menu}`)
+  }
+  assert.equal(canMutateMenu('CREATOR_DIGITAL', 'input'), true)
+  for (const menu of ['list', 'isolir', 'dismantle', 'odp', 'marketing-activities'] as const) {
+    assert.equal(canMutateMenu('CREATOR_DIGITAL', menu), false, `CREATOR_DIGITAL must not mutate ${menu}`)
+  }
+})
+
+test('account owner scope fails closed when the account id is unavailable', () => {
+  assert.equal(isAccountOwnerScopedRole('CREATOR_DIGITAL'), true)
+  for (const role of ['ADMIN', 'DEVELOPER', 'PRIORITY', 'MARKETING', 'CS', 'HR']) {
+    assert.equal(isAccountOwnerScopedRole(role), false, `${role} should keep full data visibility`)
+  }
+  assert.equal(resolveAccountOwnerFilter('CREATOR_DIGITAL', 42), 42)
+  assert.equal(resolveAccountOwnerFilter('CREATOR_DIGITAL', null), -1)
+  assert.equal(resolveAccountOwnerFilter('ADMIN', 42), null)
 })

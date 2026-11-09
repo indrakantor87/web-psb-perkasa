@@ -15,6 +15,8 @@ async function ensureIsolationColumns() {
   await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)').catch(() => {})
   await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "importBatchAt" TIMESTAMP(3)').catch(() => {})
   await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "importRowOrder" INTEGER').catch(() => {})
+  await prisma.$executeRawUnsafe('ALTER TABLE "Isolation" ADD COLUMN IF NOT EXISTS "createdById" INTEGER').catch(() => {})
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "Isolation_createdById_idx" ON "Isolation" ("createdById")').catch(() => {})
   await prisma.$executeRawUnsafe('UPDATE "Isolation" SET "isArchived" = FALSE WHERE "isArchived" IS NULL').catch(() => {})
 }
 

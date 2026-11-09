@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu, canDeleteIsolationRecords } from '@/lib/access'
+import { canAccessMenu, canDeleteIsolationRecords, resolveAccountOwnerFilter } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureDismantleTicketsTable, listDismantleTickets } from '@/lib/dismantle-tickets'
 import { prisma } from '@/lib/prisma'
@@ -43,6 +43,7 @@ export async function GET(request: Request) {
     return 25
   })()
   const marketingOwners = getMarketingScope(session.user.role, session.user.name)
+  const ownerId = resolveAccountOwnerFilter(session.user.role, session.user.id)
 
   try {
     await ensureDismantleTicketsTable()
@@ -51,6 +52,7 @@ export async function GET(request: Request) {
       radboox,
       ticketStatus,
       marketingOwners,
+      ownerId,
       page,
       limit,
     })

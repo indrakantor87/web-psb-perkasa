@@ -233,6 +233,7 @@ function getAccessibleMenus(role?: string | null) {
 
   if (roleUpper === 'CREATOR_DIGITAL') {
     return menuSet([
+      'dashboard',
       'input',
       'list',
       'isolir',
@@ -295,7 +296,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
 
   switch (menu) {
     case 'input':
-      return roleUpper === 'MARKETING' || roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
+      return roleUpper === 'MARKETING' || roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'CREATOR_DIGITAL'
     case 'list':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'marketing-activities':
@@ -371,4 +372,24 @@ export function canMutateOdpRecords(role: string | null | undefined) {
 
 export function canMutateCreatorDigitalMenu(role: string | null | undefined) {
   return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CREATOR_DIGITAL'])
+}
+
+/**
+ * Role yang hanya boleh melihat data miliknya sendiri berdasarkan akun pembuat.
+ * MARKETING memakai pencocokan nama (lihat lib/marketing-users), sedangkan
+ * CREATOR_DIGITAL memakai id akun pembuat.
+ */
+export function isAccountOwnerScopedRole(role?: string | null) {
+  return normalizeRole(role) === 'CREATOR_DIGITAL'
+}
+
+/**
+ * Menghasilkan id pemilik untuk filter query.
+ * - `null` berarti role tersebut boleh melihat semua data.
+ * - `-1` berarti role dibatasi ke data sendiri tetapi id akun tidak tersedia,
+ *   sehingga tidak ada record yang cocok (fail-closed).
+ */
+export function resolveAccountOwnerFilter(role?: string | null, userId?: number | null) {
+  if (!isAccountOwnerScopedRole(role)) return null
+  return typeof userId === 'number' && Number.isFinite(userId) ? userId : -1
 }

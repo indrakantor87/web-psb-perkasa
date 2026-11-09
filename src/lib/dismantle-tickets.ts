@@ -17,6 +17,7 @@ export type DismantleTicketRow = {
   userEmail: string | null
   marketing: string | null
   radboox: string | null
+  createdById: number | null
   isolationDate: Date | string
   reason: string | null
   fieldNote: string | null
@@ -33,6 +34,7 @@ export type DismantleTicketListParams = {
   radboox?: string | null
   ticketStatus?: 'ALL' | 'WITH' | 'WITHOUT'
   marketingOwners?: string[] | null
+  ownerId?: number | null
   page: number
   limit: number
 }
@@ -103,6 +105,7 @@ export async function ensureDismantleTicketsTable() {
           "userEmail" TEXT,
           "marketing" TEXT,
           "radboox" TEXT,
+          "createdById" INTEGER,
           "isolationDate" TIMESTAMP(3),
           "reason" TEXT,
           "fieldNote" TEXT,
@@ -125,6 +128,7 @@ export async function ensureDismantleTicketsTable() {
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "userEmail" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "marketing" TEXT`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "radboox" TEXT`).catch(() => {})
+      await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "createdById" INTEGER`).catch(() => {})
       await prisma.$executeRawUnsafe(`ALTER TABLE "DismantleTickets" ADD COLUMN IF NOT EXISTS "isolationDate" TIMESTAMP(3)`).catch(
         () => {},
       )
@@ -146,6 +150,9 @@ export async function ensureDismantleTicketsTable() {
       await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleTickets_ticketNumber_idx" ON "DismantleTickets" ("ticketNumber")`).catch(
         () => {},
       )
+      await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "DismantleTickets_createdById_idx" ON "DismantleTickets" ("createdById")`).catch(
+        () => {},
+      )
 
       await prisma.$executeRawUnsafe(`
         INSERT INTO "DismantleTickets" (
@@ -156,6 +163,7 @@ export async function ensureDismantleTicketsTable() {
           "userEmail",
           "marketing",
           "radboox",
+          "createdById",
           "isolationDate",
           "reason",
           "fieldNote",
@@ -172,6 +180,7 @@ export async function ensureDismantleTicketsTable() {
           i."userEmail",
           i."marketing",
           i."radboox",
+          i."createdById",
           i."isolationDate",
           i."reason",
           NULL,
@@ -215,6 +224,7 @@ export function mapDismantleTicketRow(row: DismantleTicketRow) {
     userEmail: row.userEmail ?? null,
     marketing: row.marketing ?? null,
     radboox: row.radboox ?? null,
+    createdById: row.createdById == null ? null : Number(row.createdById),
     isolationDate: row.isolationDate ? new Date(row.isolationDate).toISOString() : new Date().toISOString(),
     reason: row.reason ?? null,
     fieldNote: row.fieldNote ?? null,
@@ -253,6 +263,10 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
     baseWhereParts.push('1 = 0')
   } else if (normalizedMarketingOwners.length > 0) {
     baseWhereParts.push(`LOWER(TRIM(COALESCE("marketing", ''))) = ANY(${push(normalizedMarketingOwners)}::text[])`)
+  }
+
+  if (typeof params.ownerId === 'number') {
+    baseWhereParts.push(`"createdById" = ${push(params.ownerId)}`)
   }
 
   if (params.search && params.search.trim() !== '') {
@@ -294,6 +308,7 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
         "userEmail",
         "marketing",
         "radboox",
+        "createdById",
         "isolationDate",
         "reason",
         "fieldNote",
@@ -374,6 +389,7 @@ export async function getDismantleTicketById(id: number) {
         "userEmail",
         "marketing",
         "radboox",
+        "createdById",
         "isolationDate",
         "reason",
         "status",

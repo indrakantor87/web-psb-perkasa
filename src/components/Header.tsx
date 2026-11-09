@@ -183,7 +183,7 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle', icon: Wrench }] : []),
         ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),
         ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
-        ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: getMenuHref('content-calendar', roleDivision), label: 'Content Calendar', icon: Calendar }] : []),
+        ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: getMenuHref('content-calendar', roleDivision), label: 'Calendar', icon: Calendar }] : []),
         ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target }] : []),
         ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users }] : []),
         ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
@@ -221,7 +221,7 @@ export function Header({ user }: { user: SessionUser }) {
         description: 'Konten, campaign, leads, dan analytics digital.',
         items: [
           ...(canAccessMenu(user?.role, 'content-calendar')
-            ? [{ href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Content Calendar', icon: Calendar }]
+            ? [{ href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Calendar', icon: Calendar }]
             : []),
           ...(canAccessMenu(user?.role, 'campaigns')
             ? [{ href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target }]

@@ -345,7 +345,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
                   <Calendar className="h-5 w-5" />
                 </div>
-                <h3 className="text-lg font-semibold text-ink">Content Calendar</h3>
+                <h3 className="text-lg font-semibold text-ink">Calendar</h3>
               </div>
               <p className="text-sm text-ink-muted">Kelola jadwal dan konten marketing digital</p>
             </Link>

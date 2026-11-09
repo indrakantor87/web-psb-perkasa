@@ -511,7 +511,7 @@ export async function GET(request: Request) {
       )
     }
 
-    if (roleUpper === 'MARKETING') {
+    if (roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL') {
       baseParams.push(session.user.id)
       baseParts.push(`"createdById" = $${baseParams.length}`)
     }

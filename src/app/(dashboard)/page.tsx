@@ -239,6 +239,8 @@ export default async function DashboardPage({
     const openStatuses = ['OPEN', 'ON_PROGRESS']
 
     const marketingRole = session.user.role === 'MARKETING'
+    const creatorRole = session.user.role === 'CREATOR_DIGITAL'
+    const creatorOwnerId = creatorRole ? session.user.id : -1
     const marketingName = session.user.name || ''
     const marketingNameFilter = normalizeMarketingName(marketingName)
     const marketingNameMap = await getMarketingNameMap()
@@ -246,6 +248,15 @@ export default async function DashboardPage({
     const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
     const marketingClause = marketingRole
       ? PrismaSql.sql`AND LOWER(TRIM("marketingName")) = ${marketingNameFilter.toLowerCase()}`
+      : PrismaSql.sql``
+    const creatorClause = creatorRole
+      ? PrismaSql.sql`AND "createdById" = ${creatorOwnerId}`
+      : PrismaSql.sql``
+    const creatorContentClause = creatorRole
+      ? PrismaSql.sql`AND "creatorId" = ${creatorOwnerId}`
+      : PrismaSql.sql``
+    const creatorAnalyticsClause = creatorRole
+      ? PrismaSql.sql`AND ("contentId" IN (SELECT "id" FROM "ContentCalendar" WHERE "creatorId" = ${creatorOwnerId}) OR "campaignId" IN (SELECT "id" FROM "Campaign" WHERE "createdById" = ${creatorOwnerId}))`
       : PrismaSql.sql``
     const carryClause = isSelectedCurrentMonth
       ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN (${statusVals}) AND "requestDate" < ${endDate})`
@@ -260,6 +271,7 @@ export default async function DashboardPage({
         ${carryClause}
       )
       ${marketingClause}
+      ${creatorClause}
       GROUP BY "status"
     `),
     prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
@@ -279,6 +291,7 @@ export default async function DashboardPage({
           ${carryClause}
         )
         ${marketingClause}
+        ${creatorClause}
       )
       SELECT name, COUNT(*)::int AS count
       FROM src
@@ -298,6 +311,7 @@ export default async function DashboardPage({
         ${carryClause}
       )
       ${marketingClause}
+      ${creatorClause}
       GROUP BY COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown')
       ORDER BY SUM(CASE WHEN "status" = 'CLOSE' THEN 1 ELSE 0 END) DESC
     `),
@@ -385,6 +399,7 @@ export default async function DashboardPage({
         FROM "Ticket"
         WHERE "installedDate" >= ${yearStart}
           AND "installedDate" < ${yearEnd}
+          ${creatorClause}
       ),
       norm AS (
         SELECT
@@ -450,7 +465,7 @@ export default async function DashboardPage({
 
     const isoRoleClause = marketingRole
       ? PrismaSql.sql`AND LOWER(TRIM("marketing")) = ${marketingNameFilter.toLowerCase()}`
-      : PrismaSql.sql``
+      : creatorClause
     const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
     SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
     FROM "Isolation"
@@ -493,8 +508,12 @@ export default async function DashboardPage({
         return 0
       }
     })(),
-    prisma.contentCalendar.count().catch(() => 0),
-    prisma.digitalLead.count().catch(() => 0),
+    creatorRole
+      ? prisma.contentCalendar.count({ where: { creatorId: creatorOwnerId } }).catch(() => 0)
+      : prisma.contentCalendar.count().catch(() => 0),
+    creatorRole
+      ? prisma.digitalLead.count({ where: { createdById: creatorOwnerId } }).catch(() => 0)
+      : prisma.digitalLead.count().catch(() => 0),
     (async () => {
       try {
         await ensureIsolationColumnsOnce()
@@ -844,6 +863,7 @@ export default async function DashboardPage({
             FROM "ContentCalendar"
             WHERE "createdAt" >= ${startDate}
               AND "createdAt" < ${endDate}
+              ${creatorContentClause}
           `),
           prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
             SELECT COUNT(*)::int AS total
@@ -852,6 +872,7 @@ export default async function DashboardPage({
               AND "publishDate" IS NOT NULL
               AND "publishDate" >= ${startDate}
               AND "publishDate" < ${endDate}
+              ${creatorContentClause}
           `),
           prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
             SELECT COUNT(*)::int AS total
@@ -859,12 +880,14 @@ export default async function DashboardPage({
             WHERE "startDate" < ${endDate}
               AND COALESCE("endDate", ${endDate}) >= ${startDate}
               AND "status" = 'ACTIVE'
+              ${creatorClause}
           `),
           prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
             SELECT COUNT(*)::int AS total
             FROM "DigitalLead"
             WHERE "createdAt" >= ${startDate}
               AND "createdAt" < ${endDate}
+              ${creatorClause}
           `),
           prisma.$queryRaw<Array<{ total: number }>>(PrismaSql.sql`
             SELECT COUNT(*)::int AS total
@@ -872,6 +895,7 @@ export default async function DashboardPage({
             WHERE "status" = 'CONVERTED'
               AND "updatedAt" >= ${startDate}
               AND "updatedAt" < ${endDate}
+              ${creatorClause}
           `),
           prisma.$queryRaw<
             Array<{
@@ -889,6 +913,7 @@ export default async function DashboardPage({
             FROM "ContentAnalytics"
             WHERE "date" >= ${startDate}
               AND "date" < ${endDate}
+              ${creatorAnalyticsClause}
           `),
         ])
         const analyticsSummary = analyticsSummaryRows[0] ?? {

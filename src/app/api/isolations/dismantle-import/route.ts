@@ -271,6 +271,7 @@ export async function POST(request: Request) {
             restorationDate: status === 'CLOSED' ? new Date() : null,
             teknisi: session.user.name ?? null,
             ticketDismantle,
+            createdById: session.user.id,
           } as const
 
           try {

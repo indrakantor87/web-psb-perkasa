@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         userEmail: true,
         marketing: true,
         radboox: true,
+        createdById: true,
         isolationDate: true,
         reason: true,
         status: true,
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
           "userEmail",
           "marketing",
           "radboox",
+          "createdById",
           "isolationDate",
           "reason",
           "status",
@@ -75,7 +77,7 @@ export async function POST(request: Request) {
           "createdAt",
           "updatedAt"
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'OPEN',NULL,$10,$10)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'OPEN',NULL,$11,$11)
         ON CONFLICT ("sourceIsolationId") WHERE "sourceIsolationId" IS NOT NULL
         DO UPDATE SET
           "customerName" = EXCLUDED."customerName",
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
           "userEmail" = EXCLUDED."userEmail",
           "marketing" = EXCLUDED."marketing",
           "radboox" = EXCLUDED."radboox",
+          "createdById" = EXCLUDED."createdById",
           "isolationDate" = EXCLUDED."isolationDate",
           "reason" = EXCLUDED."reason",
           "status" = 'OPEN',
@@ -97,6 +100,7 @@ export async function POST(request: Request) {
       isolation.userEmail ?? null,
       isolation.marketing ?? null,
       isolation.radboox ?? null,
+      isolation.createdById ?? null,
       isolation.isolationDate ? new Date(isolation.isolationDate) : now,
       isolation.reason ?? null,
       now,

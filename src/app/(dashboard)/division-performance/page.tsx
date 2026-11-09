@@ -353,7 +353,7 @@ export default async function DivisionPerformancePage({
 
     return [
       {
-        label: 'Content Calendar',
+        label: 'Calendar',
         href: '/content-calendar?division=CREATOR_DIGITAL',
         description: 'Kelola perencanaan dan output konten digital.',
       },

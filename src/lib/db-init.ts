@@ -21,6 +21,8 @@ export async function ensureDbOptimizations() {
         `CREATE INDEX IF NOT EXISTS "Ticket_statusOrder_idx" ON "Ticket" ("statusOrder");`,
         `CREATE INDEX IF NOT EXISTS "Ticket_statusOrder_requestDate_idx" ON "Ticket" ("statusOrder", "requestDate");`,
         `CREATE INDEX IF NOT EXISTS "Isolation_status_isolationDate_idx" ON "Isolation" ("status", "isolationDate");`,
+        `ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`,
+        `CREATE INDEX IF NOT EXISTS "Ticket_createdById_idx" ON "Ticket" ("createdById");`,
       ]
 
       for (const sql of statements) {

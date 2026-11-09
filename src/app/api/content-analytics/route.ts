@@ -3,13 +3,14 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { resolveAccountOwnerFilter } from '@/lib/access'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
     const accessError = ensureMenuAccess(session, 'analytics')
     if (accessError) return accessError
-    requireSession(session)
+    const activeSession = requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const platform = searchParams.get('platform')
@@ -19,6 +20,13 @@ export async function GET(request: NextRequest) {
     const campaignId = searchParams.get('campaignId')
 
     const where: Prisma.ContentAnalyticsWhereInput = {}
+    const ownerFilter = resolveAccountOwnerFilter(activeSession.user.role, activeSession.user.id)
+    if (ownerFilter !== null) {
+      where.OR = [
+        { content: { creatorId: ownerFilter } },
+        { campaign: { createdById: ownerFilter } },
+      ]
+    }
     if (platform) where.platform = platform
     if (contentId) where.contentId = parseInt(contentId)
     if (campaignId) where.campaignId = parseInt(campaignId)

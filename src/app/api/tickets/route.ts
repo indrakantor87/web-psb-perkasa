@@ -7,7 +7,7 @@ import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
-import { normalizeRole } from '@/lib/access'
+import { normalizeRole, resolveAccountOwnerFilter } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +74,10 @@ export async function GET(request: Request) {
           },
         }
       : { id: { lt: 0 } })
+  } else if (role === 'CREATOR_DIGITAL') {
+    // Creator Digital hanya melihat data PSB milik akunnya sendiri.
+    const ownerFilter = resolveAccountOwnerFilter(role, activeSession.user.id)
+    and.push({ createdById: ownerFilter ?? -1 })
   } else {
     const marketingParam = searchParams.get('marketing')
     if (marketingParam && marketingParam.trim()) {
@@ -311,6 +315,7 @@ export async function POST(request: Request) {
       hasPhoto: !!fotoRumahPath,
       status: 'OPEN',
       requestDate: new Date(),
+      createdById: activeSession.user.id,
     }
 
     let ticket

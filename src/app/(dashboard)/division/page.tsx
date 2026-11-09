@@ -407,7 +407,7 @@ export default async function DivisionDetailPage({
 
       summaryCards = [
         { label: 'Member Aktif', value: members.length, hint: 'Sudah terpetakan ke division' },
-        { label: 'Total Konten', value: contentCount, hint: 'Content Calendar' },
+        { label: 'Total Konten', value: contentCount, hint: 'Calendar' },
         { label: 'Campaign Aktif', value: campaignCount, hint: 'Campaign Tracker' },
         { label: 'Digital Leads', value: leadCount, hint: 'Total leads masuk' },
         { label: 'Total Reach', value: totalReach, hint: 'Jangkauan konten' },

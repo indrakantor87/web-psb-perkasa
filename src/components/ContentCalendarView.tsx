@@ -183,7 +183,7 @@ export function ContentCalendarView({ userRole, initialDivision = 'ALL' }: Conte
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Content Calendar</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Kelola jadwal dan konten marketing digital</p>
         </div>
         {canEdit && (

@@ -3,19 +3,22 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { resolveAccountOwnerFilter } from '@/lib/access'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
     const accessError = ensureMenuAccess(session, 'digital-leads')
     if (accessError) return accessError
-    requireSession(session)
+    const activeSession = requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const source = searchParams.get('source')
 
     const where: Prisma.DigitalLeadWhereInput = {}
+    const ownerFilter = resolveAccountOwnerFilter(activeSession.user.role, activeSession.user.id)
+    if (ownerFilter !== null) where.createdById = ownerFilter
     if (status) where.status = status
     if (source) where.source = source
 

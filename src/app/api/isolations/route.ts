@@ -10,6 +10,7 @@ import {
   canDeleteIsolationRecords,
   canMutateIsolationRecords,
   canUseAdminIsolationDismantleScope,
+  resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
@@ -214,6 +215,7 @@ function buildLegacyIsolationWhere(params: {
   status: string | null
   roleUpper: string
   userName?: string | null
+  userId?: number | null
   divisionFilter: string
 }) {
   const where: Prisma.IsolationWhereInput = {}
@@ -252,6 +254,10 @@ function buildLegacyIsolationWhere(params: {
     } else {
       appendAnd({ id: { lt: 0 } })
     }
+  }
+
+  if (params.roleUpper === 'CREATOR_DIGITAL') {
+    appendAnd({ createdById: resolveAccountOwnerFilter(params.roleUpper, params.userId) ?? -1 })
   }
 
   if (canUseAdminIsolationDismantleScope(params.roleUpper)) {
@@ -355,6 +361,10 @@ export async function GET(request: Request) {
     } else {
       appendAnd({ id: { lt: 0 } })
     }
+  }
+
+  if (roleUpper === 'CREATOR_DIGITAL') {
+    appendAnd({ createdById: resolveAccountOwnerFilter(roleUpper, session.user.id) ?? -1 })
   }
 
   if (canUseAdminIsolationDismantleScope(roleUpper)) {
@@ -577,6 +587,7 @@ export async function GET(request: Request) {
         status,
         roleUpper,
         userName: session.user.name,
+        userId: session.user.id,
         divisionFilter,
       })
 
@@ -742,6 +753,7 @@ export async function POST(request: Request) {
       teknisi: teknisi || session.user.name,
       ticketId,
       status: 'OPEN',
+      createdById: session.user.id,
     }
 
     let isolation: IsolationRow

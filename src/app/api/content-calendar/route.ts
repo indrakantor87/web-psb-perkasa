@@ -3,13 +3,14 @@ import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { resolveAccountOwnerFilter } from '@/lib/access'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession()
     const accessError = ensureMenuAccess(session, 'content-calendar')
     if (accessError) return accessError
-    requireSession(session)
+    const activeSession = requireSession(session)
 
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
@@ -18,6 +19,8 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
 
     const where: Prisma.ContentCalendarWhereInput = {}
+    const ownerFilter = resolveAccountOwnerFilter(activeSession.user.role, activeSession.user.id)
+    if (ownerFilter !== null) where.creatorId = ownerFilter
     if (status) where.status = status
     if (platform) where.platform = platform
     if (startDate && endDate) {

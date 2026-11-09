@@ -209,6 +209,7 @@ export async function POST(request: Request) {
             priority: priority ? String(priority) : null,
             pembayaran: pay ? String(pay) : null,
             status,
+            createdById: session.user.id,
           }
         })
         ok++
