@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canAccessMenu } from '@/lib/access'
+import { APP_ROLE_VALUES, canAccessMenu } from '@/lib/access'
 import {
   canAccessMobileHome,
   canShowMobilePsbSummary,
@@ -25,12 +25,38 @@ test('Mobile Beranda tetap mengikuti akses dashboard role lain', () => {
   assert.equal(canAccessMobileHome('MARKETING'), false)
 })
 
-test('Menu teknisi dan NOC tidak mengulang modul yang sudah ada di bottom navigation', () => {
-  for (const role of ['TEKNISI', 'NOC']) {
-    const primaryKeys = MOBILE_PRIMARY_ORDER.filter((key) => canAccessMenu(role, key)).slice(0, 4)
-    const remainingGroups = getMobileMenuGroups(role, primaryKeys)
+function primaryKeysFor(role: string) {
+  return MOBILE_PRIMARY_ORDER.filter((key) => canAccessMenu(role, key)).slice(0, 4)
+}
 
-    assert.deepEqual(remainingGroups, [])
+test('Menu mobile tidak mengulang modul yang sudah ada di bottom navigation untuk semua role', () => {
+  for (const role of APP_ROLE_VALUES) {
+    const primaryKeys = primaryKeysFor(role)
+    const remainingKeys = getMobileMenuGroups(role, primaryKeys).flatMap((group) =>
+      group.links.map((link) => link.key),
+    )
+
+    assert.deepEqual(
+      remainingKeys.filter((key) => primaryKeys.includes(key)),
+      [],
+      `${role} menampilkan modul yang sama di bottom navigation dan menu`,
+    )
+  }
+})
+
+test('Menu mobile tetap menjangkau semua modul yang tidak muat di bottom navigation', () => {
+  for (const role of APP_ROLE_VALUES) {
+    const primaryKeys = primaryKeysFor(role)
+    const remainingKeys = getMobileMenuGroups(role, primaryKeys).flatMap((group) =>
+      group.links.map((link) => link.key),
+    )
+    const reachable = new Set([...primaryKeys, ...remainingKeys])
+
+    for (const entry of mobileMenuEntries) {
+      if (canAccessMenu(role, entry.key)) {
+        assert.ok(reachable.has(entry.key), `${role} kehilangan akses ke ${entry.key}`)
+      }
+    }
   }
 })
 

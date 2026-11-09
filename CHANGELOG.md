@@ -13,6 +13,13 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.16] - 2026-11-09
+
+### Changed
+- Lembar Menu mobile tidak lagi mengulang modul yang sudah tampil di navigasi bawah untuk semua role, bukan hanya teknisi.
+- Dropdown Dashboard dan Pengaturan pada header dihapus untuk seluruh role di tampilan mobile agar navigasi hanya lewat bottom-nav dan tombol Menu.
+- Pengaturan tema dan ukuran teks di modal Menu kini tersedia untuk semua role.
+
 ## [1.11.15] - 2026-11-09
 
 ### Fixed

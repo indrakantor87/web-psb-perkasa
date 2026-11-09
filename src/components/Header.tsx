@@ -54,10 +54,8 @@ type HeaderSettingsGroup = {
 
 export function Header({ user }: { user: SessionUser }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [isNavOpen, setIsNavOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [openDivisionMenu, setOpenDivisionMenu] = useState<string | null>(null)
-  const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -73,36 +71,17 @@ export function Header({ user }: { user: SessionUser }) {
   const isAdmin = roleUpper === 'ADMIN'
   const isDeveloper = roleUpper === 'DEVELOPER'
   const isTechnician = isTechnicianRole(roleUpper)
-  const isMobileTechnician = isTechnician || roleUpper === 'NOC'
   const roleDivision = getDivisionFromRole(user?.role)
   const divisionLabel = formatDivisionLabel(user?.division)
   const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const navRefMobile = useRef<HTMLDivElement>(null)
   const divisionNavRef = useRef<HTMLDivElement>(null)
   const settingsRefDesktop = useRef<HTMLDivElement>(null)
-  const settingsRefMobile = useRef<HTMLDivElement>(null)
-  const navOverlayRef = useRef<HTMLDivElement>(null)
-  const settingsOverlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`
     localStorage.setItem('zoomLevel', String(zoomLevel))
   }, [zoomLevel])
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px) and (orientation: portrait)')
-    const update = () => setIsMobilePortrait(mq.matches)
-    update()
-
-    if (typeof mq.addEventListener === 'function') {
-      mq.addEventListener('change', update)
-      return () => mq.removeEventListener('change', update)
-    }
-
-    mq.addListener(update)
-    return () => mq.removeListener(update)
-  }, [])
 
   const refreshAvatar = useCallback(async () => {
     try {
@@ -136,19 +115,12 @@ export function Header({ user }: { user: SessionUser }) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
-      const inNavMobile = navRefMobile.current?.contains(event.target as Node) ?? false
-      const inNavOverlay = navOverlayRef.current?.contains(event.target as Node) ?? false
-      if (!inNavMobile && !inNavOverlay) {
-        setIsNavOpen(false)
-      }
       const inDivisionNav = divisionNavRef.current?.contains(event.target as Node) ?? false
       if (!inDivisionNav) {
         setOpenDivisionMenu(null)
       }
       const inDesktop = settingsRefDesktop.current?.contains(event.target as Node) ?? false
-      const inMobile = settingsRefMobile.current?.contains(event.target as Node) ?? false
-      const inOverlay = settingsOverlayRef.current?.contains(event.target as Node) ?? false
-      if (!inDesktop && !inMobile && !inOverlay) {
+      if (!inDesktop) {
         setIsSettingsOpen(false)
       }
     }
@@ -242,20 +214,6 @@ export function Header({ user }: { user: SessionUser }) {
   const desktopFlatLinks = flatLinks.filter(
     (link) => !matchesGroupPath(link, ticketingGroup) && !matchesGroupPath(link, digitalGroup),
   )
-  const operationalLinks = desktopFlatLinks.filter((link) => link.href !== '/')
-  const operationalGroup: HeaderNavGroup | null = isAdmin || isDeveloper
-    ? {
-        key: 'operations',
-        label: 'Operasional',
-        icon: LayoutDashboard,
-        description: 'Input PSB, aktivitas marketing, isolir, dan port ODP.',
-        items: operationalLinks,
-      }
-    : null
-  const navGroups = (isAdmin || isDeveloper)
-    ? [ticketingGroup, operationalGroup, digitalGroup].filter((group): group is HeaderNavGroup => group !== null)
-    : []
-  const usesGroupedNavigation = navGroups.length > 0
   const renderFlatNavLink = (link: HeaderNavLink) => {
     const Icon = link.icon
     const isActive = matchesLink(link)
@@ -401,185 +359,6 @@ export function Header({ user }: { user: SessionUser }) {
               </div>
             )}
           </div>
-
-          {!isDeveloper && !isMobileTechnician && isMobilePortrait && (
-            <nav className="flex min-w-0 items-center gap-2">
-              <div className="relative" ref={navRefMobile}>
-                <button
-                  onClick={() => {
-                    setIsNavOpen(!isNavOpen)
-                    setIsSettingsOpen(false)
-                  }}
-                  className={clsx(
-                    'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
-                    pathname === '/'
-                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
-                  )}
-                >
-                  Dashboard
-                  <ChevronDown className={clsx("h-3 w-3 transition-transform", isNavOpen && "rotate-180")} />
-                </button>
-
-                {isNavOpen && (
-                  <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
-                    <div className={clsx('max-h-[60vh] overflow-y-auto', settingsPanelClass)}>
-                      {usesGroupedNavigation ? (
-                        <>
-                          <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Umum
-                          </div>
-                          <Link
-                            href="/"
-                            prefetch={false}
-                            onClick={() => setIsNavOpen(false)}
-                            className={clsx(
-                              'block px-3 py-2 text-sm transition-colors',
-                              pathname === '/'
-                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                            )}
-                          >
-                            Dashboard
-                          </Link>
-                          {navGroups.map((group) => (
-                            <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
-                              <div className="px-3 pb-2 pt-2">
-                                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                  {group.label}
-                                </div>
-                                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                                  {group.description}
-                                </p>
-                              </div>
-                              {group.items.map((link) => (
-                                <Link
-                                  key={link.href}
-                                  href={link.href}
-                                  prefetch={false}
-                                  onClick={() => setIsNavOpen(false)}
-                                  className={clsx(
-                                    'block px-3 py-2 text-sm transition-colors',
-                                    matchesLink(link)
-                                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                                  )}
-                                >
-                                  {link.label}
-                                </Link>
-                              ))}
-                            </div>
-                          ))}
-                        </>
-                      ) : (
-                        flatLinks.map((link) => {
-                          const isActive = matchesLink(link)
-                          return (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              prefetch={false}
-                              onClick={() => setIsNavOpen(false)}
-                              className={clsx(
-                                'block px-3 py-2 text-sm transition-colors',
-                                isActive
-                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                              )}
-                            >
-                              {link.label}
-                            </Link>
-                          )
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative" ref={settingsRefMobile}>
-                <button
-                  onClick={() => {
-                    setIsSettingsOpen(!isSettingsOpen)
-                    setIsNavOpen(false)
-                  }}
-                  className={clsx(
-                    'inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium whitespace-nowrap',
-                    pathname.startsWith('/settings')
-                      ? 'border-gray-300 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                      : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
-                  )}
-                >
-                  Pengaturan
-                  <ChevronDown className={clsx("h-3 w-3 transition-transform", isSettingsOpen && "rotate-180")} />
-                </button>
-
-                {isSettingsOpen && (
-                  <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
-                    <div className="max-h-[60vh] overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-                      {settingsGroups.map((group) => (
-                        <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
-                          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {group.label}
-                          </div>
-                          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                            {group.description}
-                          </p>
-                          <div className="mt-2 space-y-1">
-                            {group.items.map((link) => (
-                              <Link
-                                key={link.href}
-                                href={link.href}
-                                prefetch={false}
-                                onClick={() => setIsSettingsOpen(false)}
-                                className={clsx(
-                                  'block rounded-lg px-3 py-2 text-sm transition-colors',
-                                  pathname === link.href
-                                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                                )}
-                              >
-                                {link.label}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
-                      <div className={settingsControlCardClass}>
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Text Size</div>
-                        <select
-                          value={zoomLevel}
-                          onChange={(e) => setZoomLevel(Number(e.target.value))}
-                          className={settingsSelectClass}
-                        >
-                          <option value={100}>100%</option>
-                          <option value={90}>90%</option>
-                          <option value={80}>80%</option>
-                          <option value={75}>75%</option>
-                          <option value={60}>60%</option>
-                          <option value={50}>50%</option>
-                        </select>
-                      </div>
-                      <div className={settingsControlCardClass}>
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</div>
-                        <select
-                          value={theme ?? 'system'}
-                          onChange={(e) => setTheme(e.target.value)}
-                          className={settingsSelectClass}
-                          suppressHydrationWarning
-                        >
-                          <option value="light">Light</option>
-                          <option value="dark">Dark</option>
-                          <option value="system">System</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </nav>
-          )}
 
           <nav ref={divisionNavRef} className="hidden md:flex items-center space-x-1">
             {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
@@ -740,193 +519,6 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isDeveloper && !isMobileTechnician && !isMobilePortrait && (
-        <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
-          <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
-          <div className="relative" ref={navRefMobile}>
-            <button
-              onClick={() => {
-                setIsNavOpen(!isNavOpen)
-                setIsSettingsOpen(false)
-              }}
-              className={clsx(
-                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
-                pathname === '/'
-                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                  : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
-              )}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-              <ChevronDown className={clsx("h-3 w-3 transition-transform", isNavOpen && "rotate-180")} />
-            </button>
-
-            {isNavOpen && (
-              <div ref={navOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-2 z-[60] w-72">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-gray-300 dark:ring-gray-700 py-1 max-h-[60vh] overflow-y-auto">
-                  {usesGroupedNavigation ? (
-                    <>
-                      <div className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        Umum
-                      </div>
-                      <Link
-                        href="/"
-                        prefetch={false}
-                        onClick={() => setIsNavOpen(false)}
-                        className={clsx(
-                          'block px-3 py-2 text-sm transition-colors',
-                          pathname === '/'
-                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                        )}
-                      >
-                        Dashboard
-                      </Link>
-                      {navGroups.map((group) => (
-                        <div key={group.key} className="border-t border-gray-100 dark:border-gray-700">
-                          <div className="px-3 pb-2 pt-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                {group.label}
-                              </div>
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
-                                Menu
-                              </span>
-                            </div>
-                            <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                              {group.description}
-                            </p>
-                          </div>
-                          {group.items.map((link) => (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              prefetch={false}
-                              onClick={() => setIsNavOpen(false)}
-                              className={clsx(
-                                'block px-3 py-2 text-sm transition-colors',
-                                matchesLink(link)
-                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                              )}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    flatLinks.map((link) => {
-                      const isActive = matchesLink(link)
-                      return (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          prefetch={false}
-                          onClick={() => setIsNavOpen(false)}
-                          className={clsx(
-                            'block px-3 py-2 text-sm transition-colors',
-                            isActive
-                              ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                              : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                          )}
-                        >
-                          {link.label}
-                        </Link>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative" ref={settingsRefMobile}>
-              <button
-                onClick={() => {
-                  setIsSettingsOpen(!isSettingsOpen)
-                  setIsNavOpen(false)
-                }}
-                className={clsx(
-                  'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold whitespace-nowrap',
-                  pathname.startsWith('/settings')
-                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100 dark:text-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'
-                )}
-              >
-                <Settings className="h-4 w-4" />
-                Pengaturan
-                <ChevronDown className={clsx("h-3 w-3 transition-transform", isSettingsOpen && "rotate-180")} />
-              </button>
-
-              {isSettingsOpen && (
-                <div ref={settingsOverlayRef} className="fixed top-[calc(4rem+env(safe-area-inset-top))] right-2 z-[60] w-72">
-                  <div className={clsx('max-h-[60vh] overflow-y-auto', settingsPanelClass)}>
-                    {settingsGroups.map((group) => (
-                      <div key={group.key} className="border-b border-gray-100 px-3 py-2 last:border-b-0 dark:border-gray-700">
-                        <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          {group.label}
-                        </div>
-                        <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-                          {group.description}
-                        </p>
-                        <div className="mt-2 space-y-1">
-                          {group.items.map((link) => (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              prefetch={false}
-                              onClick={() => setIsSettingsOpen(false)}
-                              className={clsx(
-                                'block rounded-lg px-3 py-2 text-sm transition-colors',
-                                pathname === link.href
-                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
-                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
-                              )}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                    {settingsGroups.length > 0 && <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>}
-                    <div className={settingsControlCardClass}>
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Text Size</div>
-                      <select
-                        value={zoomLevel}
-                        onChange={(e) => setZoomLevel(Number(e.target.value))}
-                        className={settingsSelectClass}
-                      >
-                        <option value={100}>100%</option>
-                        <option value={90}>90%</option>
-                        <option value={80}>80%</option>
-                        <option value={75}>75%</option>
-                        <option value={60}>60%</option>
-                        <option value={50}>50%</option>
-                      </select>
-                    </div>
-                    <div className={settingsControlCardClass}>
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">Theme</div>
-                      <select
-                        value={theme ?? 'system'}
-                        onChange={(e) => setTheme(e.target.value)}
-                        className={settingsSelectClass}
-                        suppressHydrationWarning
-                      >
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                        <option value="system">System</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-          </div>
-        </nav>
-      </div>
-      )}
       </div>
     </header>
   )
