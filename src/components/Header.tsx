@@ -401,7 +401,7 @@ export function Header({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          {!isDeveloper && isMobilePortrait && (
+          {!isDeveloper && !isTechnician && isMobilePortrait && (
             <nav className="flex min-w-0 items-center gap-2">
               <div className="relative" ref={navRefMobile}>
                 <button
@@ -739,7 +739,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isDeveloper && !isMobilePortrait && (
+        {!isDeveloper && !isTechnician && !isMobilePortrait && (
         <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
           <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>

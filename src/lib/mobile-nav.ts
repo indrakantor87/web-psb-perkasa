@@ -13,7 +13,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import { normalizeRole, type AppMenuKey } from '@/lib/access'
+import { canAccessMenu, isTechnicianRole, normalizeRole, type AppMenuKey } from '@/lib/access'
 
 export type MobileMenuKey = Exclude<AppMenuKey, 'dashboard' | 'settings'>
 
@@ -58,6 +58,29 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
   'marketing-activities',
   'hr',
 ]
+
+const MOBILE_MENU_GROUP_ORDER: MobileMenuEntry['group'][] = ['Operasional', 'Digital', 'HR']
+
+export function canAccessMobileHome(role?: string | null) {
+  return canAccessMenu(role, 'dashboard') || isTechnicianRole(role)
+}
+
+export function canShowMobilePsbSummary(role?: string | null) {
+  return canAccessMenu(role, 'list') && !isTechnicianRole(role)
+}
+
+export function getMobileMenuGroups(role?: string | null, excludedKeys: readonly MobileMenuKey[] = []) {
+  const excluded = new Set(excludedKeys)
+
+  return MOBILE_MENU_GROUP_ORDER
+    .map((label) => ({
+      label,
+      links: mobileMenuEntries.filter(
+        (item) => item.group === label && canAccessMenu(role, item.key) && !excluded.has(item.key),
+      ),
+    }))
+    .filter((group) => group.links.length > 0)
+}
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Admin',

@@ -13,6 +13,13 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.13] - 2026-11-09
+
+### Changed
+- Navigasi mobile teknisi menampilkan Beranda, menghapus dropdown Dashboard/Pengaturan di header, dan tidak mengulang menu bottom-nav di lembar Menu.
+- Pengaturan tema dan ukuran teks teknisi tersedia melalui tombol Menu.
+- Ringkasan PSB global tidak ditampilkan pada Beranda teknisi.
+
 ## [1.11.11] - 2026-11-09
 
 ### Fixed

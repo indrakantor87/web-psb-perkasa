@@ -4,14 +4,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { ChevronRight, Home, Menu, X } from 'lucide-react'
 import {
   canAccessMenu,
   canAccessSettingsPage,
   getDivisionFromRole,
   getMenuHref,
+  isTechnicianRole,
 } from '@/lib/access'
-import { MOBILE_PRIMARY_ORDER, mobileMenuEntries } from '@/lib/mobile-nav'
+import { canAccessMobileHome, getMobileMenuGroups, MOBILE_PRIMARY_ORDER, mobileMenuEntries } from '@/lib/mobile-nav'
 
 type Props = {
   role: string
@@ -31,7 +33,20 @@ const settingsLinks = [
 export function MobileNavigation({ role }: Props) {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const [zoomLevel, setZoomLevel] = useState(() => {
+    if (typeof window === 'undefined') return 100
+    const savedZoom = Number(window.localStorage.getItem('zoomLevel'))
+    return Number.isFinite(savedZoom) && savedZoom > 0 ? savedZoom : 100
+  })
   const roleDivision = getDivisionFromRole(role)
+  const isTechnician = isTechnicianRole(role)
+
+  useEffect(() => {
+    if (!isTechnician) return
+    document.documentElement.style.fontSize = `${zoomLevel}%`
+    localStorage.setItem('zoomLevel', String(zoomLevel))
+  }, [isTechnician, zoomLevel])
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -48,12 +63,10 @@ export function MobileNavigation({ role }: Props) {
     .map((key) => mobileMenuEntries.find((item) => item.key === key))
     .filter((item): item is (typeof mobileMenuEntries)[number] => Boolean(item))
 
-  const menuGroups = (['Operasional', 'Digital', 'HR'] as const)
-    .map((label) => ({
-      label,
-      links: mobileMenuEntries.filter((item) => item.group === label && canAccessMenu(role, item.key)),
-    }))
-    .filter((group) => group.links.length > 0)
+  const menuGroups = getMobileMenuGroups(
+    role,
+    isTechnician ? primaryLinks.map((item) => item.key) : [],
+  )
 
   const accessibleSettings = settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
 
@@ -72,8 +85,12 @@ export function MobileNavigation({ role }: Props) {
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Semua Menu</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Modul yang dapat Anda akses</p>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {isTechnician ? 'Menu Lainnya' : 'Semua Menu'}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {isTechnician ? 'Menu yang belum ada di navigasi bawah' : 'Modul yang dapat Anda akses'}
+                </p>
               </div>
               <button
                 type="button"
@@ -116,26 +133,65 @@ export function MobileNavigation({ role }: Props) {
                   </div>
                 </section>
               ))}
+              {isTechnician && menuGroups.length === 0 && (
+                <p className="rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  Semua modul teknisi sudah tersedia di navigasi bawah.
+                </p>
+              )}
 
-              {accessibleSettings.length > 0 && (
+              {(accessibleSettings.length > 0 || isTechnician) && (
                 <section>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Pengaturan
                   </h3>
-                  <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                    {accessibleSettings.map((item) => (
-                      <Link
-                        key={item.key}
-                        href={item.href}
-                        prefetch={false}
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center justify-between border-b border-slate-100 px-3 py-3 text-sm text-slate-700 last:border-b-0 dark:border-slate-800 dark:text-slate-200"
-                      >
-                        <span>{item.label}</span>
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
-                      </Link>
-                    ))}
-                  </div>
+                  {accessibleSettings.length > 0 && (
+                    <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+                      {accessibleSettings.map((item) => (
+                        <Link
+                          key={item.key}
+                          href={item.href}
+                          prefetch={false}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-center justify-between border-b border-slate-100 px-3 py-3 text-sm text-slate-700 last:border-b-0 dark:border-slate-800 dark:text-slate-200"
+                        >
+                          <span>{item.label}</span>
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {isTechnician && (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <label className="rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                        <span className="mb-1 block text-xs text-slate-500 dark:text-slate-400">Ukuran teks</span>
+                        <select
+                          value={zoomLevel}
+                          onChange={(event) => setZoomLevel(Number(event.target.value))}
+                          className="w-full bg-transparent text-sm text-slate-800 outline-none dark:text-slate-100"
+                        >
+                          <option value={100}>100%</option>
+                          <option value={90}>90%</option>
+                          <option value={80}>80%</option>
+                          <option value={75}>75%</option>
+                          <option value={60}>60%</option>
+                          <option value={50}>50%</option>
+                        </select>
+                      </label>
+                      <label className="rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
+                        <span className="mb-1 block text-xs text-slate-500 dark:text-slate-400">Tema</span>
+                        <select
+                          value={theme ?? 'system'}
+                          onChange={(event) => setTheme(event.target.value)}
+                          className="w-full bg-transparent text-sm text-slate-800 outline-none dark:text-slate-100"
+                          suppressHydrationWarning
+                        >
+                          <option value="light">Terang</option>
+                          <option value="dark">Gelap</option>
+                          <option value="system">Ikuti sistem</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
                 </section>
               )}
             </div>
@@ -153,7 +209,7 @@ export function MobileNavigation({ role }: Props) {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
         <div className="mx-auto flex max-w-lg">
-          {canAccessMenu(role, 'dashboard') && (
+          {canAccessMobileHome(role) && (
             <Link
               href="/"
               prefetch={false}

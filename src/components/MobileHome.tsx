@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { canAccessMenu, getDivisionFromRole, getMenuHref } from '@/lib/access'
-import { getRoleLabel, mobileMenuEntries } from '@/lib/mobile-nav'
+import { canShowMobilePsbSummary, getRoleLabel, mobileMenuEntries } from '@/lib/mobile-nav'
 
 type Props = {
   userName: string
@@ -16,7 +16,7 @@ export function MobileHome({ userName, userRole, statusCounts }: Props) {
   const roleDivision = getDivisionFromRole(userRole)
 
   const shortcuts = mobileMenuEntries.filter((item) => canAccessMenu(userRole, item.key))
-  const showPsbSummary = canAccessMenu(userRole, 'list')
+  const showPsbSummary = canShowMobilePsbSummary(userRole)
 
   const stats = [
     { label: 'Total PSB', value: statusCounts.total, tone: 'text-slate-900 dark:text-white' },
