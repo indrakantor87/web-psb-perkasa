@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { SessionData } from '@/lib/auth'
-import { canAccessMenu, canMutateMenu, type AppMenuKey } from '@/lib/access'
+import { canAccessMenu, canMutateMenu, isDeveloperRole, type AppMenuKey } from '@/lib/access'
 
 export function unauthorizedResponse() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,6 +21,12 @@ export function ensureMenuMutation(session: SessionData | null, menu: AppMenuKey
   if (!canAccessMenu(session.user.role, menu) || !canMutateMenu(session.user.role, menu)) {
     return forbiddenResponse()
   }
+  return null
+}
+
+export function ensureDeveloperAccess(session: SessionData | null) {
+  if (!session) return unauthorizedResponse()
+  if (!isDeveloperRole(session.user.role)) return forbiddenResponse()
   return null
 }
 

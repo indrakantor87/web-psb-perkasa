@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { isDeveloperRole } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { SecurityLogsClient } from '@/components/SecurityLogsClient'
 
@@ -10,10 +10,9 @@ export default async function SecurityLogsPage() {
     redirect('/login')
   }
 
-  if (!canAccessMenu(session.user.role, 'settings')) {
+  if (!isDeveloperRole(session.user.role)) {
     redirect('/')
   }
 
   return <SecurityLogsClient />
 }
-

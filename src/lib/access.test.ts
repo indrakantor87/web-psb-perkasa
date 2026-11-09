@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  APP_ROLE_VALUES,
+  canAccessSettingsPage,
   canAccessMenu,
   canAccessTroubleTicketRecords,
   canConfigureFingerprintMachine,
@@ -34,6 +36,18 @@ const menus = [
   'hr',
   'settings',
 ] as const
+
+test('Audit Role and Log Aktivitas are Developer-only settings', () => {
+  const developerOnlySettings = ['role-audit', 'security-logs'] as const
+  for (const setting of developerOnlySettings) {
+    assert.equal(canAccessSettingsPage('DEVELOPER', setting), true)
+    for (const role of APP_ROLE_VALUES.filter((item) => item !== 'DEVELOPER')) {
+      assert.equal(canAccessSettingsPage(role, setting), false, `${role} must not access ${setting}`)
+    }
+  }
+  assert.equal(canAccessSettingsPage('ADMIN', 'users'), true)
+  assert.equal(canAccessSettingsPage('PRIORITY', 'users'), true)
+})
 
 test('ADMIN and DEVELOPER can access and mutate every menu', () => {
   for (const role of ['ADMIN', 'DEVELOPER']) {

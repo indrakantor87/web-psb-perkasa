@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { ensureMenuAccess } from '@/lib/access-server'
+import { ensureDeveloperAccess } from '@/lib/access-server'
 import { ensureSecurityLogTable } from '@/lib/security-log'
 
 export const runtime = 'nodejs'
@@ -15,7 +15,7 @@ function currentMonthKey() {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  const accessError = ensureMenuAccess(session, 'settings')
+  const accessError = ensureDeveloperAccess(session)
   if (accessError) return accessError
 
   await ensureSecurityLogTable().catch(() => {})

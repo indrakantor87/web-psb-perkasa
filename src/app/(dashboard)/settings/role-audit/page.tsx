@@ -60,7 +60,7 @@ function modeLabel(mode: 'NONE' | 'READ' | 'MUTATE') {
 export default async function RoleAuditPage() {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (!canAccessMenu(session.user.role, 'settings')) redirect('/')
+  if (!isDeveloperRole(session.user.role)) redirect('/')
 
   const matrix = roles.map((role) => {
     const menuStates = menus.map((menu) => {

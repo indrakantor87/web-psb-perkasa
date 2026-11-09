@@ -261,16 +261,18 @@ function getAccessibleSettingsPages(role?: string | null) {
   const roleUpper = normalizeRole(role)
 
   if (canViewAllDataRole(roleUpper)) {
-    return settingsSet([
+    const settingsPages: AppSettingsKey[] = [
       'areas',
       'packages',
       'templates',
       'users',
-      'role-audit',
-      'security-logs',
       'trouble-ticket',
       'priorities',
-    ])
+    ]
+    if (isDeveloperRole(roleUpper)) {
+      settingsPages.push('role-audit', 'security-logs')
+    }
+    return settingsSet(settingsPages)
   }
 
   if (roleUpper === 'NOC') {

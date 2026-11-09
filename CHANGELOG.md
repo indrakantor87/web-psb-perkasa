@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.18] - 2026-11-09
+
+### Security
+- Audit Role, Log Aktivitas, dan notifikasi log aktivitas kini hanya tersedia bagi role DEVELOPER.
+- Akses langsung ke halaman dan API log aktivitas dibatasi untuk DEVELOPER.
+
 ## [1.11.17] - 2026-11-09
 
 ### Changed
