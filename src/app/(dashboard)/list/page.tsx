@@ -55,6 +55,7 @@ export default async function ListPage({
   try {
     const list = await getTicketsListData({
       role: session.user.role,
+      ownerId: session.user.id,
       userName: session.user.name,
       division: currentDivision,
       month: currentMonth,

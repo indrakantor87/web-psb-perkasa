@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.9] - 2026-11-09
+
+### Fixed
+- Batasi daftar PSB Creator Digital pada halaman List berdasarkan `createdById` akun yang login, termasuk hitungan dan cache data.
+
 ## [1.11.8] - 2026-11-09
 
 ### Fixed

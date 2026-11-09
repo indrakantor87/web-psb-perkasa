@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
-import { isAdminRole, normalizeRole } from '@/lib/access'
+import { isAdminRole, normalizeRole, resolveAccountOwnerFilter } from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -34,6 +34,7 @@ export type TicketListCounts = {
 
 type Args = {
   role: string
+  ownerId?: number | null
   userName: string
   division?: string
   month: number
@@ -49,8 +50,13 @@ function toCacheKey(args: Args) {
   return `tickets-list:${JSON.stringify(args)}`
 }
 
+export function buildTicketListOwnerFilter(role: string, ownerId?: number | null): Prisma.TicketWhereInput | null {
+  const resolvedOwnerId = resolveAccountOwnerFilter(role, ownerId)
+  return resolvedOwnerId === null ? null : { createdById: resolvedOwnerId }
+}
+
 async function queryTicketsList(args: Args) {
-  const { role, userName, division, month, year, status, marketing, search, page, pageSize } = args
+  const { role, ownerId, userName, division, month, year, status, marketing, search, page, pageSize } = args
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
@@ -82,6 +88,9 @@ async function queryTicketsList(args: Args) {
       }
       baseWhere.AND = Array.isArray(currentAnd) ? [...currentAnd, condition] : [currentAnd, condition]
     }
+
+    const ownerFilter = buildTicketListOwnerFilter(role, ownerId)
+    if (ownerFilter) appendAnd(ownerFilter)
 
     const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
     if (isAdminRole(role)) {
