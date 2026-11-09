@@ -73,6 +73,7 @@ export function Header({ user }: { user: SessionUser }) {
   const isAdmin = roleUpper === 'ADMIN'
   const isDeveloper = roleUpper === 'DEVELOPER'
   const isTechnician = isTechnicianRole(roleUpper)
+  const isMobileTechnician = isTechnician || roleUpper === 'NOC'
   const roleDivision = getDivisionFromRole(user?.role)
   const divisionLabel = formatDivisionLabel(user?.division)
   const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
@@ -401,7 +402,7 @@ export function Header({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          {!isDeveloper && !isTechnician && isMobilePortrait && (
+          {!isDeveloper && !isMobileTechnician && isMobilePortrait && (
             <nav className="flex min-w-0 items-center gap-2">
               <div className="relative" ref={navRefMobile}>
                 <button
@@ -739,7 +740,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isDeveloper && !isTechnician && !isMobilePortrait && (
+        {!isDeveloper && !isMobileTechnician && !isMobilePortrait && (
         <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
           <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>

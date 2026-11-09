@@ -30,7 +30,7 @@ export type MobileMenuEntry = {
 
 export const mobileMenuEntries: MobileMenuEntry[] = [
   { key: 'input', label: 'Input PSB', detail: 'Daftarkan pelanggan baru', group: 'Operasional', activePath: '/input', icon: FileInput, tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' },
-  { key: 'list', label: 'List Data PSB', detail: 'Cari dan kelola tiket PSB', group: 'Operasional', activePath: '/list', icon: List, tone: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' },
+  { key: 'list', label: 'List Data PSB', shortLabel: 'List PSB', detail: 'Cari dan kelola tiket PSB', group: 'Operasional', activePath: '/list', icon: List, tone: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' },
   { key: 'marketing-activities', label: 'Aktivitas Marketing', detail: 'Pantau aktivitas marketing', group: 'Operasional', activePath: '/marketing-activities', icon: Activity, tone: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300' },
   { key: 'isolir', label: 'Isolir', detail: 'Kelola isolasi layanan', group: 'Operasional', activePath: '/isolir', icon: Ban, tone: 'bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300' },
   { key: 'dismantle', label: 'Dismantle', detail: 'Proses perangkat pelanggan', group: 'Operasional', activePath: '/dismantle', icon: Wrench, tone: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' },
@@ -62,11 +62,19 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
 const MOBILE_MENU_GROUP_ORDER: MobileMenuEntry['group'][] = ['Operasional', 'Digital', 'HR']
 
 export function canAccessMobileHome(role?: string | null) {
-  return canAccessMenu(role, 'dashboard') || isTechnicianRole(role)
+  return canAccessMenu(role, 'dashboard') || isMobileTechnicianRole(role)
+}
+
+export function isMobileTechnicianRole(role?: string | null) {
+  return isTechnicianRole(role) || normalizeRole(role) === 'NOC'
+}
+
+export function getMobileHomeHref(role?: string | null) {
+  return isMobileTechnicianRole(role) ? '/beranda' : '/'
 }
 
 export function canShowMobilePsbSummary(role?: string | null) {
-  return canAccessMenu(role, 'list') && !isTechnicianRole(role)
+  return canAccessMenu(role, 'list') && !isMobileTechnicianRole(role)
 }
 
 export function getMobileMenuGroups(role?: string | null, excludedKeys: readonly MobileMenuKey[] = []) {

@@ -11,9 +11,15 @@ import {
   canAccessSettingsPage,
   getDivisionFromRole,
   getMenuHref,
-  isTechnicianRole,
 } from '@/lib/access'
-import { canAccessMobileHome, getMobileMenuGroups, MOBILE_PRIMARY_ORDER, mobileMenuEntries } from '@/lib/mobile-nav'
+import {
+  canAccessMobileHome,
+  getMobileHomeHref,
+  getMobileMenuGroups,
+  isMobileTechnicianRole,
+  MOBILE_PRIMARY_ORDER,
+  mobileMenuEntries,
+} from '@/lib/mobile-nav'
 
 type Props = {
   role: string
@@ -40,7 +46,7 @@ export function MobileNavigation({ role }: Props) {
     return Number.isFinite(savedZoom) && savedZoom > 0 ? savedZoom : 100
   })
   const roleDivision = getDivisionFromRole(role)
-  const isTechnician = isTechnicianRole(role)
+  const isTechnician = isMobileTechnicianRole(role)
 
   useEffect(() => {
     if (!isTechnician) return
@@ -69,6 +75,7 @@ export function MobileNavigation({ role }: Props) {
   )
 
   const accessibleSettings = settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
+  const isHomeActive = pathname === '/' || (isTechnician && pathname === '/beranda')
 
   const menuSheet = isMenuOpen && typeof document !== 'undefined'
     ? createPortal(
@@ -211,11 +218,11 @@ export function MobileNavigation({ role }: Props) {
         <div className="mx-auto flex max-w-lg">
           {canAccessMobileHome(role) && (
             <Link
-              href="/"
+              href={getMobileHomeHref(role)}
               prefetch={false}
-              aria-current={pathname === '/' ? 'page' : undefined}
+              aria-current={isHomeActive ? 'page' : undefined}
               className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
-                pathname === '/' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
+                isHomeActive ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               <Home className="h-5 w-5" />

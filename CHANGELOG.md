@@ -13,6 +13,17 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.15] - 2026-11-09
+
+### Fixed
+- Beranda teknisi menggunakan halaman khusus yang ringan agar dapat dibuka dengan konsisten tanpa memuat seluruh dashboard.
+- Role NOC mendapat Beranda mobile tanpa menambah akses Dashboard desktop atau ringkasan PSB global.
+
+## [1.11.14] - 2026-11-09
+
+### Changed
+- Label List PSB pada navigasi mobile disingkat agar tampil satu baris.
+
 ## [1.11.13] - 2026-11-09
 
 ### Changed

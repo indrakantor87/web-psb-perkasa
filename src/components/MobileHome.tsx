@@ -8,15 +8,23 @@ type Props = {
   userName: string
   userRole?: string
   statusCounts: { total: number; open: number; close: number; on_progress: number }
+  showPsbSummaryOverride?: boolean
+  mobileOnly?: boolean
 }
 
-export function MobileHome({ userName, userRole, statusCounts }: Props) {
+export function MobileHome({
+  userName,
+  userRole,
+  statusCounts,
+  showPsbSummaryOverride,
+  mobileOnly = true,
+}: Props) {
   const firstName = userName.trim().split(/\s+/)[0] || 'Pengguna'
   const roleLabel = getRoleLabel(userRole)
   const roleDivision = getDivisionFromRole(userRole)
 
   const shortcuts = mobileMenuEntries.filter((item) => canAccessMenu(userRole, item.key))
-  const showPsbSummary = canShowMobilePsbSummary(userRole)
+  const showPsbSummary = showPsbSummaryOverride ?? canShowMobilePsbSummary(userRole)
 
   const stats = [
     { label: 'Total PSB', value: statusCounts.total, tone: 'text-slate-900 dark:text-white' },
@@ -26,7 +34,7 @@ export function MobileHome({ userName, userRole, statusCounts }: Props) {
   ]
 
   return (
-    <section className="space-y-5 md:hidden">
+    <section className={mobileOnly ? 'space-y-5 md:hidden' : 'space-y-5'}>
       <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 py-5 text-white shadow-sm">
         <p className="text-sm text-blue-100">Ruang kerja {roleLabel}</p>
         <h1 className="mt-1 text-2xl font-bold">Halo, {firstName}</h1>
