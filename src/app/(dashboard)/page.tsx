@@ -466,9 +466,11 @@ export default async function DashboardPage({
     on_progress: onProgressCount,
   }
 
-    const isoRoleClause = marketingRole
-      ? PrismaSql.sql`AND LOWER(TRIM("marketing")) = ${marketingNameFilter.toLowerCase()}`
-      : creatorClause
+    const isoRoleClause = marketingRole || creatorRole
+      ? marketingNameFilter
+        ? PrismaSql.sql`AND LOWER(TRIM("marketing")) = ${marketingNameFilter.toLowerCase()}`
+        : PrismaSql.sql`AND 1 = 0`
+      : PrismaSql.sql``
     const isoRows = await prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
     SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
     FROM "Isolation"
@@ -525,6 +527,7 @@ export default async function DashboardPage({
           FROM "Isolation"
           WHERE "status" = 'OPEN'
             AND COALESCE(TRIM("ticketDismantle"), '') <> ''
+            ${isoRoleClause}
         `)
         return Number(rows[0]?.count || 0)
       } catch {

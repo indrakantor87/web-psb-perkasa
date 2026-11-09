@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { normalizeMarketingName } from '@/lib/marketing-users'
 
 type GlobalState = {
   __ensureDismantleHistoryTablePromise?: Promise<void>
@@ -146,7 +147,7 @@ export async function listDismantleHistory(params: DismantleHistoryListParams) {
     ? Array.from(
         new Set(
           params.marketingOwners
-            .map((value) => String(value ?? '').trim().toLowerCase())
+            .map((value) => normalizeMarketingName(value).toLowerCase())
             .filter(Boolean),
         ),
       )

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { normalizeMarketingName } from '@/lib/marketing-users'
 
 type GlobalState = {
   __ensureDismantleTicketsTablePromise?: Promise<void>
@@ -34,7 +35,6 @@ export type DismantleTicketListParams = {
   radboox?: string | null
   ticketStatus?: 'ALL' | 'WITH' | 'WITHOUT'
   marketingOwners?: string[] | null
-  ownerId?: number | null
   page: number
   limit: number
 }
@@ -253,7 +253,7 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
     ? Array.from(
         new Set(
           params.marketingOwners
-            .map((value) => String(value ?? '').trim().toLowerCase())
+            .map((value) => normalizeMarketingName(value).toLowerCase())
             .filter(Boolean),
         ),
       )
@@ -263,10 +263,6 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
     baseWhereParts.push('1 = 0')
   } else if (normalizedMarketingOwners.length > 0) {
     baseWhereParts.push(`LOWER(TRIM(COALESCE("marketing", ''))) = ANY(${push(normalizedMarketingOwners)}::text[])`)
-  }
-
-  if (typeof params.ownerId === 'number') {
-    baseWhereParts.push(`"createdById" = ${push(params.ownerId)}`)
   }
 
   if (params.search && params.search.trim() !== '') {

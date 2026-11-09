@@ -195,7 +195,7 @@ export function IsolationView({
     PENJUALAN: 'Belum ada relasi operasional langsung antara divisi Penjualan dan modul Isolir, jadi tampilan ini masih placeholder.',
     CS_ADMIN: 'Fokus ke pelanggan yang masih berstatus isolir aktif (`OPEN`), cocok untuk follow up CS & Admin CS.',
     NOC_TROUBLESHOOTS: 'Fokus ke data isolir yang sudah normal kembali (`CLOSED`), cocok untuk perspektif tindak lanjut teknis.',
-    CREATOR_DIGITAL: 'Belum ada relasi operasional langsung antara Creator Digital dan modul Isolir, jadi tampilan ini masih placeholder.',
+    CREATOR_DIGITAL: 'Menampilkan data Isolir berdasarkan nama akun yang login, mengikuti aturan yang sama dengan role Marketing.',
   }
 
   // Form State

@@ -5,12 +5,12 @@ import { Prisma } from '@prisma/client'
 import { normalizeMarketingName } from '@/lib/marketing-users'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { ensureDismantleTicketsTable, getDismantleTicketLinksForIsolationItems } from '@/lib/dismantle-tickets'
+import { buildIsolationMarketingOwnerFilter } from '@/lib/isolation-dismantle-scope'
 import {
   canAccessMenu,
   canDeleteIsolationRecords,
   canMutateIsolationRecords,
   canUseAdminIsolationDismantleScope,
-  resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
@@ -215,7 +215,6 @@ function buildLegacyIsolationWhere(params: {
   status: string | null
   roleUpper: string
   userName?: string | null
-  userId?: number | null
   divisionFilter: string
 }) {
   const where: Prisma.IsolationWhereInput = {}
@@ -247,18 +246,8 @@ function buildLegacyIsolationWhere(params: {
     }
   }
 
-  if (params.roleUpper === 'MARKETING') {
-    const ownMarketingClause = buildExactMarketingClause(params.userName)
-    if (ownMarketingClause) {
-      appendAnd(ownMarketingClause)
-    } else {
-      appendAnd({ id: { lt: 0 } })
-    }
-  }
-
-  if (params.roleUpper === 'CREATOR_DIGITAL') {
-    appendAnd({ createdById: resolveAccountOwnerFilter(params.roleUpper, params.userId) ?? -1 })
-  }
+  const marketingOwnerFilter = buildIsolationMarketingOwnerFilter(params.roleUpper, params.userName)
+  if (marketingOwnerFilter) appendAnd(marketingOwnerFilter)
 
   if (canUseAdminIsolationDismantleScope(params.roleUpper)) {
     if (params.divisionFilter === 'CS_ADMIN' && !params.status) {
@@ -353,19 +342,9 @@ export async function GET(request: Request) {
   if (archiveVisibilityClause) {
     appendAnd(archiveVisibilityClause)
   }
-  // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
-  if (roleUpper === 'MARKETING') {
-    const ownMarketingClause = buildExactMarketingClause(session.user.name)
-    if (ownMarketingClause) {
-      appendAnd(ownMarketingClause)
-    } else {
-      appendAnd({ id: { lt: 0 } })
-    }
-  }
-
-  if (roleUpper === 'CREATOR_DIGITAL') {
-    appendAnd({ createdById: resolveAccountOwnerFilter(roleUpper, session.user.id) ?? -1 })
-  }
+  // MARKETING dan CREATOR_DIGITAL mengikuti nama pemilik pada data Isolir.
+  const marketingOwnerFilter = buildIsolationMarketingOwnerFilter(roleUpper, session.user.name)
+  if (marketingOwnerFilter) appendAnd(marketingOwnerFilter)
 
   if (canUseAdminIsolationDismantleScope(roleUpper)) {
     if (divisionFilter === 'CS_ADMIN' && !status) {
@@ -587,7 +566,6 @@ export async function GET(request: Request) {
         status,
         roleUpper,
         userName: session.user.name,
-        userId: session.user.id,
         divisionFilter,
       })
 

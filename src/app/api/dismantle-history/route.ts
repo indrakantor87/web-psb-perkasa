@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth'
 import { canAccessMenu, canDeleteIsolationRecords } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureDismantleHistoryTable, listDismantleHistory } from '@/lib/dismantle-history'
+import { buildDismantleMarketingOwners } from '@/lib/isolation-dismantle-scope'
 import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
@@ -10,18 +11,6 @@ export const runtime = 'nodejs'
 function isDatabaseInitError(error: unknown) {
   const message = String(error instanceof Error ? error.message : error)
   return message.includes('tenant/user') || message.includes('PrismaClientInitializationError')
-}
-
-function getMarketingScope(role: string | null | undefined, name: string | null | undefined) {
-  if (String(role ?? '').trim().toUpperCase() !== 'MARKETING') return null
-  const values = Array.from(
-    new Set(
-      [name]
-        .map((value) => String(value ?? '').trim())
-        .filter(Boolean),
-    ),
-  )
-  return values
 }
 
 export async function GET(request: Request) {
@@ -42,7 +31,7 @@ export async function GET(request: Request) {
     if ([25, 50, 75, 100].includes(n)) return n
     return 25
   })()
-  const marketingOwners = getMarketingScope(session.user.role, session.user.name)
+  const marketingOwners = buildDismantleMarketingOwners(session.user.role, session.user.name)
 
   try {
     await ensureDismantleHistoryTable()

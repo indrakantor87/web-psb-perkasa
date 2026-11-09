@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.11] - 2026-11-09
+
+### Fixed
+- Isolir, Dismantle aktif, dan histori Dismantle untuk Creator Digital kini mengikuti nama akun yang login, sama seperti aturan scope PSB.
+- Ringkasan Isolir dan Dismantle pada dashboard Creator Digital kini memakai scope nama akun dan gagal-tertutup jika nama akun kosong.
+
 ## [1.11.10] - 2026-11-09
 
 ### Fixed
