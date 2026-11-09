@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.10] - 2026-11-09
+
+### Fixed
+- Daftar PSB Creator Digital kini mengikuti aturan yang sama dengan peran Marketing, yaitu dicocokkan berdasarkan nama marketing pada tiket (`marketingName`), sehingga data milik akun yang login tampil konsisten dengan "Kinerja Marketing" pada dashboard.
+- Scope PSB berbasis nama ini diterapkan pada halaman List, GET `/api/tickets` (termasuk export), serta metrik PSB pada dashboard Creator Digital. Modul konten digital (Calendar, Campaign, Digital Leads, Analytics) tetap memakai pemilik akun (`creatorId`/`createdById`).
+
 ## [1.11.9] - 2026-11-09
 
 ### Fixed

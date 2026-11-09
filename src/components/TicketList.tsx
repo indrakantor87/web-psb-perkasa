@@ -455,7 +455,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
     PENJUALAN: 'Perspektif Penjualan menampilkan seluruh data PSB dan tetap cocok dipakai bersama filter marketing.',
     CS_ADMIN: 'Fokus ke tiket yang belum memiliki teknisi, cocok untuk alur CS & Admin CS.',
     NOC_TROUBLESHOOTS: 'Perspektif NOC memakai dataset PSB yang sama seperti CS dan Penjualan agar tindak lanjut teknis tetap melihat antrean lengkap.',
-    CREATOR_DIGITAL: 'Belum ada relasi langsung ke data PSB, sehingga hasil list akan kosong sebagai placeholder.',
+    CREATOR_DIGITAL: 'Menampilkan data PSB milik nama akun yang login, mengikuti aturan yang sama dengan role Marketing.',
   }
 
   const normalizeStatus = (s: string) => {

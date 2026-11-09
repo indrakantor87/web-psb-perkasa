@@ -376,11 +376,21 @@ export function canMutateCreatorDigitalMenu(role: string | null | undefined) {
 
 /**
  * Role yang hanya boleh melihat data miliknya sendiri berdasarkan akun pembuat.
- * MARKETING memakai pencocokan nama (lihat lib/marketing-users), sedangkan
- * CREATOR_DIGITAL memakai id akun pembuat.
+ * Dipakai oleh modul konten digital (ContentCalendar/Campaign/DigitalLead),
+ * sedangkan scope data PSB mengikuti aturan nama marketing.
  */
 export function isAccountOwnerScopedRole(role?: string | null) {
   return normalizeRole(role) === 'CREATOR_DIGITAL'
+}
+
+/**
+ * Role yang cakupan data PSB-nya ditentukan oleh nama marketing pada tiket
+ * (kolom `marketingName`), bukan id akun pembuat. MARKETING dan CREATOR_DIGITAL
+ * memakai aturan yang sama agar konsisten dengan Kinerja Marketing di dashboard.
+ */
+export function isMarketingNameScopedRole(role?: string | null) {
+  const roleUpper = normalizeRole(role)
+  return roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL'
 }
 
 /**

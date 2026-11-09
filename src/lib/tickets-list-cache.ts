@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
-import { isAdminRole, normalizeRole, resolveAccountOwnerFilter } from '@/lib/access'
+import { isAdminRole, isMarketingNameScopedRole, normalizeRole } from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -34,7 +34,6 @@ export type TicketListCounts = {
 
 type Args = {
   role: string
-  ownerId?: number | null
   userName: string
   division?: string
   month: number
@@ -50,13 +49,20 @@ function toCacheKey(args: Args) {
   return `tickets-list:${JSON.stringify(args)}`
 }
 
-export function buildTicketListOwnerFilter(role: string, ownerId?: number | null): Prisma.TicketWhereInput | null {
-  const resolvedOwnerId = resolveAccountOwnerFilter(role, ownerId)
-  return resolvedOwnerId === null ? null : { createdById: resolvedOwnerId }
+/**
+ * Scope data PSB mengikuti nama marketing akun yang login (aturan sama dengan
+ * role MARKETING), sehingga data Creator Digital konsisten dengan dashboard
+ * "Kinerja Marketing". Nama kosong berarti fail-closed (tidak ada data).
+ */
+export function buildTicketListOwnerFilter(role: string, userName?: string | null): Prisma.TicketWhereInput | null {
+  if (!isMarketingNameScopedRole(role)) return null
+  const ownerName = normalizeMarketingName(userName)
+  if (!ownerName) return { id: { lt: 0 } }
+  return { marketingName: { equals: ownerName, mode: 'insensitive' } }
 }
 
 async function queryTicketsList(args: Args) {
-  const { role, ownerId, userName, division, month, year, status, marketing, search, page, pageSize } = args
+  const { role, userName, division, month, year, status, marketing, search, page, pageSize } = args
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
@@ -89,7 +95,7 @@ async function queryTicketsList(args: Args) {
       baseWhere.AND = Array.isArray(currentAnd) ? [...currentAnd, condition] : [currentAnd, condition]
     }
 
-    const ownerFilter = buildTicketListOwnerFilter(role, ownerId)
+    const ownerFilter = buildTicketListOwnerFilter(role, userName)
     if (ownerFilter) appendAnd(ownerFilter)
 
     const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
@@ -106,17 +112,7 @@ async function queryTicketsList(args: Args) {
       }
     }
 
-    if (normalizeRole(role) === 'MARKETING') {
-      const ownerName = normalizeMarketingName(userName)
-      if (ownerName) {
-        baseWhere.marketingName = {
-          equals: ownerName,
-          mode: 'insensitive',
-        }
-      } else {
-        baseWhere.id = { lt: 0 }
-      }
-    } else if (marketing && marketing.trim()) {
+    if (!isMarketingNameScopedRole(role) && marketing && marketing.trim()) {
       baseWhere.marketingName = {
         contains: marketing.trim(),
       }

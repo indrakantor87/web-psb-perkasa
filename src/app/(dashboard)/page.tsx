@@ -247,7 +247,9 @@ export default async function DashboardPage({
     const marketingNameMap = await getMarketingNameMap()
 
     const statusVals = PrismaSql.join(openStatuses.map((s) => PrismaSql.sql`${s}`))
-    const marketingClause = marketingRole
+    // Data PSB untuk MARKETING & CREATOR_DIGITAL discope dengan nama marketing
+    // (sama seperti "Kinerja Marketing"), bukan id akun pembuat.
+    const marketingClause = marketingRole || creatorRole
       ? PrismaSql.sql`AND LOWER(TRIM("marketingName")) = ${marketingNameFilter.toLowerCase()}`
       : PrismaSql.sql``
     const creatorClause = creatorRole
@@ -400,7 +402,7 @@ export default async function DashboardPage({
         FROM "Ticket"
         WHERE "installedDate" >= ${yearStart}
           AND "installedDate" < ${yearEnd}
-          ${creatorClause}
+          ${marketingClause}
       ),
       norm AS (
         SELECT

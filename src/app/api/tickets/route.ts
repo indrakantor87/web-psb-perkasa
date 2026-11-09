@@ -7,7 +7,7 @@ import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
-import { normalizeRole, resolveAccountOwnerFilter } from '@/lib/access'
+import { normalizeRole, isMarketingNameScopedRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,8 +63,8 @@ export async function GET(request: Request) {
     and.push({ OR: searchOr })
   }
 
-  // Filter for Marketing role
-  if (role === 'MARKETING') {
+  // Filter untuk role dengan scope nama marketing (MARKETING & CREATOR_DIGITAL)
+  if (isMarketingNameScopedRole(role)) {
     const ownerName = normalizeMarketingName(activeSession.user.name)
     and.push(ownerName
       ? {
@@ -74,10 +74,6 @@ export async function GET(request: Request) {
           },
         }
       : { id: { lt: 0 } })
-  } else if (role === 'CREATOR_DIGITAL') {
-    // Creator Digital hanya melihat data PSB milik akunnya sendiri.
-    const ownerFilter = resolveAccountOwnerFilter(role, activeSession.user.id)
-    and.push({ createdById: ownerFilter ?? -1 })
   } else {
     const marketingParam = searchParams.get('marketing')
     if (marketingParam && marketingParam.trim()) {

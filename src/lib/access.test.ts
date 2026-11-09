@@ -13,6 +13,7 @@ import {
   canRunAttendanceOperations,
   isAccountOwnerScopedRole,
   isDeveloperRole,
+  isMarketingNameScopedRole,
   resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { isMarketingOwnerMatch } from '@/lib/marketing-users'
@@ -174,4 +175,12 @@ test('account owner scope fails closed when the account id is unavailable', () =
   assert.equal(resolveAccountOwnerFilter('CREATOR_DIGITAL', 42), 42)
   assert.equal(resolveAccountOwnerFilter('CREATOR_DIGITAL', null), -1)
   assert.equal(resolveAccountOwnerFilter('ADMIN', 42), null)
+})
+
+test('marketing-name scope covers MARKETING and CREATOR_DIGITAL only', () => {
+  assert.equal(isMarketingNameScopedRole('MARKETING'), true)
+  assert.equal(isMarketingNameScopedRole('CREATOR_DIGITAL'), true)
+  for (const role of ['ADMIN', 'DEVELOPER', 'PRIORITY', 'CS', 'NOC', 'HR']) {
+    assert.equal(isMarketingNameScopedRole(role), false, `${role} must not be name-scoped`)
+  }
 })
