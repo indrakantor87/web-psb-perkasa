@@ -6,12 +6,12 @@ Format mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.1.0/),
 dan proyek ini mengikuti [Semantic Versioning](https://semver.org/lang/id/).
 
 Kategori perubahan:
-- `Added` - fitur/penambahan baru
-- `Changed` - perubahan pada fungsionalitas yang sudah ada
-- `Deprecated` - fitur yang akan dihapus
-- `Removed` - fitur yang dihapus
-- `Fixed` - perbaikan bug
-- `Security` - perbaikan terkait keamanan
+- `Added` — fitur/penambahan baru
+- `Changed` — perubahan pada fungsionalitas yang sudah ada
+- `Deprecated` — fitur yang akan dihapus
+- `Removed` — fitur yang dihapus
+- `Fixed` — perbaikan bug
+- `Security` — perbaikan terkait keamanan
 
 ## [1.11.0] - 2026-11-09
 
@@ -50,7 +50,7 @@ Kategori perubahan:
 ### Added
 - Menu HR kini memiliki tab **Absensi** dan **Daftar Karyawan** (`src/components/HrTabs.tsx`).
 - Halaman **Daftar Karyawan** (`/hr/employees`): kelola nama, divisi (dropdown tetap), jabatan, status kepegawaian, tanggal masuk, ID fingerprint, dan status aktif; lengkap dengan pencarian, filter divisi, tabel desktop, kartu mobile, serta form tambah/ubah.
-- API `/api/hr/employees`: GET (daftar), POST (tambah), PUT (ubah/aktifkan-nonaktifkan), DELETE (hapus - ditolak bila sudah ada riwayat absensi, agar audit tetap utuh). Dijaga `ensureMenuAccess('hr')` + `ensureMenuMutation`.
+- API `/api/hr/employees`: GET (daftar), POST (tambah), PUT (ubah/aktifkan-nonaktifkan), DELETE (hapus — ditolak bila sudah ada riwayat absensi, agar audit tetap utuh). Dijaga `ensureMenuAccess('hr')` + `ensureMenuMutation`.
 - Filter **Divisi** pada Absensi HR beserta kartu **Rekap per Divisi** (kehadiran, jumlah karyawan, total lembur).
 
 ### Changed
@@ -145,7 +145,7 @@ Kategori perubahan:
 
 ### Changed
 - Grup divisi ADMIN/DEVELOPER (Penjualan, CS, NOC, Creator Digital) dirapikan: entri tiket (List Data, Dismantle, Trouble Ticket) dipindahkan ke dropdown Ticketing agar tidak duplikat. Setiap grup divisi kini hanya berisi item non-tiket (Ringkasan Divisi, Input PSB, Aktivitas Marketing, Isolir, PORT ODP, dan menu digital).
-- Tautan Ticketing untuk ADMIN/DEVELOPER tetap mengikuti perilaku navigasi lain yang sudah ada (Data PSB ? divisi Penjualan, Trouble Ticket ? NOC, Dismantle ? CS).
+- Tautan Ticketing untuk ADMIN/DEVELOPER tetap mengikuti perilaku navigasi lain yang sudah ada (Data PSB → divisi Penjualan, Trouble Ticket → NOC, Dismantle → CS).
 
 ## [1.7.0] - 2026-11-08
 
@@ -162,7 +162,7 @@ Kategori perubahan:
 ## [1.6.1] - 2026-11-08
 
 ### Changed
-- Tampilan Port ODP dengan filter Semua POP kini menampilkan hierarki bertahap POP ? ODC ? ODP ? pelanggan; filter satu POP tetap dimulai dari daftar ODC.
+- Tampilan Port ODP dengan filter Semua POP kini menampilkan hierarki bertahap POP → ODC → ODP → pelanggan; filter satu POP tetap dimulai dari daftar ODC.
 - Nama POP dari master dan data ODP lama tetap muncul di hierarki, dengan pengelompokan otomatis untuk ODP legacy berdasarkan pola nama.
 
 ## [1.6.0] - 2026-11-08
