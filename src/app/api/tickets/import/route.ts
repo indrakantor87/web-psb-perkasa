@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-time'
 import { normalizeMarketingName, resolveMarketingName, EMPTY_MARKETING_LABEL } from '@/lib/marketing-users'
-import { canImportListTickets } from '@/lib/access'
+import { canImportListTickets, normalizeRole } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   if (!canImportListTickets(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
 
   try {
     const XLSX = await import('xlsx')
@@ -173,10 +174,18 @@ export async function POST(request: Request) {
           requestDate = installedDate ?? jakartaDateFromDMY(new Date().getDate(), new Date().getMonth() + 1, new Date().getFullYear())
         }
 
-        let finalMarketingName = await resolveMarketingName(marketing)
-        if (!finalMarketingName) {
+        let finalMarketingName = isMarketing
+          ? normalizeMarketingName(session.user.name)
+          : await resolveMarketingName(marketing)
+        if (isMarketing && !finalMarketingName) {
+          throw new Error('Akun Marketing belum memiliki nama owner yang valid')
+        }
+        if (!isMarketing && !finalMarketingName) {
           const rawNormalized = normalizeMarketingName(marketing)
           finalMarketingName = rawNormalized || EMPTY_MARKETING_LABEL
+        }
+        if (!finalMarketingName) {
+          throw new Error('Nama marketing owner tidak tersedia')
         }
 
         const fotoRumahStr = fotoRumah ? String(fotoRumah).trim() : null

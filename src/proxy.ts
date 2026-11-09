@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth'
+import { canAccessMenu, getDefaultPathForRole } from '@/lib/access'
 
 const rateLimit = new Map<string, { count: number; lastReset: number }>()
 
@@ -56,54 +57,12 @@ export async function proxy(request: NextRequest) {
   }
 
   if (currentUser && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url))
+    return NextResponse.redirect(new URL(getDefaultPathForRole(currentUser.role), request.url))
   }
 
   if (currentUser) {
-    if (currentUser.role === 'MARKETING') {
-      if (pathname.startsWith('/settings')) {
-        return NextResponse.redirect(new URL('/', request.url))
-      }
-    }
-
-    if (currentUser.role === 'TEKNISI') {
-      const restrictedPaths = ['/input', '/settings', '/marketing-activities', '/isolir']
-      if (restrictedPaths.some((path) => pathname.startsWith(path))) {
-        return NextResponse.redirect(new URL('/', request.url))
-      }
-    }
-
-    if ((currentUser.role || '').toUpperCase() === 'TROUBLESHOOTS') {
-      if (pathname.startsWith('/api')) {
-        return NextResponse.next()
-      }
-
-      if (pathname === '/') {
-        return NextResponse.redirect(new URL('/trouble-ticket', request.url))
-      }
-
-      const allowedPaths = ['/trouble-ticket', '/profile']
-      const isAllowed = allowedPaths.some((path) => pathname.startsWith(path))
-      if (!isAllowed) {
-        return NextResponse.redirect(new URL('/trouble-ticket', request.url))
-      }
-    }
-
-    if ((currentUser.role || '').toUpperCase() === 'DISMANTLE') {
-      if (pathname.startsWith('/api')) {
-        return NextResponse.next()
-      }
-
-      const dismantleHome = '/dismantle?division=CS_ADMIN&status=OPEN'
-      if (pathname === '/') {
-        return NextResponse.redirect(new URL(dismantleHome, request.url))
-      }
-
-      const allowedPaths = ['/dismantle', '/profile']
-      const isAllowed = allowedPaths.some((path) => pathname.startsWith(path))
-      if (!isAllowed) {
-        return NextResponse.redirect(new URL(dismantleHome, request.url))
-      }
+    if (pathname === '/' && !canAccessMenu(currentUser.role, 'dashboard')) {
+      return NextResponse.redirect(new URL(getDefaultPathForRole(currentUser.role), request.url))
     }
   }
 

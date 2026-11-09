@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { deletePhotosForTicket, ensurePhotoTableOnce, listTicketPhotoIds } from '@/lib/trouble-ticket-photo-store'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords } from '@/lib/access'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -49,6 +49,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "paket" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "temporaryAt" TIMESTAMP(3);`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -92,15 +93,18 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url)
     const includePhotos = (searchParams.get('includePhotos') ?? '').trim() === '1'
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const ownerId = isMarketing ? session.user.id : null
     const selectPhotos = includePhotos ? `"closePhotos",` : ''
     const countExpr = `(
       COALESCE((SELECT COUNT(*) FROM "TroubleTicketPhoto" p WHERE p."ticketId" = "TroubleTicket"."id"), 0)
       + COALESCE(array_length("closePhotos",1), 0)
     )::int AS "closePhotosCount"`
-    const sql = `SELECT "id","ticketCode","ticketPrefix","ticketNumber","category","customerName","user","waNumber","mapsUrl","type","ont","paket","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt" FROM "TroubleTicket" WHERE "id" = $1 LIMIT 1;`
+    const sql = `SELECT "id","ticketCode","ticketPrefix","ticketNumber","category","customerName","user","waNumber","mapsUrl","type","ont","paket","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt" FROM "TroubleTicket" WHERE "id" = $1 AND ($2::int IS NULL OR "createdById" = $2) LIMIT 1;`
     const sqlFallback = `SELECT "id","ticketCode","ticketPrefix","ticketNumber","category","customerName","user","waNumber","mapsUrl","type","ont","paket","notes","problemCategory","resolutionAction","resolutionActions","closeNotes",${selectPhotos}${countExpr},"closeBy","status","openedAt","closedAt","temporaryAt"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
+             AND ($2::int IS NULL OR "createdById" = $2)
            ORDER BY "openedAt" DESC
            LIMIT 1;`
     const rows = await prisma.$queryRawUnsafe<
@@ -129,7 +133,8 @@ export async function GET(
       }>
     >(
       sql,
-      ticketId
+      ticketId,
+      ownerId
     )
     const row =
       rows[0] ??
@@ -155,7 +160,8 @@ export async function GET(
           }>
         >(
           sqlFallback,
-          ticketId
+          ticketId,
+          ownerId
         )
       )[0]
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -235,13 +241,17 @@ export async function PUT(
   try {
     if (sets.length === 0) return NextResponse.json({ ok: true })
     values.push(ticketId)
+    const ownerFilter = normalizeRole(session.user.role) === 'MARKETING'
+      ? (values.push(session.user.id), ` AND "createdById" = $${values.length}`)
+      : ''
     const sql = `
       UPDATE "TroubleTicket"
       SET ${sets.join(', ')}, "updatedAt" = NOW()
-      WHERE "id" = $${values.length}
+      WHERE "id" = $${values.length - (ownerFilter ? 1 : 0)}${ownerFilter}
       RETURNING *;
     `
     const rows = await prisma.$queryRawUnsafe<unknown[]>(sql, ...values)
+    if (rows.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(rows[0] ?? { ok: true })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -264,14 +274,23 @@ export async function DELETE(
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
-      `SELECT "id" FROM "TroubleTicket" WHERE "id" = $1 OR "ticketNumber" = $1 ORDER BY "openedAt" DESC LIMIT 1;`,
-      ticketId
+      `SELECT "id" FROM "TroubleTicket"
+       WHERE ("id" = $1 OR "ticketNumber" = $1)
+         AND ($2::int IS NULL OR "createdById" = $2)
+       ORDER BY "openedAt" DESC LIMIT 1;`,
+      ticketId,
+      isMarketing ? session.user.id : null
     )
     const targetId = rows[0]?.id
     if (!targetId) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await deletePhotosForTicket(targetId).catch(() => {})
-    await prisma.$executeRawUnsafe(`DELETE FROM "TroubleTicket" WHERE "id" = $1;`, targetId)
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "TroubleTicket" WHERE "id" = $1 AND ($2::int IS NULL OR "createdById" = $2);`,
+      targetId,
+      isMarketing ? session.user.id : null
+    )
     return NextResponse.json({ ok: true })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -301,9 +320,14 @@ export async function PATCH(
   }
 
   try {
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number; closedAt: unknown; temporaryAt: unknown; status: string }>>(
-      `SELECT "id", "closedAt", "temporaryAt", "status" FROM "TroubleTicket" WHERE "id" = $1 OR "ticketNumber" = $1 ORDER BY "openedAt" DESC LIMIT 1;`,
-      ticketId
+      `SELECT "id", "closedAt", "temporaryAt", "status" FROM "TroubleTicket"
+       WHERE ("id" = $1 OR "ticketNumber" = $1)
+         AND ($2::int IS NULL OR "createdById" = $2)
+       ORDER BY "openedAt" DESC LIMIT 1;`,
+      ticketId,
+      isMarketing ? session.user.id : null
     )
     const ticket = rows[0]
     if (!ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -315,8 +339,10 @@ export async function PATCH(
     }
 
     await prisma.$executeRawUnsafe(
-      `UPDATE "TroubleTicket" SET "temporaryAt" = NOW(), "updatedAt" = NOW() WHERE "id" = $1;`,
-      ticket.id
+      `UPDATE "TroubleTicket" SET "temporaryAt" = NOW(), "updatedAt" = NOW()
+       WHERE "id" = $1 AND ($2::int IS NULL OR "createdById" = $2);`,
+      ticket.id,
+      isMarketing ? session.user.id : null
     )
 
     return NextResponse.json({ ok: true, temporaryAt: new Date() })

@@ -48,9 +48,14 @@ export async function GET(request: Request) {
   }
 
   if (activeSession.user.role === 'MARKETING') {
-    where.marketingName = {
-      equals: normalizeMarketingName(activeSession.user.name),
-      mode: 'insensitive',
+    const ownerName = normalizeMarketingName(activeSession.user.name)
+    if (ownerName) {
+      where.marketingName = {
+        equals: ownerName,
+        mode: 'insensitive',
+      }
+    } else {
+      where.id = { lt: 0 }
     }
   } else if (marketing && marketing.trim()) {
     where.marketingName = {

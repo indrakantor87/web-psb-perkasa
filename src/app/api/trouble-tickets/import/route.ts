@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { canMutateTroubleTicketRecords } from '@/lib/access'
+import { canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -45,6 +45,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -290,6 +291,7 @@ export async function POST(request: Request) {
 
   const rows = Array.isArray(body.rows) ? body.rows : []
   if (rows.length === 0) return NextResponse.json({ error: 'No rows' }, { status: 400 })
+  const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
 
   let success = 0
   let failed = 0
@@ -355,6 +357,16 @@ export async function POST(request: Request) {
         updateData.closedAt = closedAt ?? new Date()
       }
 
+      if (isMarketing) {
+        const existingOwner = await prisma.$queryRawUnsafe<Array<{ createdById: number | null }>>(
+          `SELECT "createdById" FROM "TroubleTicket" WHERE "ticketCode" = $1 LIMIT 1;`,
+          allocated.ticketCode
+        )
+        if (existingOwner.length > 0 && Number(existingOwner[0].createdById) !== session.user.id) {
+          throw new Error('Ticket dengan kode tersebut bukan milik akun ini')
+        }
+      }
+
       await prisma.troubleTicket.upsert({
         where: { ticketCode: allocated.ticketCode },
         create: {
@@ -373,6 +385,7 @@ export async function POST(request: Request) {
           notes: notes || null,
           problemCategory: problemCategory || null,
           resolutionAction: resolutionAction || null,
+          createdById: isMarketing ? session.user.id : null,
           openedAt: openedAtParsed ?? new Date(),
           closedAt: status === 'CLOSE' ? (closedAt ?? new Date()) : null,
           status,

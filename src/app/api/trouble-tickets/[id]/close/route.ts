@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { saveTicketPhotos } from '@/lib/trouble-ticket-photo-store'
-import { canMutateTroubleTicketRecords } from '@/lib/access'
+import { canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -49,6 +49,7 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "problemCategory" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionAction" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -108,12 +109,15 @@ export async function POST(
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
     const idMatch = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
       `SELECT "id"
        FROM "TroubleTicket"
        WHERE "id" = $1
+         AND ($2::int IS NULL OR "createdById" = $2)
        LIMIT 1;`,
-      ticketId
+      ticketId,
+      isMarketing ? session.user.id : null
     )
     const targetId =
       idMatch[0]?.id ??
@@ -122,9 +126,11 @@ export async function POST(
           `SELECT "id"
            FROM "TroubleTicket"
            WHERE "ticketNumber" = $1
+             AND ($2::int IS NULL OR "createdById" = $2)
            ORDER BY "openedAt" DESC
            LIMIT 1;`,
-          ticketId
+          ticketId,
+          isMarketing ? session.user.id : null
         )
       )[0]?.id
     if (!targetId) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -164,12 +170,14 @@ export async function POST(
            "resolutionAction" = $5,
            "updatedAt" = NOW()
        WHERE "id" = $1
+         AND ($6::int IS NULL OR "createdById" = $6)
        RETURNING "id";`,
       targetId,
       closeNotesVal,
       closeBy,
       resolutionActions.length ? resolutionActions : null,
-      joinedResolution || null
+      joinedResolution || null,
+      isMarketing ? session.user.id : null
     )
     if (!rows[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ ok: true })

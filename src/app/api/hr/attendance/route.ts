@@ -48,10 +48,15 @@ export async function GET(request: Request) {
         lte: new Date(`${to}T23:59:59.999Z`),
       },
     }
+    const isMarketing = String(session?.user.role ?? '').trim().toUpperCase() === 'MARKETING'
+    if (isMarketing) {
+      where.employee = { is: { userId: session?.user.id } }
+    }
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {
       where.employeeId = employeeIdRaw
     }
     const employeeFilter: Record<string, unknown> = {}
+    if (isMarketing) employeeFilter.userId = session?.user.id
     if (query) employeeFilter.name = { contains: query, mode: 'insensitive' }
     if (department) employeeFilter.department = department
     if (Object.keys(employeeFilter).length > 0) {
@@ -108,6 +113,7 @@ export async function GET(request: Request) {
       .sort((a, b) => a.department.localeCompare(b.department))
 
     const employees = await prisma.employee.findMany({
+      where: isMarketing ? { userId: session?.user.id } : undefined,
       select: { id: true, name: true, department: true, fingerprintId: true, isActive: true },
       orderBy: { name: 'asc' },
     })
@@ -121,7 +127,10 @@ export async function GET(request: Request) {
         totalOvertimeMinutes,
       },
       divisions,
-      employees,
+      employees: employees.map((employee) => ({
+        ...employee,
+        fingerprintId: isMarketing ? null : employee.fingerprintId,
+      })),
     })
   } catch {
     return NextResponse.json({ error: 'Gagal memuat data absensi' }, { status: 500 })

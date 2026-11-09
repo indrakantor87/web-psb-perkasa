@@ -8,6 +8,7 @@ import type { SessionUser } from '@/lib/auth'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
+import { isTechnicianRole } from '@/lib/access'
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
@@ -18,9 +19,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
   const router = useRouter()
   const [mainElement, setMainElement] = useState<HTMLElement | null>(null)
   const [isNative, setIsNative] = useState(false)
-  const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
-  const isDismantle = (user?.role || '').toUpperCase() === 'DISMANTLE'
-  const useCompactOpsLayout = isTroubleshoots || isDismantle
+  const useCompactOpsLayout = isTechnicianRole(user?.role)
 
   useEffect(() => {
     let mounted = true

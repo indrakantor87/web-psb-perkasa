@@ -30,6 +30,7 @@ const ROLE_OPTIONS = [
   { value: 'MARKETING', label: 'Marketing' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'DEVELOPER', label: 'Developer' },
+  { value: 'PRIORITY', label: 'Priority (Read Only)' },
   { value: 'CS', label: 'Customer Service (CS)' },
   { value: 'ADMIN_CS', label: 'Admin CS' },
   { value: 'DISMANTLE', label: 'Dismantle' },
@@ -100,7 +101,10 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
   // Permissions
   const isAdmin = isAdminRole(currentUser?.role)
+  const isDeveloper = String(currentUser?.role ?? '').trim().toUpperCase() === 'DEVELOPER'
   const canCreate = isAdmin
+  const roleOptions = isDeveloper ? ROLE_OPTIONS : ROLE_OPTIONS.filter((option) => option.value !== 'DEVELOPER')
+  const canManageUser = (user: User) => isAdmin && (isDeveloper || user.role !== 'DEVELOPER')
   const derivedDivision = mapRoleToDivision(formData.role)
   const filteredUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -449,7 +453,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
-                {ROLE_OPTIONS.map((option) => (
+                {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -550,7 +554,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {formatDivisionLabel(user.division)}
                   </td>
-                  {isAdmin && (
+                  {canManageUser(user) && (
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex space-x-3">
                         <button
@@ -614,7 +618,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 </span>
               </div>
               
-              {isAdmin && (
+              {canManageUser(user) && (
                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
                   <button
                     onClick={() => handleOpenEditModal(user)}
@@ -700,7 +704,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   onChange={handleEditChange}
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
-                  {ROLE_OPTIONS.map((option) => (
+                  {roleOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

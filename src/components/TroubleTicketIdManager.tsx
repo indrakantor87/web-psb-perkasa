@@ -31,7 +31,7 @@ function formatTicketNumber(n: number) {
   return String(normalizeNextNumber(n)).padStart(2, '0')
 }
 
-export function TroubleTicketIdManager() {
+export function TroubleTicketIdManager({ readOnly = false }: { readOnly?: boolean }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -123,25 +123,33 @@ export function TroubleTicketIdManager() {
         </div>
         <div className="flex flex-col">
           <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Prefix</span>
-          <input
-            value={prefix}
-            onChange={(e) => setPrefix(e.target.value)}
-            placeholder="TT/PKN/"
-            disabled={loading || saving}
-            className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-          />
+          {readOnly ? (
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200">{prefix}</div>
+          ) : (
+            <input
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              placeholder="TT/PKN/"
+              disabled={loading || saving}
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            />
+          )}
         </div>
         <div className="flex flex-col">
           <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Angka Berikutnya</span>
-          <input
-            type="number"
-            min={1}
-            max={1_000_000_000}
-            value={nextNumber}
-            onChange={(e) => setNextNumber(normalizeNextNumber(e.target.value))}
-            disabled={loading || saving}
-            className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-          />
+          {readOnly ? (
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-200">{nextNumber}</div>
+          ) : (
+            <input
+              type="number"
+              min={1}
+              max={1_000_000_000}
+              value={nextNumber}
+              onChange={(e) => setNextNumber(normalizeNextNumber(e.target.value))}
+              disabled={loading || saving}
+              className="w-full rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            />
+          )}
         </div>
         <div className="flex flex-col">
           <span className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preview</span>
@@ -152,7 +160,7 @@ export function TroubleTicketIdManager() {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
+      {!readOnly && <div className="mt-4 flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
         <button
           onClick={handleSave}
           disabled={loading || saving}
@@ -161,7 +169,7 @@ export function TroubleTicketIdManager() {
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Menyimpan...' : 'Simpan'}
         </button>
-      </div>
+      </div>}
     </div>
   )
 }

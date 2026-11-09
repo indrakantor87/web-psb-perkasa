@@ -8,7 +8,7 @@ type Package = {
   name: string
 }
 
-export function PackageManager() {
+export function PackageManager({ readOnly = false }: { readOnly?: boolean }) {
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -84,7 +84,7 @@ export function PackageManager() {
         </div>
       )}
 
-      <form
+      {!readOnly && <form
         onSubmit={handleAdd}
         className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 sm:mb-8 sm:p-4"
       >
@@ -111,7 +111,7 @@ export function PackageManager() {
             Tambah
           </button>
         </div>
-      </form>
+      </form>}
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -123,21 +123,21 @@ export function PackageManager() {
               >
                 Nama Paket
               </th>
-              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+              {!readOnly && <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                 <span className="sr-only">Aksi</span>
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {loading ? (
               <tr>
-                <td colSpan={2} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={readOnly ? 1 : 2} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : packages.length === 0 ? (
               <tr>
-                <td colSpan={2} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={readOnly ? 1 : 2} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
                   Belum ada data paket
                 </td>
               </tr>
@@ -145,7 +145,7 @@ export function PackageManager() {
               packages.map((p) => (
                 <tr key={p.id}>
                   <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white">{p.name}</td>
-                  <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  {!readOnly && <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <button
                       onClick={() => handleDelete(p.id)}
                       className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
@@ -153,7 +153,7 @@ export function PackageManager() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  </td>
+                  </td>}
                 </tr>
               ))
             )}

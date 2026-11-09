@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketing-users'
-import { canDeleteListTickets, canMutateMenu } from '@/lib/access'
+import { canDeleteListTickets, canMutateMenu, isTechnicianRole, normalizeRole } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
@@ -51,6 +51,9 @@ export async function PUT(
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const role = (session.user.role || '').toUpperCase()
+  const isTechnician = isTechnicianRole(role)
+  const isMarketing = normalizeRole(role) === 'MARKETING'
+  const ownerName = isMarketing ? normalizeMarketingName(session.user.name) : null
   const canMutateTicket = canMutateMenu(role, 'list') || canMutateMenu(role, 'dismantle')
   if (!canMutateTicket) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -58,6 +61,7 @@ export async function PUT(
 
   const { id } = await params
   const ticketId = parseInt(id)
+  if (isMarketing && !ownerName) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
     const contentType = request.headers.get('content-type') || ''
@@ -170,19 +174,19 @@ export async function PUT(
 
     // Only allow authorized roles to update pengawalan
     if (pengawalan !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role)) {
         updateData.pengawalan = pengawalan
       }
     }
     // Only allow authorized roles to update kmz
     if (kmz !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role)) {
         updateData.kmz = kmz
       }
     }
     // Only allow authorized roles to update priority
     if (priority !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'NOC', 'TEKNISI'].includes(role)) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isTechnician) {
          updateData.priority = priority
        } else {
          return NextResponse.json({ error: 'Unauthorized to update priority' }, { status: 403 })
@@ -190,7 +194,7 @@ export async function PUT(
     }
 
     // Security: Field-level RBAC
-    if (role === 'TEKNISI') {
+    if (isTechnician) {
       // Teknisi cannot change marketing info or package
       delete updateData.marketingName
       delete updateData.package
@@ -205,15 +209,19 @@ export async function PUT(
 
     status = normalizeStatus(status)
     if (typeof status !== 'undefined' && status !== '') {
-      if (!['ADMIN', 'DEVELOPER', 'CS', 'NOC', 'TEKNISI', 'MARKETING'].includes(role)) {
+      if (!['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING'].includes(role) && !isTechnician) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     }
 
-    const current = await prisma.ticket.findUnique({
-      where: { id: ticketId },
-      select: { status: true, odpId: true },
+    const ownerWhere: Pick<Prisma.TicketWhereInput, 'marketingName'> = isMarketing
+      ? { marketingName: { equals: ownerName ?? '', mode: 'insensitive' } }
+      : {}
+    const current = await prisma.ticket.findFirst({
+      where: { id: ticketId, ...ownerWhere },
+      select: { status: true, odpId: true, marketingName: true },
     })
+    if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const isClosing = status === 'CLOSE'
     const wasClosed = current?.status === 'CLOSE'
@@ -238,7 +246,7 @@ export async function PUT(
             : new Date()
       if (current?.status === 'CLOSE') {
         ticket = await prisma.ticket.update({
-          where: { id: ticketId },
+          where: { id: ticketId, ...ownerWhere },
           data: {
             ...updateData,
             status: 'CLOSE',
@@ -248,7 +256,7 @@ export async function PUT(
         })
       } else {
         ticket = await prisma.ticket.update({
-          where: { id: ticketId },
+          where: { id: ticketId, ...ownerWhere },
           data: {
             ...updateData,
             status: 'CLOSE',
@@ -277,7 +285,7 @@ export async function PUT(
       }
 
       ticket = await prisma.ticket.update({
-        where: { id: ticketId },
+        where: { id: ticketId, ...ownerWhere },
         data,
         select: { id: true, status: true },
       })
@@ -304,14 +312,21 @@ export async function DELETE(
 
   const { id } = await params
   const ticketId = parseInt(id)
+  const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+  const ownerName = isMarketing ? normalizeMarketingName(session.user.name) : null
+  if (isMarketing && !ownerName) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
-    const existing = await prisma.ticket.findUnique({
-      where: { id: ticketId },
+    const ownerWhere: Pick<Prisma.TicketWhereInput, 'marketingName'> = isMarketing
+      ? { marketingName: { equals: ownerName ?? '', mode: 'insensitive' } }
+      : {}
+    const existing = await prisma.ticket.findFirst({
+      where: { id: ticketId, ...ownerWhere },
       select: { status: true, odpId: true },
     })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await prisma.ticket.delete({
-      where: { id: ticketId },
+      where: { id: ticketId, ...ownerWhere },
       select: { id: true }
     })
     // Tiket yang sudah terpasang (CLOSE) menahan satu port ODP; lepaskan saat dihapus.

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { APP_ROLE_VALUES } from '@/lib/access'
 import bcrypt from 'bcryptjs'
 
 type GlobalState = {
@@ -114,19 +115,7 @@ export async function ensureUserRoleValues() {
       const table = await resolveUserTableName()
       if (!table) return
 
-      const allowedRoles = [
-        'ADMIN',
-        'DEVELOPER',
-        'CS',
-        'ADMIN_CS',
-        'NOC',
-        'MARKETING',
-        'TEKNISI',
-        'TROUBLESHOOTS',
-        'CREATOR_DIGITAL',
-        'DISMANTLE',
-        'HR',
-      ]
+      const allowedRoles = APP_ROLE_VALUES
 
       try {
         const rows = await prisma.$queryRawUnsafe<Array<{ data_type: string; udt_name: string }>>(

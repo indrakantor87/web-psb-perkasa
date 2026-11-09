@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { getDefaultPathForRole } from '@/lib/access'
 
 export function CapacitorBackHandler({ userRole }: { userRole: string }) {
   const router = useRouter()
@@ -16,8 +17,7 @@ export function CapacitorBackHandler({ userRole }: { userRole: string }) {
         if (!Capacitor.isNativePlatform()) return
 
         const { App } = await import('@capacitor/app')
-        const roleUpper = String(userRole || '').trim().toUpperCase()
-        const homePath = roleUpper === 'TROUBLESHOOTS' ? '/trouble-ticket' : '/'
+        const homePath = getDefaultPathForRole(userRole)
 
         const handler = await App.addListener('backButton', (data: { canGoBack?: boolean }) => {
           if (data?.canGoBack) {

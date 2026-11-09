@@ -2,7 +2,7 @@ import { TroubleTicketIdManager } from '@/components/TroubleTicketIdManager'
 import { TroubleTicketSlaManager } from '@/components/TroubleTicketSlaManager'
 import { TroubleTicketMasterManager } from '@/components/TroubleTicketMasterManager'
 import { getSession } from '@/lib/auth'
-import { canAccessSettingsPage } from '@/lib/access'
+import { canAccessSettingsPage, canMutateMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export const metadata = {
@@ -14,6 +14,7 @@ export default async function TroubleTicketSettingsPage() {
   if (!session) redirect('/login')
 
   if (!canAccessSettingsPage(session.user.role, 'trouble-ticket')) redirect('/')
+  const readOnly = !canMutateMenu(session.user.role, 'settings')
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6">
@@ -24,9 +25,9 @@ export default async function TroubleTicketSettingsPage() {
         </p>
       </header>
       <div className="space-y-4">
-        <TroubleTicketIdManager />
-        <TroubleTicketSlaManager />
-        <TroubleTicketMasterManager />
+        <TroubleTicketIdManager readOnly={readOnly} />
+        <TroubleTicketSlaManager readOnly={readOnly} />
+        <TroubleTicketMasterManager readOnly={readOnly} />
       </div>
     </div>
   )

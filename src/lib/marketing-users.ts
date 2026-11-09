@@ -17,6 +17,11 @@ export function marketingNameKey(value: unknown) {
   return normalizeMarketingName(value).toLowerCase()
 }
 
+export function isMarketingOwnerMatch(recordOwner: unknown, sessionOwner: unknown) {
+  const sessionKey = marketingNameKey(sessionOwner)
+  return Boolean(sessionKey) && sessionKey === marketingNameKey(recordOwner)
+}
+
 export function isSyntheticMarketingLabel(value: unknown) {
   const normalized = marketingNameKey(value)
   return normalized === marketingNameKey(INVALID_MARKETING_LABEL) || normalized === marketingNameKey(EMPTY_MARKETING_LABEL)

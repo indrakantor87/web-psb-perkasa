@@ -153,17 +153,19 @@ export function MobileNavigation({ role }: Props) {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
         <div className="mx-auto flex max-w-lg">
-          <Link
-            href="/"
-            prefetch={false}
-            aria-current={pathname === '/' ? 'page' : undefined}
-            className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
-              pathname === '/' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
-            }`}
-          >
-            <Home className="h-5 w-5" />
-            Beranda
-          </Link>
+          {canAccessMenu(role, 'dashboard') && (
+            <Link
+              href="/"
+              prefetch={false}
+              aria-current={pathname === '/' ? 'page' : undefined}
+              className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${
+                pathname === '/' ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <Home className="h-5 w-5" />
+              Beranda
+            </Link>
+          )}
           {primaryLinks.map((link) => {
             const Icon = link.icon
             const active = pathname.startsWith(link.activePath)

@@ -12,7 +12,7 @@ type WhatsappTemplate = {
   updatedAt: string
 }
 
-export function TemplateManager() {
+export function TemplateManager({ readOnly = false }: { readOnly?: boolean }) {
   const [templates, setTemplates] = useState<WhatsappTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -124,7 +124,7 @@ export function TemplateManager() {
         </div>
       )}
 
-      <form
+      {!readOnly && <form
         onSubmit={handleAdd}
         className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 sm:mb-8 sm:p-4"
       >
@@ -185,7 +185,7 @@ export function TemplateManager() {
             Tambah Template
           </button>
         </div>
-      </form>
+      </form>}
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -194,19 +194,19 @@ export function TemplateManager() {
               <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Nama</th>
               <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Isi Pesan</th>
               <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Utama</th>
-              <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+              {!readOnly && <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                 <span className="sr-only">Aksi</span>
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {loading ? (
               <tr>
-                <td colSpan={4} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Memuat...</td>
+                <td colSpan={readOnly ? 3 : 4} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Memuat...</td>
               </tr>
             ) : templates.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada template</td>
+                <td colSpan={readOnly ? 3 : 4} className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">Belum ada template</td>
               </tr>
             ) : (
               templates.map((template) => (
@@ -251,7 +251,7 @@ export function TemplateManager() {
                       )
                     )}
                   </td>
-                  <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 align-top">
+                  {!readOnly && <td className="relative py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 align-top">
                     <div className="flex justify-end space-x-2">
                       {editingId === template.id ? (
                         <>
@@ -289,7 +289,7 @@ export function TemplateManager() {
                         </>
                       )}
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))
             )}

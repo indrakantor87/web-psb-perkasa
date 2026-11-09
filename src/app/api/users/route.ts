@@ -8,6 +8,7 @@ import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn, ensureUserRoleValues } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
+import { canManageTargetUser } from '@/lib/access'
 
 type UserWithOptionalDivision = {
   division?: string | null
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
     }
 
     const { name, username, password, role } = result.data
+    if (!canManageTargetUser(session.user.role, role)) {
+      return NextResponse.json({ error: 'Hanya Developer yang dapat mengelola akun Developer' }, { status: 403 })
+    }
     const division = mapRoleToDivision(role)
 
     const normalizedUsername = username.toLowerCase().replace(/\s+/g, '')
@@ -188,6 +192,14 @@ export async function PUT(request: Request) {
     }
 
     const { id, password, name, username, role } = result.data
+    const targetUser = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
+    if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (
+      !canManageTargetUser(session.user.role, targetUser.role) ||
+      (role !== undefined && !canManageTargetUser(session.user.role, role))
+    ) {
+      return NextResponse.json({ error: 'Hanya Developer yang dapat mengelola akun Developer' }, { status: 403 })
+    }
     const normalizedUsername = username ? username.toLowerCase().replace(/\s+/g, '') : undefined
 
     if (normalizedUsername) {
@@ -252,6 +264,15 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: 'Missing user ID' }, { status: 400 })
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: Number(id) },
+      select: { id: true, role: true },
+    })
+    if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!canManageTargetUser(session.user.role, targetUser.role)) {
+      return NextResponse.json({ error: 'Hanya Developer yang dapat mengelola akun Developer' }, { status: 403 })
     }
 
     await prisma.user.delete({

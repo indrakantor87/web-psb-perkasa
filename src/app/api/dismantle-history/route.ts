@@ -12,16 +12,16 @@ function isDatabaseInitError(error: unknown) {
   return message.includes('tenant/user') || message.includes('PrismaClientInitializationError')
 }
 
-function getMarketingScope(role: string | null | undefined, name: string | null | undefined, username: string | null | undefined) {
+function getMarketingScope(role: string | null | undefined, name: string | null | undefined) {
   if (String(role ?? '').trim().toUpperCase() !== 'MARKETING') return null
   const values = Array.from(
     new Set(
-      [name, username]
+      [name]
         .map((value) => String(value ?? '').trim())
         .filter(Boolean),
     ),
   )
-  return values.length > 0 ? values : null
+  return values
 }
 
 export async function GET(request: Request) {
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     if ([25, 50, 75, 100].includes(n)) return n
     return 25
   })()
-  const marketingOwners = getMarketingScope(session.user.role, session.user.name, session.user.username)
+  const marketingOwners = getMarketingScope(session.user.role, session.user.name)
 
   try {
     await ensureDismantleHistoryTable()

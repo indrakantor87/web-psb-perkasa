@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
+import { ensureMenuAccess } from '@/lib/access-server'
+import { canConfigureFingerprintMachine, canReadFingerprintMachine } from '@/lib/access'
 import { fetchMachineInfo, getMachineConfig, saveMachineConfig } from '@/lib/hr-machine'
 
 export const runtime = 'nodejs'
@@ -10,6 +11,9 @@ export async function GET() {
   const session = await getSession()
   const accessError = ensureMenuAccess(session, 'hr')
   if (accessError) return accessError
+  if (!canReadFingerprintMachine(session?.user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   try {
     const config = await getMachineConfig()
@@ -37,8 +41,10 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   const session = await getSession()
-  const accessError = ensureMenuMutation(session, 'hr')
-  if (accessError) return accessError
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!canConfigureFingerprintMachine(session.user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = (await request.json().catch(() => ({}))) as { ip?: unknown; port?: unknown }
   const ip = typeof body.ip === 'string' ? body.ip.trim() : ''

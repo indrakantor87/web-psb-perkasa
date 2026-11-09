@@ -16,13 +16,27 @@ async function ensureHrSchema() {
       "employmentStatus" TEXT NOT NULL DEFAULT 'Karyawan',
       "joinDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "fingerprintId" TEXT,
+      "userId" INTEGER,
       "isActive" BOOLEAN NOT NULL DEFAULT TRUE,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   `)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "userId" INTEGER;`)
+  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Employee_userId_key" ON "Employee" ("userId");`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Employee_fingerprintId_key" ON "Employee" ("fingerprintId");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Employee_name_idx" ON "Employee" ("name");`)
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Employee_userId_fkey') THEN
+        ALTER TABLE "Employee"
+          ADD CONSTRAINT "Employee_userId_fkey"
+          FOREIGN KEY ("userId") REFERENCES "User"("id")
+          ON DELETE SET NULL ON UPDATE CASCADE;
+      END IF;
+    END $$;
+  `).catch(() => {})
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "Attendance" (

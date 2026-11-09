@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
-import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref } from '@/lib/access'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, isTechnicianRole } from '@/lib/access'
 import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
 
 function formatDivisionLabel(division?: string | null) {
@@ -72,8 +72,7 @@ export function Header({ user }: { user: SessionUser }) {
   const roleUpper = (user?.role || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN'
   const isDeveloper = roleUpper === 'DEVELOPER'
-  const isTroubleshoots = (user?.role || '').toUpperCase() === 'TROUBLESHOOTS'
-  const isDismantle = roleUpper === 'DISMANTLE'
+  const isTechnician = isTechnicianRole(roleUpper)
   const roleDivision = getDivisionFromRole(user?.role)
   const divisionLabel = formatDivisionLabel(user?.division)
   const currentDivisionParam = (searchParams.get('division') || '').trim().toUpperCase()
@@ -173,15 +172,8 @@ export function Header({ user }: { user: SessionUser }) {
     return pathname === linkPath || (linkPath !== '/' && pathname.startsWith(linkPath))
   }, [currentDivisionParam, pathname])
 
-  const flatLinks: HeaderNavLink[] = isTroubleshoots
-    ? [{ href: '/trouble-ticket', label: 'Trouble Ticket', icon: Wrench }]
-    : isDismantle
-      ? [
-          { href: '/dismantle?division=CS_ADMIN&status=OPEN', label: 'Dismantle Open', icon: Wrench },
-          { href: '/dismantle?division=CS_ADMIN&status=CLOSED', label: 'Dismantle Close', icon: ClipboardList },
-        ]
-      : [
-        { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  const flatLinks: HeaderNavLink[] = [
+        ...(canAccessMenu(user?.role, 'dashboard') ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
         ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
         ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
         ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
@@ -198,10 +190,7 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'hr') ? [{ href: getMenuHref('hr', roleDivision), label: 'Absensi HR', icon: Fingerprint }] : []),
       ]
 
-  const ticketingLinks: HeaderNavLink[] =
-    isTroubleshoots || isDismantle
-      ? []
-      : [
+  const ticketingLinks: HeaderNavLink[] = [
           ...(canAccessMenu(user?.role, 'list')
             ? [{ href: isAdmin || isDeveloper ? '/list?division=ALL' : getMenuHref('list', roleDivision), label: 'Data PSB', icon: List }]
             : []),
@@ -396,7 +385,7 @@ export function Header({ user }: { user: SessionUser }) {
             <div className="flex items-center gap-3">
               <div className={clsx(
                 "flex items-center justify-center bg-white rounded-lg shadow-sm border border-white overflow-hidden",
-                isTroubleshoots || isDismantle ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
+                isTechnician ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
               )}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -405,14 +394,14 @@ export function Header({ user }: { user: SessionUser }) {
               className="h-full w-full object-contain"
             />
             </div>
-            {(isTroubleshoots || isDismantle) && (
+            {isTechnician && (
               <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                {isDismantle ? 'Dismantle Perkasa Networks' : 'Ticketing Perkasa Networks'}
+                Operasional Perkasa Networks
               </div>
             )}
           </div>
 
-          {!isTroubleshoots && !isDismantle && !isDeveloper && isMobilePortrait && (
+          {!isDeveloper && isMobilePortrait && (
             <nav className="flex min-w-0 items-center gap-2">
               <div className="relative" ref={navRefMobile}>
                 <button
@@ -750,7 +739,7 @@ export function Header({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-        {!isTroubleshoots && !isDismantle && !isDeveloper && !isMobilePortrait && (
+        {!isDeveloper && !isMobilePortrait && (
         <div className="md:hidden border-t border-gray-100 dark:border-gray-700">
           <nav className="flex items-center gap-2 overflow-x-auto px-3 py-2">
           <div className="relative" ref={navRefMobile}>

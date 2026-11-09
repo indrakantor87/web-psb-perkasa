@@ -7,6 +7,7 @@ import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { normalizeRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
   const accessError = ensureMenuAccess(session, 'list')
   if (accessError) return accessError
   const activeSession = requireSession(session)
+  const role = normalizeRole(activeSession.user.role)
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
@@ -62,13 +64,16 @@ export async function GET(request: Request) {
   }
 
   // Filter for Marketing role
-  if (activeSession.user.role === 'MARKETING') {
-    and.push({
-      marketingName: {
-        equals: normalizeMarketingName(activeSession.user.name),
-        mode: 'insensitive',
-      },
-    })
+  if (role === 'MARKETING') {
+    const ownerName = normalizeMarketingName(activeSession.user.name)
+    and.push(ownerName
+      ? {
+          marketingName: {
+            equals: ownerName,
+            mode: 'insensitive',
+          },
+        }
+      : { id: { lt: 0 } })
   } else {
     const marketingParam = searchParams.get('marketing')
     if (marketingParam && marketingParam.trim()) {
@@ -217,6 +222,7 @@ export async function POST(request: Request) {
   const accessError = ensureMenuMutation(session, 'input')
   if (accessError) return accessError
   const activeSession = requireSession(session)
+  const role = normalizeRole(activeSession.user.role)
   
   try {
     const formData = await request.formData()
@@ -246,7 +252,7 @@ export async function POST(request: Request) {
       birthDate: formData.get('birthDate'),
       locationMap: formData.get('locationMap'),
       package: formData.get('package'),
-      marketingName: activeSession.user.role === 'MARKETING' ? activeSession.user.name : (formData.get('marketingName') || undefined),
+      marketingName: role === 'MARKETING' ? activeSession.user.name : (formData.get('marketingName') || undefined),
       description: formData.get('description') || undefined,
       phoneNumber: formData.get('phoneNumber'),
       pengawalan: formData.get('pengawalan') || undefined,
@@ -273,15 +279,15 @@ export async function POST(request: Request) {
     } = result.data
 
     // Only allow authorized roles to set pengawalan initially
-    const canSetPengawalan = ['ADMIN', 'DEVELOPER', 'CS', 'NOC'].includes(activeSession.user.role)
+    const canSetPengawalan = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role)
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
     const finalMarketingName =
-      activeSession.user.role === 'MARKETING'
+      role === 'MARKETING'
         ? normalizeMarketingName(activeSession.user.name)
         : normalizeMarketingName(submittedMarketingName)
 
-    if (!finalMarketingName || (activeSession.user.role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
+    if (!finalMarketingName || (role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }
 

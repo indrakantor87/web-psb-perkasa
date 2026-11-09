@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { deletePhotosForTicket, ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
-import { canMutateTroubleTicketRecords } from '@/lib/access'
+import { canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -27,6 +27,7 @@ async function ensureTroubleTicketTable() {
       CONSTRAINT "TroubleTicket_pkey" PRIMARY KEY ("id")
     );
   `)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`)
 }
 
 export async function POST(req: Request) {
@@ -51,15 +52,26 @@ export async function POST(req: Request) {
   if (ids.length > 500) return NextResponse.json({ error: 'Terlalu banyak id' }, { status: 400 })
 
   try {
-    await Promise.all(ids.map((id) => deletePhotosForTicket(id).catch(() => {})))
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const ownedRows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+      `SELECT "id" FROM "TroubleTicket"
+       WHERE "id" = ANY($1::int[])
+         AND ($2::int IS NULL OR "createdById" = $2);`,
+      ids,
+      isMarketing ? session.user.id : null
+    )
+    const ownedIds = ownedRows.map((row) => row.id)
+    await Promise.all(ownedIds.map((id) => deletePhotosForTicket(id).catch(() => {})))
     const rows = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
       `WITH d AS (
          DELETE FROM "TroubleTicket"
          WHERE "id" = ANY($1::int[])
+           AND ($2::int IS NULL OR "createdById" = $2)
          RETURNING 1
        )
        SELECT COUNT(*)::int AS count FROM d;`,
-      ids
+      ownedIds,
+      isMarketing ? session.user.id : null
     )
     return NextResponse.json({ ok: true, deleted: rows[0]?.count ?? 0 })
   } catch (e: unknown) {

@@ -25,7 +25,7 @@ function normalizeTypeKey(type: string) {
     .replace(/[^A-Z0-9_]/g, '')
 }
 
-export function TroubleTicketSlaManager() {
+export function TroubleTicketSlaManager({ readOnly = false }: { readOnly?: boolean }) {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -123,7 +123,7 @@ export function TroubleTicketSlaManager() {
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
+      {!readOnly && <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700">
         <div className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">Tambah Type</div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="flex flex-col">
@@ -157,7 +157,7 @@ export function TroubleTicketSlaManager() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
@@ -183,18 +183,22 @@ export function TroubleTicketSlaManager() {
                     {normalizeTypeLabel(r.type)}
                   </td>
                   <td className="px-3 py-3.5">
-                    <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={r.durationDays}
-                      onChange={(e) => {
-                        const n = Math.trunc(Number(e.target.value))
-                        const clamped = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1
-                        setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, durationDays: clamped } : x)))
-                      }}
-                      className="w-28 rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                    />
+                    {readOnly ? (
+                      <span className="text-sm text-gray-800 dark:text-gray-200">{r.durationDays} hari</span>
+                    ) : (
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={r.durationDays}
+                        onChange={(e) => {
+                          const n = Math.trunc(Number(e.target.value))
+                          const clamped = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1
+                          setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, durationDays: clamped } : x)))
+                        }}
+                        className="w-28 rounded-md border border-gray-300 bg-white p-2 text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                      />
+                    )}
                   </td>
                 </tr>
               ))
@@ -203,7 +207,7 @@ export function TroubleTicketSlaManager() {
         </table>
       </div>
 
-      <div className="mt-4 flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
+      {!readOnly && <div className="mt-4 flex justify-end border-t border-gray-100 pt-4 dark:border-gray-700">
         <button
           onClick={handleSave}
           disabled={saving || loading || !hasRows}
@@ -212,7 +216,7 @@ export function TroubleTicketSlaManager() {
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Menyimpan...' : 'Simpan'}
         </button>
-      </div>
+      </div>}
     </div>
   )
 }

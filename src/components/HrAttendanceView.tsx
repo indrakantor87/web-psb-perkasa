@@ -58,6 +58,7 @@ type MachineConfig = { ip: string; port: number }
 type HrAttendanceViewProps = {
   userRole: string
   canManage: boolean
+  canConfigureMachine: boolean
 }
 
 const pad = (value: number) => String(value).padStart(2, '0')
@@ -115,7 +116,7 @@ function describeAttendance(row: AttendanceRow): { label: string; tone: ChipTone
   return { label: 'Invalid', tone: 'warning' }
 }
 
-export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps) {
+export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: HrAttendanceViewProps) {
   const [month, setMonth] = useState(currentMonthValue)
   const range = useMemo(() => monthToRange(month), [month])
   const [items, setItems] = useState<AttendanceRow[]>([])
@@ -217,8 +218,8 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   }, [])
 
   useEffect(() => {
-    loadMachine()
-  }, [loadMachine])
+    if (canConfigureMachine) loadMachine()
+  }, [canConfigureMachine, loadMachine])
 
   const handleSync = async () => {
     if (!canManage) return
@@ -228,7 +229,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
       const res = await fetch('/api/hr/attendance/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ip: machine.ip, port: machine.port }),
+        body: JSON.stringify(canConfigureMachine ? { ip: machine.ip, port: machine.port } : {}),
       })
       const data = (await res.json().catch(() => ({}))) as {
         result?: { createdCount: number; updatedCount: number; skippedCount: number; createdEmployees: number }
@@ -303,7 +304,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
   }
 
   const handleSaveMachine = async () => {
-    if (!canManage) return
+    if (!canConfigureMachine) return
     setSavingMachine(true)
     setFeedback(null)
     try {
@@ -403,7 +404,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Chip tone={connectionTone}>{connectionLabel}</Chip>
+          {canConfigureMachine && <Chip tone={connectionTone}>{connectionLabel}</Chip>}
           {canManage && (
             <>
               <button
@@ -690,7 +691,7 @@ export function HrAttendanceView({ userRole, canManage }: HrAttendanceViewProps)
         )}
       </Card>
 
-      {canManage && (
+      {canConfigureMachine && (
         <Card className="p-4">
           <button
             type="button"

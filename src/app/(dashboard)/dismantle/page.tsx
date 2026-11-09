@@ -28,11 +28,12 @@ export default async function DismantlePage({
 
   const params = await searchParams
   const roleUpper = (session.user.role || '').toUpperCase()
-  const division = roleUpper === 'DISMANTLE' ? 'CS_ADMIN' : toValidDivision(params?.division)
+  const isLegacyDismantle = roleUpper === 'DISMANTLE'
+  const division = isLegacyDismantle ? 'CS_ADMIN' : toValidDivision(params?.division)
   const status = toValidStatus(params?.status)
-  const pageTitle = roleUpper === 'DISMANTLE' ? `Ticket Dismantle ${status === 'OPEN' ? 'Open' : 'Close'}` : 'Dismantle Perangkat'
+  const pageTitle = isLegacyDismantle ? `Ticket Dismantle ${status === 'OPEN' ? 'Open' : 'Close'}` : 'Dismantle Perangkat'
   const description =
-    roleUpper === 'DISMANTLE'
+    isLegacyDismantle
       ? status === 'OPEN'
         ? 'Fokus ke data dismantle yang masih terbuka untuk ditindaklanjuti.'
         : 'Pantau riwayat data dismantle yang sudah ditutup dan dipisahkan dari data Isolir aktif.'

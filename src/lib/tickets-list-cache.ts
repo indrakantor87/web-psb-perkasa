@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
-import { isAdminRole } from '@/lib/access'
+import { isAdminRole, normalizeRole } from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -97,10 +97,15 @@ async function queryTicketsList(args: Args) {
       }
     }
 
-    if (role === 'MARKETING') {
-      baseWhere.marketingName = {
-        equals: normalizeMarketingName(userName),
-        mode: 'insensitive',
+    if (normalizeRole(role) === 'MARKETING') {
+      const ownerName = normalizeMarketingName(userName)
+      if (ownerName) {
+        baseWhere.marketingName = {
+          equals: ownerName,
+          mode: 'insensitive',
+        }
+      } else {
+        baseWhere.id = { lt: 0 }
       }
     } else if (marketing && marketing.trim()) {
       baseWhere.marketingName = {
@@ -189,7 +194,7 @@ async function queryTicketsList(args: Args) {
 
     const [totalCount, groupedCountsRaw] = await Promise.all([
       prisma.ticket.count({ where }),
-      role !== 'MARKETING'
+      normalizeRole(role) !== 'MARKETING'
         ? prisma.ticket.groupBy({
             by: ['status'],
             _count: { status: true },
@@ -259,7 +264,7 @@ async function queryTicketsList(args: Args) {
     const tickets = await fetchTickets()
 
     let counts: TicketListCounts | null = null
-    if (role !== 'MARKETING') {
+    if (normalizeRole(role) !== 'MARKETING') {
       counts = { OPEN: 0, ON_PROGRESS: 0, CLOSE: 0 }
       const grouped = groupedCountsRaw as Array<{ status: string; _count: { status: number } }>
       for (const item of grouped) {

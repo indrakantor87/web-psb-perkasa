@@ -1,7 +1,7 @@
 
 import { PriorityManager } from '@/components/PriorityManager'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export default async function PrioritiesPage() {
@@ -18,7 +18,7 @@ export default async function PrioritiesPage() {
           Kelola level prioritas ticket beserta tampilan badge-nya.
         </p>
       </div>
-      <PriorityManager />
+      <PriorityManager readOnly={!canMutateMenu(session.user.role, 'settings')} />
     </div>
   )
 }

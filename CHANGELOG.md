@@ -13,6 +13,23 @@ Kategori perubahan:
 - `Fixed` - perbaikan bug
 - `Security` - perbaikan terkait keamanan
 
+## [1.11.0] - 2026-11-09
+
+### Changed
+- Pemetaan ulang RBAC: matriks akses menu, hak mutasi, dan pengaturan disentralkan di `src/lib/access.ts`. DEVELOPER menjadi otoritas tertinggi (semua modul dan pengaturan, satu-satunya role dengan `db-update` ber-`DB_UPDATE_KEY` dan konfigurasi mesin fingerprint); ADMIN dapat melihat dan mengubah semua modul kecuali mesin fingerprint dan `db-update`.
+- `PRIORITY` memperoleh akses baca menyeluruh tanpa hak mutasi; kontrol aksi disembunyikan di UI, bukan hanya ditolak API.
+- `HR` mengakses Dashboard, Aktivitas Marketing (read-only), dan HR: kelola karyawan serta operasi absensi, tanpa konfigurasi mesin.
+- `MARKETING` dibatasi hanya pada data miliknya sendiri (PSB, Aktivitas Marketing, Isolir, Dismantle, ODP, Trouble Ticket, absensi) dengan penegakan owner di sisi server.
+- `ADMIN_CS` mengikuti kewenangan CS; `TEKNISI` mengambil alih Trouble Ticket dan Dismantle; role lama `TROUBLESHOOTS` dan `DISMANTLE` dipertahankan sebagai alias tanpa migrasi akun.
+
+### Added
+- Relasi kepemilikan Trouble Ticket melalui `createdById` dan relasi `Employee.userId` ke `User`, lengkap dengan self-healing schema.
+- Tes RBAC & ownership di `src/lib/access.test.ts`.
+
+### Security
+- Scope owner diterapkan pada query list/detail (PSB, Isolir, Dismantle, Trouble Ticket, dan HR) termasuk endpoint foto; record tanpa owner eksplisit tidak terekspos (fail-closed).
+- Endpoint foto Trouble Ticket tidak lagi memakai cache publik (`Cache-Control: private, no-store`) dan diverifikasi terhadap kepemilikan.
+
 ## [1.10.0] - 2026-11-09
 
 ### Added

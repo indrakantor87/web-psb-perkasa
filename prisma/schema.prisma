@@ -19,6 +19,8 @@ model User {
   createdAt DateTime @default(now())
   
   ticketsClosed Ticket[] @relation("ClosedBy")
+  employee Employee?
+  troubleTicketsCreated TroubleTicket[]
   contentCalendar ContentCalendar[]
   campaigns Campaign[]
   digitalLeads DigitalLead[]
@@ -245,6 +247,8 @@ model TroubleTicket {
   closePhotos  String[]
   closeBy      String?
   status       String   @default("OPEN")
+  createdById  Int?
+  createdBy    User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   
   odpId        Int?
   portNumber   Int?
@@ -259,6 +263,7 @@ model TroubleTicket {
   @@index([problemCategory])
   @@index([resolutionAction])
   @@index([paket])
+  @@index([createdById])
 }
 
 // Creator Digital Models
@@ -364,6 +369,8 @@ model Employee {
   joinDate         DateTime @default(now())
   fingerprintId    String?  @unique
   isActive         Boolean  @default(true)
+  userId           Int?     @unique
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -245,11 +245,12 @@ function buildLegacyIsolationWhere(params: {
     }
   }
 
-  const privilegedRoles = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
-  if (!privilegedRoles.includes(params.roleUpper)) {
+  if (params.roleUpper === 'MARKETING') {
     const ownMarketingClause = buildExactMarketingClause(params.userName)
     if (ownMarketingClause) {
       appendAnd(ownMarketingClause)
+    } else {
+      appendAnd({ id: { lt: 0 } })
     }
   }
 
@@ -347,11 +348,12 @@ export async function GET(request: Request) {
     appendAnd(archiveVisibilityClause)
   }
   // Role-based restriction: non-privileged users hanya melihat isolir milik dirinya
-  const privilegedRoles = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'DISMANTLE']
-  if (!privilegedRoles.includes(roleUpper)) {
+  if (roleUpper === 'MARKETING') {
     const ownMarketingClause = buildExactMarketingClause(session.user.name)
     if (ownMarketingClause) {
       appendAnd(ownMarketingClause)
+    } else {
+      appendAnd({ id: { lt: 0 } })
     }
   }
 

@@ -5,7 +5,7 @@ import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
-import { canMutateTroubleTicketRecords, isAdminRole } from '@/lib/access'
+import { canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole } from '@/lib/access'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SectionHeading } from '@/components/ui/SectionHeading'
@@ -470,7 +470,7 @@ export function TroubleTicketView({
 
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = isAdminRole(roleUpper)
-  const isTroubleshoots = roleUpper === 'TROUBLESHOOTS'
+  const isTroubleshoots = isTechnicianRole(roleUpper)
   const canCreate = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
   const isPrivileged = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])

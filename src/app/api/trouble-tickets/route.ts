@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole } from '@/lib/access'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole } from '@/lib/access'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -224,6 +224,8 @@ async function ensureTroubleTicketTable() {
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "resolutionActions" TEXT[];`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "ont" TEXT;`)
   await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "paket" TEXT;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "TroubleTicket" ADD COLUMN IF NOT EXISTS "createdById" INTEGER;`)
+  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_createdById_idx" ON "TroubleTicket"("createdById");`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "TroubleTicket_ticketCode_key" ON "TroubleTicket"("ticketCode");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_status_idx" ON "TroubleTicket"("status");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TroubleTicket_openedAt_idx" ON "TroubleTicket"("openedAt");`)
@@ -478,7 +480,7 @@ export async function GET(request: Request) {
       ? divisionParam
       : 'ALL'
 
-  if (roleUpper !== 'TROUBLESHOOTS') {
+  if (!isTechnicianRole(roleUpper)) {
     await ensureTicketPeriodsBackfilledOnce().catch(() => {})
   }
 
@@ -487,14 +489,14 @@ export async function GET(request: Request) {
     const pageParam = Math.trunc(Number(searchParams.get('page')))
 
     const statusFilter =
-      roleUpper === 'TROUBLESHOOTS'
+      isTechnicianRole(roleUpper)
         ? (status === 'OPEN' || status === 'CLOSE') ? status : 'OPEN'
         : (status && status !== 'ALL') ? status : null
 
     const baseParts: string[] = []
     const baseParams: unknown[] = []
 
-    if (roleUpper !== 'TROUBLESHOOTS') {
+    if (!isTechnicianRole(roleUpper)) {
       baseParams.push(month)
       baseParts.push(`"periodMonth" = $${baseParams.length}`)
       baseParams.push(year)
@@ -507,6 +509,11 @@ export async function GET(request: Request) {
       baseParts.push(
         `("customerName" ILIKE ${p} OR "user" ILIKE ${p} OR "waNumber" ILIKE ${p} OR "type" ILIKE ${p} OR "notes" ILIKE ${p} OR "ticketCode" ILIKE ${p} OR "problemCategory" ILIKE ${p} OR "resolutionAction" ILIKE ${p} OR "paket" ILIKE ${p})`
       )
+    }
+
+    if (roleUpper === 'MARKETING') {
+      baseParams.push(session.user.id)
+      baseParts.push(`"createdById" = $${baseParams.length}`)
     }
 
     if (isAdminRole(roleUpper)) {
@@ -531,7 +538,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const useSlaJoin = roleUpper !== 'TROUBLESHOOTS' && overdueOnly
+    const useSlaJoin = !isTechnicianRole(roleUpper) && overdueOnly
     if (useSlaJoin) {
       whereParts.push(`COALESCE("temporaryAt", NOW()) - "openedAt" > (COALESCE(s."durationDays", 1) * INTERVAL '1 day')`)
     }
@@ -541,25 +548,25 @@ export async function GET(request: Request) {
 
     const allowedPageSizes = new Set([25, 50, 100])
     const pageSize =
-      roleUpper === 'TROUBLESHOOTS'
+      isTechnicianRole(roleUpper)
         ? (Number.isFinite(limitParam) && limitParam >= 1 && limitParam <= 500
             ? limitParam
             : (statusFilter === 'CLOSE' ? 120 : 200))
         : (allowedPageSizes.has(limitParam) ? limitParam : 25)
 
     const page =
-      roleUpper === 'TROUBLESHOOTS'
+      isTechnicianRole(roleUpper)
         ? 1
         : (Number.isFinite(pageParam) && pageParam >= 1 && pageParam <= 100000 ? pageParam : 1)
 
-    const offset = roleUpper === 'TROUBLESHOOTS' ? 0 : (page - 1) * pageSize
+    const offset = isTechnicianRole(roleUpper) ? 0 : (page - 1) * pageSize
 
     const orderSql =
-      roleUpper === 'TROUBLESHOOTS' && statusFilter === 'CLOSE'
+      isTechnicianRole(roleUpper) && statusFilter === 'CLOSE'
         ? `"closedAt" DESC NULLS LAST, "openedAt" DESC`
         : `"openedAt" DESC`
 
-    if (roleUpper === 'TROUBLESHOOTS') {
+    if (isTechnicianRole(roleUpper)) {
       const sql = `
         SELECT
           "id",
@@ -843,9 +850,9 @@ export async function POST(request: Request) {
            "periodMonth","periodYear",
            "customerName","user","waNumber","mapsUrl","type","ont","paket","notes",
            "problemCategory","resolutionAction",
-           "status","openedAt"
+           "status","openedAt","createdById"
          )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'OPEN',NOW())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'OPEN',NOW(),$17)
          RETURNING
            "id","ticketCode","ticketPrefix","ticketNumber","category",
            "periodMonth","periodYear","customerName","user","waNumber","mapsUrl",
@@ -865,7 +872,8 @@ export async function POST(request: Request) {
         paket || null,
         notes || null,
         problemCategory || null,
-        null
+        null,
+        session.user.id
       )
       return rows[0] ?? null
     }
@@ -902,7 +910,7 @@ export async function POST(request: Request) {
     const createdCustomer = String(row.customerName ?? '').trim()
     const title = 'Trouble Ticket Baru'
     const body = [createdCode, createdCustomer].filter(Boolean).join(' - ') || 'Ada trouble ticket baru'
-    const rolesToNotify = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS']
+    const rolesToNotify = ['ADMIN', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE']
     const tokens = await listPushTokensForRoles(rolesToNotify)
     try {
       await sendFcmV1(tokens, {

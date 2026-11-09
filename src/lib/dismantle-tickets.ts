@@ -249,7 +249,9 @@ export async function listDismantleTickets(params: DismantleTicketListParams) {
       )
     : []
 
-  if (normalizedMarketingOwners.length > 0) {
+  if (Array.isArray(params.marketingOwners) && normalizedMarketingOwners.length === 0) {
+    baseWhereParts.push('1 = 0')
+  } else if (normalizedMarketingOwners.length > 0) {
     baseWhereParts.push(`LOWER(TRIM(COALESCE("marketing", ''))) = ANY(${push(normalizedMarketingOwners)}::text[])`)
   }
 

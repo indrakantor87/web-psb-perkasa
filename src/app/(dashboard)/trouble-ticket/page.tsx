@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { canAccessMenu, isTechnicianRole } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { TroubleTicketView } from '@/components/TroubleTicketView'
 
@@ -22,7 +22,7 @@ export default async function TroubleTicketPage({
   if (!canAccessMenu(session.user.role, 'trouble-ticket')) redirect('/')
   const params = await searchParams
 
-  const isTroubleshoots = (session.user.role || '').toUpperCase() === 'TROUBLESHOOTS'
+  const isTroubleshoots = isTechnicianRole(session.user.role)
 
   return (
     <div className={isTroubleshoots ? 'space-y-4' : 'space-y-6'}>

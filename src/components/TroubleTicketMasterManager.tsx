@@ -47,6 +47,7 @@ function Section({
   kind,
   rows,
   loading,
+  readOnly,
   onAdd,
   onDelete,
 }: {
@@ -54,6 +55,7 @@ function Section({
   kind: Kind
   rows: Row[]
   loading: boolean
+  readOnly: boolean
   onAdd: (kind: Kind, value: string) => Promise<void>
   onDelete: (id: number) => Promise<void>
 }) {
@@ -103,7 +105,7 @@ function Section({
           <div className="text-lg font-semibold text-gray-900 dark:text-white">{title}</div>
           <div className="text-sm text-gray-500 dark:text-gray-400">Kelola daftar yang dipakai pada form Trouble Ticket.</div>
         </div>
-        <div className="flex w-full max-w-lg flex-col gap-2 md:flex-row md:items-center">
+        {!readOnly && <div className="flex w-full max-w-lg flex-col gap-2 md:flex-row md:items-center">
           <input
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -120,7 +122,7 @@ function Section({
             <Plus className="h-4 w-4" />
             Tambah
           </button>
-        </div>
+        </div>}
       </div>
 
       {error && (
@@ -136,21 +138,21 @@ function Section({
               <th className="px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Nama
               </th>
-              <th className="px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
+              {!readOnly && <th className="px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-300">
                 Aksi
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={2} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={readOnly ? 1 : 2} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                   Memuat...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={2} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                <td colSpan={readOnly ? 1 : 2} className="px-2 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                   Belum ada data
                 </td>
               </tr>
@@ -158,7 +160,7 @@ function Section({
               rows.map((r) => (
                 <tr key={r.id}>
                   <td className="px-2 py-2 text-sm text-gray-800 dark:text-gray-200">{formatLabel(r.value)}</td>
-                  <td className="px-2 py-2 text-right">
+                  {!readOnly && <td className="px-2 py-2 text-right">
                     <button
                       type="button"
                       onClick={() => handleDelete(r.id)}
@@ -173,7 +175,7 @@ function Section({
                       <Trash2 className="h-4 w-4" />
                       Hapus
                     </button>
-                  </td>
+                  </td>}
                 </tr>
               ))
             )}
@@ -184,7 +186,7 @@ function Section({
   )
 }
 
-export function TroubleTicketMasterManager() {
+export function TroubleTicketMasterManager({ readOnly = false }: { readOnly?: boolean }) {
   const [loading, setLoading] = useState(true)
   const [problemRows, setProblemRows] = useState<Row[]>([])
   const [actionRows, setActionRows] = useState<Row[]>([])
@@ -236,9 +238,9 @@ export function TroubleTicketMasterManager() {
           {error}
         </div>
       )}
-      <Section title="Master Jenis Gangguan" kind="PROBLEM_CATEGORY" rows={problemRows} loading={loading} {...handlers} />
-      <Section title="Master Tindakan" kind="RESOLUTION_ACTION" rows={actionRows} loading={loading} {...handlers} />
-      <Section title="Master ONT" kind="ONT" rows={ontRows} loading={loading} {...handlers} />
+      <Section title="Master Jenis Gangguan" kind="PROBLEM_CATEGORY" rows={problemRows} loading={loading} readOnly={readOnly} {...handlers} />
+      <Section title="Master Tindakan" kind="RESOLUTION_ACTION" rows={actionRows} loading={loading} readOnly={readOnly} {...handlers} />
+      <Section title="Master ONT" kind="ONT" rows={ontRows} loading={loading} readOnly={readOnly} {...handlers} />
     </div>
   )
 }

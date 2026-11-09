@@ -12,7 +12,7 @@ interface CoveredArea {
   updatedAt: string
 }
 
-export function CoveredAreaManager() {
+export function CoveredAreaManager({ readOnly = false }: { readOnly?: boolean }) {
   const [areas, setAreas] = useState<CoveredArea[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -196,7 +196,7 @@ export function CoveredAreaManager() {
             Kelola area yang dipakai untuk pencatatan dan analisis kunjungan marketing.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+        {!readOnly && <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             disabled={isImporting}
             className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 sm:flex-none"
@@ -227,7 +227,7 @@ export function CoveredAreaManager() {
             <Plus className="h-4 w-4" />
             Tambah Area
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -238,17 +238,17 @@ export function CoveredAreaManager() {
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">No</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Area</th>
               <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</th>
-              <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Aksi</th>
+              {!readOnly && <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Aksi</th>}
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
+                <td colSpan={readOnly ? 3 : 4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Memuat data...</td>
               </tr>
             ) : currentItems.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
+                <td colSpan={readOnly ? 3 : 4} className="px-3 sm:px-6 py-4 text-center text-sm text-gray-500">Belum ada area terdaftar</td>
               </tr>
             ) : (
               currentItems.map((area, index) => (
@@ -262,7 +262,7 @@ export function CoveredAreaManager() {
                   <td className="px-3 sm:px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
                     {area.description || '-'}
                   </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                  {!readOnly && <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => handleOpenModal(area)}
@@ -279,7 +279,7 @@ export function CoveredAreaManager() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))
             )}
@@ -331,7 +331,7 @@ export function CoveredAreaManager() {
         </div>
       )}
 
-      {isModalOpen && (
+      {!readOnly && isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl animate-in fade-in zoom-in duration-200 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">

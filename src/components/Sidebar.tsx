@@ -27,7 +27,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
   }, [zoomLevel])
 
   const links = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ...(canAccessMenu(user?.role, 'dashboard') ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
     ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
     ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
     ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),

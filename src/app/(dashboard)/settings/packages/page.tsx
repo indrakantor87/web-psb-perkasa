@@ -1,6 +1,6 @@
 import { PackageManager } from '@/components/PackageManager'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export default async function PackagesPage() {
@@ -17,7 +17,7 @@ export default async function PackagesPage() {
           Rapikan daftar paket yang dipakai sebagai pilihan pada Input PSB.
         </p>
       </div>
-      <PackageManager />
+      <PackageManager readOnly={!canMutateMenu(session.user.role, 'settings')} />
     </div>
   )
 }

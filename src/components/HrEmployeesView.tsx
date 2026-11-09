@@ -23,8 +23,17 @@ type EmployeeRow = {
   employmentStatus: string
   joinDate: string
   fingerprintId: string | null
+  userId: number | null
+  linkedUserName: string | null
+  linkedUsername: string | null
   isActive: boolean
   attendanceCount: number
+}
+
+type MarketingUserOption = {
+  id: number
+  name: string
+  username: string
 }
 
 type FormState = {
@@ -35,6 +44,7 @@ type FormState = {
   employmentStatus: string
   joinDate: string
   fingerprintId: string
+  userId: string
   isActive: boolean
 }
 
@@ -53,6 +63,7 @@ function emptyForm(): FormState {
     employmentStatus: 'Karyawan',
     joinDate: '',
     fingerprintId: '',
+    userId: '',
     isActive: true,
   }
 }
@@ -78,6 +89,7 @@ function toDateInput(value: string) {
 
 export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
   const [employees, setEmployees] = useState<EmployeeRow[]>([])
+  const [marketingUsers, setMarketingUsers] = useState<MarketingUserOption[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [department, setDepartment] = useState('')
@@ -100,13 +112,18 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       if (showInactive) params.set('inactive', '1')
 
       const res = await fetch(`/api/hr/employees?${params.toString()}`, { cache: 'no-store' })
-      const data = (await res.json().catch(() => ({}))) as { employees?: EmployeeRow[]; error?: string }
+      const data = (await res.json().catch(() => ({}))) as {
+        employees?: EmployeeRow[]
+        marketingUsers?: MarketingUserOption[]
+        error?: string
+      }
       if (!res.ok) {
         setFeedback({ tone: 'danger', message: data.error || 'Gagal memuat daftar karyawan' })
         setEmployees([])
         return
       }
       setEmployees(data.employees ?? [])
+      setMarketingUsers(data.marketingUsers ?? [])
     } catch {
       setFeedback({ tone: 'danger', message: 'Gagal memuat daftar karyawan' })
     } finally {
@@ -141,6 +158,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       employmentStatus: row.employmentStatus || 'Karyawan',
       joinDate: toDateInput(row.joinDate),
       fingerprintId: row.fingerprintId ?? '',
+      userId: row.userId ? String(row.userId) : '',
       isActive: row.isActive,
     })
     setFormError('')
@@ -161,6 +179,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       position: form.position.trim() || 'STAFF',
       employmentStatus: form.employmentStatus,
       fingerprintId: form.fingerprintId.trim(),
+      userId: form.userId || null,
       isActive: form.isActive,
     }
     if (form.joinDate) payload.joinDate = form.joinDate
@@ -324,6 +343,26 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                     placeholder="Opsional"
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   />
+                </label>
+                <label className="text-xs font-medium text-slate-600 sm:col-span-2 dark:text-slate-300">
+                  Akun Marketing untuk Absensi Pribadi
+                  <select
+                    value={form.userId}
+                    onChange={(event) => setForm((prev) => ({ ...prev, userId: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    <option value="">Tidak ditautkan</option>
+                    {marketingUsers.map((user) => {
+                      const assignedElsewhere = employees.some(
+                        (employee) => employee.userId === user.id && employee.id !== form.id
+                      )
+                      return (
+                        <option key={user.id} value={user.id} disabled={assignedElsewhere}>
+                          {user.name} ({user.username}){assignedElsewhere ? ' - sudah ditautkan' : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
                 </label>
                 <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                   <input

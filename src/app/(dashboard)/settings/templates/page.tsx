@@ -1,6 +1,13 @@
 import { TemplateManager } from '@/components/TemplateManager'
+import { getSession } from '@/lib/auth'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
+import { redirect } from 'next/navigation'
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+  if (!canAccessMenu(session.user.role, 'settings')) redirect('/')
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="space-y-1">
@@ -9,7 +16,7 @@ export default function TemplatesPage() {
           Kelola template pesan agar balasan operasional lebih cepat dan seragam.
         </p>
       </div>
-      <TemplateManager />
+      <TemplateManager readOnly={!canMutateMenu(session.user.role, 'settings')} />
     </div>
   )
 }

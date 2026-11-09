@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isDeveloperRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if ((session.user.role || '').toUpperCase() !== 'ADMIN') {
+  if (!isDeveloperRole(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

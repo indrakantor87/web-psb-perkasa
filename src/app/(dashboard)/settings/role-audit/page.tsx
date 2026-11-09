@@ -1,9 +1,32 @@
 import { getSession } from '@/lib/auth'
-import { canAccessMenu, canMutateMenu, type AppMenuKey } from '@/lib/access'
+import {
+  canAccessMenu,
+  canManageHrRecords,
+  canMutateMenu,
+  canReadFingerprintMachine,
+  canRunAttendanceOperations,
+  canViewAllDataRole,
+  hasAnySettingsAccess,
+  isDeveloperRole,
+  type AppMenuKey,
+} from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { clsx } from 'clsx'
 
-const roles = ['ADMIN', 'DEVELOPER', 'MARKETING', 'CS', 'ADMIN_CS', 'NOC', 'TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE'] as const
+const roles = [
+  'DEVELOPER',
+  'ADMIN',
+  'PRIORITY',
+  'HR',
+  'MARKETING',
+  'CS',
+  'ADMIN_CS',
+  'NOC',
+  'TEKNISI',
+  'TROUBLESHOOTS',
+  'DISMANTLE',
+  'CREATOR_DIGITAL',
+] as const
 const menus: AppMenuKey[] = [
   'dashboard',
   'input',
@@ -41,13 +64,26 @@ export default async function RoleAuditPage() {
 
   const matrix = roles.map((role) => {
     const menuStates = menus.map((menu) => {
-      const canAccess = canAccessMenu(role, menu)
+      const canAccess = menu === 'settings' ? hasAnySettingsAccess(role) : canAccessMenu(role, menu)
       if (!canAccess) return { menu, mode: 'NONE' as AccessMode }
       const canMutate = canMutateMenu(role, menu)
       return { menu, mode: (canMutate ? 'MUTATE' : 'READ') as AccessMode }
     })
     return { role, menuStates }
   })
+  const controls = roles.map((role) => ({
+    role,
+    dataScope:
+      canViewAllDataRole(role)
+        ? (role === 'PRIORITY' ? 'Semua data; baca-saja' : 'Semua data')
+        : role === 'MARKETING'
+          ? 'Data milik sendiri; owner harus terverifikasi'
+          : 'Sesuai menu dan pembatasan divisi',
+    employeeManagement: canManageHrRecords(role) ? 'Kelola' : canAccessMenu(role, 'hr') ? 'Baca' : '-',
+    attendanceOperations: canRunAttendanceOperations(role) ? 'Sinkronisasi dan impor' : '-',
+    fingerprintMachine: canReadFingerprintMachine(role) ? 'Lihat dan konfigurasi' : '-',
+    dbUpdate: isDeveloperRole(role) ? 'Khusus Developer; DB_UPDATE_KEY tetap wajib' : '-',
+  }))
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -95,6 +131,45 @@ export default async function RoleAuditPage() {
           </table>
         </div>
       </div>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Cakupan Data dan Kontrol Khusus</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Developer menjadi satu-satunya role untuk konfigurasi mesin fingerprint dan endpoint db-update.
+          </p>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  {['Role', 'Cakupan Data', 'Karyawan', 'Operasi Absensi', 'Mesin Fingerprint', 'db-update'].map((label) => (
+                    <th
+                      key={label}
+                      className="whitespace-nowrap border-b border-gray-200 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-700 dark:text-gray-300"
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {controls.map((row) => (
+                  <tr key={row.role} className="border-b border-gray-200 last:border-b-0 dark:border-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">{row.role}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.dataScope}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.employeeManagement}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.attendanceOperations}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.fingerprintMachine}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{row.dbUpdate}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

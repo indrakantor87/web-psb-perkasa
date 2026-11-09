@@ -1,6 +1,6 @@
 import { CoveredAreaManager } from '@/components/CoveredAreaManager'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu } from '@/lib/access'
+import { canAccessMenu, canMutateMenu } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export const metadata = {
@@ -22,7 +22,7 @@ export default async function CoveredAreaPage() {
         </p>
       </header>
 
-      <CoveredAreaManager />
+      <CoveredAreaManager readOnly={!canMutateMenu(session.user.role, 'settings')} />
     </div>
   )
 }
