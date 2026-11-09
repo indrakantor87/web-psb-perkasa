@@ -48,7 +48,6 @@ function getVisibleMarketingName(value: string | null | undefined) {
 
 function buildSummaryText(ticket: Ticket) {
   return [
-    '*RINGKASAN TIKET PSB*',
     `Nama: ${ticket.customerName || '-'}`,
     `Tanggal Lahir: ${ticket.birthDate ? format(new Date(ticket.birthDate), 'dd/MM/yyyy') : '-'}`,
     `Link Maps: ${ticket.locationMap || '-'}`,

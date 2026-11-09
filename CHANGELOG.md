@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.4] - 2026-11-09
+
+### Fixed
+- Teks hasil salin Ringkasan Tiket PSB tidak lagi menyertakan judul.
+
 ## [1.11.3] - 2026-11-09
 
 ### Added
