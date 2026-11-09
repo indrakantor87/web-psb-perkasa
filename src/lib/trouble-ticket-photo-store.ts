@@ -132,3 +132,67 @@ export async function deletePhotosForTicket(ticketId: number) {
   await prisma.$executeRawUnsafe(`DELETE FROM "TroubleTicketPhoto" WHERE "ticketId" = $1;`, ticketId)
   await rm(path.join(baseDir, String(ticketId)), { recursive: true, force: true }).catch(() => {})
 }
+
+export async function deleteExpiredTicketPhotos(cutoff: Date, limit: number) {
+  await ensurePhotoTableOnce()
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: number; filePath: string }>>(
+    `SELECT "id","filePath"
+     FROM "TroubleTicketPhoto"
+     WHERE "createdAt" < $1
+     ORDER BY "createdAt" ASC, "id" ASC
+     LIMIT $2;`,
+    cutoff,
+    limit,
+  )
+
+  const baseDir = uploadDir()
+  const removableIds: number[] = []
+  let failed = 0
+
+  for (const row of rows) {
+    const rel = safeRelative(row.filePath)
+    if (!rel) {
+      failed += 1
+      continue
+    }
+
+    const full = path.resolve(baseDir, rel)
+    const relative = path.relative(baseDir, full)
+    if (
+      !relative ||
+      relative === '..' ||
+      relative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relative)
+    ) {
+      failed += 1
+      continue
+    }
+
+    try {
+      await unlink(full)
+      removableIds.push(row.id)
+    } catch (error: unknown) {
+      const code =
+        error && typeof error === 'object' && 'code' in error
+          ? error.code
+          : null
+      if (code === 'ENOENT') {
+        removableIds.push(row.id)
+      } else {
+        failed += 1
+      }
+    }
+  }
+
+  if (removableIds.length === 0) {
+    return { scanned: rows.length, deleted: 0, failed }
+  }
+
+  const placeholders = removableIds.map((_, index) => `$${index + 1}`).join(',')
+  const deleted = await prisma.$executeRawUnsafe(
+    `DELETE FROM "TroubleTicketPhoto" WHERE "id" IN (${placeholders});`,
+    ...removableIds,
+  )
+
+  return { scanned: rows.length, deleted, failed }
+}

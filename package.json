@@ -1,12 +1,13 @@
 {
   "name": "web-psb-perkasa",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "private": true,
   "scripts": {
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "photo-retention:run": "node scripts/run-photo-retention.js",
     "postinstall": "prisma generate",
     "mobile:sync": "npx cap sync",
     "mobile:open": "npx cap open android"
