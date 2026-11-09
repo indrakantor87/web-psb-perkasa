@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.1] - 2026-11-09
+
+### Changed
+- Opsi role pada Manajemen User diringkas: label PRIORITY menjadi "Priority", sedangkan ADMIN_CS, DISMANTLE, dan TROUBLESHOOTS tidak lagi tersedia untuk penetapan role baru; akun legacy tetap dapat diedit dan dipertahankan.
+
 ## [1.11.0] - 2026-11-09
 
 ### Changed

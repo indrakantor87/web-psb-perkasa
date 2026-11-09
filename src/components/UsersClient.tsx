@@ -30,13 +30,10 @@ const ROLE_OPTIONS = [
   { value: 'MARKETING', label: 'Marketing' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'DEVELOPER', label: 'Developer' },
-  { value: 'PRIORITY', label: 'Priority (Read Only)' },
+  { value: 'PRIORITY', label: 'Priority' },
   { value: 'CS', label: 'Customer Service (CS)' },
-  { value: 'ADMIN_CS', label: 'Admin CS' },
-  { value: 'DISMANTLE', label: 'Dismantle' },
   { value: 'NOC', label: 'NOC' },
   { value: 'TEKNISI', label: 'Teknisi' },
-  { value: 'TROUBLESHOOTS', label: 'Troubleshoots' },
   { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
   { value: 'HR', label: 'HR' },
 ] as const
@@ -62,6 +59,13 @@ function mapRoleToDivision(role: string) {
   if (roleUpper === 'NOC' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'TEKNISI') return 'NOC_TROUBLESHOOTS'
   if (roleUpper === 'CREATOR_DIGITAL') return 'CREATOR_DIGITAL'
   return ''
+}
+
+function getLegacyRoleLabel(role: string) {
+  const roleUpper = String(role ?? '').trim().toUpperCase()
+  if (roleUpper === 'ADMIN_CS') return 'Customer Service (CS)'
+  if (roleUpper === 'DISMANTLE' || roleUpper === 'TROUBLESHOOTS') return 'Teknisi'
+  return role
 }
 
 export function UsersClient({ currentUser }: UsersClientProps) {
@@ -704,6 +708,11 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   onChange={handleEditChange}
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 >
+                  {!roleOptions.some((option) => option.value === editFormData.role) && (
+                    <option value={editFormData.role} hidden>
+                      {getLegacyRoleLabel(editFormData.role)}
+                    </option>
+                  )}
                   {roleOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
