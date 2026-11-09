@@ -8,6 +8,15 @@ declare module 'zkteco-js' {
       getInfo(): Promise<{ logCounts?: number; logCapacity?: number; userCounts?: number }>
       getUsers(): Promise<ZKResponse<Record<string, unknown>> | Array<Record<string, unknown>>>
       getAttendances(): Promise<ZKResponse<Record<string, unknown>> | Array<Record<string, unknown>>>
+      setUser(
+        uid: number,
+        userId: string,
+        name: string,
+        password: string,
+        role: number,
+        cardno: number
+      ): Promise<unknown>
+      deleteUser(uid: number): Promise<unknown>
     }
   }
 

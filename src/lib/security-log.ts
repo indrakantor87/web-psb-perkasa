@@ -31,6 +31,8 @@ export type SecurityLogAction =
   | 'USER_CREATE'
   | 'USER_UPDATE'
   | 'USER_DELETE'
+  | 'FINGERPRINT_USER_UPDATE'
+  | 'FINGERPRINT_USER_DELETE'
   | 'ISOLATIONS_IMPORT'
 
 export async function ensureSecurityLogTable() {

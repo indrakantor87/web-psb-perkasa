@@ -5,10 +5,12 @@ import { createPortal } from 'react-dom'
 import {
   ChevronDown,
   Fingerprint,
+  Pencil,
   RefreshCw,
   Search,
   Server,
   Settings2,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react'
@@ -54,6 +56,7 @@ type DivisionRow = {
 }
 
 type MachineConfig = { ip: string; port: number }
+type MachineUser = { uid?: number; userId: string | number; name: string; canDelete?: boolean }
 
 type HrAttendanceViewProps = {
   userRole: string
@@ -133,14 +136,28 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<number | null>(null)
 
   const [machine, setMachine] = useState<MachineConfig>({ ip: '', port: 4370 })
+  const [savedMachine, setSavedMachine] = useState<MachineConfig | null>(null)
   const [machineConnected, setMachineConnected] = useState<boolean | null>(null)
   const [machineNote, setMachineNote] = useState('')
+  const [machineUsers, setMachineUsers] = useState<MachineUser[]>([])
+  const [machineUsersQuery, setMachineUsersQuery] = useState('')
+  const [machineUsersLoading, setMachineUsersLoading] = useState(false)
   const [savingMachine, setSavingMachine] = useState(false)
   const [showMachineSettings, setShowMachineSettings] = useState(false)
+  const [editingMachineUser, setEditingMachineUser] = useState<MachineUser | null>(null)
+  const [editingMachineUserName, setEditingMachineUserName] = useState('')
+  const [savingMachineUser, setSavingMachineUser] = useState(false)
+  const [deletingMachineUser, setDeletingMachineUser] = useState<MachineUser | null>(null)
+  const [deleteMachineUserConfirmation, setDeleteMachineUserConfirmation] = useState('')
+  const [deletingMachineUserBusy, setDeletingMachineUserBusy] = useState(false)
+  const [deleteMachineUserError, setDeleteMachineUserError] = useState('')
 
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState('')
+
+  const machineConfigChanged =
+    !savedMachine || machine.ip.trim() !== savedMachine.ip || machine.port !== savedMachine.port
 
   const loadAttendance = useCallback(async () => {
     setLoading(true)
@@ -200,20 +217,29 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       })
   }, [items, employees, departmentFilter, query])
 
-  const loadMachine = useCallback(async () => {
+  const loadMachine = useCallback(async (updateConfig = true) => {
+    setMachineUsersLoading(true)
     try {
       const res = await fetch('/api/hr/machine', { cache: 'no-store' })
       const data = (await res.json().catch(() => ({}))) as {
         config?: MachineConfig
         connected?: boolean
         error?: string
+        users?: MachineUser[]
       }
-      if (data.config) setMachine(data.config)
+      if (updateConfig && data.config) {
+        setMachine(data.config)
+        setSavedMachine(data.config)
+      }
+      setMachineUsers(Array.isArray(data.users) ? data.users : [])
       if (typeof data.connected === 'boolean') setMachineConnected(data.connected)
       setMachineNote(data.connected ? '' : data.error || 'Tidak dapat terhubung ke mesin')
     } catch {
       setMachineConnected(false)
       setMachineNote('Tidak dapat terhubung ke mesin')
+      setMachineUsers([])
+    } finally {
+      setMachineUsersLoading(false)
     }
   }, [])
 
@@ -327,9 +353,176 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
     }
   }
 
+  const handleSaveMachineUserName = async () => {
+    if (!canConfigureMachine || machineConfigChanged || !editingMachineUser?.uid) return
+    setSavingMachineUser(true)
+    setFeedback(null)
+    try {
+      const res = await fetch('/api/hr/machine/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: editingMachineUser.uid, name: editingMachineUserName }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal mengubah nama user mesin')
+      setFeedback({ tone: 'success', message: 'Nama user di mesin berhasil diperbarui.' })
+      setEditingMachineUser(null)
+      setEditingMachineUserName('')
+      await loadMachine()
+    } catch (error) {
+      setFeedback({
+        tone: 'danger',
+        message: error instanceof Error ? error.message : 'Gagal mengubah nama user mesin',
+      })
+    } finally {
+      setSavingMachineUser(false)
+    }
+  }
+
+  const handleDeleteMachineUser = async () => {
+    if (
+      !canConfigureMachine ||
+      machineConfigChanged ||
+      !deletingMachineUser?.uid ||
+      deleteMachineUserConfirmation !== String(deletingMachineUser.userId)
+    ) {
+      return
+    }
+    setDeletingMachineUserBusy(true)
+    setDeleteMachineUserError('')
+    setFeedback(null)
+    try {
+      const res = await fetch('/api/hr/machine/users', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: deletingMachineUser.uid,
+          confirmationUserId: deleteMachineUserConfirmation,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus user mesin')
+      setFeedback({ tone: 'success', message: 'User di mesin berhasil dihapus. Riwayat web tetap tersimpan.' })
+      setDeletingMachineUser(null)
+      setDeleteMachineUserConfirmation('')
+      setDeleteMachineUserError('')
+      await loadMachine()
+    } catch (error) {
+      setDeleteMachineUserError(
+        error instanceof Error ? error.message : 'Gagal menghapus user mesin'
+      )
+      setFeedback({
+        tone: 'danger',
+        message: error instanceof Error ? error.message : 'Gagal menghapus user mesin',
+      })
+    } finally {
+      setDeletingMachineUserBusy(false)
+    }
+  }
+
+  const filteredMachineUsers = machineUsers.filter((user) => {
+    const needle = machineUsersQuery.trim().toLowerCase()
+    if (!needle) return true
+    return `${user.name} ${user.userId} ${user.uid ?? ''}`.toLowerCase().includes(needle)
+  })
+
   const connectionTone = machineConnected === null ? 'neutral' : machineConnected ? 'success' : 'danger'
   const connectionLabel =
     machineConnected === null ? 'Memeriksa mesin...' : machineConnected ? 'Mesin terhubung' : 'Mesin tidak terhubung'
+
+  const deleteMachineUserModal =
+    deletingMachineUser && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 p-4"
+            onClick={() => {
+              if (!deletingMachineUserBusy) {
+                setDeletingMachineUser(null)
+                setDeleteMachineUserConfirmation('')
+                setDeleteMachineUserError('')
+              }
+            }}
+            role="presentation"
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-machine-user-title"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 id="delete-machine-user-title" className="text-base font-semibold text-slate-900 dark:text-white">
+                    Hapus user dari mesin?
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {deletingMachineUser.name || 'Tanpa nama'} · ID fingerprint {deletingMachineUser.userId}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Tutup"
+                  disabled={deletingMachineUserBusy}
+                  onClick={() => {
+                    setDeletingMachineUser(null)
+                    setDeleteMachineUserConfirmation('')
+                    setDeleteMachineUserError('')
+                  }}
+                  className="rounded-full bg-slate-100 p-1.5 text-slate-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                Hanya user perangkat yang dihapus. Riwayat web tetap tersimpan. Pastikan log absensi mesin sudah
+                disinkronkan; user yang masih terkait karyawan aktif akan ditolak.
+              </p>
+              <label className="mt-4 block text-xs font-medium text-slate-700 dark:text-slate-200">
+                Ketik ID fingerprint untuk konfirmasi
+                <input
+                  autoFocus
+                  value={deleteMachineUserConfirmation}
+                  onChange={(event) => setDeleteMachineUserConfirmation(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                />
+              </label>
+              {deleteMachineUserError && (
+                <p className="mt-2 text-xs font-medium text-rose-700 dark:text-rose-300">
+                  {deleteMachineUserError}
+                </p>
+              )}
+              <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={deletingMachineUserBusy}
+                  onClick={() => {
+                    setDeletingMachineUser(null)
+                    setDeleteMachineUserConfirmation('')
+                    setDeleteMachineUserError('')
+                  }}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteMachineUser}
+                  disabled={
+                    deletingMachineUserBusy ||
+                    !deletingMachineUser.uid ||
+                    deleteMachineUserConfirmation !== String(deletingMachineUser.userId)
+                  }
+                  className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {deletingMachineUserBusy ? 'Menghapus...' : 'Hapus dari Mesin'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null
 
   const importModal =
     importOpen && typeof document !== 'undefined'
@@ -716,6 +909,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                     value={machine.ip}
                     onChange={(event) => setMachine((prev) => ({ ...prev, ip: event.target.value }))}
                     placeholder="103.162.16.14"
+                    disabled={savingMachine || savingMachineUser || deletingMachineUserBusy || Boolean(deletingMachineUser)}
                     className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
                   />
                 </label>
@@ -727,20 +921,159 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                     onChange={(event) =>
                       setMachine((prev) => ({ ...prev, port: Number(event.target.value) || prev.port }))
                     }
+                    disabled={savingMachine || savingMachineUser || deletingMachineUserBusy || Boolean(deletingMachineUser)}
                     className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
                   />
                 </label>
               </div>
               {machineNote && <p className="text-xs text-ink-muted">{machineNote}</p>}
+              {machineConfigChanged && savedMachine && (
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  Simpan konfigurasi mesin terlebih dahulu sebelum mengelola user.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleSaveMachine}
-                disabled={savingMachine}
+                disabled={savingMachine || savingMachineUser || deletingMachineUserBusy || Boolean(deletingMachineUser)}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
               >
                 <Settings2 className="h-4 w-4" />
                 {savingMachine ? 'Menyimpan...' : 'Simpan Konfigurasi'}
               </button>
+
+              <div className="space-y-3 border-t border-line pt-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">Pengguna di Mesin</h3>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Edit hanya mengubah nama pada mesin. ID dikunci untuk menjaga mapping absensi; PIN tidak
+                      ditampilkan. User dengan hak khusus dan user karyawan aktif tidak dapat dihapus dari web.
+                      Penghapusan tidak menghapus riwayat web.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadMachine(false)}
+                    disabled={machineUsersLoading || machineConfigChanged || savingMachine || savingMachineUser || deletingMachineUserBusy}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-xs font-semibold text-ink transition hover:bg-surface-muted disabled:opacity-60"
+                  >
+                    <RefreshCw className={clsx('h-3.5 w-3.5', machineUsersLoading && 'animate-spin')} />
+                    Muat Ulang
+                  </button>
+                </div>
+
+                <label className="relative block">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                  <input
+                    type="search"
+                    value={machineUsersQuery}
+                    onChange={(event) => setMachineUsersQuery(event.target.value)}
+                    placeholder="Cari nama, ID fingerprint, atau UID mesin"
+                    className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink focus:outline-none"
+                  />
+                </label>
+
+                {machineUsersLoading ? (
+                  <p className="rounded-lg bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted">
+                    Memuat user mesin...
+                  </p>
+                ) : filteredMachineUsers.length === 0 ? (
+                  <p className="rounded-lg bg-surface-muted px-3 py-4 text-center text-sm text-ink-muted">
+                    {machineConnected ? 'User mesin tidak ditemukan.' : 'Hubungkan mesin untuk melihat user.'}
+                  </p>
+                ) : (
+                  <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+                    {filteredMachineUsers.map((user) => (
+                      <div
+                        key={`${user.uid ?? 'unknown'}-${user.userId}`}
+                        className="rounded-xl border border-line bg-surface p-3"
+                      >
+                        {editingMachineUser?.uid === user.uid ? (
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+                            <label className="text-xs font-medium text-ink-muted">
+                              Nama di mesin (maks. 24 karakter ASCII)
+                              <input
+                                autoFocus
+                                maxLength={24}
+                                value={editingMachineUserName}
+                                onChange={(event) => setEditingMachineUserName(event.target.value)}
+                                className="mt-1 w-full rounded-lg border border-line bg-surface-muted px-3 py-2 text-sm text-ink focus:outline-none"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleSaveMachineUserName}
+                              disabled={savingMachineUser || machineConfigChanged || !editingMachineUserName.trim()}
+                              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                            >
+                              {savingMachineUser ? 'Menyimpan...' : 'Simpan Nama'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingMachineUser(null)
+                                setEditingMachineUserName('')
+                              }}
+                              disabled={savingMachineUser}
+                              className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink disabled:opacity-60"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-ink">{user.name || 'Tanpa nama'}</p>
+                              <p className="mt-0.5 text-xs text-ink-muted">
+                                ID fingerprint: {user.userId} · UID mesin: {user.uid ?? '-'}
+                              </p>
+                            </div>
+                            <div className="flex shrink-0 gap-2">
+                              <button
+                                type="button"
+                                disabled={!user.uid || user.uid > 3000 || machineConfigChanged || machineUsersLoading}
+                                onClick={() => {
+                                  setEditingMachineUser(user)
+                                  setEditingMachineUserName(user.name)
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-2 text-xs font-semibold text-ink disabled:opacity-50"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit Nama
+                              </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  !user.uid ||
+                                  user.uid > 3000 ||
+                                  user.canDelete !== true ||
+                                  machineConfigChanged ||
+                                  machineUsersLoading
+                                }
+                                title={
+                                  user.canDelete === false
+                                    ? 'User dengan hak khusus pada mesin tidak dapat dihapus dari web.'
+                                    : undefined
+                                }
+                                onClick={() => {
+                                  setDeletingMachineUser(user)
+                                  setDeleteMachineUserConfirmation('')
+                                  setDeleteMachineUserError('')
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300 px-2.5 py-2 text-xs font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-800 dark:text-rose-300"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </Card>
@@ -753,6 +1086,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       )}
 
       {importModal}
+      {deleteMachineUserModal}
     </div>
   )
 }

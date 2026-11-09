@@ -13,6 +13,16 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.5] - 2026-11-09
+
+### Added
+- Manajemen user mesin fingerprint untuk Developer: daftar user, ubah nama, dan hapus user individual.
+
+### Security
+- PIN user tidak dikirim ke browser; edit nama mempertahankan atribut mesin lain di server. ID fingerprint tetap agar mapping absensi stabil.
+- Penghapusan memerlukan konfirmasi ID, ditolak untuk akun mesin dengan hak khusus atau user yang masih terhubung ke karyawan aktif, dan dicatat pada security log.
+- Riwayat absensi web tidak dihapus; log mesin lama tetap dapat dipetakan melalui ID fingerprint karyawan.
+
 ## [1.11.4] - 2026-11-09
 
 ### Fixed

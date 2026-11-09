@@ -17,11 +17,39 @@ type ZkInstance = {
   getInfo(): Promise<{ logCounts?: number; logCapacity?: number; userCounts?: number }>
   getUsers(): Promise<unknown>
   getAttendances(): Promise<unknown>
+  setUser(uid: number, userId: string, name: string, password: string, role: number, cardno: number): Promise<unknown>
+  deleteUser(uid: number): Promise<unknown>
 }
 
 type ZkConstructor = new (ip: string, port: number, timeout?: number, inport?: number) => ZkInstance
 
-export type MachineUser = { userId: string | number; name: string }
+export type MachineUser = { uid?: number; userId: string | number; name: string; canDelete?: boolean }
+
+type RawMachineUser = Record<string, unknown> & {
+  uid?: string | number
+  userId?: string | number
+  user_id?: string | number
+  name?: string
+  password?: string
+  role?: string | number
+  cardno?: string | number
+}
+
+export type MachineUserOperationErrorCode =
+  | 'INVALID_UID'
+  | 'NOT_FOUND'
+  | 'UNSAFE_RECORD'
+  | 'VERIFY_FAILED'
+  | 'PROTECTED_ROLE'
+  | 'ACTIVE_EMPLOYEE'
+  | 'CONFIRMATION_MISMATCH'
+
+export class MachineUserOperationError extends Error {
+  constructor(public readonly code: MachineUserOperationErrorCode, message: string) {
+    super(message)
+    this.name = 'MachineUserOperationError'
+  }
+}
 
 export type RawMachineLog = {
   deviceUserId?: string | number
@@ -70,7 +98,13 @@ export function normalizeUsers(value: unknown): MachineUser[] {
     const uid = item.userId ?? item.user_id ?? item.uid
     if (uid === undefined || uid === null || uid === '') continue
     const name = typeof item.name === 'string' ? item.name : ''
-    result.push({ userId: uid as string | number, name })
+    const deviceUid = Number(item.uid)
+    result.push({
+      ...(Number.isInteger(deviceUid) && deviceUid > 0 ? { uid: deviceUid } : {}),
+      userId: uid as string | number,
+      name,
+      canDelete: Number(item.role) === 0,
+    })
   }
   return result
 }
@@ -81,6 +115,26 @@ export function normalizeLogs(value: unknown): RawMachineLog[] {
     result.push(item as RawMachineLog)
   }
   return result
+}
+
+export function mapRawLogsToEmployeeFingerprints(
+  rawLogs: RawMachineLog[],
+  employees: Array<{ id: number; fingerprintId: string | null }>
+) {
+  const byFingerprint = new Map<string, number>()
+  for (const employee of employees) {
+    if (employee.fingerprintId) byFingerprint.set(String(employee.fingerprintId), employee.id)
+  }
+
+  const userMap = Object.create(null) as Record<string, number>
+  for (const log of rawLogs) {
+    const value = log.deviceUserId ?? log.user_id
+    if (value === undefined || value === null || value === '') continue
+    const machineUserId = String(value)
+    const employeeId = byFingerprint.get(machineUserId)
+    if (employeeId) userMap[machineUserId] = employeeId
+  }
+  return userMap
 }
 
 // zkteco-js membangun waktu mesin dengan new Date(y, m, d, H, M, S) memakai TZ server,
@@ -201,6 +255,146 @@ export async function fetchMachineInfo(override?: Partial<MachineConfig>) {
   })
 }
 
+function assertMachineUid(uid: number) {
+  if (!Number.isInteger(uid) || uid < 1 || uid > 3000) {
+    throw new MachineUserOperationError('INVALID_UID', 'UID mesin tidak valid.')
+  }
+}
+
+function getSafeMachineUserId(user: RawMachineUser) {
+  const userId = user.userId ?? user.user_id
+  if (
+    (typeof userId !== 'string' && typeof userId !== 'number') ||
+    !String(userId) ||
+    String(userId).length > 9 ||
+    !/^[\x20-\x7E]+$/.test(String(userId))
+  ) {
+    throw new MachineUserOperationError(
+      'UNSAFE_RECORD',
+      'ID user mesin tidak valid; perubahan dibatalkan.'
+    )
+  }
+  return String(userId)
+}
+
+function validateEditableMachineRecord(user: RawMachineUser) {
+  const userId = getSafeMachineUserId(user)
+  const password = user.password
+  const role = Number(user.role)
+  const cardno = Number(user.cardno)
+  if (
+    typeof password !== 'string' ||
+    password.length > 8 ||
+    !/^[\x00-\x7F]*$/.test(password) ||
+    !Number.isInteger(role) ||
+    role < 0 ||
+    role > 65535 ||
+    !Number.isInteger(cardno) ||
+    cardno < 0 ||
+    cardno > 65535
+  ) {
+    throw new MachineUserOperationError(
+      'UNSAFE_RECORD',
+      'Data user mesin tidak dapat dipertahankan dengan aman; perubahan dibatalkan.'
+    )
+  }
+  return { userId, password, role, cardno }
+}
+
+export async function updateMachineUserName(uid: number, nextName: string) {
+  assertMachineUid(uid)
+  const name = nextName.trim()
+  if (!name || name.length > 24 || !/^[\x20-\x7E]+$/.test(name)) {
+    throw new MachineUserOperationError(
+      'UNSAFE_RECORD',
+      'Nama wajib 1-24 karakter ASCII agar sesuai format mesin.'
+    )
+  }
+
+  const config = await getMachineConfig()
+  return withMachine(config, async (zk) => {
+    const users = toDataArray(await zk.getUsers()) as RawMachineUser[]
+    const current = users.find((user) => Number(user.uid) === uid)
+    if (!current) {
+      throw new MachineUserOperationError('NOT_FOUND', 'User tidak ditemukan di mesin.')
+    }
+
+    const preserved = validateEditableMachineRecord(current)
+    await zk.setUser(uid, preserved.userId, name, preserved.password, preserved.role, preserved.cardno)
+    const updated = toDataArray(await zk.getUsers()) as RawMachineUser[]
+    const verified = updated.find((user) => Number(user.uid) === uid)
+    if (
+      verified?.name !== name ||
+      String(verified.userId ?? verified.user_id ?? '') !== preserved.userId ||
+      String(verified.password ?? '') !== preserved.password ||
+      Number(verified.role) !== preserved.role ||
+      Number(verified.cardno) !== preserved.cardno
+    ) {
+      throw new MachineUserOperationError(
+        'VERIFY_FAILED',
+        'Mesin belum mengonfirmasi perubahan. Muat ulang daftar untuk memeriksa status user.'
+      )
+    }
+    return {
+      uid,
+      userId: preserved.userId,
+      oldName: typeof current.name === 'string' ? current.name : '',
+      name,
+    }
+  })
+}
+
+export async function deleteMachineUser(uid: number, confirmationUserId: string) {
+  assertMachineUid(uid)
+  const config = await getMachineConfig()
+  return withMachine(config, async (zk) => {
+    const users = toDataArray(await zk.getUsers()) as RawMachineUser[]
+    const current = users.find((user) => Number(user.uid) === uid)
+    if (!current) {
+      throw new MachineUserOperationError('NOT_FOUND', 'User tidak ditemukan di mesin.')
+    }
+
+    const userId = getSafeMachineUserId(current)
+    if (confirmationUserId !== userId) {
+      throw new MachineUserOperationError(
+        'CONFIRMATION_MISMATCH',
+        'Konfirmasi ID fingerprint tidak cocok.'
+      )
+    }
+    if (Number(current.role) !== 0) {
+      throw new MachineUserOperationError(
+        'PROTECTED_ROLE',
+        'User dengan hak khusus pada mesin tidak dapat dihapus dari web.'
+      )
+    }
+
+    const activeEmployee = await prisma.employee.findFirst({
+      where: { fingerprintId: userId, isActive: true },
+      select: { id: true },
+    })
+    if (activeEmployee) {
+      throw new MachineUserOperationError(
+        'ACTIVE_EMPLOYEE',
+        'User masih terhubung ke karyawan aktif. Nonaktifkan karyawan atau lepaskan ID Fingerprint terlebih dahulu.'
+      )
+    }
+
+    await zk.deleteUser(uid)
+    const remainingUsers = toDataArray(await zk.getUsers()) as RawMachineUser[]
+    if (remainingUsers.some((user) => Number(user.uid) === uid)) {
+      throw new MachineUserOperationError(
+        'VERIFY_FAILED',
+        'Mesin masih menampilkan user setelah perintah hapus. Muat ulang daftar untuk memeriksa status.'
+      )
+    }
+    return {
+      uid,
+      userId,
+      name: typeof current.name === 'string' ? current.name : '',
+    }
+  })
+}
+
 // Ambil log mentah dari mesin tanpa menyentuh database.
 export async function fetchRawLogs(options?: Partial<MachineConfig> & { userIds?: Array<string | number> }): Promise<{
   config: MachineConfig
@@ -244,7 +438,7 @@ export async function importAttendanceLogs(
     byName.set(emp.name.trim().toLowerCase(), emp.id)
   }
 
-  const userMap: Record<string, number> = {}
+  const userMap = mapRawLogsToEmployeeFingerprints(rawLogs, employees)
   const fingerprintBackfill: Array<{ id: number; fingerprintId: string }> = []
   let createdEmployees = 0
 
