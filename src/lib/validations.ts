@@ -36,12 +36,21 @@ export const userCreateSchema = z.object({
   role: z.enum(APP_ROLE_VALUES),
 })
 
+const USER_DIVISION_VALUES = [
+  'PENJUALAN',
+  'CS_ADMIN',
+  'NOC_TROUBLESHOOTS',
+  'CREATOR_DIGITAL',
+] as const
+
 export const userUpdateSchema = z.object({
   id: z.number(),
   name: z.string().min(1, 'Nama harus diisi').optional(),
   username: z.string().min(3, 'Username minimal 3 karakter').optional(),
   password: z.string().min(6, 'Password minimal 6 karakter').optional(),
   role: z.enum(APP_ROLE_VALUES).optional(),
-}).refine((value) => Boolean(value.name || value.username || value.password || value.role), {
-  message: 'Tidak ada perubahan yang dikirim',
-})
+  division: z.enum(USER_DIVISION_VALUES).nullable().optional(),
+}).refine(
+  (value) => Boolean(value.name || value.username || value.password || value.role || value.division !== undefined),
+  { message: 'Tidak ada perubahan yang dikirim' },
+)

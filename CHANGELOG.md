@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.17] - 2026-11-09
+
+### Changed
+- Divisi user dapat diubah dari form Edit User dan disimpan terpisah dari role; hak akses tetap mengikuti role.
+
 ## [1.11.16] - 2026-11-09
 
 ### Changed

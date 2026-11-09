@@ -191,7 +191,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    const { id, password, name, username, role } = result.data
+    const { id, password, name, username, role, division } = result.data
     const targetUser = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
     if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
     if (
@@ -218,8 +218,10 @@ export async function PUT(request: Request) {
     const updateData: Prisma.UserUncheckedUpdateInput & UserWithOptionalDivision = {}
     if (typeof name === 'string') updateData.name = name
     if (typeof normalizedUsername === 'string') updateData.username = normalizedUsername
-    if (typeof role === 'string') {
-      updateData.role = role
+    if (typeof role === 'string') updateData.role = role
+    if (division !== undefined) {
+      updateData.division = division
+    } else if (typeof role === 'string') {
       updateData.division = mapRoleToDivision(role)
     }
     if (typeof password === 'string') {
@@ -243,7 +245,12 @@ export async function PUT(request: Request) {
       action: 'USER_UPDATE',
       request,
       user: { id: session.user.id, username: session.user.username, role: session.user.role },
-      meta: { updatedUserId: safeUser.id, updatedRole: safeUser.role, updatedUsername: safeUser.username },
+      meta: {
+        updatedUserId: safeUser.id,
+        updatedRole: safeUser.role,
+        updatedDivision: safeUser.division,
+        updatedUsername: safeUser.username,
+      },
     }).catch(() => {})
     return NextResponse.json(safeUser)
   } catch (error) {

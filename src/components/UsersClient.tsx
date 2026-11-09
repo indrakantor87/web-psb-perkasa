@@ -61,6 +61,12 @@ function mapRoleToDivision(role: string) {
   return ''
 }
 
+function getEditableDivision(user: Pick<User, 'division' | 'role'>) {
+  const division = String(user.division ?? '').trim().toUpperCase()
+  if (DIVISION_OPTIONS.some((option) => option.value === division)) return division
+  return mapRoleToDivision(user.role)
+}
+
 function getLegacyRoleLabel(role: string) {
   const roleUpper = String(role ?? '').trim().toUpperCase()
   if (roleUpper === 'ADMIN_CS') return 'Customer Service (CS)'
@@ -100,7 +106,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   const [editFormData, setEditFormData] = useState({
     name: '',
     username: '',
-    role: 'MARKETING'
+    role: 'MARKETING',
+    division: '',
   })
 
   // Permissions
@@ -237,6 +244,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       name: user.name,
       username: user.username,
       role: user.role,
+      division: getEditableDivision(user),
     })
     setIsEditModalOpen(true)
     setError('')
@@ -250,6 +258,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       name: '',
       username: '',
       role: 'MARKETING',
+      division: '',
     })
   }
 
@@ -349,6 +358,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
           name: editFormData.name,
           username: editFormData.username,
           role: editFormData.role,
+          division: editFormData.division || null,
         }),
       })
 
@@ -367,8 +377,6 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       setLoading(false)
     }
   }
-
-  const editDerivedDivision = mapRoleToDivision(editFormData.role)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -723,14 +731,21 @@ export function UsersClient({ currentUser }: UsersClientProps) {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</label>
-                <input
-                  type="text"
-                  value={editDerivedDivision || '-'}
-                  readOnly
-                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-black sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                />
+                <select
+                  name="division"
+                  value={editFormData.division}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Tidak ditetapkan</option>
+                  {DIVISION_OPTIONS.filter((option) => option.value !== 'ALL').map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Divisi diisi otomatis dari mapping role.
+                  Divisi dapat diubah terpisah; hak akses tetap mengikuti role.
                 </p>
               </div>
 
