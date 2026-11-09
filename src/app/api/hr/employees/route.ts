@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { ensureHrSchemaOnce } from '@/lib/hr-schema'
+import { resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
 import {
   DEFAULT_HR_DIVISION,
   isKnownDivision,
@@ -49,7 +50,9 @@ export async function GET(request: Request) {
 
     const where: Prisma.EmployeeWhereInput = {}
     if (!includeInactive) where.isActive = true
-    if (isMarketing) where.userId = session?.user.id
+    if (isMarketing) {
+      where.id = await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name) ?? -1
+    }
     if (department) where.department = department
     if (query) where.name = { contains: query, mode: 'insensitive' }
 
@@ -64,20 +67,10 @@ export async function GET(request: Request) {
         employmentStatus: true,
         joinDate: true,
         fingerprintId: true,
-        userId: true,
-        user: { select: { name: true, username: true } },
         isActive: true,
         _count: { select: { attendances: true } },
       },
     })
-
-    const marketingUsers = !isMarketing && role !== 'PRIORITY'
-      ? await prisma.user.findMany({
-          where: { role: 'MARKETING' },
-          select: { id: true, name: true, username: true },
-          orderBy: { name: 'asc' },
-        })
-      : []
 
     return NextResponse.json({
       employees: employees.map((employee) => ({
@@ -88,13 +81,9 @@ export async function GET(request: Request) {
         employmentStatus: employee.employmentStatus,
         joinDate: employee.joinDate,
         fingerprintId: isMarketing ? null : employee.fingerprintId,
-        userId: employee.userId,
-        linkedUserName: employee.user?.name ?? null,
-        linkedUsername: employee.user?.username ?? null,
         isActive: employee.isActive,
         attendanceCount: employee._count.attendances,
       })),
-      marketingUsers,
     })
   } catch {
     return NextResponse.json({ error: 'Gagal memuat daftar karyawan' }, { status: 500 })
@@ -112,9 +101,6 @@ export async function POST(request: Request) {
   const position = asTrimmed(body.position) || 'STAFF'
   const employmentStatus = asTrimmed(body.employmentStatus) || 'Karyawan'
   const fingerprintId = asTrimmed(body.fingerprintId)
-  const userId = body.userId === null || body.userId === '' || body.userId === undefined
-    ? null
-    : Number(body.userId)
   const joinDate = parseJoinDate(body.joinDate)
 
   if (!name) {
@@ -129,16 +115,8 @@ export async function POST(request: Request) {
   if (body.joinDate && !joinDate) {
     return NextResponse.json({ error: 'Tanggal masuk tidak valid' }, { status: 400 })
   }
-  if (userId !== null && (!Number.isInteger(userId) || userId <= 0)) {
-    return NextResponse.json({ error: 'Akun Marketing tidak valid' }, { status: 400 })
-  }
-
   try {
     await ensureHrSchemaOnce()
-    if (userId !== null) {
-      const linkedUser = await prisma.user.findFirst({ where: { id: userId, role: 'MARKETING' }, select: { id: true } })
-      if (!linkedUser) return NextResponse.json({ error: 'Akun yang dipilih bukan user Marketing aktif' }, { status: 400 })
-    }
     const created = await prisma.employee.create({
       data: {
         name,
@@ -147,7 +125,6 @@ export async function POST(request: Request) {
         employmentStatus,
         joinDate: joinDate ?? new Date(),
         fingerprintId: fingerprintId || null,
-        userId,
         isActive: body.isActive !== false,
       },
     })
@@ -197,17 +174,6 @@ export async function PUT(request: Request) {
   }
   if (body.fingerprintId !== undefined) {
     data.fingerprintId = asTrimmed(body.fingerprintId) || null
-  }
-  if (body.userId !== undefined) {
-    const userId = body.userId === null || body.userId === '' ? null : Number(body.userId)
-    if (userId !== null && (!Number.isInteger(userId) || userId <= 0)) {
-      return NextResponse.json({ error: 'Akun Marketing tidak valid' }, { status: 400 })
-    }
-    if (userId !== null) {
-      const linkedUser = await prisma.user.findFirst({ where: { id: userId, role: 'MARKETING' }, select: { id: true } })
-      if (!linkedUser) return NextResponse.json({ error: 'Akun yang dipilih bukan user Marketing aktif' }, { status: 400 })
-    }
-    data.user = userId === null ? { disconnect: true } : { connect: { id: userId } }
   }
   if (body.joinDate !== undefined) {
     const joinDate = parseJoinDate(body.joinDate)

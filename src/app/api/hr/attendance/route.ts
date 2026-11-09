@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess } from '@/lib/access-server'
 import { ensureHrSchemaOnce } from '@/lib/hr-schema'
+import { resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const runtime = 'nodejs'
@@ -49,14 +50,16 @@ export async function GET(request: Request) {
       },
     }
     const isMarketing = String(session?.user.role ?? '').trim().toUpperCase() === 'MARKETING'
-    if (isMarketing) {
-      where.employee = { is: { userId: session?.user.id } }
-    }
+    const marketingEmployeeId = isMarketing
+      ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
+      : null
+    if (isMarketing) where.employeeId = marketingEmployeeId ?? -1
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {
-      where.employeeId = employeeIdRaw
+      where.employeeId = isMarketing && employeeIdRaw !== marketingEmployeeId
+        ? -1
+        : employeeIdRaw
     }
     const employeeFilter: Record<string, unknown> = {}
-    if (isMarketing) employeeFilter.userId = session?.user.id
     if (query) employeeFilter.name = { contains: query, mode: 'insensitive' }
     if (department) employeeFilter.department = department
     if (Object.keys(employeeFilter).length > 0) {
@@ -113,7 +116,7 @@ export async function GET(request: Request) {
       .sort((a, b) => a.department.localeCompare(b.department))
 
     const employees = await prisma.employee.findMany({
-      where: isMarketing ? { userId: session?.user.id } : undefined,
+      where: isMarketing ? { id: marketingEmployeeId ?? -1 } : undefined,
       select: { id: true, name: true, department: true, fingerprintId: true, isActive: true },
       orderBy: { name: 'asc' },
     })

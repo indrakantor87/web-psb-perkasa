@@ -1,9 +1,9 @@
 export const HR_DIVISIONS = [
   'Pemasaran dan Pelayanan',
-  'Customer Service',
-  'NOC & Teknisi',
-  'Creator Digital',
-  'HR & Kepegawaian',
+  'General Affair',
+  'Teknisi',
+  'Finance & HR',
+  'General Manager',
 ] as const
 
 export type HrDivision = (typeof HR_DIVISIONS)[number]

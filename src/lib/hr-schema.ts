@@ -37,6 +37,27 @@ async function ensureHrSchema() {
       END IF;
     END $$;
   `).catch(() => {})
+  await prisma.$executeRawUnsafe(`
+    UPDATE "Employee" AS e
+    SET "department" = CASE
+      WHEN e."department" IN ('Customer Service', 'Creator Digital') THEN 'Pemasaran dan Pelayanan'
+      WHEN e."department" = 'HR & Kepegawaian' THEN 'Finance & HR'
+      WHEN e."department" = 'NOC & Teknisi' AND (
+        UPPER(COALESCE(e."position", '')) LIKE '%TEKNIS%'
+        OR UPPER(COALESCE(e."position", '')) LIKE '%TECHNIC%'
+        OR EXISTS (
+          SELECT 1
+          FROM "User" AS u
+          WHERE UPPER(BTRIM(u."name")) = UPPER(BTRIM(e."name"))
+            AND UPPER(u."role") IN ('TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE')
+        )
+      ) THEN 'Teknisi'
+      WHEN e."department" = 'NOC & Teknisi' THEN 'Pemasaran dan Pelayanan'
+      ELSE e."department"
+    END,
+    "updatedAt" = CURRENT_TIMESTAMP
+    WHERE e."department" IN ('Customer Service', 'Creator Digital', 'HR & Kepegawaian', 'NOC & Teknisi');
+  `)
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "Attendance" (

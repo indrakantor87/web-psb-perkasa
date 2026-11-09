@@ -369,7 +369,7 @@ model Employee {
   joinDate         DateTime @default(now())
   fingerprintId    String?  @unique
   isActive         Boolean  @default(true)
-  userId           Int?     @unique
+  userId           Int?     @unique // Legacy relation; Marketing ownership now uses unique exact-name matching.
   user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

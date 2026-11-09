@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.2] - 2026-11-09
+
+### Changed
+- Divisi HR diselaraskan menjadi Pemasaran dan Pelayanan, General Affair, Teknisi, Finance & HR, serta General Manager. Data divisi lama dipetakan otomatis ke kategori baru.
+- Tautan akun Marketing manual dihapus dari form karyawan. Absensi pribadi dicocokkan dari nama akun dan nama karyawan yang sama serta unik; kecocokan ambigu ditolak.
+
 ## [1.11.1] - 2026-11-09
 
 ### Changed
