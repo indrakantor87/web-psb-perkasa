@@ -60,9 +60,10 @@ test('ADMIN and DEVELOPER can access and mutate every menu', () => {
 
 test('PRIORITY has global read access without mutation rights', () => {
   for (const menu of menus) {
-    assert.equal(canAccessMenu('PRIORITY', menu), true, `PRIORITY should access ${menu}`)
+    assert.equal(canAccessMenu('PRIORITY', menu), menu !== 'input', `unexpected PRIORITY access to ${menu}`)
     assert.equal(canMutateMenu('PRIORITY', menu), false, `PRIORITY must not mutate ${menu}`)
   }
+  assert.equal(canAccessMenu('PRIORITY', 'input'), false)
 })
 
 test('HR can manage HR while marketing activity access remains read-only', () => {

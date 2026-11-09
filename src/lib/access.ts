@@ -197,7 +197,7 @@ function getAccessibleMenus(role?: string | null) {
   const roleUpper = normalizeRole(role)
 
   if (canViewAllDataRole(roleUpper)) {
-    return menuSet([
+    const menus = menuSet([
       'dashboard',
       'input',
       'list',
@@ -213,6 +213,8 @@ function getAccessibleMenus(role?: string | null) {
       'hr',
       'settings',
     ])
+    if (roleUpper === 'PRIORITY') menus.delete('input')
+    return menus
   }
 
   if (roleUpper === 'HR') {

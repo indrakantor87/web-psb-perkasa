@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.11.20] - 2026-11-09
+
+### Changed
+- Menu dan halaman Input PSB disembunyikan dari role PRIORITY pada desktop dan mobile.
+
 ## [1.11.19] - 2026-11-09
 
 ### Changed
