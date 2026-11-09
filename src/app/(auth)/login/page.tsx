@@ -181,6 +181,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div id="deploy-marker-20261110" data-deploy="v1.11.21-debug" style={{ display: 'none' }}></div>
       <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-800 p-8 shadow-md">
         <h1 className="mb-6 text-center text-2xl font-bold text-gray-800 dark:text-white">
           PERKASA NETWORKS
