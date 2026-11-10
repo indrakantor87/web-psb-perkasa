@@ -4,12 +4,13 @@ import { useState, useEffect, Fragment, useCallback, type ReactNode } from 'reac
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { clsx } from 'clsx'
-import { ChevronDown, ChevronUp, Clipboard, Upload } from 'lucide-react'
+import { ChevronDown, ChevronUp, Clipboard, Upload, FileText } from 'lucide-react'
 import { toDisplayMarketingName } from '@/lib/marketing-users'
-import { canDeleteListTickets, canManageListTickets, isAdminRole } from '@/lib/access'
+import { canDeleteListTickets, canManageListTickets, isAdminRole, hasAnyRole } from '@/lib/access'
 import { Card } from '@/components/ui/Card'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { BAFormModal } from '@/components/BAFormModal'
 
 interface Ticket {
   id: number
@@ -137,6 +138,8 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false)
   const [scheduleDate, setScheduleDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [scheduleCopied, setScheduleCopied] = useState(false)
+  const [baTicket, setBaTicket] = useState<Ticket | null>(null)
+  const canCreateBA = hasAnyRole(userRole, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS'])
   const closeSummaryModal = useCallback(() => {
     setSummaryTicket(null)
     setSummaryCopied(false)
@@ -1132,6 +1135,15 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                             Delete
                           </button>
                         )}
+                        {canCreateBA && (
+                          <button
+                            onClick={() => setBaTicket(ticket)}
+                            className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                          >
+                            <FileText size={13} />
+                            Create BA
+                          </button>
+                        )}
                       </>
                     ) : (
                       ticket.status === 'CLOSE' && (
@@ -1395,6 +1407,15 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                                     className="rounded-md bg-red-50 text-red-600 px-3 py-2 text-xs font-semibold hover:bg-red-100 disabled:opacity-50 border border-red-200"
                                   >
                                     Delete
+                                  </button>
+                                )}
+                                {canCreateBA && (
+                                  <button
+                                    onClick={() => setBaTicket(ticket)}
+                                    className="inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-700 px-3 py-2 text-xs font-semibold hover:bg-amber-100 border border-amber-200"
+                                  >
+                                    <FileText size={13} />
+                                    Create BA
                                   </button>
                                 )}
                               </>
@@ -1861,6 +1882,10 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
           </div>
           </div>
         </div>
+      )}
+
+      {baTicket && (
+        <BAFormModal ticket={baTicket} onClose={() => setBaTicket(null)} />
       )}
     </div>
   )
