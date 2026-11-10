@@ -604,14 +604,17 @@ export async function importAttendanceLogs(
 
       const startOfDay = new Date(`${dateStr}T00:00:00.000Z`)
       const existing = existingMap.get(dateStr)
+      const hasLogs = validLogs.length > 0
 
       if (existing) {
-        const finalCheckIn = checkIn ?? existing.checkIn
-        const finalCheckOut = checkOut ?? existing.checkOut
-        const updateData: { checkIn?: Date; checkOut?: Date; overtimeMinutes?: number } = {}
+        const finalCheckIn = hasLogs ? checkIn : existing.checkIn
+        const finalCheckOut = hasLogs ? checkOut : existing.checkOut
+        const updateData: { checkIn?: Date | null; checkOut?: Date | null; overtimeMinutes?: number } = {}
 
-        if (checkIn) updateData.checkIn = checkIn
-        if (checkOut) updateData.checkOut = checkOut
+        if (hasLogs) {
+          updateData.checkIn = checkIn
+          updateData.checkOut = checkOut
+        }
         if (finalCheckIn && finalCheckOut) {
           updateData.overtimeMinutes = computeOvertimeMinutes(finalCheckIn, finalCheckOut)
         }
