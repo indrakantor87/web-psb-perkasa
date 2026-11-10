@@ -205,17 +205,17 @@ export function Header({ user }: { user: SessionUser }) {
   const desktopFlatLinks = flatLinks.filter(
     (link) => !matchesGroupPath(link, ticketingGroup) && !matchesGroupPath(link, digitalGroup),
   )
-  const renderFlatNavLink = (link: HeaderNavLink) => {
+  const renderFlatNavLink = (link: HeaderNavLink, keyPrefix = '') => {
     const Icon = link.icon
     const isActive = matchesLink(link)
     return (
       <Link
-        key={link.href}
+        key={`${keyPrefix}${link.href}`}
         href={link.href}
         prefetch={false}
         onClick={() => setOpenDivisionMenu(null)}
         className={clsx(
-          'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          'header-marquee-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
           isActive
             ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
@@ -227,12 +227,12 @@ export function Header({ user }: { user: SessionUser }) {
     )
   }
 
-  const renderNavGroup = (group: HeaderNavGroup) => {
+  const renderNavGroup = (group: HeaderNavGroup, keyPrefix = '') => {
     const isOpenGroup = openDivisionMenu === group.key
     const isActive = group.items.some((item) => matchesLink(item))
 
     return (
-      <div key={group.key} className="relative">
+      <div key={`${keyPrefix}${group.key}`} className="header-marquee-item relative">
         <button
           onClick={() => {
             setOpenDivisionMenu((current) => (current === group.key ? null : group.key))
@@ -351,11 +351,23 @@ export function Header({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          <nav ref={divisionNavRef} className="hidden md:flex items-center space-x-1">
-            {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
-            {ticketingGroup && renderNavGroup(ticketingGroup)}
-            {desktopFlatLinks.slice(1).map(renderFlatNavLink)}
-            {digitalGroup && renderNavGroup(digitalGroup)}
+          <div className="hidden md:flex items-center gap-1 overflow-hidden flex-1 min-w-0">
+            <nav ref={divisionNavRef} className="header-marquee flex-1 min-w-0">
+              <div className="header-marquee-track">
+                <div className="flex items-center gap-1 pr-1">
+                  {desktopFlatLinks.slice(0, 1).map((l) => renderFlatNavLink(l, 'a-'))}
+                  {ticketingGroup && renderNavGroup(ticketingGroup, 'a-')}
+                  {desktopFlatLinks.slice(1).map((l) => renderFlatNavLink(l, 'a-'))}
+                  {digitalGroup && renderNavGroup(digitalGroup, 'a-')}
+                </div>
+                <div className="flex items-center gap-1 pr-1" aria-hidden="true">
+                  {desktopFlatLinks.slice(0, 1).map((l) => renderFlatNavLink(l, 'b-'))}
+                  {ticketingGroup && renderNavGroup(ticketingGroup, 'b-')}
+                  {desktopFlatLinks.slice(1).map((l) => renderFlatNavLink(l, 'b-'))}
+                  {digitalGroup && renderNavGroup(digitalGroup, 'b-')}
+                </div>
+              </div>
+            </nav>
 
             <div className="relative" ref={settingsRefDesktop}>
               <button
@@ -444,7 +456,7 @@ export function Header({ user }: { user: SessionUser }) {
                 </div>
               )}
             </div>
-          </nav>
+          </div>
         </div>
         
           <div className="flex items-center space-x-3 sm:space-x-4">
