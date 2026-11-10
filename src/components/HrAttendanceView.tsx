@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   ChevronDown,
+  Download,
   Fingerprint,
   Pencil,
   RefreshCw,
@@ -146,6 +147,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   const machineConfigChanged =
     !savedMachine || machine.ip.trim() !== savedMachine.ip || machine.port !== savedMachine.port
@@ -317,6 +319,57 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       setImportError('Gagal mengimpor log')
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (exporting || employeeGroups.length === 0) return
+    setExporting(true)
+    setFeedback(null)
+    try {
+      const XLSX = await import('xlsx')
+      const workbook = XLSX.utils.book_new()
+
+      for (const group of employeeGroups) {
+        const { employee, records, presentDays } = group
+        // Nama sheet dibatasi 31 karakter (batas Excel) & karakter ilegal dibersihkan.
+        const sheetName = employee.name
+          .replace(/[:\\/?*\[\]]/g, '_')
+          .slice(0, 31)
+
+        const rows: Array<Record<string, string | number>> = records.map((record) => {
+          const status = describeAttendance(record)
+          return {
+            Tanggal: formatDateLabel(record.date),
+            'Jam Masuk': formatTimeWIB(record.checkIn),
+            'Jam Pulang': formatTimeWIB(record.checkOut),
+            Status: status.label,
+          }
+        })
+
+        // Baris ringkasan di akhir sheet.
+        rows.push({
+          Tanggal: 'Total Hadir',
+          'Jam Masuk': `${presentDays} hari`,
+          'Jam Pulang': '',
+          Status: '',
+        })
+
+        const worksheet =
+          rows.length > 0
+            ? XLSX.utils.json_to_sheet(rows)
+            : XLSX.utils.aoa_to_sheet([['Tidak ada data absensi']])
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName || `Karyawan_${employee.id}`)
+      }
+
+      XLSX.writeFile(workbook, `absensi-${month}.xlsx`)
+    } catch (error) {
+      setFeedback({
+        tone: 'danger',
+        message: error instanceof Error ? error.message : 'Gagal export Excel',
+      })
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -591,6 +644,15 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
           {canConfigureMachine && <Chip tone={connectionTone}>{connectionLabel}</Chip>}
           {canManage && (
             <>
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                disabled={exporting || employeeGroups.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                <Download className={clsx('h-4 w-4', exporting && 'animate-pulse')} />
+                {exporting ? 'Menyiapkan...' : 'Export Excel'}
+              </button>
               <button
                 type="button"
                 onClick={handleSync}
