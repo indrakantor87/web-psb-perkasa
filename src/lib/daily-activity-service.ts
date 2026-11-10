@@ -290,12 +290,24 @@ export function canApproveDailyActivityItem(scope: DailyActivityScope, item: Dai
   return getDailyActivityLevelRank(item.planningLevel) < getDailyActivityLevelRank(scope.planningLevel)
 }
 
+/**
+ * Role yang dapat melihat Daily Activity seluruh divisi (untuk keperluan
+ * laporan manajemen). General Affair (sub divisi Legal) mengelola
+ * rekap aktivitas harian lintas divisi.
+ */
+function isDailyActivityAllDivisionsRole(role?: string | null): boolean {
+  const roleUpper = normalizeRole(role)
+  if (isAdminRole(roleUpper)) return true
+  if (roleUpper === 'GENERAL_AFFAIR') return true
+  return false
+}
+
 function buildVisibilityWhere(scope: DailyActivityScope, scopeFilter?: string | null): Prisma.DailyActivityItemWhereInput {
   const mode = (scopeFilter ?? 'all').toLowerCase()
 
   if (mode === 'mine') return { ownerUserId: scope.userId }
 
-  if (scope.isAdmin) return {}
+  if (isDailyActivityAllDivisionsRole(scope.role)) return {}
 
   if (mode === 'team' || scope.isApprover) {
     return {

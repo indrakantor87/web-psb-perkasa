@@ -44,6 +44,16 @@ type HrDashboardStats = {
   departmentBreakdown: HrDepartmentCount[]
 }
 
+type GaDailyActivityStats = {
+  total: number
+  done: number
+  planned: number
+  pending: number
+  cancel: number
+  pendingApproval: number
+  byDivision: Array<{ division: string; total: number; done: number }>
+}
+
 type DashboardPayload = {
   packageData: { name: string; count: number }[]
   marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -66,6 +76,7 @@ type DashboardPayload = {
   divisionSummary: DivisionSummary[]
   focusedDivisionKpis: DashboardKpiCard[]
   hrStats?: HrDashboardStats
+  gaDailyActivityStats?: GaDailyActivityStats
 }
 
 function aggregateMarketingRows<T extends { name: string }>(
@@ -110,6 +121,7 @@ function createEmptyDashboardPayload(): DashboardPayload {
     troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
     focusedDivisionKpis: [],
     hrStats: undefined,
+    gaDailyActivityStats: undefined,
     divisionSummary: [
       {
         code: 'PENJUALAN',
@@ -233,6 +245,7 @@ export default async function DashboardPage({
         focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}
         hrStats={payload.hrStats}
+        gaDailyActivityStats={payload.gaDailyActivityStats}
       />
     </div>
   )
@@ -1025,6 +1038,50 @@ export default async function DashboardPage({
       }
     }
 
+    // Rekap Daily Activity lintas divisi untuk role General Affair (laporan manajemen).
+    let gaDailyActivityStats: GaDailyActivityStats | undefined
+    if (normalizeRole(session.user.role) === 'GENERAL_AFFAIR') {
+      try {
+        const where = { activityDate: { gte: startDate, lt: endDate } }
+        const [total, done, planned, pending, cancel, pendingApproval, divisionRows] = await Promise.all([
+          prisma.dailyActivityItem.count({ where }),
+          prisma.dailyActivityItem.count({ where: { ...where, executionStatus: 'DONE' } }),
+          prisma.dailyActivityItem.count({ where: { ...where, executionStatus: 'PLANNED' } }),
+          prisma.dailyActivityItem.count({ where: { ...where, executionStatus: 'PENDING' } }),
+          prisma.dailyActivityItem.count({ where: { ...where, executionStatus: 'CANCEL' } }),
+          prisma.dailyActivityItem.count({ where: { ...where, approvalStatus: 'PENDING' } }),
+          prisma.$queryRaw<Array<{ division: string; total: number; done: number }>>(PrismaSql.sql`
+            SELECT
+              COALESCE(NULLIF(TRIM("division"), ''), 'Tanpa Divisi') AS division,
+              COUNT(*)::int AS total,
+              SUM(CASE WHEN "executionStatus" = 'DONE' THEN 1 ELSE 0 END)::int AS done
+            FROM "psb_daily_activity_items"
+            WHERE "activityDate" >= ${startDate}
+              AND "activityDate" < ${endDate}
+            GROUP BY 1
+            ORDER BY total DESC, division ASC
+          `).catch(() => []),
+        ])
+        gaDailyActivityStats = {
+          total,
+          done,
+          planned,
+          pending,
+          cancel,
+          pendingApproval,
+          byDivision: divisionRows.map((r) => ({
+            division: String(r.division || 'Tanpa Divisi'),
+            total: Number(r.total || 0),
+            done: Number(r.done || 0),
+          })),
+        }
+      } catch {
+        gaDailyActivityStats = {
+          total: 0, done: 0, planned: 0, pending: 0, cancel: 0, pendingApproval: 0, byDivision: [],
+        }
+      }
+    }
+
     const payload: DashboardPayload = {
       packageData,
       marketingDataWithIsolir,
@@ -1041,6 +1098,7 @@ export default async function DashboardPage({
       focusedDivisionKpis,
       divisionSummary,
       hrStats,
+      gaDailyActivityStats,
     }
 
     cache.set(cacheKey, payload, 120_000)

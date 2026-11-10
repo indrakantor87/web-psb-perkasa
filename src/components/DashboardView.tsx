@@ -46,6 +46,16 @@ type HrDashboardStats = {
   departmentBreakdown: HrDepartmentCount[]
 }
 
+type GaDailyActivityStats = {
+  total: number
+  done: number
+  planned: number
+  pending: number
+  cancel: number
+  pendingApproval: number
+  byDivision: Array<{ division: string; total: number; done: number }>
+}
+
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
   marketingData: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -69,9 +79,10 @@ interface DashboardViewProps {
   focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
   hrStats?: HrDashboardStats
+  gaDailyActivityStats?: GaDailyActivityStats
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats, gaDailyActivityStats }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -334,6 +345,67 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {gaDailyActivityStats && (
+        <div className="space-y-3">
+          <SectionHeading
+            title="Rekap Daily Activity"
+            description="Aktivitas harian seluruh divisi pada periode aktif — untuk laporan manajemen"
+          />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Total Aktivitas" value={gaDailyActivityStats.total} hint="Seluruh divisi" />
+            <StatCard label="Selesai" value={gaDailyActivityStats.done} hint="Status DONE" />
+            <StatCard label="Direncanakan" value={gaDailyActivityStats.planned} hint="Status PLANNED" />
+            <StatCard label="Berjalan" value={gaDailyActivityStats.pending} hint="Status PENDING" />
+            <StatCard label="Dibatalkan" value={gaDailyActivityStats.cancel} hint="Status CANCEL" />
+            <StatCard label="Menunggu Approve" value={gaDailyActivityStats.pendingApproval} hint="Approval PENDING" />
+          </div>
+
+          <Card className="p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-ink">Aktivitas per Divisi</h3>
+                <p className="text-sm text-ink-muted">Total vs selesai pada periode aktif</p>
+              </div>
+              <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+                Lihat detail →
+              </Link>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Divisi</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Total</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai %</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {gaDailyActivityStats.byDivision.map((row) => {
+                    const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0
+                    return (
+                      <tr key={row.division} className="transition-colors hover:bg-surface-muted">
+                        <td className="px-4 py-3 text-sm font-medium text-ink">{row.division}</td>
+                        <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">{row.total}</td>
+                        <td className="px-4 py-3 text-center text-sm tabular-nums text-emerald-600 dark:text-emerald-400">{row.done}</td>
+                        <td className="px-4 py-3 text-center text-sm tabular-nums text-ink-muted">{pct}%</td>
+                      </tr>
+                    )
+                  })}
+                  {gaDailyActivityStats.byDivision.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-10 text-center text-sm italic text-ink-muted">
+                        Belum ada data daily activity pada periode ini
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </div>
       )}
 
