@@ -12,11 +12,11 @@ export const DEFAULT_HR_DIVISION: HrDivision = 'Pemasaran dan Pelayanan'
 
 /** Sub divisi per divisi HR — baseline klasifikasi & kewenangan karyawan. */
 export const HR_DIVISION_SUBDIVISIONS: Record<HrDivision, readonly string[]> = {
-  'Pemasaran dan Pelayanan': ['Marketing', 'Customer Service', 'Admin CS'],
-  'General Affair': ['Umum', 'Kebersihan', 'Keamanan'],
-  Teknisi: ['Instalasi', 'Gangguan', 'Maintenance'],
-  'Finance & HR': ['Keuangan', 'HR', 'Payroll'],
-  'General Manager': ['Operasional'],
+  'Pemasaran dan Pelayanan': ['Marketing', 'Customer Service', 'NOC', 'Troubleshoots'],
+  'General Affair': ['Legal', 'Inventory'],
+  Teknisi: ['PSB', 'Expan', 'Jointer'],
+  'Finance & HR': ['Finance', 'HR', 'Admin Finance'],
+  'General Manager': ['General Manager'],
 }
 
 export function getHrSubdivisions(division?: string | null): readonly string[] {
