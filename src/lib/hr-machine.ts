@@ -56,6 +56,9 @@ export type RawMachineLog = {
   user_id?: string | number
   recordTime?: string | number | Date
   record_time?: string | number | Date
+  /** Jenis punch: 0 = check-in (masuk), 1 = check-out (pulang), dst. */
+  type?: number
+  /** Metode verifikasi: 0 = password, 1 = sidik jari, 2 = kartu, dst. */
   state?: number
 }
 
@@ -421,7 +424,7 @@ export async function fetchRawLogs(options?: Partial<MachineConfig> & { userIds?
   })
 }
 
-type TimelineEntry = { time: Date; state?: number }
+type TimelineEntry = { time: Date; type?: number; state?: number }
 
 // Inti pemrosesan: mapping user mesin -> employee, grouping per tanggal WIB, dedup, dan simpan.
 export async function importAttendanceLogs(
@@ -511,7 +514,11 @@ export async function importAttendanceLogs(
       grouped.set(employeeId, byDate)
     }
     const list = byDate.get(dateStr) ?? []
-    list.push({ time: dateObj, state: typeof log.state === 'number' ? log.state : undefined })
+    list.push({
+      time: dateObj,
+      type: typeof log.type === 'number' ? log.type : undefined,
+      state: typeof log.state === 'number' ? log.state : undefined,
+    })
     byDate.set(dateStr, list)
   }
 
@@ -541,7 +548,7 @@ export async function importAttendanceLogs(
     for (const dateStr of dateKeys) {
       const timeline = (byDate.get(dateStr) ?? []).slice().sort((a, b) => a.time.getTime() - b.time.getTime())
 
-      // Dedup: buang log berdekatan (<5 menit) dengan state sama.
+      // Dedup: buang log berdekatan (<5 menit) dengan jenis punch & verifikasi sama.
       const validLogs: TimelineEntry[] = []
       if (timeline.length > 0) {
         validLogs.push(timeline[0])
@@ -549,7 +556,8 @@ export async function importAttendanceLogs(
           const prev = validLogs[validLogs.length - 1]
           const curr = timeline[i]
           const diff = curr.time.getTime() - prev.time.getTime()
-          if (diff > 5 * 60 * 1000 || prev.state !== curr.state) {
+          const samePunch = prev.type === curr.type && prev.state === curr.state
+          if (diff > 5 * 60 * 1000 || !samePunch) {
             validLogs.push(curr)
           } else {
             validLogs[validLogs.length - 1] = curr
@@ -559,9 +567,16 @@ export async function importAttendanceLogs(
 
       let checkIn: Date | null = null
       let checkOut: Date | null = null
-      const inLog = validLogs.find((entry) => entry.state === 0)
+      // Jenis punch (0 = masuk, 1 = pulang) diutamakan dari field `type`,
+      // fallback ke `state` (beberapa perangkat menaruh jenis punch di state).
+      const punchType = (entry: TimelineEntry): number | undefined => {
+        if (typeof entry.type === 'number' && (entry.type === 0 || entry.type === 1)) return entry.type
+        if (typeof entry.state === 'number' && (entry.state === 0 || entry.state === 1)) return entry.state
+        return undefined
+      }
+      const inLog = validLogs.find((entry) => punchType(entry) === 0)
       if (inLog) checkIn = inLog.time
-      const outLog = [...validLogs].reverse().find((entry) => entry.state === 1)
+      const outLog = [...validLogs].reverse().find((entry) => punchType(entry) === 1)
       if (outLog) checkOut = outLog.time
 
       if (!checkIn && !checkOut) {
@@ -575,6 +590,11 @@ export async function importAttendanceLogs(
         const lastLog = validLogs[validLogs.length - 1]
         if (lastLog.time.getTime() !== checkIn.getTime()) {
           checkOut = lastLog.time
+        }
+      } else if (!checkIn && checkOut && validLogs.length > 1) {
+        const firstLog = validLogs[0]
+        if (firstLog.time.getTime() !== checkOut.getTime()) {
+          checkIn = firstLog.time
         }
       }
 
