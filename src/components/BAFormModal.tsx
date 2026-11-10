@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { X, Printer } from 'lucide-react'
@@ -60,8 +60,8 @@ const EMPTY_BA: BAFormData = {
   redamanOptik: '',
   speedDownload: '',
   speedUpload: '',
-  statusKoneksi: 'Stabil',
-  pemasanganKabel: 'Rapi',
+  statusKoneksi: '',
+  pemasanganKabel: '',
   jalurKabel: '',
   biayaInstalasi: '-',
   biayaBulanan: '',
@@ -109,10 +109,7 @@ interface BAFormModalProps {
 
 export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   const [data, setData] = useState<BAFormData>(() => buildInitialData(ticket))
-
-  useEffect(() => {
-    setData(buildInitialData(ticket))
-  }, [ticket])
+  const [headerImgError, setHeaderImgError] = useState(false)
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))
@@ -162,27 +159,38 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
       <div className="mx-auto max-w-[800px] space-y-4 print:max-w-none print:space-y-0">
         {/* PAGE 1 */}
         <div className="rounded-lg bg-white p-8 shadow-lg print:rounded-none print:shadow-none print:p-0">
-          {/* Header logos */}
-          <div className="mb-6 flex items-center justify-between border-b border-gray-300 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded bg-blue-600 text-white font-bold text-xs">MDP</div>
-                <div className="ml-2 leading-tight">
-                  <div className="text-lg font-extrabold text-blue-900">MEGA DATA PERKASA</div>
-                  <div className="text-[9px] tracking-widest text-gray-500">INTERNET SERVICE PROVIDER</div>
+          {/* Header kop */}
+          <div className="mb-6 border-b border-gray-300 pb-4">
+            {headerImgError ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-blue-600 text-white font-bold text-xs">MDP</div>
+                    <div className="ml-2 leading-tight">
+                      <div className="text-lg font-extrabold text-blue-900">MEGA DATA PERKASA</div>
+                      <div className="text-[9px] tracking-widest text-gray-500">INTERNET SERVICE PROVIDER</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-extrabold text-blue-700">#juaranyawifi</div>
+                  <div className="text-[10px] leading-tight text-gray-600">
+                    Lantai 2 Perum Kebun Bibit Buah 1 Blok A No 1 Rt IX Rw II<br />
+                    Sidokerto Pati - Jawa Tengah 59111<br />
+                    CS +62 812-5200-0220 SUPPORT +62 822-2550-0100<br />
+                    http://www.perkasa.net.id<br />
+                    info@perkasa.net.id
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="text-base font-extrabold text-blue-700">#juaranyawifi</div>
-              <div className="text-[10px] leading-tight text-gray-600">
-                Lantai 2 Perum Kebun Bibit Buah 1 Blok A No 3 Rt IX Rw II<br />
-                Sidokerto Pati - Jawa Tengah 59111<br />
-                CS +62 812-5200-0220 SUPPORT +62 812-2550-0100<br />
-                http://www.perkasa.net.id<br />
-                Info@perkasa.net.id
-              </div>
-            </div>
+            ) : (
+              <img
+                src="/ba-header.png"
+                alt="Kop Perkasa Networks"
+                onError={() => setHeaderImgError(true)}
+                className="w-full"
+              />
+            )}
           </div>
 
           {/* Title */}
@@ -353,16 +361,21 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
 
         {/* PAGE 2 (Statis) */}
         <div className="rounded-lg bg-white p-8 shadow-lg print:rounded-none print:shadow-none print:p-0 print:break-before-page">
-          {/* Header logos (same as page 1, lighter) */}
-          <div className="mb-6 flex items-center justify-between border-b border-gray-300 pb-4 opacity-60">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded bg-blue-600 text-white font-bold text-xs">MDP</div>
-              <div className="ml-2 leading-tight">
+          {/* Header kop (same as page 1, lighter) */}
+          <div className="mb-6 border-b border-gray-300 pb-4 opacity-70">
+            {headerImgError ? (
+              <div className="flex items-center justify-between">
                 <div className="text-lg font-extrabold text-blue-900">MEGA DATA PERKASA</div>
-                <div className="text-[9px] tracking-widest text-gray-500">INTERNET SERVICE PROVIDER</div>
+                <div className="text-base font-extrabold text-blue-700">#juaranyawifi</div>
               </div>
-            </div>
-            <div className="text-base font-extrabold text-blue-700">#juaranyawifi</div>
+            ) : (
+              <img
+                src="/ba-header.png"
+                alt="Kop Perkasa Networks"
+                onError={() => setHeaderImgError(true)}
+                className="w-full"
+              />
+            )}
           </div>
 
           {/* V. Syarat dan Ketentuan */}

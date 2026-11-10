@@ -1885,7 +1885,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
       )}
 
       {baTicket && (
-        <BAFormModal ticket={baTicket} onClose={() => setBaTicket(null)} />
+        <BAFormModal key={baTicket.id} ticket={baTicket} onClose={() => setBaTicket(null)} />
       )}
     </div>
   )
