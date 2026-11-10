@@ -56,12 +56,14 @@ type GaDailyActivityStats = {
   byDivision: Array<{ division: string; total: number; done: number }>
   board?: {
     date: string
-    presentCount: number
-    absentCount: number
+    doneCount: number
+    kurangCount: number
+    belumCount: number
     divisions: Array<{
       division: string
-      pic: string
-      picPresent: boolean
+      totalSubdivisions: number
+      filledSubdivisions: number
+      fillStatus: 'done' | 'kurang' | 'belum'
       activities: Array<{ title: string; executionStatus: string }>
     }>
   }
@@ -1562,54 +1564,82 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           <div className="flex flex-wrap items-center justify-between gap-3">
             <SectionHeading
               title="Papan Harian (Daily Board)"
-              description={`Rekap kegiatan & kehadiran PIC per divisi — ${g.board.date}`}
+              description={`Rekap kegiatan & status pengisian daily activity per divisi — ${g.board.date}`}
             />
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span className="text-ink-muted">PIC Hadir: <strong className="text-ink">{g.board.presentCount}</strong></span>
+                <span className="text-ink-muted">Done: <strong className="text-ink">{g.board.doneCount}</strong></span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                <span className="text-ink-muted">Kurang: <strong className="text-ink">{g.board.kurangCount}</strong></span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                <span className="text-ink-muted">PIC Tidak Hadir: <strong className="text-ink">{g.board.absentCount}</strong></span>
+                <span className="text-ink-muted">Belum: <strong className="text-ink">{g.board.belumCount}</strong></span>
               </span>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            {g.board.divisions.map((col) => (
-              <Card key={col.division} className="flex flex-col p-4">
-                <div className="mb-3 flex items-start justify-between gap-2 border-b border-line pb-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{col.division}</h3>
-                    <p className="mt-0.5 truncate text-xs text-ink-muted">PIC: {col.pic}</p>
+            {g.board.divisions.map((col) => {
+              const statusConfig = {
+                done: {
+                  label: 'Done',
+                  dot: 'bg-emerald-500',
+                  badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+                  title: 'Semua sub divisi sudah mengisi daily activity hari ini',
+                },
+                kurang: {
+                  label: 'Kurang',
+                  dot: 'bg-amber-500',
+                  badge: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+                  title: 'Sebagian sub divisi belum mengisi daily activity hari ini',
+                },
+                belum: {
+                  label: 'Belum',
+                  dot: 'bg-rose-500',
+                  badge: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400',
+                  title: 'Belum ada sub divisi yang mengisi daily activity hari ini',
+                },
+              }[col.fillStatus]
+              return (
+                <Card key={col.division} className="flex flex-col p-4">
+                  <div className="mb-3 flex items-start justify-between gap-2 border-b border-line pb-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{col.division}</h3>
+                      {col.totalSubdivisions > 0 && (
+                        <p className="mt-0.5 truncate text-xs text-ink-muted">
+                          {col.filledSubdivisions}/{col.totalSubdivisions} sub divisi
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      title={statusConfig.title}
+                      className={clsx(
+                        'inline-flex shrink-0 cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+                        statusConfig.badge
+                      )}
+                    >
+                      <span className={clsx('h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
+                      {statusConfig.label}
+                    </span>
                   </div>
-                  <span
-                    title={col.picPresent ? 'PIC sudah absen (check-in) hari ini' : 'PIC belum absen (check-in) hari ini'}
-                    className={clsx(
-                      'inline-flex shrink-0 cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
-                      col.picPresent
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
-                        : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
+                  <ul className="space-y-1.5 text-sm">
+                    {col.activities.length === 0 ? (
+                      <li className="text-xs italic text-ink-muted">Belum ada kegiatan hari ini</li>
+                    ) : (
+                      col.activities.map((act, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
+                          <span className="text-ink">{act.title}</span>
+                        </li>
+                      ))
                     )}
-                  >
-                    <span className={clsx('h-1.5 w-1.5 rounded-full', col.picPresent ? 'bg-emerald-500' : 'bg-rose-500')} />
-                    {col.picPresent ? 'PIC Hadir' : 'PIC Absen'}
-                  </span>
-                </div>
-                <ul className="space-y-1.5 text-sm">
-                  {col.activities.length === 0 ? (
-                    <li className="text-xs italic text-ink-muted">Belum ada kegiatan hari ini</li>
-                  ) : (
-                    col.activities.map((act, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
-                        <span className="text-ink">{act.title}</span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </Card>
-            ))}
+                  </ul>
+                </Card>
+              )
+            })}
           </div>
         </div>
       )}

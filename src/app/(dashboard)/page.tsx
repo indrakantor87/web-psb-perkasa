@@ -10,7 +10,7 @@ import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { getDivisionFromRole, isAdminRole, normalizeRole } from '@/lib/access'
-import { getDailyActivityLevelRank, getAllDailyActivityDivisions } from '@/lib/daily-activity-org'
+import { getAllDailyActivityDivisions, getDailyActivitySubdivisions } from '@/lib/daily-activity-org'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,12 +55,14 @@ type GaDailyActivityStats = {
   byDivision: Array<{ division: string; total: number; done: number }>
   board?: {
     date: string
-    presentCount: number
-    absentCount: number
+    doneCount: number
+    kurangCount: number
+    belumCount: number
     divisions: Array<{
       division: string
-      pic: string
-      picPresent: boolean
+      totalSubdivisions: number
+      filledSubdivisions: number
+      fillStatus: 'done' | 'kurang' | 'belum'
       activities: Array<{ title: string; executionStatus: string }>
     }>
   }
@@ -1088,102 +1090,63 @@ export default async function DashboardPage({
           `).catch(() => []),
         ])
 
-        // Daily Board: PIC + kehadiran + kegiatan hari ini per divisi (mirip whiteboard laporan harian).
+        // Daily Board: status pengisian daily activity per divisi berdasarkan kelengkapan sub divisi.
         const allDivisions = getAllDailyActivityDivisions()
-        // activityDate disimpan sebagai Jakarta start-of-day (UTC-7); attendance.date sebagai UTC midnight tanggal Jakarta.
         const todayKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
         const activityStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - JAKARTA_OFFSET_MS)
         const activityEnd = new Date(activityStart.getTime() + 24 * 60 * 60 * 1000)
-        const attendanceStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-        const attendanceEnd = new Date(attendanceStart.getTime() + 24 * 60 * 60 * 1000)
-
-        // Ambil user beserta position & division untuk menentukan PIC.
-        const usersForPic = await prisma.user.findMany({
-          select: { id: true, name: true, division: true, position: true },
-        })
-        // Ambil profile untuk planning level (fallback jika tidak ada jabatan PIC).
-        const profiles = await prisma.dailyActivityProfile.findMany({
-          select: { userId: true, userName: true, division: true, planningLevel: true },
-        })
-        const profileByUserId = new Map(profiles.map((p) => [p.userId, p]))
-
-        // PIC per divisi: utamakan user dengan jabatan "PIC", lalu fallback ke planning level tertinggi.
-        const picByDivision = new Map<string, { userId: number; userName: string; planningLevel: string }>()
-        for (const u of usersForPic) {
-          const div = String(u.division || '').trim()
-          if (!div) continue
-          const pos = String(u.position || '').trim().toLowerCase()
-          const profile = profileByUserId.get(u.id)
-          const planningLevel = profile?.planningLevel ?? 'STAFF'
-          const existing = picByDivision.get(div)
-          const isPic = pos === 'pic'
-          const existingIsPic = existing
-            ? String(usersForPic.find((x) => x.id === existing.userId)?.position || '').trim().toLowerCase() === 'pic'
-            : false
-          // Prioritas: PIC > bukan PIC. Jika sama, bandingkan planning level.
-          if (!existing) {
-            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
-          } else if (isPic && !existingIsPic) {
-            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
-          } else if (isPic === existingIsPic && getDailyActivityLevelRank(planningLevel) > getDailyActivityLevelRank(existing.planningLevel)) {
-            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
-          }
-        }
-        // Fallback: jika divisi belum punya PIC dari data user, gunakan profile dengan planning level tertinggi.
-        for (const p of profiles) {
-          const div = String(p.division || '').trim()
-          if (!div) continue
-          const existing = picByDivision.get(div)
-          if (!existing || getDailyActivityLevelRank(p.planningLevel) > getDailyActivityLevelRank(existing.planningLevel)) {
-            picByDivision.set(div, { userId: p.userId, userName: p.userName, planningLevel: p.planningLevel })
-          }
-        }
-        const picUserIds = Array.from(picByDivision.values()).map((p) => p.userId)
-        const picEmployees = await prisma.employee.findMany({
-          where: { userId: { in: picUserIds } },
-          select: { id: true, userId: true, name: true },
-        })
-        const employeeIdByUserId = new Map<number, number>()
-        for (const e of picEmployees) if (e.userId) employeeIdByUserId.set(e.userId, e.id)
-        const picEmployeeIds = Array.from(employeeIdByUserId.values())
-        const todayAttendances = await prisma.attendance.findMany({
-          where: {
-            employeeId: { in: picEmployeeIds },
-            date: { gte: attendanceStart, lt: attendanceEnd },
-            checkIn: { not: null },
-          },
-          select: { employeeId: true },
-        })
-        const presentEmployeeIds = new Set(todayAttendances.map((a) => a.employeeId))
 
         const todayActivities = await prisma.dailyActivityItem.findMany({
           where: { activityDate: { gte: activityStart, lt: activityEnd } },
-          select: { division: true, title: true, executionStatus: true },
+          select: { division: true, subdivision: true, title: true, executionStatus: true },
           orderBy: [{ division: 'asc' }],
         })
+
+        // Group activities by division, then track which subdivisions have at least one activity.
         const activitiesByDivision = new Map<string, Array<{ title: string; executionStatus: string }>>()
+        const filledSubdivisionsByDivision = new Map<string, Set<string>>()
         for (const a of todayActivities) {
           const div = String(a.division || '').trim() || 'Tanpa Divisi'
           const list = activitiesByDivision.get(div) ?? []
           list.push({ title: a.title, executionStatus: a.executionStatus })
           activitiesByDivision.set(div, list)
+          const sub = String(a.subdivision || '').trim()
+          if (sub) {
+            const set = filledSubdivisionsByDivision.get(div) ?? new Set<string>()
+            set.add(sub)
+            filledSubdivisionsByDivision.set(div, set)
+          }
         }
 
-        let presentCount = 0
-        let absentCount = 0
+        let doneCount = 0
+        let kurangCount = 0
+        let belumCount = 0
         const boardDivisions = allDivisions.map((division) => {
-          const pic = picByDivision.get(division)
-          const picName = pic?.userName ?? '-'
-          const employeeId = pic ? employeeIdByUserId.get(pic.userId) : undefined
-          const picPresent = Boolean(employeeId && presentEmployeeIds.has(employeeId))
-          if (pic && picName !== '-') {
-            if (picPresent) presentCount += 1
-            else absentCount += 1
+          const subdivisions = getDailyActivitySubdivisions(division)
+          const totalSubdivisions = subdivisions.length
+          const filledSet = filledSubdivisionsByDivision.get(division) ?? new Set<string>()
+          // Jika divisi punya daftar sub divisi, hitung yang sudah mengisi.
+          // Jika divisi tidak punya sub divisi (mis. Operasional), cukup cek apakah ada aktivitas hari ini.
+          let filledSubdivisions: number
+          let fillStatus: 'done' | 'kurang' | 'belum'
+          if (totalSubdivisions > 0) {
+            filledSubdivisions = subdivisions.filter((s) => filledSet.has(s)).length
+            if (filledSubdivisions === 0) fillStatus = 'belum'
+            else if (filledSubdivisions < totalSubdivisions) fillStatus = 'kurang'
+            else fillStatus = 'done'
+          } else {
+            const hasActivities = (activitiesByDivision.get(division)?.length ?? 0) > 0
+            filledSubdivisions = hasActivities ? 1 : 0
+            fillStatus = hasActivities ? 'done' : 'belum'
           }
+          if (fillStatus === 'done') doneCount += 1
+          else if (fillStatus === 'kurang') kurangCount += 1
+          else belumCount += 1
           return {
             division,
-            pic: picName,
-            picPresent,
+            totalSubdivisions,
+            filledSubdivisions,
+            fillStatus,
             activities: activitiesByDivision.get(division) ?? [],
           }
         })
@@ -1218,8 +1181,9 @@ export default async function DashboardPage({
           })),
           board: {
             date: todayKey,
-            presentCount,
-            absentCount,
+            doneCount,
+            kurangCount,
+            belumCount,
             divisions: boardDivisions,
           },
           ranking,
