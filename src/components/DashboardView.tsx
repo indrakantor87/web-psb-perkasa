@@ -65,6 +65,13 @@ type GaDailyActivityStats = {
       activities: Array<{ title: string; executionStatus: string }>
     }>
   }
+  ranking?: Array<{
+    rank: number
+    division: string
+    total: number
+    done: number
+    percent: number
+  }>
 }
 
 interface DashboardViewProps {
@@ -1278,15 +1285,16 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                     <p className="mt-0.5 truncate text-xs text-ink-muted">PIC: {col.pic}</p>
                   </div>
                   <span
+                    title={col.picPresent ? 'PIC sudah absen (check-in) hari ini' : 'PIC belum absen (check-in) hari ini'}
                     className={clsx(
-                      'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+                      'inline-flex shrink-0 cursor-help items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
                       col.picPresent
                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
                         : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
                     )}
                   >
                     <span className={clsx('h-1.5 w-1.5 rounded-full', col.picPresent ? 'bg-emerald-500' : 'bg-rose-500')} />
-                    {col.picPresent ? 'Ada' : 'Tidak'}
+                    {col.picPresent ? 'PIC Hadir' : 'PIC Absen'}
                   </span>
                 </div>
                 <ul className="space-y-1.5 text-sm">
@@ -1303,6 +1311,62 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                 </ul>
               </Card>
             ))}
+          </div>
+        </div>
+      )}
+
+      {gaDailyActivityStats.ranking && gaDailyActivityStats.ranking.length > 0 && (
+        <div className="space-y-3">
+          <SectionHeading
+            title="Peringkat Performa Divisi"
+            description="Top 5 divisi berdasarkan persentase penyelesaian daily activity pada periode aktif"
+          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {gaDailyActivityStats.ranking.map((row) => {
+              const rankColors = [
+                'bg-amber-400 text-amber-950', // 1 - gold
+                'bg-slate-300 text-slate-800', // 2 - silver
+                'bg-amber-700 text-amber-50',  // 3 - bronze
+                'bg-blue-500 text-white',      // 4
+                'bg-blue-400 text-white',      // 5
+              ]
+              const color = rankColors[row.rank - 1] ?? 'bg-blue-400 text-white'
+              return (
+                <Card key={row.division} className="flex flex-col p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span
+                      className={clsx(
+                        'flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-sm',
+                        color
+                      )}
+                    >
+                      {row.rank}
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-2xl font-bold tabular-nums text-ink">{row.percent}%</span>
+                      <span className="text-[11px] text-ink-muted">selesai</span>
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-ink">{row.division}</h3>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-line">
+                    <div
+                      className={clsx(
+                        'h-full rounded-full transition-all',
+                        row.percent >= 75
+                          ? 'bg-emerald-500'
+                          : row.percent >= 50
+                            ? 'bg-amber-500'
+                            : 'bg-rose-500'
+                      )}
+                      style={{ width: `${Math.min(row.percent, 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-ink-muted">
+                    {row.done} dari {row.total} aktivitas selesai
+                  </p>
+                </Card>
+              )
+            })}
           </div>
         </div>
       )}

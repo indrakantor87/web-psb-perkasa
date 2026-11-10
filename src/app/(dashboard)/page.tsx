@@ -64,6 +64,13 @@ type GaDailyActivityStats = {
       activities: Array<{ title: string; executionStatus: string }>
     }>
   }
+  ranking?: Array<{
+    rank: number
+    division: string
+    total: number
+    done: number
+    percent: number
+  }>
 }
 
 type DashboardPayload = {
@@ -1084,11 +1091,39 @@ export default async function DashboardPage({
         const attendanceStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
         const attendanceEnd = new Date(attendanceStart.getTime() + 24 * 60 * 60 * 1000)
 
+        // Ambil user beserta position & division untuk menentukan PIC.
+        const usersForPic = await prisma.user.findMany({
+          select: { id: true, name: true, division: true, position: true },
+        })
+        // Ambil profile untuk planning level (fallback jika tidak ada jabatan PIC).
         const profiles = await prisma.dailyActivityProfile.findMany({
           select: { userId: true, userName: true, division: true, planningLevel: true },
         })
-        // PIC per divisi = user dengan planning level tertinggi di divisi tersebut.
+        const profileByUserId = new Map(profiles.map((p) => [p.userId, p]))
+
+        // PIC per divisi: utamakan user dengan jabatan "PIC", lalu fallback ke planning level tertinggi.
         const picByDivision = new Map<string, { userId: number; userName: string; planningLevel: string }>()
+        for (const u of usersForPic) {
+          const div = String(u.division || '').trim()
+          if (!div) continue
+          const pos = String(u.position || '').trim().toLowerCase()
+          const profile = profileByUserId.get(u.id)
+          const planningLevel = profile?.planningLevel ?? 'STAFF'
+          const existing = picByDivision.get(div)
+          const isPic = pos === 'pic'
+          const existingIsPic = existing
+            ? String(usersForPic.find((x) => x.id === existing.userId)?.position || '').trim().toLowerCase() === 'pic'
+            : false
+          // Prioritas: PIC > bukan PIC. Jika sama, bandingkan planning level.
+          if (!existing) {
+            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
+          } else if (isPic && !existingIsPic) {
+            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
+          } else if (isPic === existingIsPic && getDailyActivityLevelRank(planningLevel) > getDailyActivityLevelRank(existing.planningLevel)) {
+            picByDivision.set(div, { userId: u.id, userName: u.name, planningLevel })
+          }
+        }
+        // Fallback: jika divisi belum punya PIC dari data user, gunakan profile dengan planning level tertinggi.
         for (const p of profiles) {
           const div = String(p.division || '').trim()
           if (!div) continue
@@ -1147,6 +1182,22 @@ export default async function DashboardPage({
           }
         })
 
+        // Ranking performa divisi berdasarkan % penyelesaian daily activity (top 5).
+        const ranking = divisionRows
+          .map((r) => {
+            const total = Number(r.total || 0)
+            const done = Number(r.done || 0)
+            return {
+              division: String(r.division || 'Tanpa Divisi'),
+              total,
+              done,
+              percent: total > 0 ? Math.round((done / total) * 100) : 0,
+            }
+          })
+          .sort((a, b) => b.percent - a.percent || b.total - a.total || a.division.localeCompare(b.division))
+          .slice(0, 5)
+          .map((item, idx) => ({ rank: idx + 1, ...item }))
+
         gaDailyActivityStats = {
           total,
           done,
@@ -1165,6 +1216,7 @@ export default async function DashboardPage({
             absentCount,
             divisions: boardDivisions,
           },
+          ranking,
         }
       } catch {
         gaDailyActivityStats = {
