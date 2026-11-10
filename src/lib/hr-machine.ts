@@ -56,9 +56,9 @@ export type RawMachineLog = {
   user_id?: string | number
   recordTime?: string | number | Date
   record_time?: string | number | Date
-  /** Jenis punch: 0 = check-in (masuk), 1 = check-out (pulang), dst. */
+  /** Metode verifikasi (byte 26): 0 = fingerprint, 1 = password, 2 = rfid. */
   type?: number
-  /** Metode verifikasi: 0 = password, 1 = sidik jari, 2 = kartu, dst. */
+  /** Jenis punch (byte 31): 0 = check-in (masuk), 1 = check-out (pulang). */
   state?: number
 }
 
@@ -567,39 +567,42 @@ export async function importAttendanceLogs(
 
       let checkIn: Date | null = null
       let checkOut: Date | null = null
-      // Jenis punch (0 = masuk, 1 = pulang) diutamakan dari field `type`,
-      // fallback ke `state` (beberapa perangkat menaruh jenis punch di state).
-      const punchType = (entry: TimelineEntry): number | undefined => {
-        if (typeof entry.type === 'number' && (entry.type === 0 || entry.type === 1)) return entry.type
-        if (typeof entry.state === 'number' && (entry.state === 0 || entry.state === 1)) return entry.state
-        return undefined
-      }
-      const inLog = validLogs.find((entry) => punchType(entry) === 0)
-      if (inLog) checkIn = inLog.time
-      const outLog = [...validLogs].reverse().find((entry) => punchType(entry) === 1)
-      if (outLog) checkOut = outLog.time
 
-      if (!checkIn && !checkOut) {
-        if (validLogs.length === 1) {
-          checkIn = validLogs[0].time
-        } else if (validLogs.length > 1) {
+      if (validLogs.length === 1) {
+        // Single tap selalu dianggap jam masuk (tidak mungkin check-out tanpa check-in).
+        // Field `state` mesin tidak selalu reliabel untuk tap tunggal, jadi abaikan.
+        checkIn = validLogs[0].time
+      } else if (validLogs.length > 1) {
+        // Jenis punch (0 = masuk, 1 = pulang) diutamakan dari field `state` (byte 31),
+        // fallback ke `type` (byte 26) untuk perangkat yang meletakkannya di sana.
+        const punchType = (entry: TimelineEntry): number | undefined => {
+          if (typeof entry.state === 'number' && (entry.state === 0 || entry.state === 1)) return entry.state
+          if (typeof entry.type === 'number' && (entry.type === 0 || entry.type === 1)) return entry.type
+          return undefined
+        }
+        const inLog = validLogs.find((entry) => punchType(entry) === 0)
+        if (inLog) checkIn = inLog.time
+        const outLog = [...validLogs].reverse().find((entry) => punchType(entry) === 1)
+        if (outLog) checkOut = outLog.time
+
+        if (!checkIn && !checkOut) {
           checkIn = validLogs[0].time
           checkOut = validLogs[validLogs.length - 1].time
+        } else if (checkIn && !checkOut) {
+          const lastLog = validLogs[validLogs.length - 1]
+          if (lastLog.time.getTime() !== checkIn.getTime()) {
+            checkOut = lastLog.time
+          }
+        } else if (!checkIn && checkOut) {
+          const firstLog = validLogs[0]
+          if (firstLog.time.getTime() !== checkOut.getTime()) {
+            checkIn = firstLog.time
+          }
         }
-      } else if (checkIn && !checkOut && validLogs.length > 1) {
-        const lastLog = validLogs[validLogs.length - 1]
-        if (lastLog.time.getTime() !== checkIn.getTime()) {
-          checkOut = lastLog.time
-        }
-      } else if (!checkIn && checkOut && validLogs.length > 1) {
-        const firstLog = validLogs[0]
-        if (firstLog.time.getTime() !== checkOut.getTime()) {
-          checkIn = firstLog.time
-        }
-      }
 
-      if (checkIn && checkOut && checkIn.getTime() === checkOut.getTime()) {
-        checkOut = null
+        if (checkIn && checkOut && checkIn.getTime() === checkOut.getTime()) {
+          checkOut = null
+        }
       }
 
       const startOfDay = new Date(`${dateStr}T00:00:00.000Z`)

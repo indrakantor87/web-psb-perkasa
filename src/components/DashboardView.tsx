@@ -36,6 +36,16 @@ type DashboardKpiCard = {
   hint: string
 }
 
+type HrDepartmentCount = { department: string; count: number }
+
+type HrDashboardStats = {
+  activeEmployees: number
+  withFingerprint: number
+  presentToday: number
+  absentToday: number
+  departmentBreakdown: HrDepartmentCount[]
+}
+
 interface DashboardViewProps {
   packageData: { name: string; count: number }[]
   marketingData: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -58,9 +68,10 @@ interface DashboardViewProps {
   divisionSummary?: DivisionSummary[]
   focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
+  hrStats?: HrDashboardStats
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL' }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -1013,10 +1024,103 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     </div>
   )
 
+  const isHr = roleUpper === 'HR'
+  const hrContent = hrStats ? (
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard HR</h1>
+          <p className="mt-1 text-sm text-ink-muted">Ringkasan data karyawan dan absensi.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Karyawan Aktif"
+          value={hrStats.activeEmployees}
+          hint="Total karyawan dengan status aktif"
+        />
+        <StatCard
+          label="Terdaftar Fingerprint"
+          value={hrStats.withFingerprint}
+          hint="Karyawan aktif dengan ID mesin"
+        />
+        <StatCard
+          label="Hadir Hari Ini"
+          value={hrStats.presentToday}
+          hint="Sudah absen masuk hari ini"
+        />
+        <StatCard
+          label="Belum Absen"
+          value={hrStats.absentToday}
+          hint="Terdaftar namun belum absen"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Link href="/hr" className={cardClassName({ interactive: true, className: 'p-6' })}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Absensi HR</h3>
+              <p className="text-sm text-ink-muted">Lihat rekap absensi karyawan per periode</p>
+            </div>
+          </div>
+        </Link>
+        <Link href="/hr?tab=employees" className={cardClassName({ interactive: true, className: 'p-6' })}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Data Karyawan</h3>
+              <p className="text-sm text-ink-muted">Kelola data karyawan dan jabatan</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
+      <Card className="p-5 sm:p-6">
+        <SectionHeading
+          title="Jumlah Karyawan per Divisi"
+          description="Berdasarkan karyawan aktif"
+          className="mb-5"
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-line">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Divisi</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {hrStats.departmentBreakdown.map((dept) => (
+                <tr key={dept.department} className="transition-colors hover:bg-surface-muted">
+                  <td className="px-4 py-3 text-sm font-medium text-ink">{dept.department}</td>
+                  <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">{dept.count}</td>
+                </tr>
+              ))}
+              {hrStats.departmentBreakdown.length === 0 && (
+                <tr>
+                  <td colSpan={2} className="px-4 py-10 text-center text-sm italic text-ink-muted">
+                    Belum ada data karyawan
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  ) : null
+
   return (
     <>
       <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
-      <div className="hidden md:block">{dashboardContent}</div>
+      <div className="hidden md:block">{isHr && hrContent ? hrContent : dashboardContent}</div>
     </>
   )
 }

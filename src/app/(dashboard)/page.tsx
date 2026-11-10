@@ -9,7 +9,7 @@ import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
-import { getDivisionFromRole, isAdminRole } from '@/lib/access'
+import { getDivisionFromRole, isAdminRole, normalizeRole } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +34,16 @@ type DashboardKpiCard = {
   hint: string
 }
 
+type HrDepartmentCount = { department: string; count: number }
+
+type HrDashboardStats = {
+  activeEmployees: number
+  withFingerprint: number
+  presentToday: number
+  absentToday: number
+  departmentBreakdown: HrDepartmentCount[]
+}
+
 type DashboardPayload = {
   packageData: { name: string; count: number }[]
   marketingDataWithIsolir: { name: string; count: number; open: number; on_progress: number; close: number; isolir?: number }[]
@@ -55,6 +65,7 @@ type DashboardPayload = {
   }
   divisionSummary: DivisionSummary[]
   focusedDivisionKpis: DashboardKpiCard[]
+  hrStats?: HrDashboardStats
 }
 
 function aggregateMarketingRows<T extends { name: string }>(
@@ -98,6 +109,7 @@ function createEmptyDashboardPayload(): DashboardPayload {
     },
     troubleTicketProblemMonthly: { months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], rows: [] },
     focusedDivisionKpis: [],
+    hrStats: undefined,
     divisionSummary: [
       {
         code: 'PENJUALAN',
@@ -220,6 +232,7 @@ export default async function DashboardPage({
         divisionSummary={payload.divisionSummary}
         focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}
+        hrStats={payload.hrStats}
       />
     </div>
   )
@@ -957,6 +970,61 @@ export default async function DashboardPage({
       }
     }
 
+    // Statistik HR untuk role HR (fokus ke karyawan & absensi, bukan performa divisi).
+    let hrStats: HrDashboardStats | undefined
+    if (normalizeRole(session.user.role) === 'HR') {
+      try {
+        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+
+        const activeEmployees = await prisma.employee.count({ where: { isActive: true } })
+        const withFingerprint = await prisma.employee.count({
+          where: {
+            isActive: true,
+            AND: [{ fingerprintId: { not: null } }, { fingerprintId: { not: '' } }],
+          },
+        })
+        const presentToday = await prisma.attendance.count({
+          where: {
+            date: { gte: todayStart, lte: todayEnd },
+            checkIn: { not: null },
+            employee: {
+              is: {
+                isActive: true,
+                AND: [{ fingerprintId: { not: null } }, { fingerprintId: { not: '' } }],
+              },
+            },
+          },
+        })
+        const deptRows = await prisma.$queryRaw<Array<{ department: string; count: number }>>(PrismaSql.sql`
+          SELECT COALESCE(NULLIF(TRIM("department"), ''), 'Tanpa Divisi') AS department, COUNT(*)::int AS count
+          FROM "Employee"
+          WHERE "isActive" = TRUE
+          GROUP BY 1
+          ORDER BY count DESC, department ASC
+        `).catch(() => [])
+
+        hrStats = {
+          activeEmployees,
+          withFingerprint,
+          presentToday,
+          absentToday: Math.max(0, withFingerprint - presentToday),
+          departmentBreakdown: deptRows.map((r) => ({
+            department: String(r.department || 'Tanpa Divisi'),
+            count: Number(r.count || 0),
+          })),
+        }
+      } catch {
+        hrStats = {
+          activeEmployees: 0,
+          withFingerprint: 0,
+          presentToday: 0,
+          absentToday: 0,
+          departmentBreakdown: [],
+        }
+      }
+    }
+
     const payload: DashboardPayload = {
       packageData,
       marketingDataWithIsolir,
@@ -972,6 +1040,7 @@ export default async function DashboardPage({
       troubleTicketProblemMonthly,
       focusedDivisionKpis,
       divisionSummary,
+      hrStats,
     }
 
     cache.set(cacheKey, payload, 120_000)

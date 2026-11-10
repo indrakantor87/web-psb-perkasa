@@ -222,7 +222,7 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (roleUpper === 'HR') {
-    return menuSet(['dashboard', 'marketing-activities', 'daily-activity', 'hr'])
+    return menuSet(['dashboard', 'daily-activity', 'hr'])
   }
 
   if (roleUpper === 'MARKETING') {
