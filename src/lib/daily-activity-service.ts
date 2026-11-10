@@ -22,6 +22,32 @@ import { ensureDailyActivityTables } from '@/lib/daily-activity-schema'
 import type { SessionUser } from '@/lib/auth'
 import { isAdminRole, normalizeRole } from '@/lib/access'
 
+/** Backfill satu kali: samakan subdivision item daily activity dengan data user/karyawan. */
+let __subdivisionBackfillPromise: Promise<void> | null = null
+async function backfillDailyActivitySubdivisions() {
+  if (__subdivisionBackfillPromise) return __subdivisionBackfillPromise
+  __subdivisionBackfillPromise = (async () => {
+    try {
+      const users = await prisma.user.findMany({
+        where: { subdivision: { not: null } },
+        select: { id: true, subdivision: true, division: true },
+      })
+      for (const u of users) {
+        if (!u.subdivision) continue
+        const validSub = isValidDailyActivitySubdivision(u.division ?? null, u.subdivision)
+        if (!validSub) continue
+        await prisma.dailyActivityItem.updateMany({
+          where: { ownerUserId: u.id, OR: [{ subdivision: null }, { subdivision: { not: u.subdivision } }] },
+          data: { subdivision: u.subdivision },
+        })
+      }
+    } catch {
+      // Abaikan error backfill; tidak boleh mengganggu operasi utama.
+    }
+  })()
+  return __subdivisionBackfillPromise
+}
+
 export type DailyActivityScope = {
   userId: number
   userName: string
@@ -251,19 +277,27 @@ function deriveDefaultPlanningLevel(role?: string | null): DailyActivityPlanning
 export async function resolveDailyActivityScope(user: SessionUser): Promise<DailyActivityScope> {
   await ensureDailyActivityTables()
 
-  const profile = await prisma.dailyActivityProfile.findUnique({ where: { userId: user.id } })
+  const [profile, userRecord] = await Promise.all([
+    prisma.dailyActivityProfile.findUnique({ where: { userId: user.id } }),
+    prisma.user.findUnique({ where: { id: user.id }, select: { subdivision: true } }),
+  ])
 
   const division = normalizeDailyActivityDivisionName(profile?.division ?? user.division ?? null)
   const planningLevel = profile
     ? normalizeDailyActivityPlanningLevel(profile.planningLevel)
     : deriveDefaultPlanningLevel(user.role)
 
+  // Sub divisi: utamakan dari profile, lalu dari data user/karyawan.
+  const rawSubdivision = profile?.subdivision ?? userRecord?.subdivision ?? null
+  const subdivision =
+    rawSubdivision && isValidDailyActivitySubdivision(division, rawSubdivision) ? rawSubdivision : null
+
   return {
     userId: user.id,
     userName: user.name,
     role: user.role,
     division,
-    subdivision: profile?.subdivision ?? null,
+    subdivision,
     planningLevel,
     isAdmin: isAdminRole(user.role),
     isApprover: isDailyActivityApproverLevel(planningLevel),
@@ -481,7 +515,7 @@ export async function getDailyActivityPageData(
   user: SessionUser,
   filters: DailyActivityFilters = {}
 ): Promise<DailyActivityPageData> {
-  const scope = await resolveDailyActivityScope(user)
+  const [scope] = await Promise.all([resolveDailyActivityScope(user), backfillDailyActivitySubdivisions()])
   const where = combineWhere(buildVisibilityWhere(scope, filters.scope), buildFilterWhere(filters))
 
   const rows = await prisma.dailyActivityItem.findMany({
