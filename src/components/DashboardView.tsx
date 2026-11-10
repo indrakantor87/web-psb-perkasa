@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
-import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users } from 'lucide-react'
+import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users, CheckCircle2, Clock, AlertTriangle, TrendingUp, Activity, BarChart3, FileText } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getDivisionFromRole, isAdminRole } from '@/lib/access'
 import { MobileHome } from '@/components/MobileHome'
@@ -1209,7 +1209,44 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   ) : null
 
   // Dashboard General Affair: fokus ke rekap Daily Activity lintas divisi (laporan manajemen).
-  const gaContent = gaDailyActivityStats ? (
+  const gaContent = gaDailyActivityStats ? (() => {
+    const g = gaDailyActivityStats
+    const total = g.total || 0
+    const pctDone = total > 0 ? Math.round((g.done / total) * 1000) / 10 : 0
+    const pctPending = total > 0 ? Math.round((g.pending / total) * 1000) / 10 : 0
+    const pctTertunda = total > 0 ? Math.round((g.pendingApproval / total) * 1000) / 10 : 0
+
+    const statusPie = [
+      { name: 'Selesai', value: g.done, color: '#10b981' },
+      { name: 'Dalam Proses', value: g.pending, color: '#3b82f6' },
+      { name: 'Tertunda', value: g.pendingApproval, color: '#f59e0b' },
+      { name: 'Direncanakan', value: g.planned, color: '#8b5cf6' },
+      { name: 'Dibatalkan', value: g.cancel, color: '#ef4444' },
+    ].filter((d) => d.value > 0)
+
+    const recentActivities = (g.board?.divisions ?? []).flatMap((d) =>
+      (d.activities ?? []).map((a) => ({ division: d.division, title: a.title, status: a.executionStatus }))
+    ).slice(0, 6)
+
+    const statusBadge = (status: string) => {
+      const s = String(status ?? '').toUpperCase()
+      if (s.includes('DONE') || s.includes('SELESAI')) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+      if (s.includes('PENDING') || s.includes('PROSES')) return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
+      if (s.includes('CANCEL')) return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+    }
+
+    const divisionIconColor: Record<string, string> = {
+      NOC: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
+      TECHNICAL: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+      'SALES & MARKETING': 'bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400',
+      'FINANCE & ACCOUNTING': 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
+      'HR & GA': 'bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400',
+    }
+    const barColor = (pct: number) =>
+      pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-blue-500' : pct >= 25 ? 'bg-amber-500' : 'bg-rose-500'
+
+    return (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
@@ -1249,35 +1286,297 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Total Aktivitas" value={gaDailyActivityStats.total} hint="Seluruh divisi" />
-        <StatCard label="Selesai" value={gaDailyActivityStats.done} hint="Status DONE" />
-        <StatCard label="Direncanakan" value={gaDailyActivityStats.planned} hint="Status PLANNED" />
-        <StatCard label="Berjalan" value={gaDailyActivityStats.pending} hint="Status PENDING" />
-        <StatCard label="Dibatalkan" value={gaDailyActivityStats.cancel} hint="Status CANCEL" />
-        <StatCard label="Menunggu Approve" value={gaDailyActivityStats.pendingApproval} hint="Approval PENDING" />
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <Activity className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">Total Aktivitas</div>
+              <div className="text-2xl font-bold tabular-nums text-ink">{g.total}</div>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span>Seluruh divisi periode aktif</span>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">Selesai</div>
+              <div className="text-2xl font-bold tabular-nums text-ink">{g.done}</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-ink-muted">{pctDone}% dari total</div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">Dalam Proses</div>
+              <div className="text-2xl font-bold tabular-nums text-ink">{g.pending}</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-ink-muted">{pctPending}% dari total</div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-medium uppercase tracking-wide text-ink-muted">Tertunda</div>
+              <div className="text-2xl font-bold tabular-nums text-ink">{g.pendingApproval}</div>
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-ink-muted">{pctTertunda}% dari total</div>
+        </Card>
       </div>
 
-      {gaDailyActivityStats.board && (
+      {/* Progress per Divisi */}
+      <Card className="p-5 sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-ink">Progress Aktivitas per Divisi</h3>
+            <p className="text-sm text-ink-muted">Persentase penyelesaian pada periode aktif</p>
+          </div>
+          <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Lihat Detail →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+          {g.byDivision.map((row) => {
+            const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0
+            return (
+              <div key={row.division} className="rounded-xl border border-line bg-surface p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className={clsx('flex h-8 w-8 items-center justify-center rounded-lg', divisionIconColor[row.division.toUpperCase()] ?? 'bg-surface-muted text-ink-muted')}>
+                    <BarChart3 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-ink truncate">{row.division}</div>
+                  </div>
+                  <div className="ml-auto text-lg font-bold tabular-nums text-ink">{pct}%</div>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-line">
+                  <div className={clsx('h-full rounded-full', barColor(pct))} style={{ width: `${Math.min(pct, 100)}%` }} />
+                </div>
+                <div className="mt-2 text-xs text-ink-muted">
+                  {row.total} aktivitas • {row.done} selesai, {row.total - row.done} proses
+                </div>
+              </div>
+            )
+          })}
+          {g.byDivision.length === 0 && (
+            <div className="col-span-full py-8 text-center text-sm italic text-ink-muted">
+              Belum ada data daily activity pada periode ini
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Middle row: Tren + Status Pekerjaan + Aktivitas Terbaru */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-ink">Tren Aktivitas 7 Hari Terakhir</h3>
+              <p className="text-sm text-ink-muted">Total aktivitas harian</p>
+            </div>
+          </div>
+          <div className="flex h-56 items-center justify-center rounded-xl bg-surface-muted">
+            <div className="text-center text-sm text-ink-muted">
+              <BarChart3 className="mx-auto mb-2 h-8 w-8 text-ink-muted/50" />
+              Data tren harian belum tersedia di dashboard ini
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-ink">Status Pekerjaan</h3>
+            <p className="text-sm text-ink-muted">Komposisi berdasarkan status</p>
+          </div>
+          {statusPie.length === 0 ? (
+            <div className="flex h-56 items-center justify-center rounded-xl bg-surface-muted text-sm italic text-ink-muted">
+              Tidak ada data
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-center">
+              <div className="h-44 w-44 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusPie}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={72}
+                      paddingAngle={3}
+                    >
+                      {statusPie.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: unknown, name: unknown) => [Number(value ?? 0), String(name ?? '')]}
+                      contentStyle={chartTooltipStyle}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex flex-col items-center sm:items-start">
+                <div className="text-center sm:text-left">
+                  <div className="text-3xl font-bold tabular-nums text-ink">{g.total}</div>
+                  <div className="text-xs text-ink-muted">Total</div>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {statusPie.map((d) => (
+                    <div key={d.name} className="flex items-center gap-2 text-xs">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                      <span className="text-ink-muted">{d.name}</span>
+                      <span className="ml-auto font-semibold tabular-nums text-ink">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-ink">Aktivitas Terbaru</h3>
+              <p className="text-sm text-ink-muted">Kegiatan hari ini per divisi</p>
+            </div>
+            <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+              Lihat Semua →
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {recentActivities.length === 0 ? (
+              <div className="py-6 text-center text-sm italic text-ink-muted">
+                Belum ada aktivitas hari ini
+              </div>
+            ) : (
+              recentActivities.map((act, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-muted text-ink-muted">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-ink line-clamp-1">{act.title || 'Aktivitas'}</div>
+                    <div className="text-xs text-ink-muted">Divisi {act.division}</div>
+                  </div>
+                  <span className={clsx('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', statusBadge(act.status))}>
+                    {act.status || '-'}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Bottom row: Kendala & Blocker + Ringkasan Kinerja Divisi */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-rose-500" />
+              <h3 className="text-base font-semibold text-ink">Kendala &amp; Blocker</h3>
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-400">0 item</span>
+            </div>
+            <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+              Lihat Semua →
+            </Link>
+          </div>
+          <div className="flex h-40 items-center justify-center rounded-xl bg-surface-muted">
+            <div className="text-center text-sm text-ink-muted">
+              <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-ink-muted/50" />
+              Tidak ada kendala yang tercatat
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-ink">Ringkasan Kinerja Divisi</h3>
+            <p className="text-sm text-ink-muted">Persentase penyelesaian per divisi</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Divisi</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted">Selesai %</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-ink-muted">Selesai/Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {g.byDivision.map((row) => {
+                  const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0
+                  return (
+                    <tr key={row.division} className="transition-colors hover:bg-surface-muted">
+                      <td className="px-3 py-2.5 text-sm font-medium text-ink">{row.division}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-sm font-bold tabular-nums text-ink">{pct}%</span>
+                          {pct >= 75 && <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-sm tabular-nums text-ink-muted">{row.done}/{row.total}</td>
+                    </tr>
+                  )
+                })}
+                {g.byDivision.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-3 py-8 text-center text-sm italic text-ink-muted">
+                      Belum ada data
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Papan Harian (Daily Board) — tetap di bagian bawah */}
+      {g.board && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <SectionHeading
               title="Papan Harian (Daily Board)"
-              description={`Rekap kegiatan & kehadiran PIC per divisi — ${gaDailyActivityStats.board.date}`}
+              description={`Rekap kegiatan & kehadiran PIC per divisi — ${g.board.date}`}
             />
             <div className="flex items-center gap-4 text-sm">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span className="text-ink-muted">PIC Hadir: <strong className="text-ink">{gaDailyActivityStats.board.presentCount}</strong></span>
+                <span className="text-ink-muted">PIC Hadir: <strong className="text-ink">{g.board.presentCount}</strong></span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                <span className="text-ink-muted">PIC Tidak Hadir: <strong className="text-ink">{gaDailyActivityStats.board.absentCount}</strong></span>
+                <span className="text-ink-muted">PIC Tidak Hadir: <strong className="text-ink">{g.board.absentCount}</strong></span>
               </span>
             </div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-            {gaDailyActivityStats.board.divisions.map((col) => (
+            {g.board.divisions.map((col) => (
               <Card key={col.division} className="flex flex-col p-4">
                 <div className="mb-3 flex items-start justify-between gap-2 border-b border-line pb-3">
                   <div className="min-w-0">
@@ -1314,133 +1613,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           </div>
         </div>
       )}
-
-      {gaDailyActivityStats.ranking && gaDailyActivityStats.ranking.length > 0 && (
-        <div className="space-y-3">
-          <SectionHeading
-            title="Peringkat Performa Divisi"
-            description="Top 5 divisi berdasarkan persentase penyelesaian daily activity pada periode aktif"
-          />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {gaDailyActivityStats.ranking.map((row) => {
-              const rankColors = [
-                'bg-amber-400 text-amber-950', // 1 - gold
-                'bg-slate-300 text-slate-800', // 2 - silver
-                'bg-amber-700 text-amber-50',  // 3 - bronze
-                'bg-blue-500 text-white',      // 4
-                'bg-blue-400 text-white',      // 5
-              ]
-              const color = rankColors[row.rank - 1] ?? 'bg-blue-400 text-white'
-              return (
-                <Card key={row.division} className="flex flex-col p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span
-                      className={clsx(
-                        'flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold shadow-sm',
-                        color
-                      )}
-                    >
-                      {row.rank}
-                    </span>
-                    <span className="text-right">
-                      <span className="block text-2xl font-bold tabular-nums text-ink">{row.percent}%</span>
-                      <span className="text-[11px] text-ink-muted">selesai</span>
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-ink">{row.division}</h3>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-line">
-                    <div
-                      className={clsx(
-                        'h-full rounded-full transition-all',
-                        row.percent >= 75
-                          ? 'bg-emerald-500'
-                          : row.percent >= 50
-                            ? 'bg-amber-500'
-                            : 'bg-rose-500'
-                      )}
-                      style={{ width: `${Math.min(row.percent, 100)}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs text-ink-muted">
-                    {row.done} dari {row.total} aktivitas selesai
-                  </p>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      <Card className="p-5 sm:p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-ink">Aktivitas per Divisi</h3>
-            <p className="text-sm text-ink-muted">Total vs selesai pada periode aktif</p>
-          </div>
-          <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
-            Lihat detail →
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-line">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Divisi</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Total</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {gaDailyActivityStats.byDivision.map((row) => {
-                const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0
-                return (
-                  <tr key={row.division} className="transition-colors hover:bg-surface-muted">
-                    <td className="px-4 py-3 text-sm font-medium text-ink">{row.division}</td>
-                    <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">{row.total}</td>
-                    <td className="px-4 py-3 text-center text-sm tabular-nums text-emerald-600 dark:text-emerald-400">{row.done}</td>
-                    <td className="px-4 py-3 text-center text-sm tabular-nums text-ink-muted">{pct}%</td>
-                  </tr>
-                )
-              })}
-              {gaDailyActivityStats.byDivision.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-10 text-center text-sm italic text-ink-muted">
-                    Belum ada data daily activity pada periode ini
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Link href="/daily-activity" className={cardClassName({ interactive: true, className: 'p-6' })}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-              <Calendar className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-ink">Daily Activity</h3>
-              <p className="text-sm text-ink-muted">Lihat detail aktivitas harian seluruh divisi</p>
-            </div>
-          </div>
-        </Link>
-        <Link href="/hr" className={cardClassName({ interactive: true, className: 'p-6' })}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-              <Users className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-ink">Absensi</h3>
-              <p className="text-sm text-ink-muted">Lihat rekap absensi Anda</p>
-            </div>
-          </div>
-        </Link>
-      </div>
     </div>
-  ) : null
+    )
+  })() : null
 
   const mainContent = isGa && gaContent
     ? gaContent
