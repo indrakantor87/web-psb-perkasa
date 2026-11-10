@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { X, Printer } from 'lucide-react'
@@ -166,25 +167,45 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
     </div>
   )
 
-  return (
-    <div className="ba-modal fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-2 backdrop-blur-sm sm:p-4">
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <div className="ba-modal-root">
       <style>{`
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-          body * { visibility: hidden; }
-          .ba-modal, .ba-modal * { visibility: visible; }
+          html, body {
+            margin: 0 !important; padding: 0 !important; background: #fff !important;
+            height: auto !important; overflow: visible !important;
+          }
+          /* Sembunyikan SEMUA konten body kecuali modal BA */
+          body > * { display: none !important; }
+          body > .ba-modal-root { display: block !important; }
+          .ba-modal-root {
+            position: static !important;
+            width: 100% !important;
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+          }
           .ba-modal {
-            position: absolute !important;
-            left: 0 !important; top: 0 !important;
+            position: static !important;
+            inset: auto !important;
             width: 100% !important;
             background: #fff !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
             backdrop-filter: none !important;
+            z-index: auto !important;
           }
           .ba-no-print { display: none !important; }
-          .ba-doc { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          .ba-doc {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+          }
           .ba-page {
             page-break-after: always;
             break-after: page;
@@ -196,38 +217,41 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
             margin: 0 !important;
           }
           .ba-page:last-child {
-            page-break-after: auto;
-            break-after: auto;
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
           .ba-input { border: none !important; background: transparent !important; }
-          input[type="checkbox"].ba-input, input[type="checkbox"] { -webkit-appearance: none; appearance: none; }
+          input[type="checkbox"].ba-input, input[type="checkbox"] {
+            -webkit-appearance: none; appearance: none;
+          }
           @page { size: A4; margin: 12mm; }
         }
       `}</style>
 
-      {/* Toolbar */}
-      <div className="ba-no-print sticky top-0 z-10 mb-3 flex items-center justify-between rounded-lg bg-white px-4 py-2 shadow-md">
-        <h2 className="text-sm font-bold text-gray-800">Preview Berita Acara</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-          >
-            <Printer size={14} />
-            Print
-          </button>
-          <button
-            onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-          >
-            <X size={14} />
-            Tutup
-          </button>
+      <div className="ba-modal fixed inset-0 z-50 overflow-y-auto bg-gray-950/80 p-2 backdrop-blur-sm sm:p-4">
+        {/* Toolbar */}
+        <div className="ba-no-print sticky top-0 z-10 mb-3 flex items-center justify-between rounded-lg bg-white px-4 py-2 shadow-md">
+          <h2 className="text-sm font-bold text-gray-800">Preview Berita Acara</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+            >
+              <Printer size={14} />
+              Print
+            </button>
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+            >
+              <X size={14} />
+              Tutup
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Document */}
-      <div className="ba-doc mx-auto max-w-[800px] space-y-4">
+        {/* Document */}
+        <div className="ba-doc mx-auto max-w-[800px] space-y-4">
         {/* PAGE 1 */}
         <div className="ba-page rounded-lg bg-white p-6 shadow-lg sm:p-8">
           <BAHeader error={headerImgError} onError={() => setHeaderImgError(true)} />
@@ -472,6 +496,8 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
           </div>
         </div>
       </div>
+      </div>
     </div>
+    , document.body
   )
 }
