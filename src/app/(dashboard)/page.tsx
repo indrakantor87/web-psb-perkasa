@@ -10,6 +10,7 @@ import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { getDivisionFromRole, isAdminRole, normalizeRole } from '@/lib/access'
+import { getDailyActivityLevelRank, getAllDailyActivityDivisions } from '@/lib/daily-activity-org'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,17 @@ type GaDailyActivityStats = {
   cancel: number
   pendingApproval: number
   byDivision: Array<{ division: string; total: number; done: number }>
+  board?: {
+    date: string
+    presentCount: number
+    absentCount: number
+    divisions: Array<{
+      division: string
+      pic: string
+      picPresent: boolean
+      activities: Array<{ title: string; executionStatus: string }>
+    }>
+  }
 }
 
 type DashboardPayload = {
@@ -1062,6 +1074,76 @@ export default async function DashboardPage({
             ORDER BY total DESC, division ASC
           `).catch(() => []),
         ])
+
+        // Daily Board: PIC + kehadiran + kegiatan hari ini per divisi (mirip whiteboard laporan harian).
+        const allDivisions = getAllDailyActivityDivisions()
+        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+        const todayKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
+
+        const profiles = await prisma.dailyActivityProfile.findMany({
+          select: { userId: true, userName: true, division: true, planningLevel: true },
+        })
+        // PIC per divisi = user dengan planning level tertinggi di divisi tersebut.
+        const picByDivision = new Map<string, { userId: number; userName: string; planningLevel: string }>()
+        for (const p of profiles) {
+          const div = String(p.division || '').trim()
+          if (!div) continue
+          const existing = picByDivision.get(div)
+          if (!existing || getDailyActivityLevelRank(p.planningLevel) > getDailyActivityLevelRank(existing.planningLevel)) {
+            picByDivision.set(div, { userId: p.userId, userName: p.userName, planningLevel: p.planningLevel })
+          }
+        }
+        const picUserIds = Array.from(picByDivision.values()).map((p) => p.userId)
+        const picEmployees = await prisma.employee.findMany({
+          where: { userId: { in: picUserIds } },
+          select: { id: true, userId: true, name: true },
+        })
+        const employeeIdByUserId = new Map<number, number>()
+        for (const e of picEmployees) if (e.userId) employeeIdByUserId.set(e.userId, e.id)
+        const picEmployeeIds = Array.from(employeeIdByUserId.values())
+        const todayAttendances = await prisma.attendance.findMany({
+          where: {
+            employeeId: { in: picEmployeeIds },
+            date: { gte: todayStart, lte: todayEnd },
+            checkIn: { not: null },
+          },
+          select: { employeeId: true },
+        })
+        const presentEmployeeIds = new Set(todayAttendances.map((a) => a.employeeId))
+
+        const todayActivities = await prisma.dailyActivityItem.findMany({
+          where: { activityDate: { gte: todayStart, lte: todayEnd } },
+          select: { division: true, title: true, executionStatus: true },
+          orderBy: [{ division: 'asc' }],
+        })
+        const activitiesByDivision = new Map<string, Array<{ title: string; executionStatus: string }>>()
+        for (const a of todayActivities) {
+          const div = String(a.division || '').trim() || 'Tanpa Divisi'
+          const list = activitiesByDivision.get(div) ?? []
+          list.push({ title: a.title, executionStatus: a.executionStatus })
+          activitiesByDivision.set(div, list)
+        }
+
+        let presentCount = 0
+        let absentCount = 0
+        const boardDivisions = allDivisions.map((division) => {
+          const pic = picByDivision.get(division)
+          const picName = pic?.userName ?? '-'
+          const employeeId = pic ? employeeIdByUserId.get(pic.userId) : undefined
+          const picPresent = Boolean(employeeId && presentEmployeeIds.has(employeeId))
+          if (pic && picName !== '-') {
+            if (picPresent) presentCount += 1
+            else absentCount += 1
+          }
+          return {
+            division,
+            pic: picName,
+            picPresent,
+            activities: activitiesByDivision.get(division) ?? [],
+          }
+        })
+
         gaDailyActivityStats = {
           total,
           done,
@@ -1074,6 +1156,12 @@ export default async function DashboardPage({
             total: Number(r.total || 0),
             done: Number(r.done || 0),
           })),
+          board: {
+            date: todayKey,
+            presentCount,
+            absentCount,
+            divisions: boardDivisions,
+          },
         }
       } catch {
         gaDailyActivityStats = {

@@ -54,6 +54,17 @@ type GaDailyActivityStats = {
   cancel: number
   pendingApproval: number
   byDivision: Array<{ division: string; total: number; done: number }>
+  board?: {
+    date: string
+    presentCount: number
+    absentCount: number
+    divisions: Array<{
+      division: string
+      pic: string
+      picPresent: boolean
+      activities: Array<{ title: string; executionStatus: string }>
+    }>
+  }
 }
 
 interface DashboardViewProps {
@@ -1239,6 +1250,62 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         <StatCard label="Dibatalkan" value={gaDailyActivityStats.cancel} hint="Status CANCEL" />
         <StatCard label="Menunggu Approve" value={gaDailyActivityStats.pendingApproval} hint="Approval PENDING" />
       </div>
+
+      {gaDailyActivityStats.board && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionHeading
+              title="Papan Harian (Daily Board)"
+              description={`Rekap kegiatan & kehadiran PIC per divisi — ${gaDailyActivityStats.board.date}`}
+            />
+            <div className="flex items-center gap-4 text-sm">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <span className="text-ink-muted">PIC Hadir: <strong className="text-ink">{gaDailyActivityStats.board.presentCount}</strong></span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+                <span className="text-ink-muted">PIC Tidak Hadir: <strong className="text-ink">{gaDailyActivityStats.board.absentCount}</strong></span>
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+            {gaDailyActivityStats.board.divisions.map((col) => (
+              <Card key={col.division} className="flex flex-col p-4">
+                <div className="mb-3 flex items-start justify-between gap-2 border-b border-line pb-3">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold uppercase tracking-wide text-ink">{col.division}</h3>
+                    <p className="mt-0.5 truncate text-xs text-ink-muted">PIC: {col.pic}</p>
+                  </div>
+                  <span
+                    className={clsx(
+                      'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+                      col.picPresent
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+                        : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
+                    )}
+                  >
+                    <span className={clsx('h-1.5 w-1.5 rounded-full', col.picPresent ? 'bg-emerald-500' : 'bg-rose-500')} />
+                    {col.picPresent ? 'Ada' : 'Tidak'}
+                  </span>
+                </div>
+                <ul className="space-y-1.5 text-sm">
+                  {col.activities.length === 0 ? (
+                    <li className="text-xs italic text-ink-muted">Belum ada kegiatan hari ini</li>
+                  ) : (
+                    col.activities.map((act, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
+                        <span className="text-ink">{act.title}</span>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Card className="p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
