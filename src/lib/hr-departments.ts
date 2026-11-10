@@ -13,7 +13,7 @@ export const DEFAULT_HR_DIVISION: HrDivision = 'Pemasaran dan Pelayanan'
 
 /** Sub divisi per divisi HR — baseline klasifikasi & kewenangan karyawan. */
 export const HR_DIVISION_SUBDIVISIONS: Record<HrDivision, readonly string[]> = {
-  'Pemasaran dan Pelayanan': ['Marketing', 'Customer Service', 'NOC', 'Troubleshoots', 'Digital Creator'],
+  'Pemasaran dan Pelayanan': ['Marketing', 'Customer Service', 'NOC & Troubleshoots', 'Digital Creator'],
   'General Affair': ['Legal', 'Inventory'],
   Teknisi: ['PSB', 'Expan', 'Jointer'],
   'Finance & HR': ['Finance', 'HR', 'Admin Finance'],
@@ -36,8 +36,15 @@ export function getHrSubdivisions(division?: string | null): readonly string[] {
   return isKnownDivision(value) ? HR_DIVISION_SUBDIVISIONS[value] : []
 }
 
+const NOC_TROUBLESHOOT_ALIASES = new Set(['noc', 'troubleshoots', 'troubleshoot'])
+
+function normalizeHrSubdivision(value: string): string {
+  if (NOC_TROUBLESHOOT_ALIASES.has(value.toLowerCase())) return 'NOC & Troubleshoots'
+  return value
+}
+
 export function isKnownHrSubdivision(division?: string | null, subdivision?: string | null): boolean {
-  const value = String(subdivision ?? '').trim()
+  const value = normalizeHrSubdivision(String(subdivision ?? '').trim())
   if (!value) return false
   return getHrSubdivisions(division).some((item) => item.toLowerCase() === value.toLowerCase())
 }

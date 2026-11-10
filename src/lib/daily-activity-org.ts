@@ -95,12 +95,25 @@ export function getDailyActivityLevelRank(value?: string | null) {
   return DAILY_ACTIVITY_LEVEL_RANK[normalizeDailyActivityPlanningLevel(value)]
 }
 
+/**
+ * Alias nama sub divisi yang telah digabung.
+ * "NOC" dan "Troubleshoots" sekarang menjadi satu sub divisi "NOC & Troubleshoots".
+ * Data lama yang masih menyimpan nilai "NOC" atau "Troubleshoots" dinormalisasi ke nama baru.
+ */
+const NOC_TROUBLESHOOT_ALIASES = new Set(['noc', 'troubleshoots', 'troubleshoot'])
+
+export function normalizeDailyActivitySubdivision(value: string | null | undefined): string {
+  const v = String(value ?? '').trim()
+  if (NOC_TROUBLESHOOT_ALIASES.has(v.toLowerCase())) return 'NOC & Troubleshoots'
+  return v
+}
+
 export function getDailyActivitySubdivisions(division?: string | null): readonly string[] {
   return DAILY_ACTIVITY_DIVISION_SUBDIVISIONS[normalizeDailyActivityDivisionName(division)] ?? []
 }
 
 export function isValidDailyActivitySubdivision(division: string | null | undefined, subdivision?: string | null) {
-  const value = String(subdivision ?? '').trim()
+  const value = normalizeDailyActivitySubdivision(subdivision)
   if (!value) return false
   const list = getDailyActivitySubdivisions(division)
   return list.some((item) => item.toLowerCase() === value.toLowerCase())

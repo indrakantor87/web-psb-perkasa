@@ -65,6 +65,10 @@ type GaDailyActivityStats = {
       filledSubdivisions: number
       fillStatus: 'done' | 'kurang' | 'belum'
       activities: Array<{ title: string; executionStatus: string }>
+      subdivisionGroups: Array<{
+        subdivision: string
+        activities: Array<{ title: string; executionStatus: string }>
+      }>
     }>
   }
   ranking?: Array<{
@@ -1625,18 +1629,36 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
                       {statusConfig.label}
                     </span>
                   </div>
-                  <ul className="space-y-1.5 text-sm">
-                    {col.activities.length === 0 ? (
-                      <li className="text-xs italic text-ink-muted">Belum ada kegiatan hari ini</li>
-                    ) : (
-                      col.activities.map((act, i) => (
+                  {col.activities.length === 0 ? (
+                    <p className="text-xs italic text-ink-muted">Belum ada kegiatan hari ini</p>
+                  ) : col.subdivisionGroups.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {col.subdivisionGroups.map((grp, gi) => (
+                        <div key={gi}>
+                          <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wide text-blue-400">
+                            {grp.subdivision}
+                          </h4>
+                          <ul className="space-y-1">
+                            {grp.activities.map((act, ai) => (
+                              <li key={ai} className="flex items-start gap-1.5">
+                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-blue-400" />
+                                <span className="text-sm text-ink">{act.title}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <ul className="space-y-1.5 text-sm">
+                      {col.activities.map((act, i) => (
                         <li key={i} className="flex items-start gap-2">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
                           <span className="text-ink">{act.title}</span>
                         </li>
-                      ))
-                    )}
-                  </ul>
+                      ))}
+                    </ul>
+                  )}
                 </Card>
               )
             })}

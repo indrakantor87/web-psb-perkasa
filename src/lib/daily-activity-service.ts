@@ -16,6 +16,7 @@ import {
   isValidDailyActivitySubdivision,
   normalizeDailyActivityDivisionName,
   normalizeDailyActivityPlanningLevel,
+  normalizeDailyActivitySubdivision,
   resolveDefaultDailyActivitySubdivision,
 } from '@/lib/daily-activity-org'
 import { ensureDailyActivityTables } from '@/lib/daily-activity-schema'
@@ -243,7 +244,7 @@ function toItemDto(row: DailyActivityRow): DailyActivityItemDto {
     ownerUserId: row.ownerUserId ?? null,
     ownerName: row.ownerName,
     division: row.division,
-    subdivision: row.subdivision ?? null,
+    subdivision: normalizeDailyActivitySubdivision(row.subdivision ?? null),
     planningLevel: normalizeDailyActivityPlanningLevel(row.planningLevel),
     title: row.title,
     detail: row.detail ?? null,

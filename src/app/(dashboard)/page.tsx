@@ -10,7 +10,7 @@ import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
 import { getDivisionFromRole, isAdminRole, normalizeRole } from '@/lib/access'
-import { getAllDailyActivityDivisions, getDailyActivitySubdivisions } from '@/lib/daily-activity-org'
+import { getAllDailyActivityDivisions, getDailyActivitySubdivisions, normalizeDailyActivitySubdivision } from '@/lib/daily-activity-org'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +64,10 @@ type GaDailyActivityStats = {
       filledSubdivisions: number
       fillStatus: 'done' | 'kurang' | 'belum'
       activities: Array<{ title: string; executionStatus: string }>
+      subdivisionGroups: Array<{
+        subdivision: string
+        activities: Array<{ title: string; executionStatus: string }>
+      }>
     }>
   }
   ranking?: Array<{
@@ -1105,16 +1109,24 @@ export default async function DashboardPage({
         // Group activities by division, then track which subdivisions have at least one activity.
         const activitiesByDivision = new Map<string, Array<{ title: string; executionStatus: string }>>()
         const filledSubdivisionsByDivision = new Map<string, Set<string>>()
+        // Kelompokkan kegiatan per divisi lalu per sub divisi (untuk tampilan papan harian).
+        const activitiesByDivisionSubdivision = new Map<string, Map<string, Array<{ title: string; executionStatus: string }>>>()
         for (const a of todayActivities) {
           const div = String(a.division || '').trim() || 'Tanpa Divisi'
           const list = activitiesByDivision.get(div) ?? []
           list.push({ title: a.title, executionStatus: a.executionStatus })
           activitiesByDivision.set(div, list)
-          const sub = String(a.subdivision || '').trim()
+          const sub = normalizeDailyActivitySubdivision(a.subdivision)
           if (sub) {
             const set = filledSubdivisionsByDivision.get(div) ?? new Set<string>()
             set.add(sub)
             filledSubdivisionsByDivision.set(div, set)
+
+            const bySub = activitiesByDivisionSubdivision.get(div) ?? new Map<string, Array<{ title: string; executionStatus: string }>>()
+            const subList = bySub.get(sub) ?? []
+            subList.push({ title: a.title, executionStatus: a.executionStatus })
+            bySub.set(sub, subList)
+            activitiesByDivisionSubdivision.set(div, bySub)
           }
         }
 
@@ -1142,12 +1154,27 @@ export default async function DashboardPage({
           if (fillStatus === 'done') doneCount += 1
           else if (fillStatus === 'kurang') kurangCount += 1
           else belumCount += 1
+
+          // Susun kelompok sub divisi: ikut urutan daftar resmi, lalu sub divisi tak dikenal (jika ada) di akhir.
+          const bySub = activitiesByDivisionSubdivision.get(division)
+          const subdivisionGroups: Array<{ subdivision: string; activities: Array<{ title: string; executionStatus: string }> }> = []
+          if (bySub) {
+            const ordered = new Set<string>([...subdivisions, ...bySub.keys()])
+            for (const sub of ordered) {
+              const acts = bySub.get(sub)
+              if (acts && acts.length > 0) {
+                subdivisionGroups.push({ subdivision: sub, activities: acts })
+              }
+            }
+          }
+
           return {
             division,
             totalSubdivisions,
             filledSubdivisions,
             fillStatus,
             activities: activitiesByDivision.get(division) ?? [],
+            subdivisionGroups,
           }
         })
 
