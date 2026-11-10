@@ -45,14 +45,12 @@ type EmployeeOption = {
 type Summary = {
   totalRecords: number
   totalEmployees: number
-  totalOvertimeMinutes: number
 }
 
 type DivisionRow = {
   department: string
   records: number
   employees: number
-  overtimeMinutes: number
 }
 
 type MachineConfig = { ip: string; port: number }
@@ -102,13 +100,6 @@ function formatTimeWIB(value: string | null) {
   return `${pad(wib.getUTCHours())}:${pad(wib.getUTCMinutes())}`
 }
 
-function formatOvertime(minutes: number) {
-  if (!minutes || minutes <= 0) return '-'
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return `${hours}.${pad(mins)} Jam`
-}
-
 function describeAttendance(row: AttendanceRow): { label: string; tone: ChipTone } {
   const hasIn = Boolean(row.checkIn)
   const hasOut = Boolean(row.checkOut)
@@ -124,7 +115,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
   const range = useMemo(() => monthToRange(month), [month])
   const [items, setItems] = useState<AttendanceRow[]>([])
   const [employees, setEmployees] = useState<EmployeeOption[]>([])
-  const [summary, setSummary] = useState<Summary>({ totalRecords: 0, totalEmployees: 0, totalOvertimeMinutes: 0 })
+  const [summary, setSummary] = useState<Summary>({ totalRecords: 0, totalEmployees: 0 })
   const [divisions, setDivisions] = useState<DivisionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -181,7 +172,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       }
       setItems(data.items ?? [])
       setEmployees(data.employees ?? [])
-      setSummary(data.summary ?? { totalRecords: 0, totalEmployees: 0, totalOvertimeMinutes: 0 })
+      setSummary(data.summary ?? { totalRecords: 0, totalEmployees: 0 })
       setDivisions(data.divisions ?? [])
     } catch {
       setFeedback({ tone: 'danger', message: 'Gagal memuat data absensi' })
@@ -203,13 +194,13 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
     }
     const needle = query.trim().toLowerCase()
     return employees
+      .filter((employee) => employee.isActive && Boolean(employee.fingerprintId))
       .filter((employee) => !departmentFilter || employee.department === departmentFilter)
       .filter((employee) => !needle || employee.name.toLowerCase().includes(needle))
       .map((employee) => {
         const records = (byEmployee.get(employee.id) ?? []).slice().sort((a, b) => a.date.localeCompare(b.date))
         const presentDays = records.filter((row) => Boolean(row.checkIn)).length
-        const overtimeMinutes = records.reduce((sum, row) => sum + row.overtimeMinutes, 0)
-        return { employee, records, presentDays, overtimeMinutes }
+        return { employee, records, presentDays }
       })
       .sort((a, b) => {
         const byDepartment = a.employee.department.localeCompare(b.employee.department)
@@ -593,7 +584,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
             Absensi Karyawan
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Data absensi yang ditarik dari mesin fingerprint, dihitung otomatis termasuk lembur (WIB).
+            Data absensi yang ditarik dari mesin fingerprint (WIB). Hanya karyawan aktif dan terdaftar di mesin yang ditampilkan.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -635,7 +626,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted">Total Kehadiran</p>
           <p className="mt-1 text-2xl font-bold text-ink tabular-nums">{summary.totalRecords}</p>
@@ -643,10 +634,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted">Karyawan Tercatat</p>
           <p className="mt-1 text-2xl font-bold text-ink tabular-nums">{summary.totalEmployees}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted">Total Lembur</p>
-          <p className="mt-1 text-2xl font-bold text-ink tabular-nums">{formatOvertime(summary.totalOvertimeMinutes)}</p>
         </Card>
       </div>
 
@@ -663,9 +650,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                   </span>
                   <span>
                     Karyawan: <span className="font-medium tabular-nums text-ink">{division.employees}</span>
-                  </span>
-                  <span>
-                    Lembur: <span className="font-medium tabular-nums text-ink">{formatOvertime(division.overtimeMinutes)}</span>
                   </span>
                 </div>
               </div>
@@ -736,7 +720,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                       <th className="px-4 py-3 font-semibold">Karyawan</th>
                       <th className="px-4 py-3 font-semibold">Divisi</th>
                       <th className="px-4 py-3 font-semibold">Hadir</th>
-                      <th className="px-4 py-3 font-semibold">Lembur (Jam)</th>
                       <th className="px-4 py-3 text-right font-semibold">Detail</th>
                     </tr>
                   </thead>
@@ -753,7 +736,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                             <td className="px-4 py-3 font-medium text-ink">{group.employee.name}</td>
                             <td className="px-4 py-3 text-ink-muted">{group.employee.department || '-'}</td>
                             <td className="px-4 py-3 tabular-nums text-ink">{group.presentDays} hari</td>
-                            <td className="px-4 py-3 tabular-nums text-ink">{formatOvertime(group.overtimeMinutes)}</td>
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
@@ -773,7 +755,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                           </tr>
                           {expanded && (
                             <tr className="border-t border-line bg-surface-muted/60">
-                              <td colSpan={6} className="px-4 py-3">
+                              <td colSpan={5} className="px-4 py-3">
                                 {group.records.length === 0 ? (
                                   <p className="text-xs text-ink-muted">Tidak ada absensi pada bulan ini.</p>
                                 ) : (
@@ -784,7 +766,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                                           <th className="px-3 py-2 font-semibold">Tanggal</th>
                                           <th className="px-3 py-2 font-semibold">Jam Masuk</th>
                                           <th className="px-3 py-2 font-semibold">Jam Pulang</th>
-                                          <th className="px-3 py-2 font-semibold">Lembur (Jam)</th>
                                           <th className="px-3 py-2 font-semibold">Status</th>
                                         </tr>
                                       </thead>
@@ -801,9 +782,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                                               </td>
                                               <td className="px-3 py-2 tabular-nums font-medium text-emerald-600 dark:text-emerald-400">
                                                 {formatTimeWIB(record.checkOut)}
-                                              </td>
-                                              <td className="px-3 py-2 tabular-nums text-ink">
-                                                {formatOvertime(record.overtimeMinutes)}
                                               </td>
                                               <td className="px-3 py-2">
                                                 <Chip tone={status.tone}>{status.label}</Chip>
@@ -842,14 +820,9 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                           {group.employee.department || '-'} · {group.presentDays} hari hadir
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Chip tone={group.overtimeMinutes > 0 ? 'warning' : 'neutral'}>
-                          {formatOvertime(group.overtimeMinutes)}
-                        </Chip>
-                        <ChevronDown
-                          className={clsx('h-4 w-4 text-ink-muted transition-transform', expanded && 'rotate-180')}
-                        />
-                      </div>
+                      <ChevronDown
+                        className={clsx('h-4 w-4 text-ink-muted transition-transform', expanded && 'rotate-180')}
+                      />
                     </button>
                     {expanded && (
                       <div className="mt-3 rounded-xl border border-line bg-surface-muted px-3 py-2">
@@ -865,7 +838,6 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                                     <p className="font-medium text-ink tabular-nums">{formatDateLabel(record.date)}</p>
                                     <p className="text-ink-muted tabular-nums">
                                       {formatTimeWIB(record.checkIn)}–{formatTimeWIB(record.checkOut)}
-                                      {record.overtimeMinutes > 0 ? ` · ${formatOvertime(record.overtimeMinutes)}` : ''}
                                     </p>
                                   </div>
                                   <Chip tone={status.tone}>{status.label}</Chip>
@@ -1081,7 +1053,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
 
       {(userRole || '').toUpperCase() === 'HR' && (
         <p className="text-xs text-ink-muted">
-          Sumber absensi tunggal: mesin fingerprint (FINGERPRINT_MACHINE). Perhitungan lembur dilakukan di server.
+          Sumber absensi tunggal: mesin fingerprint (FINGERPRINT_MACHINE).
         </p>
       )}
 

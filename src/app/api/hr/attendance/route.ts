@@ -49,6 +49,11 @@ export async function GET(request: Request) {
         lte: new Date(`${to}T23:59:59.999Z`),
       },
     }
+    // Hanya karyawan aktif dan terdaftar di mesin fingerprint yang ditampilkan.
+    const activeFingerprintFilter = {
+      isActive: true,
+      AND: [{ fingerprintId: { not: null } }, { fingerprintId: { not: '' } }],
+    }
     const isMarketing = String(session?.user.role ?? '').trim().toUpperCase() === 'MARKETING'
     const marketingEmployeeId = isMarketing
       ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
@@ -59,7 +64,7 @@ export async function GET(request: Request) {
         ? -1
         : employeeIdRaw
     }
-    const employeeFilter: Record<string, unknown> = {}
+    const employeeFilter: Record<string, unknown> = { ...activeFingerprintFilter }
     if (query) employeeFilter.name = { contains: query, mode: 'insensitive' }
     if (department) employeeFilter.department = department
     if (Object.keys(employeeFilter).length > 0) {
@@ -116,7 +121,7 @@ export async function GET(request: Request) {
       .sort((a, b) => a.department.localeCompare(b.department))
 
     const employees = await prisma.employee.findMany({
-      where: isMarketing ? { id: marketingEmployeeId ?? -1 } : undefined,
+      where: isMarketing ? { id: marketingEmployeeId ?? -1 } : activeFingerprintFilter,
       select: { id: true, name: true, department: true, fingerprintId: true, isActive: true },
       orderBy: { name: 'asc' },
     })
