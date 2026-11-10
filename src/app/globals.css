@@ -130,35 +130,43 @@ body {
   }
 }
 
-/* Marquee: teks header berjalan kanan -> kiri, berhenti saat di-hover */
-@keyframes headerMarquee {
+/* Marquee label menu: hanya teks yang berjalan, icon tetap statis.
+   Hanya aktif pada label yang overflow (lebar teks > container).
+   Dipakai khusus menu yang punya logo (flat links).
+   Menu tanpa logo / ber-chevron tidak pakai class ini. */
+@keyframes navLabelMarquee {
   0% {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% - 0.75rem));
   }
 }
 
-.header-marquee {
+.nav-label {
+  display: inline-block;
   overflow: hidden;
-  position: relative;
+  white-space: nowrap;
+  max-width: 5rem; /* 80px — cukup untuk label pendek, label panjang akan marquee */
+  vertical-align: middle;
 }
 
-.header-marquee-track {
+.nav-label-track {
   display: inline-flex;
   align-items: center;
+  gap: 1.5rem;
   white-space: nowrap;
-  animation: headerMarquee 50s linear infinite;
+}
+
+/* Hanya label yang overflow yang dapat animasi */
+.nav-label.is-overflow .nav-label-track {
+  animation: navLabelMarquee 7s linear infinite;
   will-change: transform;
 }
 
-.header-marquee:hover .header-marquee-track {
+/* Berhenti saat di-hover agar teks bisa dibaca & link diklik */
+.nav-label:hover .nav-label-track {
   animation-play-state: paused;
-}
-
-.header-marquee-item {
-  flex-shrink: 0;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -171,7 +179,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .header-marquee-track {
+  .nav-label.is-overflow .nav-label-track {
     animation: none;
   }
 }

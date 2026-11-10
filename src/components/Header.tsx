@@ -1,7 +1,8 @@
 'use client'
 
 import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, ClipboardList, Wrench, Calendar, Target, Users, TrendingUp, Fingerprint } from 'lucide-react'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
@@ -205,34 +206,71 @@ export function Header({ user }: { user: SessionUser }) {
   const desktopFlatLinks = flatLinks.filter(
     (link) => !matchesGroupPath(link, ticketingGroup) && !matchesGroupPath(link, digitalGroup),
   )
-  const renderFlatNavLink = (link: HeaderNavLink, keyPrefix = '') => {
+
+  // Label menu yang berjalan (marquee) hanya untuk teks yang overflow.
+  // Icon tetap statis. Hanya dipakai pada menu yang punya logo (flat links).
+  function MarqueeLabel({ children }: { children: ReactNode }) {
+    const ref = useRef<HTMLSpanElement>(null)
+    const [overflow, setOverflow] = useState(false)
+
+    const measure = useCallback(() => {
+      const el = ref.current
+      if (!el || el.clientWidth === 0) return
+      setOverflow(el.scrollWidth > el.clientWidth + 1)
+    }, [])
+
+    useLayoutEffect(() => {
+      measure()
+    }, [children, measure])
+
+    useEffect(() => {
+      // Ukur ulang setelah font selesai dimuat (ukuran teks bisa berubah)
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        document.fonts.ready.then(measure).catch(() => {})
+      }
+      // Ukur ulang saat window di-resize (nav bisa bertambah/sempit)
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }, [measure])
+
+    return (
+      <span ref={ref} className={clsx('nav-label', overflow && 'is-overflow')}>
+        <span className="nav-label-track">
+          <span className="nav-label-text">{children}</span>
+          {overflow && <span className="nav-label-text" aria-hidden="true">{children}</span>}
+        </span>
+      </span>
+    )
+  }
+
+  const renderFlatNavLink = (link: HeaderNavLink) => {
     const Icon = link.icon
     const isActive = matchesLink(link)
     return (
       <Link
-        key={`${keyPrefix}${link.href}`}
+        key={link.href}
         href={link.href}
         prefetch={false}
         onClick={() => setOpenDivisionMenu(null)}
         className={clsx(
-          'header-marquee-item flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+          'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
           isActive
             ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
             : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
         )}
       >
-        <Icon className="h-4 w-4 mr-2" />
-        {link.label}
+        <Icon className="h-4 w-4 mr-2 shrink-0" />
+        <MarqueeLabel>{link.label}</MarqueeLabel>
       </Link>
     )
   }
 
-  const renderNavGroup = (group: HeaderNavGroup, keyPrefix = '') => {
+  const renderNavGroup = (group: HeaderNavGroup) => {
     const isOpenGroup = openDivisionMenu === group.key
     const isActive = group.items.some((item) => matchesLink(item))
 
     return (
-      <div key={`${keyPrefix}${group.key}`} className="header-marquee-item relative">
+      <div key={group.key} className="relative">
         <button
           onClick={() => {
             setOpenDivisionMenu((current) => (current === group.key ? null : group.key))
@@ -351,23 +389,11 @@ export function Header({ user }: { user: SessionUser }) {
             )}
           </div>
 
-          <div className="hidden md:flex items-center gap-1 overflow-hidden flex-1 min-w-0">
-            <nav ref={divisionNavRef} className="header-marquee flex-1 min-w-0">
-              <div className="header-marquee-track">
-                <div className="flex items-center gap-1 pr-1">
-                  {desktopFlatLinks.slice(0, 1).map((l) => renderFlatNavLink(l, 'a-'))}
-                  {ticketingGroup && renderNavGroup(ticketingGroup, 'a-')}
-                  {desktopFlatLinks.slice(1).map((l) => renderFlatNavLink(l, 'a-'))}
-                  {digitalGroup && renderNavGroup(digitalGroup, 'a-')}
-                </div>
-                <div className="flex items-center gap-1 pr-1" aria-hidden="true">
-                  {desktopFlatLinks.slice(0, 1).map((l) => renderFlatNavLink(l, 'b-'))}
-                  {ticketingGroup && renderNavGroup(ticketingGroup, 'b-')}
-                  {desktopFlatLinks.slice(1).map((l) => renderFlatNavLink(l, 'b-'))}
-                  {digitalGroup && renderNavGroup(digitalGroup, 'b-')}
-                </div>
-              </div>
-            </nav>
+          <nav ref={divisionNavRef} className="hidden md:flex items-center space-x-1">
+            {desktopFlatLinks.slice(0, 1).map(renderFlatNavLink)}
+            {ticketingGroup && renderNavGroup(ticketingGroup)}
+            {desktopFlatLinks.slice(1).map(renderFlatNavLink)}
+            {digitalGroup && renderNavGroup(digitalGroup)}
 
             <div className="relative" ref={settingsRefDesktop}>
               <button
@@ -456,7 +482,7 @@ export function Header({ user }: { user: SessionUser }) {
                 </div>
               )}
             </div>
-          </div>
+          </nav>
         </div>
         
           <div className="flex items-center space-x-3 sm:space-x-4">
