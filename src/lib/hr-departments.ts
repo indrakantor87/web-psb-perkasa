@@ -4,6 +4,7 @@ export const HR_DIVISIONS = [
   'Teknisi',
   'Finance & HR',
   'General Manager',
+  'Operasional',
 ] as const
 
 export type HrDivision = (typeof HR_DIVISIONS)[number]
@@ -16,7 +17,18 @@ export const HR_DIVISION_SUBDIVISIONS: Record<HrDivision, readonly string[]> = {
   'General Affair': ['Legal', 'Inventory'],
   Teknisi: ['PSB', 'Expan', 'Jointer'],
   'Finance & HR': ['Finance', 'HR', 'Admin Finance'],
-  'General Manager': ['General Manager'],
+  'General Manager': [],
+  Operasional: [],
+}
+
+/** Jabatan yang tidak memiliki sub divisi (level manajemen puncak). */
+export const HR_POSITIONS_WITHOUT_SUBDIVISION = ['General Manager', 'Manager'] as const
+
+/** True jika jabatan tidak perlu mengisi sub divisi. */
+export function isPositionWithoutSubdivision(position?: string | null): boolean {
+  const value = String(position ?? '').trim()
+  if (!value) return false
+  return (HR_POSITIONS_WITHOUT_SUBDIVISION as readonly string[]).some((item) => item.toLowerCase() === value.toLowerCase())
 }
 
 export function getHrSubdivisions(division?: string | null): readonly string[] {

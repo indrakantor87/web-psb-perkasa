@@ -15,6 +15,7 @@ import {
   HR_EMPLOYMENT_STATUSES,
   HR_POSITIONS,
   getHrSubdivisions,
+  isPositionWithoutSubdivision,
   type HrDivision,
 } from '@/lib/hr-departments'
 
@@ -302,7 +303,15 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                   Jabatan
                   <select
                     value={form.position}
-                    onChange={(event) => setForm((prev) => ({ ...prev, position: event.target.value }))}
+                    onChange={(event) =>
+                      setForm((prev) => {
+                        const nextPosition = event.target.value
+                        // Jabatan General Manager & Manager tidak memiliki sub divisi.
+                        return isPositionWithoutSubdivision(nextPosition)
+                          ? { ...prev, position: nextPosition, subdivision: '' }
+                          : { ...prev, position: nextPosition }
+                      })
+                    }
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   >
                     {positionOptions.map((option) => (
@@ -317,7 +326,11 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                   <select
                     value={form.subdivision}
                     onChange={(event) => setForm((prev) => ({ ...prev, subdivision: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                    disabled={isPositionWithoutSubdivision(form.position)}
+                    className={clsx(
+                      'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100',
+                      isPositionWithoutSubdivision(form.position) && 'cursor-not-allowed opacity-60'
+                    )}
                   >
                     {subdivisionOptions.map((option) => (
                       <option key={option} value={option}>
@@ -325,6 +338,11 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                       </option>
                     ))}
                   </select>
+                  {isPositionWithoutSubdivision(form.position) && (
+                    <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">
+                      Jabatan {form.position} tidak memiliki sub divisi.
+                    </span>
+                  )}
                 </label>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Divisi

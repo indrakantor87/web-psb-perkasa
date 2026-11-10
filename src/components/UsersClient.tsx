@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 import { isAdminRole } from '@/lib/access'
-import { HR_DIVISIONS, HR_POSITIONS, getHrSubdivisions } from '@/lib/hr-departments'
+import { HR_DIVISIONS, HR_POSITIONS, getHrSubdivisions, isPositionWithoutSubdivision } from '@/lib/hr-departments'
 import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 
 interface User {
@@ -126,10 +126,25 @@ export function UsersClient({ currentUser }: UsersClientProps) {
   }, [divisionFilter, searchTerm, users])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value }
+      // Jabatan General Manager & Manager tidak memiliki sub divisi.
+      if (name === 'position' && isPositionWithoutSubdivision(value)) {
+        next.subdivision = ''
+      }
+      return next
+    })
   }
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditFormData({ ...editFormData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setEditFormData((prev) => {
+      const next = { ...prev, [name]: value }
+      if (name === 'position' && isPositionWithoutSubdivision(value)) {
+        next.subdivision = ''
+      }
+      return next
+    })
   }
 
   const fetchUsers = useCallback(async () => {
@@ -515,16 +530,22 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 name="subdivision"
                 value={formData.subdivision}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                disabled={isPositionWithoutSubdivision(formData.position)}
+                className={clsx(
+                  'mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white',
+                  isPositionWithoutSubdivision(formData.position) && 'cursor-not-allowed opacity-60'
+                )}
               >
                 <option value="">— Pilih Sub Divisi —</option>
                 {getHrSubdivisions(derivedDivision).map((sub) => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
               </select>
-              {getHrSubdivisions(derivedDivision).length === 0 && (
+              {isPositionWithoutSubdivision(formData.position) ? (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Jabatan {formData.position} tidak memiliki sub divisi.</p>
+              ) : getHrSubdivisions(derivedDivision).length === 0 ? (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Sub divisi tidak tersedia untuk divisi ini.</p>
-              )}
+              ) : null}
             </div>
 
             <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
@@ -824,13 +845,20 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   name="subdivision"
                   value={editFormData.subdivision}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  disabled={isPositionWithoutSubdivision(editFormData.position)}
+                  className={clsx(
+                    'mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white',
+                    isPositionWithoutSubdivision(editFormData.position) && 'cursor-not-allowed opacity-60'
+                  )}
                 >
                   <option value="">— Pilih Sub Divisi —</option>
                   {getHrSubdivisions(editFormData.division).map((sub) => (
                     <option key={sub} value={sub}>{sub}</option>
                   ))}
                 </select>
+                {isPositionWithoutSubdivision(editFormData.position) && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Jabatan {editFormData.position} tidak memiliki sub divisi.</p>
+                )}
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">

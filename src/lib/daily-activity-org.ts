@@ -71,6 +71,7 @@ export function normalizeDailyActivityDivisionName(value?: string | null): HrDiv
   if (lower.includes('finance') || lower.includes('keuangan') || lower.includes('hr')) return 'Finance & HR'
   if (lower.includes('general manager') || lower.includes('gm') || lower.includes('manager')) return 'General Manager'
   if (lower.includes('umum') || lower.includes('affair') || lower.includes('ga')) return 'General Affair'
+  if (lower.includes('operasional') || lower.includes('operational')) return 'Operasional'
 
   return DEFAULT_HR_DIVISION
 }
@@ -127,6 +128,9 @@ export function isDailyActivityPriorityLevel(value?: string | null): value is Da
   )
 }
 
-export function getAllDailyActivityDivisions() {
-  return HR_DIVISIONS
+/** Daftar divisi yang aktif di modul Daily Activity. General Manager sementara dikecualikan. */
+const DAILY_ACTIVITY_EXCLUDED_DIVISIONS = ['General Manager'] as const
+
+export function getAllDailyActivityDivisions(): HrDivision[] {
+  return HR_DIVISIONS.filter((d) => !(DAILY_ACTIVITY_EXCLUDED_DIVISIONS as readonly string[]).includes(d))
 }
