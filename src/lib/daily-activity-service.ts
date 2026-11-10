@@ -52,6 +52,7 @@ export type DailyActivityScope = {
   userId: number
   userName: string
   role: string
+  position: string | null
   division: string
   subdivision: string | null
   planningLevel: DailyActivityPlanningLevel
@@ -266,11 +267,15 @@ function toItemDto(row: DailyActivityRow): DailyActivityItemDto {
   }
 }
 
-/** Level default diturunkan dari role PSB bila user belum menyimpan profil Daily Activity. */
-function deriveDefaultPlanningLevel(role?: string | null): DailyActivityPlanningLevel {
+/** Level default diturunkan dari role PSB atau jabatan bila user belum menyimpan profil Daily Activity. */
+function deriveDefaultPlanningLevel(role?: string | null, position?: string | null): DailyActivityPlanningLevel {
   const roleUpper = normalizeRole(role)
   if (isAdminRole(roleUpper)) return 'MANAGER'
   if (roleUpper === 'HR') return 'SPV'
+  const pos = String(position ?? '').trim().toLowerCase()
+  if (pos === 'general manager' || pos === 'manager') return 'MANAGER'
+  if (pos === 'spv') return 'SPV'
+  if (pos === 'leader') return 'LEADER'
   return 'STAFF'
 }
 
@@ -279,13 +284,14 @@ export async function resolveDailyActivityScope(user: SessionUser): Promise<Dail
 
   const [profile, userRecord] = await Promise.all([
     prisma.dailyActivityProfile.findUnique({ where: { userId: user.id } }),
-    prisma.user.findUnique({ where: { id: user.id }, select: { subdivision: true } }),
+    prisma.user.findUnique({ where: { id: user.id }, select: { subdivision: true, position: true } }),
   ])
 
+  const position = userRecord?.position ?? user.position ?? null
   const division = normalizeDailyActivityDivisionName(profile?.division ?? user.division ?? null)
   const planningLevel = profile
     ? normalizeDailyActivityPlanningLevel(profile.planningLevel)
-    : deriveDefaultPlanningLevel(user.role)
+    : deriveDefaultPlanningLevel(user.role, position)
 
   // Sub divisi: utamakan dari profile, lalu dari data user/karyawan.
   const rawSubdivision = profile?.subdivision ?? userRecord?.subdivision ?? null
@@ -296,6 +302,7 @@ export async function resolveDailyActivityScope(user: SessionUser): Promise<Dail
     userId: user.id,
     userName: user.name,
     role: user.role,
+    position,
     division,
     subdivision,
     planningLevel,
@@ -325,15 +332,16 @@ export function canApproveDailyActivityItem(scope: DailyActivityScope, item: Dai
 }
 
 /**
- * Role yang dapat melihat Daily Activity seluruh divisi (untuk keperluan
- * laporan manajemen). General Affair (sub divisi Legal) mengelola
- * rekap aktivitas harian lintas divisi.
+ * Role/jabatan yang dapat melihat Daily Activity seluruh divisi (untuk
+ * keperluan laporan manajemen). General Affair (sub divisi Legal), Manager,
+ * dan General Manager dapat melihat rekap aktivitas harian lintas divisi.
  */
-function isDailyActivityAllDivisionsRole(role?: string | null): boolean {
+function isDailyActivityAllDivisionsRole(role?: string | null, position?: string | null): boolean {
   const roleUpper = normalizeRole(role)
   if (isAdminRole(roleUpper)) return true
   if (roleUpper === 'GENERAL_AFFAIR') return true
-  return false
+  const pos = String(position ?? '').trim().toLowerCase()
+  return pos === 'general manager' || pos === 'manager'
 }
 
 function buildVisibilityWhere(scope: DailyActivityScope, scopeFilter?: string | null): Prisma.DailyActivityItemWhereInput {
@@ -341,7 +349,7 @@ function buildVisibilityWhere(scope: DailyActivityScope, scopeFilter?: string | 
 
   if (mode === 'mine') return { ownerUserId: scope.userId }
 
-  if (isDailyActivityAllDivisionsRole(scope.role)) return {}
+  if (isDailyActivityAllDivisionsRole(scope.role, scope.position)) return {}
 
   if (mode === 'team' || scope.isApprover) {
     return {

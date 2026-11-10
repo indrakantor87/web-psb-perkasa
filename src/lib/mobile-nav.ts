@@ -64,8 +64,8 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
 
 const MOBILE_MENU_GROUP_ORDER: MobileMenuEntry['group'][] = ['Operasional', 'Digital', 'HR']
 
-export function canAccessMobileHome(role?: string | null) {
-  return canAccessMenu(role, 'dashboard') || isMobileTechnicianRole(role)
+export function canAccessMobileHome(role?: string | null, position?: string | null, subdivision?: string | null) {
+  return canAccessMenu(role, 'dashboard', position, subdivision) || isMobileTechnicianRole(role)
 }
 
 export function isMobileTechnicianRole(role?: string | null) {
@@ -80,14 +80,19 @@ export function canShowMobilePsbSummary(role?: string | null) {
   return canAccessMenu(role, 'list') && !isMobileTechnicianRole(role)
 }
 
-export function getMobileMenuGroups(role?: string | null, excludedKeys: readonly MobileMenuKey[] = []) {
+export function getMobileMenuGroups(
+  role?: string | null,
+  excludedKeys: readonly MobileMenuKey[] = [],
+  position?: string | null,
+  subdivision?: string | null
+) {
   const excluded = new Set(excludedKeys)
 
   return MOBILE_MENU_GROUP_ORDER
     .map((label) => ({
       label,
       links: mobileMenuEntries.filter(
-        (item) => item.group === label && canAccessMenu(role, item.key) && !excluded.has(item.key),
+        (item) => item.group === label && canAccessMenu(role, item.key, position, subdivision) && !excluded.has(item.key),
       ),
     }))
     .filter((group) => group.links.length > 0)

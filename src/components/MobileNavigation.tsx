@@ -23,6 +23,8 @@ import {
 
 type Props = {
   role: string
+  position?: string | null
+  subdivision?: string | null
 }
 
 const settingsLinks = [
@@ -36,7 +38,7 @@ const settingsLinks = [
   { key: 'security-logs', href: '/settings/security-logs', label: 'Log Aktivitas' },
 ] as const
 
-export function MobileNavigation({ role }: Props) {
+export function MobileNavigation({ role, position, subdivision }: Props) {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -63,12 +65,12 @@ export function MobileNavigation({ role }: Props) {
   }, [isMenuOpen])
 
   const primaryLinks = MOBILE_PRIMARY_ORDER
-    .filter((key) => canAccessMenu(role, key))
+    .filter((key) => canAccessMenu(role, key, position, subdivision))
     .slice(0, 4)
     .map((key) => mobileMenuEntries.find((item) => item.key === key))
     .filter((item): item is (typeof mobileMenuEntries)[number] => Boolean(item))
 
-  const menuGroups = getMobileMenuGroups(role, primaryLinks.map((item) => item.key))
+  const menuGroups = getMobileMenuGroups(role, primaryLinks.map((item) => item.key), position, subdivision)
 
   const accessibleSettings = settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
   const isHomeActive = pathname === '/' || (isTechnician && pathname === '/beranda')
@@ -212,7 +214,7 @@ export function MobileNavigation({ role }: Props) {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
         <div className="mx-auto flex max-w-lg">
-          {canAccessMobileHome(role) && (
+          {canAccessMobileHome(role, position, subdivision) && (
             <Link
               href={getMobileHomeHref(role)}
               prefetch={false}

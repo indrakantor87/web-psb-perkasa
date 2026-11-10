@@ -199,9 +199,9 @@ function settingsSet(items: AppSettingsKey[]) {
 }
 
 /**
- * Daily Activity hanya diperuntukkan untuk:
+ * Daily Activity diperuntukkan untuk:
  * - Developer, Admin, Priority (selalu all access)
- * - Jabatan SPV, Leader, PIC
+ * - Jabatan General Manager, Manager, SPV, Leader, PIC
  * - General Affair dengan sub divisi Legal
  */
 export function canAccessDailyActivity(
@@ -218,7 +218,13 @@ export function canAccessDailyActivity(
   }
 
   const pos = String(position ?? '').trim().toLowerCase()
-  return pos === 'spv' || pos === 'leader' || pos === 'pic'
+  return (
+    pos === 'general manager' ||
+    pos === 'manager' ||
+    pos === 'spv' ||
+    pos === 'leader' ||
+    pos === 'pic'
+  )
 }
 
 function getAccessibleMenus(

@@ -167,7 +167,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           </div>
         </main>
       </div>
-      <MobileNavigation role={user.role} />
+      <MobileNavigation role={user.role} position={user.position} subdivision={user.subdivision} />
     </div>
   )
 }

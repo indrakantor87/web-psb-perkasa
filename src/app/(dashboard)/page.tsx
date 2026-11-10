@@ -1057,9 +1057,15 @@ export default async function DashboardPage({
       }
     }
 
-    // Rekap Daily Activity lintas divisi untuk role General Affair (laporan manajemen).
+    // Rekap Daily Activity lintas divisi untuk General Affair (sub divisi Legal),
+    // Manager, dan General Manager (laporan manajemen).
     let gaDailyActivityStats: GaDailyActivityStats | undefined
-    if (normalizeRole(session.user.role) === 'GENERAL_AFFAIR') {
+    const userPos = String(session.user.position ?? '').trim().toLowerCase()
+    const isGaLegal =
+      normalizeRole(session.user.role) === 'GENERAL_AFFAIR' &&
+      String(session.user.subdivision ?? '').trim().toLowerCase() === 'legal'
+    const isMgmt = userPos === 'manager' || userPos === 'general manager'
+    if (isGaLegal || isMgmt) {
       try {
         const where = { activityDate: { gte: startDate, lt: endDate } }
         const [total, done, planned, pending, cancel, pendingApproval, divisionRows] = await Promise.all([
