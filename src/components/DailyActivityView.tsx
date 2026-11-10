@@ -164,6 +164,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
   const [from, setFrom] = useState(() => monthStartKey(today))
   const [to, setTo] = useState(() => monthEndKey(today))
   const [division, setDivision] = useState('')
+  const [subdivision, setSubdivision] = useState('')
   const [executionStatus, setExecutionStatus] = useState('')
   const [priorityLevel, setPriorityLevel] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -227,6 +228,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
       if (from) params.set('from', from)
       if (to) params.set('to', to)
       if (division) params.set('division', division)
+      if (subdivision) params.set('subdivision', subdivision)
       if (executionStatus) params.set('executionStatus', executionStatus)
       if (priorityLevel) params.set('priorityLevel', priorityLevel)
       if (debouncedKeyword) params.set('keyword', debouncedKeyword)
@@ -245,7 +247,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     } finally {
       setLoading(false)
     }
-  }, [from, to, division, executionStatus, priorityLevel, debouncedKeyword, scope])
+  }, [from, to, division, subdivision, executionStatus, priorityLevel, debouncedKeyword, scope])
 
   useEffect(() => {
     fetchData()
@@ -292,6 +294,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     setFrom(monthStartKey(today))
     setTo(monthEndKey(today))
     setDivision('')
+    setSubdivision('')
     setExecutionStatus('')
     setPriorityLevel('')
     setKeyword('')
@@ -634,9 +637,32 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
           </div>
           <div className="hidden md:block">
             <label className={LABEL_CLASS}>Divisi</label>
-            <select value={division} onChange={(e) => setDivision(e.target.value)} className={INPUT_CLASS}>
+            <select
+              value={division}
+              onChange={(e) => {
+                setDivision(e.target.value)
+                setSubdivision('')
+              }}
+              className={INPUT_CLASS}
+            >
               <option value="">Semua Divisi</option>
               {DIVISIONS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="hidden md:block">
+            <label className={LABEL_CLASS}>Sub Divisi</label>
+            <select
+              value={subdivision}
+              onChange={(e) => setSubdivision(e.target.value)}
+              disabled={!division}
+              className={clsx(INPUT_CLASS, !division && 'cursor-not-allowed opacity-60')}
+            >
+              <option value="">Semua Sub Divisi</option>
+              {division && getDailyActivitySubdivisions(division).map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
