@@ -1,4 +1,4 @@
-import { DEFAULT_HR_DIVISION, HR_DIVISIONS, isKnownDivision, type HrDivision } from '@/lib/hr-departments'
+import { DEFAULT_HR_DIVISION, HR_DIVISION_SUBDIVISIONS, HR_DIVISIONS, isKnownDivision, type HrDivision } from '@/lib/hr-departments'
 
 /**
  * Struktur organisasi modul Daily Activity PSB.
@@ -49,13 +49,8 @@ export const DAILY_ACTIVITY_PRIORITY_LABELS: Record<DailyActivityPriorityLevel, 
   LOW: 'Prioritas Rendah',
 }
 
-export const DAILY_ACTIVITY_DIVISION_SUBDIVISIONS: Record<HrDivision, readonly string[]> = {
-  'Pemasaran dan Pelayanan': ['Marketing', 'Customer Service', 'Admin CS'],
-  'General Affair': ['Umum', 'Kebersihan', 'Keamanan'],
-  Teknisi: ['Instalasi', 'Gangguan', 'Maintenance'],
-  'Finance & HR': ['Keuangan', 'HR', 'Payroll'],
-  'General Manager': ['Operasional'],
-}
+/** Daftar subdivisi mengikuti struktur organisasi HR agar konsisten dengan data karyawan. */
+export const DAILY_ACTIVITY_DIVISION_SUBDIVISIONS: Record<HrDivision, readonly string[]> = HR_DIVISION_SUBDIVISIONS
 
 export function isValidDailyActivityDivision(value?: string | null): value is HrDivision {
   return isKnownDivision(String(value ?? '').trim())

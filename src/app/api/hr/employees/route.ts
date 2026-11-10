@@ -9,6 +9,7 @@ import {
   DEFAULT_HR_DIVISION,
   isKnownDivision,
   isKnownEmploymentStatus,
+  isKnownHrSubdivision,
 } from '@/lib/hr-departments'
 
 export const runtime = 'nodejs'
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
         name: true,
         department: true,
         position: true,
+        subdivision: true,
         employmentStatus: true,
         joinDate: true,
         fingerprintId: true,
@@ -78,6 +80,7 @@ export async function GET(request: Request) {
         name: employee.name,
         department: employee.department,
         position: employee.position,
+        subdivision: employee.subdivision,
         employmentStatus: employee.employmentStatus,
         joinDate: employee.joinDate,
         fingerprintId: isMarketing ? null : employee.fingerprintId,
@@ -99,6 +102,7 @@ export async function POST(request: Request) {
   const name = asTrimmed(body.name)
   const department = asTrimmed(body.department) || DEFAULT_HR_DIVISION
   const position = asTrimmed(body.position) || 'STAFF'
+  const subdivision = asTrimmed(body.subdivision)
   const employmentStatus = asTrimmed(body.employmentStatus) || 'Karyawan'
   const fingerprintId = asTrimmed(body.fingerprintId)
   const joinDate = parseJoinDate(body.joinDate)
@@ -108,6 +112,9 @@ export async function POST(request: Request) {
   }
   if (!isKnownDivision(department)) {
     return NextResponse.json({ error: 'Divisi tidak valid' }, { status: 400 })
+  }
+  if (subdivision && !isKnownHrSubdivision(department, subdivision)) {
+    return NextResponse.json({ error: 'Sub divisi tidak valid untuk divisi ini' }, { status: 400 })
   }
   if (!isKnownEmploymentStatus(employmentStatus)) {
     return NextResponse.json({ error: 'Status kepegawaian tidak valid' }, { status: 400 })
@@ -122,6 +129,7 @@ export async function POST(request: Request) {
         name,
         department,
         position,
+        subdivision: subdivision || null,
         employmentStatus,
         joinDate: joinDate ?? new Date(),
         fingerprintId: fingerprintId || null,
@@ -165,6 +173,9 @@ export async function PUT(request: Request) {
   if (body.position !== undefined) {
     data.position = asTrimmed(body.position) || 'STAFF'
   }
+  if (body.subdivision !== undefined) {
+    data.subdivision = asTrimmed(body.subdivision) || null
+  }
   if (body.employmentStatus !== undefined) {
     const employmentStatus = asTrimmed(body.employmentStatus)
     if (!isKnownEmploymentStatus(employmentStatus)) {
@@ -190,6 +201,15 @@ export async function PUT(request: Request) {
 
   try {
     await ensureHrSchemaOnce()
+    if (typeof data.subdivision === 'string') {
+      const nextDepartment =
+        typeof data.department === 'string'
+          ? data.department
+          : (await prisma.employee.findUnique({ where: { id }, select: { department: true } }))?.department ?? ''
+      if (!isKnownHrSubdivision(nextDepartment, data.subdivision)) {
+        return NextResponse.json({ error: 'Sub divisi tidak valid untuk divisi ini' }, { status: 400 })
+      }
+    }
     const updated = await prisma.employee.update({ where: { id }, data })
     return NextResponse.json({ employee: updated })
   } catch (error) {

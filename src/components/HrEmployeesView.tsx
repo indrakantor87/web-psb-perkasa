@@ -12,6 +12,7 @@ import {
   DEFAULT_HR_DIVISION,
   HR_DIVISIONS,
   HR_EMPLOYMENT_STATUSES,
+  getHrSubdivisions,
   type HrDivision,
 } from '@/lib/hr-departments'
 
@@ -20,6 +21,7 @@ type EmployeeRow = {
   name: string
   department: string
   position: string
+  subdivision: string | null
   employmentStatus: string
   joinDate: string
   fingerprintId: string | null
@@ -32,6 +34,7 @@ type FormState = {
   name: string
   department: string
   position: string
+  subdivision: string
   employmentStatus: string
   joinDate: string
   fingerprintId: string
@@ -50,6 +53,7 @@ function emptyForm(): FormState {
     name: '',
     department: DEFAULT_HR_DIVISION,
     position: 'STAFF',
+    subdivision: getHrSubdivisions(DEFAULT_HR_DIVISION)[0] ?? '',
     employmentStatus: 'Karyawan',
     joinDate: '',
     fingerprintId: '',
@@ -129,6 +133,14 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
     return options
   }, [form.department])
 
+  const subdivisionOptions = useMemo(() => {
+    const options: string[] = [...getHrSubdivisions(form.department)]
+    if (form.subdivision && !options.includes(form.subdivision)) {
+      options.unshift(form.subdivision)
+    }
+    return options
+  }, [form.department, form.subdivision])
+
   const openCreate = () => {
     setForm(emptyForm())
     setFormError('')
@@ -141,6 +153,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       name: row.name,
       department: row.department || DEFAULT_HR_DIVISION,
       position: row.position || 'STAFF',
+      subdivision: row.subdivision || getHrSubdivisions(row.department || DEFAULT_HR_DIVISION)[0] || '',
       employmentStatus: row.employmentStatus || 'Karyawan',
       joinDate: toDateInput(row.joinDate),
       fingerprintId: row.fingerprintId ?? '',
@@ -162,6 +175,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       name,
       department: form.department,
       position: form.position.trim() || 'STAFF',
+      subdivision: form.subdivision,
       employmentStatus: form.employmentStatus,
       fingerprintId: form.fingerprintId.trim(),
       isActive: form.isActive,
@@ -275,20 +289,6 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                   Akun web ber-role Marketing dikenali otomatis jika namanya sama dan unik dengan nama karyawan.
                 </p>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                  Divisi
-                  <select
-                    value={form.department}
-                    onChange={(event) => setForm((prev) => ({ ...prev, department: event.target.value as HrDivision }))}
-                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                  >
-                    {divisionOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Jabatan
                   <input
                     type="text"
@@ -297,6 +297,43 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                     placeholder="STAFF"
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   />
+                </label>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Sub Divisi
+                  <select
+                    value={form.subdivision}
+                    onChange={(event) => setForm((prev) => ({ ...prev, subdivision: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    {subdivisionOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Divisi
+                  <select
+                    value={form.department}
+                    onChange={(event) =>
+                      setForm((prev) => {
+                        const nextDivision = event.target.value as HrDivision
+                        return {
+                          ...prev,
+                          department: nextDivision,
+                          subdivision: getHrSubdivisions(nextDivision)[0] ?? '',
+                        }
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    {divisionOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Status Kepegawaian
@@ -468,8 +505,9 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                     <tr>
                       <th className="px-4 py-3 font-semibold">No</th>
                       <th className="px-4 py-3 font-semibold">Nama</th>
-                      <th className="px-4 py-3 font-semibold">Divisi</th>
                       <th className="px-4 py-3 font-semibold">Jabatan</th>
+                      <th className="px-4 py-3 font-semibold">Sub Divisi</th>
+                      <th className="px-4 py-3 font-semibold">Divisi</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
                       <th className="px-4 py-3 font-semibold">ID Fingerprint</th>
                       <th className="px-4 py-3 font-semibold">Absensi</th>
@@ -482,8 +520,9 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                       <tr key={row.id} className="border-t border-line">
                         <td className="px-4 py-3 tabular-nums text-ink-muted">{index + 1}</td>
                         <td className="px-4 py-3 font-medium text-ink">{row.name}</td>
-                        <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
                         <td className="px-4 py-3 text-ink-muted">{row.position || '-'}</td>
+                        <td className="px-4 py-3 text-ink-muted">{row.subdivision || '-'}</td>
+                        <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
                         <td className="px-4 py-3 text-ink-muted">{row.employmentStatus || '-'}</td>
                         <td className="px-4 py-3 tabular-nums text-ink-muted">{row.fingerprintId || '-'}</td>
                         <td className="px-4 py-3 tabular-nums text-ink-muted">{row.attendanceCount}</td>
@@ -555,6 +594,14 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                           <div className="flex justify-between gap-3">
                             <dt className="text-ink-muted">Jabatan</dt>
                             <dd className="text-right font-medium text-ink">{row.position || '-'}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-ink-muted">Sub Divisi</dt>
+                            <dd className="text-right font-medium text-ink">{row.subdivision || '-'}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-ink-muted">Divisi</dt>
+                            <dd className="text-right font-medium text-ink">{row.department || '-'}</dd>
                           </div>
                           <div className="flex justify-between gap-3">
                             <dt className="text-ink-muted">Status Kepegawaian</dt>

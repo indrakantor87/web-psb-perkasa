@@ -23,6 +23,7 @@ async function ensureHrSchema() {
     );
   `)
   await prisma.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "userId" INTEGER;`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "subdivision" TEXT;`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Employee_userId_key" ON "Employee" ("userId");`)
   await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "Employee_fingerprintId_key" ON "Employee" ("fingerprintId");`)
   await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Employee_name_idx" ON "Employee" ("name");`)
