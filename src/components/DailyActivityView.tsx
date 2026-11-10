@@ -41,7 +41,6 @@ import {
   type DailyActivityPriorityLevel,
   type DailyActivityExecutionStatus,
 } from '@/lib/daily-activity-org'
-import { getRoleLabel } from '@/lib/mobile-nav'
 
 type ScopeMode = 'all' | 'mine' | 'team'
 type TabKey = 'workspace' | 'performance' | 'calendar' | 'profile'
@@ -268,6 +267,10 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
   const items = data?.items ?? []
   const scopeData = data?.scope ?? null
   const usersCount = data?.users.length ?? 0
+
+  // Identitas pelapor pada salinan laporan: "Nama - Sub Divisi" (mis. Anya - CS).
+  const reporterSubdivision = data?.profile.subdivision?.trim() || data?.scope.subdivision?.trim() || ''
+  const reporterIdentity = reporterSubdivision ? `${userName} - ${reporterSubdivision}` : userName
 
   const groupedItems = useMemo(() => {
     const map = new Map<string, DailyActivityItemDto[]>()
@@ -521,7 +524,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     const lines = [
       '🗓️ *DAILY ACTIVITY — RENCANA*',
       `📅 ${formatDateLabelLong(dateKey)}`,
-      `👤 ${userName} - ${getRoleLabel(userRole)}`,
+      `👤 ${reporterIdentity}`,
       '',
       `*Rencana (${items.length}):*`,
       ...items.map((item, index) => `${index + 1}. ${item.title}`),
@@ -542,7 +545,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     const lines: (string | null)[] = [
       '📊 *DAILY ACTIVITY — LAPORAN*',
       `📅 ${formatDateLabelLong(dateKey)}`,
-      `👤 ${userName} - ${getRoleLabel(userRole)}`,
+      `👤 ${reporterIdentity}`,
       '',
       `✅ Selesai: ${counts.DONE}`,
       `🔄 Tertunda: ${counts.PENDING}`,
