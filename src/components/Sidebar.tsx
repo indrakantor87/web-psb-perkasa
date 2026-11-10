@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess } from '@/lib/access'
 
-export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string }; onExpand?: () => void }) {
+export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string; position?: string | null; subdivision?: string | null }; onExpand?: () => void }) {
   const pathname = usePathname()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -31,7 +31,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
     ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
     ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
-    ...(canAccessMenu(user?.role, 'daily-activity') ? [{ href: '/daily-activity', label: 'Daily Activity', icon: ClipboardList }] : []),
+    ...(canAccessMenu(user?.role, 'daily-activity', user?.position, user?.subdivision) ? [{ href: '/daily-activity', label: 'Daily Activity', icon: ClipboardList }] : []),
     ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
     ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle Perangkat', icon: Wrench }] : []),
     ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),

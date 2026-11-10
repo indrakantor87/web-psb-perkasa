@@ -198,11 +198,41 @@ function settingsSet(items: AppSettingsKey[]) {
   return new Set<AppSettingsKey>(items)
 }
 
-function getAccessibleMenus(role?: string | null) {
+/**
+ * Daily Activity hanya diperuntukkan untuk:
+ * - Developer, Admin, Priority (selalu all access)
+ * - Jabatan SPV, Leader, PIC
+ * - General Affair dengan sub divisi Legal
+ */
+export function canAccessDailyActivity(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null
+): boolean {
   const roleUpper = normalizeRole(role)
+  if (canViewAllDataRole(roleUpper)) return true
+
+  if (roleUpper === 'GENERAL_AFFAIR') {
+    const sub = String(subdivision ?? '').trim().toLowerCase()
+    return sub === 'legal'
+  }
+
+  const pos = String(position ?? '').trim().toLowerCase()
+  return pos === 'spv' || pos === 'leader' || pos === 'pic'
+}
+
+function getAccessibleMenus(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null
+) {
+  const roleUpper = normalizeRole(role)
+  const daAllowed = canAccessDailyActivity(roleUpper, position, subdivision)
+
+  let menus: Set<AppMenuKey>
 
   if (canViewAllDataRole(roleUpper)) {
-    const menus = menuSet([
+    menus = menuSet([
       'dashboard',
       'input',
       'list',
@@ -224,35 +254,22 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (roleUpper === 'HR') {
-    return menuSet(['dashboard', 'daily-activity', 'hr'])
-  }
-
-  if (roleUpper === 'GENERAL_AFFAIR') {
-    return menuSet(['dashboard', 'daily-activity', 'hr'])
-  }
-
-  if (roleUpper === 'OPERASIONAL') {
-    return menuSet(['dashboard', 'list', 'daily-activity', 'trouble-ticket', 'odp', 'dismantle', 'isolir'])
-  }
-
-  if (roleUpper === 'MARKETING') {
-    return menuSet(['input', 'list', 'marketing-activities', 'daily-activity', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'])
-  }
-
-  if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') {
-    return menuSet(['dashboard', 'input', 'list', 'daily-activity', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
-  }
-
-  if (roleUpper === 'NOC') {
-    return menuSet(['list', 'daily-activity', 'dismantle', 'odp', 'trouble-ticket'])
-  }
-
-  if (roleUpper === 'CREATOR_DIGITAL') {
-    return menuSet([
+    menus = menuSet(['dashboard', 'hr'])
+  } else if (roleUpper === 'GENERAL_AFFAIR') {
+    menus = menuSet(['dashboard', 'hr'])
+  } else if (roleUpper === 'OPERASIONAL') {
+    menus = menuSet(['dashboard', 'list', 'trouble-ticket', 'odp', 'dismantle', 'isolir'])
+  } else if (roleUpper === 'MARKETING') {
+    menus = menuSet(['input', 'list', 'marketing-activities', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'])
+  } else if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') {
+    menus = menuSet(['dashboard', 'input', 'list', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
+  } else if (roleUpper === 'NOC') {
+    menus = menuSet(['list', 'dismantle', 'odp', 'trouble-ticket'])
+  } else if (roleUpper === 'CREATOR_DIGITAL') {
+    menus = menuSet([
       'dashboard',
       'input',
       'list',
-      'daily-activity',
       'isolir',
       'dismantle',
       'odp',
@@ -261,17 +278,23 @@ function getAccessibleMenus(role?: string | null) {
       'digital-leads',
       'analytics',
     ])
+  } else if (isTechnicianRole(roleUpper)) {
+    menus = menuSet(['list', 'odp', 'trouble-ticket', 'dismantle'])
+  } else {
+    menus = menuSet([])
   }
 
-  if (isTechnicianRole(roleUpper)) {
-    return menuSet(['list', 'daily-activity', 'odp', 'trouble-ticket', 'dismantle'])
-  }
-
-  return menuSet([])
+  if (daAllowed) menus.add('daily-activity')
+  return menus
 }
 
-export function canAccessMenu(role: string | null | undefined, menu: AppMenuKey) {
-  return getAccessibleMenus(role).has(menu)
+export function canAccessMenu(
+  role: string | null | undefined,
+  menu: AppMenuKey,
+  position?: string | null,
+  subdivision?: string | null
+) {
+  return getAccessibleMenus(role, position, subdivision).has(menu)
 }
 
 function getAccessibleSettingsPages(role?: string | null) {

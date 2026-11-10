@@ -1,6 +1,7 @@
 import { DailyActivityView } from '@/components/DailyActivityView'
 import { getSession } from '@/lib/auth'
 import { canAccessMenu, canMutateMenu } from '@/lib/access'
+import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +9,24 @@ export const dynamic = 'force-dynamic'
 export default async function DailyActivityPage() {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (!canAccessMenu(session.user.role, 'daily-activity')) redirect('/')
+
+  // Ambil position & subdivision terbaru untuk pengecekan akses.
+  let position = session.user.position ?? null
+  let subdivision = session.user.subdivision ?? null
+  try {
+    const fresh = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { position: true, subdivision: true },
+    })
+    if (fresh) {
+      position = fresh.position ?? null
+      subdivision = fresh.subdivision ?? null
+    }
+  } catch {
+    // Gunakan data session jika DB gagal.
+  }
+
+  if (!canAccessMenu(session.user.role, 'daily-activity', position, subdivision)) redirect('/')
 
   return (
     <div className="space-y-4 sm:space-y-6">

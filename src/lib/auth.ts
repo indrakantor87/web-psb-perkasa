@@ -28,6 +28,8 @@ export type SessionUser = {
   username: string
   role: string
   division?: string | null
+  position?: string | null
+  subdivision?: string | null
 }
 
 export type SessionData = {

@@ -94,7 +94,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
     }
 
-    const sessionUser = { id: user.id, name: user.name, username: user.username, role: user.role, division: user.division ?? null }
+    const sessionUser = {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      division: user.division ?? null,
+      position: user.position ?? null,
+      subdivision: user.subdivision ?? null,
+    }
     await login(sessionUser, rememberMe)
     await logSecurityEvent({
       action: 'LOGIN_SUCCESS',

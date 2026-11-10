@@ -12,13 +12,13 @@ export function forbiddenResponse(message = 'Forbidden') {
 
 export function ensureMenuAccess(session: SessionData | null, menu: AppMenuKey) {
   if (!session) return unauthorizedResponse()
-  if (!canAccessMenu(session.user.role, menu)) return forbiddenResponse()
+  if (!canAccessMenu(session.user.role, menu, session.user.position, session.user.subdivision)) return forbiddenResponse()
   return null
 }
 
 export function ensureMenuMutation(session: SessionData | null, menu: AppMenuKey) {
   if (!session) return unauthorizedResponse()
-  if (!canAccessMenu(session.user.role, menu) || !canMutateMenu(session.user.role, menu)) {
+  if (!canAccessMenu(session.user.role, menu, session.user.position, session.user.subdivision) || !canMutateMenu(session.user.role, menu)) {
     return forbiddenResponse()
   }
   return null
