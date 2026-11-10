@@ -32,6 +32,7 @@ const menus: AppMenuKey[] = [
   'input',
   'list',
   'marketing-activities',
+  'daily-activity',
   'isolir',
   'dismantle',
   'odp',

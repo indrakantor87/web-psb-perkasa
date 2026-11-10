@@ -31,6 +31,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
     ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
     ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+    ...(canAccessMenu(user?.role, 'daily-activity') ? [{ href: '/daily-activity', label: 'Daily Activity', icon: ClipboardList }] : []),
     ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
     ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle Perangkat', icon: Wrench }] : []),
     ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),

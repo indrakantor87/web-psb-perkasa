@@ -408,3 +408,56 @@ model HrMachineSetting {
   machinePort Int      @default(4370)
   updatedAt   DateTime @updatedAt
 }
+
+// --- Modul Daily Activity: rencana & laporan aktivitas harian karyawan ---
+
+model DailyActivityItem {
+  id               Int       @id @default(autoincrement())
+  code             String    @unique
+  activityDate     DateTime
+  ownerUserId      Int?
+  ownerName        String
+  division         String
+  subdivision      String?
+  planningLevel    String    @default("STAFF")
+  title            String
+  detail           String?
+  location         String?
+  target           String?
+  priorityLevel    String    @default("MEDIUM")
+  executionStatus  String    @default("PLANNED")
+  progressPercent  Int       @default(0)
+  planNote         String?
+  resultNote       String?
+  obstacleNote     String?
+  closedAt         DateTime?
+  approvalStatus   String    @default("NONE")
+  approvalNote     String?
+  approvedByUserId Int?
+  approvedByName   String?
+  approvedAt       DateTime?
+  createdById      Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([activityDate])
+  @@index([ownerUserId])
+  @@index([division])
+  @@index([executionStatus])
+  @@index([approvalStatus])
+  @@map("psb_daily_activity_items")
+}
+
+model DailyActivityProfile {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  userName       String
+  division       String
+  subdivision    String?
+  planningLevel  String   @default("STAFF")
+  approverUserId Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("psb_daily_activity_profiles")
+}

@@ -13,6 +13,32 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.13.1] - 2026-11-10
+
+### Security
+- Endpoint `/api/debug/env` kini hanya dapat diakses role DEVELOPER dan tidak lagi mengembalikan nilai environment maupun memindai jaringan internal.
+
+## [1.13.0] - 2026-11-10
+
+### Added
+- Dashboard operasional untuk role CS dan ADMIN_CS sebagai sarana laporan dan pemantauan harian.
+
+### Changed
+- Menu Dashboard dibuka untuk role CS dan ADMIN_CS sehingga muncul di Sidebar, Header, dan navigasi mobile.
+- Setelah login role CS/ADMIN_CS diarahkan ke Dashboard (sebelumnya ke Input PSB).
+- Dashboard otomatis fokus ke divisi CS: kartu Performa Divisi CS (status tiket PSB Open/Proses/Close) dan KPI Divisi (Isolir Baru, Restorasi, Close Rate, Isolir Aktif, Siap Dismantle, Siklus Rata-rata), disertai Tren PSB dan Tren Trouble Ticket.
+
+## [1.12.0] - 2026-11-10
+
+### Added
+- Modul Daily Activity di web PSB: karyawan mengisi rencana aktivitas pada pagi hari dan melengkapi status serta catatan hasil pada sore hari, disertai Smart Paste, Performa (harian/mingguan/bulanan), Kalender, Profil Divisi, Export Excel, dan Salin Ringkasan.
+- Halaman `/daily-activity` beserta menu di Sidebar, Header, dan navigasi mobile untuk seluruh role operasional.
+- Skema tabel `psb_daily_activity_items` dan `psb_daily_activity_profiles` dengan inisialisasi otomatis saat runtime (tanpa migrasi manual).
+- API `/api/daily-activity` (list, create/batch) dan `/api/daily-activity/[id]` (close/delete) serta `/api/daily-activity/profile` (simpan profil divisi).
+
+### Changed
+- Tahap persetujuan (approval) Daily Activity dinonaktifkan untuk sementara; endpoint `/api/daily-activity/approval` tetap tersedia di server untuk diaktifkan kembali bila diperlukan.
+
 ## [1.11.20] - 2026-11-09
 
 ### Changed

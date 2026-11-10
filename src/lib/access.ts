@@ -3,6 +3,7 @@ export type AppMenuKey =
   | 'input'
   | 'list'
   | 'marketing-activities'
+  | 'daily-activity'
   | 'isolir'
   | 'dismantle'
   | 'odp'
@@ -150,6 +151,8 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
       return `/list?division=${division}`
     case 'marketing-activities':
       return `/marketing-activities?division=${division}`
+    case 'daily-activity':
+      return '/daily-activity'
     case 'isolir':
       return `/isolir?division=${division}`
     case 'dismantle':
@@ -202,6 +205,7 @@ function getAccessibleMenus(role?: string | null) {
       'input',
       'list',
       'marketing-activities',
+      'daily-activity',
       'isolir',
       'dismantle',
       'odp',
@@ -218,19 +222,19 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (roleUpper === 'HR') {
-    return menuSet(['dashboard', 'marketing-activities', 'hr'])
+    return menuSet(['dashboard', 'marketing-activities', 'daily-activity', 'hr'])
   }
 
   if (roleUpper === 'MARKETING') {
-    return menuSet(['input', 'list', 'marketing-activities', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'])
+    return menuSet(['input', 'list', 'marketing-activities', 'daily-activity', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'])
   }
 
   if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') {
-    return menuSet(['input', 'list', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
+    return menuSet(['dashboard', 'input', 'list', 'daily-activity', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
   }
 
   if (roleUpper === 'NOC') {
-    return menuSet(['list', 'dismantle', 'odp', 'trouble-ticket'])
+    return menuSet(['list', 'daily-activity', 'dismantle', 'odp', 'trouble-ticket'])
   }
 
   if (roleUpper === 'CREATOR_DIGITAL') {
@@ -238,6 +242,7 @@ function getAccessibleMenus(role?: string | null) {
       'dashboard',
       'input',
       'list',
+      'daily-activity',
       'isolir',
       'dismantle',
       'odp',
@@ -249,7 +254,7 @@ function getAccessibleMenus(role?: string | null) {
   }
 
   if (isTechnicianRole(roleUpper)) {
-    return menuSet(['list', 'odp', 'trouble-ticket', 'dismantle'])
+    return menuSet(['list', 'daily-activity', 'odp', 'trouble-ticket', 'dismantle'])
   }
 
   return menuSet([])
@@ -305,6 +310,8 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'marketing-activities':
       return false
+    case 'daily-activity':
+      return true
     case 'isolir':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
     case 'dismantle':

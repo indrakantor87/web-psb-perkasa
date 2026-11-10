@@ -25,6 +25,7 @@ const menus = [
   'input',
   'list',
   'marketing-activities',
+  'daily-activity',
   'isolir',
   'dismantle',
   'odp',
@@ -110,6 +111,13 @@ test('ADMIN_CS preserves the same menu and mutation matrix as CS', () => {
   for (const menu of menus) {
     assert.equal(canAccessMenu('ADMIN_CS', menu), canAccessMenu('CS', menu), menu)
     assert.equal(canMutateMenu('ADMIN_CS', menu), canMutateMenu('CS', menu), menu)
+  }
+})
+
+test('CS and ADMIN_CS gain the operational dashboard without mutation rights', () => {
+  for (const role of ['CS', 'ADMIN_CS'] as const) {
+    assert.equal(canAccessMenu(role, 'dashboard'), true, `${role} should access the dashboard`)
+    assert.equal(canMutateMenu(role, 'dashboard'), false, `${role} must not mutate the dashboard`)
   }
 })
 
