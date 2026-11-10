@@ -41,6 +41,7 @@ import {
   type DailyActivityPriorityLevel,
   type DailyActivityExecutionStatus,
 } from '@/lib/daily-activity-org'
+import { getRoleLabel } from '@/lib/mobile-nav'
 
 type ScopeMode = 'all' | 'mine' | 'team'
 type TabKey = 'workspace' | 'performance' | 'calendar' | 'profile'
@@ -72,6 +73,14 @@ function parseDateKey(key: string) {
 
 function formatDateLabel(key: string) {
   return format(parseDateKey(key), 'EEEE, dd MMM yyyy', { locale: idLocale })
+}
+
+function formatDateLabelLong(key: string) {
+  return format(parseDateKey(key), 'EEEE, dd MMMM yyyy', { locale: idLocale })
+}
+
+function executionEmoji(status: DailyActivityExecutionStatus) {
+  return status === 'DONE' ? '✅' : status === 'CANCEL' ? '❌' : status === 'PENDING' ? '🔄' : '📋'
 }
 
 function executionBadgeClass(status: DailyActivityExecutionStatus) {
@@ -204,7 +213,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
   const [profileSubmitting, setProfileSubmitting] = useState(false)
 
   const [isExporting, setIsExporting] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copiedKind, setCopiedKind] = useState<'plan' | 'progress' | null>(null)
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedKeyword(keyword), 300)
@@ -495,18 +504,59 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     }
   }
 
-  const handleCopySummary = async () => {
-    const lines = items.map(
-      (item) =>
-        `${item.dateKey}\t${item.ownerName}\t${item.title}\t${DAILY_ACTIVITY_EXECUTION_STATUS_LABELS[item.executionStatus]}\t${item.progressPercent}%`
-    )
+  // Salin ringkasan siap-kirim ke grup (WhatsApp/Telegram).
+  // Jabatan memakai label peran (mis. CS, Marketing), bukan divisi.
+  const copyToClipboard = async (text: string, kind: 'plan' | 'progress') => {
     try {
-      await navigator.clipboard.writeText(lines.join('\n'))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(text)
+      setCopiedKind(kind)
+      setTimeout(() => setCopiedKind(null), 2000)
     } catch {
       setError('Gagal menyalin ringkasan')
     }
+  }
+
+  const handleCopyPlan = async () => {
+    const dateKey = items[0]?.dateKey ?? today
+    const lines = [
+      '🗓️ *DAILY ACTIVITY — RENCANA*',
+      `📅 ${formatDateLabelLong(dateKey)}`,
+      `👤 ${userName} - ${getRoleLabel(userRole)}`,
+      '',
+      `*Rencana (${items.length}):*`,
+      ...items.map((item, index) => `${index + 1}. ${item.title}`),
+    ]
+    await copyToClipboard(lines.join('\n'), 'plan')
+  }
+
+  const handleCopyProgress = async () => {
+    const dateKey = items[0]?.dateKey ?? today
+    const counts = { DONE: 0, PENDING: 0, PLANNED: 0, CANCEL: 0 }
+    let progressTotal = 0
+    for (const item of items) {
+      counts[item.executionStatus] += 1
+      progressTotal += item.progressPercent
+    }
+    const avg = items.length ? Math.round(progressTotal / items.length) : 0
+
+    const lines: (string | null)[] = [
+      '📊 *DAILY ACTIVITY — LAPORAN*',
+      `📅 ${formatDateLabelLong(dateKey)}`,
+      `👤 ${userName} - ${getRoleLabel(userRole)}`,
+      '',
+      `✅ Selesai: ${counts.DONE}`,
+      `🔄 Tertunda: ${counts.PENDING}`,
+      `📋 Belum: ${counts.PLANNED}`,
+      counts.CANCEL > 0 ? `❌ Dibatalkan: ${counts.CANCEL}` : null,
+      `📈 Rata-rata progres: ${avg}%`,
+      '',
+      '*Detail:*',
+      ...items.map(
+        (item, index) =>
+          `${index + 1}. ${executionEmoji(item.executionStatus)} ${item.title} (${item.progressPercent}%)`
+      ),
+    ]
+    await copyToClipboard(lines.filter((line): line is string => line !== null).join('\n'), 'progress')
   }
 
   const tabs: { key: TabKey; label: string; icon: LucideIcon; badge?: number }[] = [
@@ -552,12 +602,21 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
           </button>
           <button
             type="button"
-            onClick={handleCopySummary}
+            onClick={handleCopyPlan}
             disabled={items.length === 0}
             className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:flex-none"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Tersalin' : 'Salin Ringkasan'}
+            {copiedKind === 'plan' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copiedKind === 'plan' ? 'Tersalin' : 'Salin Rencana (Pagi)'}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopyProgress}
+            disabled={items.length === 0}
+            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:flex-none"
+          >
+            {copiedKind === 'progress' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copiedKind === 'progress' ? 'Tersalin' : 'Salin Progres (Sore)'}
           </button>
         </div>
 
