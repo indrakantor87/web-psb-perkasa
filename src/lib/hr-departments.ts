@@ -34,6 +34,17 @@ export const HR_EMPLOYMENT_STATUSES = ['Karyawan', 'Kontrak', 'Magang', 'Resign'
 
 export type HrEmploymentStatus = (typeof HR_EMPLOYMENT_STATUSES)[number]
 
+/** Daftar jabatan standar untuk klasifikasi & kewenangan karyawan. */
+export const HR_POSITIONS = ['General Manager', 'Manager', 'SPV', 'Leader', 'PIC', 'Karyawan'] as const
+
+export type HrPosition = (typeof HR_POSITIONS)[number]
+
+export const DEFAULT_HR_POSITION: HrPosition = 'Karyawan'
+
+export function isKnownPosition(value: string): value is HrPosition {
+  return (HR_POSITIONS as readonly string[]).includes(value)
+}
+
 export function isKnownDivision(value: string): value is HrDivision {
   return (HR_DIVISIONS as readonly string[]).includes(value)
 }

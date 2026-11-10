@@ -10,8 +10,10 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import {
   DEFAULT_HR_DIVISION,
+  DEFAULT_HR_POSITION,
   HR_DIVISIONS,
   HR_EMPLOYMENT_STATUSES,
+  HR_POSITIONS,
   getHrSubdivisions,
   type HrDivision,
 } from '@/lib/hr-departments'
@@ -52,7 +54,7 @@ function emptyForm(): FormState {
     id: null,
     name: '',
     department: DEFAULT_HR_DIVISION,
-    position: 'STAFF',
+    position: DEFAULT_HR_POSITION,
     subdivision: getHrSubdivisions(DEFAULT_HR_DIVISION)[0] ?? '',
     employmentStatus: 'Karyawan',
     joinDate: '',
@@ -141,6 +143,14 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
     return options
   }, [form.department, form.subdivision])
 
+  const positionOptions = useMemo(() => {
+    const options: string[] = [...HR_POSITIONS]
+    if (form.position && !options.includes(form.position)) {
+      options.unshift(form.position)
+    }
+    return options
+  }, [form.position])
+
   const openCreate = () => {
     setForm(emptyForm())
     setFormError('')
@@ -152,7 +162,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       id: row.id,
       name: row.name,
       department: row.department || DEFAULT_HR_DIVISION,
-      position: row.position || 'STAFF',
+      position: row.position || DEFAULT_HR_POSITION,
       subdivision: row.subdivision || getHrSubdivisions(row.department || DEFAULT_HR_DIVISION)[0] || '',
       employmentStatus: row.employmentStatus || 'Karyawan',
       joinDate: toDateInput(row.joinDate),
@@ -174,7 +184,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
     const payload: Record<string, unknown> = {
       name,
       department: form.department,
-      position: form.position.trim() || 'STAFF',
+      position: form.position.trim() || DEFAULT_HR_POSITION,
       subdivision: form.subdivision,
       employmentStatus: form.employmentStatus,
       fingerprintId: form.fingerprintId.trim(),
@@ -290,13 +300,17 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                 </p>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Jabatan
-                  <input
-                    type="text"
+                  <select
                     value={form.position}
                     onChange={(event) => setForm((prev) => ({ ...prev, position: event.target.value }))}
-                    placeholder="STAFF"
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                  />
+                  >
+                    {positionOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Sub Divisi
