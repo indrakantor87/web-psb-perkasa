@@ -1077,9 +1077,12 @@ export default async function DashboardPage({
 
         // Daily Board: PIC + kehadiran + kegiatan hari ini per divisi (mirip whiteboard laporan harian).
         const allDivisions = getAllDailyActivityDivisions()
-        const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+        // activityDate disimpan sebagai Jakarta start-of-day (UTC-7); attendance.date sebagai UTC midnight tanggal Jakarta.
         const todayKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`
+        const activityStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - JAKARTA_OFFSET_MS)
+        const activityEnd = new Date(activityStart.getTime() + 24 * 60 * 60 * 1000)
+        const attendanceStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+        const attendanceEnd = new Date(attendanceStart.getTime() + 24 * 60 * 60 * 1000)
 
         const profiles = await prisma.dailyActivityProfile.findMany({
           select: { userId: true, userName: true, division: true, planningLevel: true },
@@ -1105,7 +1108,7 @@ export default async function DashboardPage({
         const todayAttendances = await prisma.attendance.findMany({
           where: {
             employeeId: { in: picEmployeeIds },
-            date: { gte: todayStart, lte: todayEnd },
+            date: { gte: attendanceStart, lt: attendanceEnd },
             checkIn: { not: null },
           },
           select: { employeeId: true },
@@ -1113,7 +1116,7 @@ export default async function DashboardPage({
         const presentEmployeeIds = new Set(todayAttendances.map((a) => a.employeeId))
 
         const todayActivities = await prisma.dailyActivityItem.findMany({
-          where: { activityDate: { gte: todayStart, lte: todayEnd } },
+          where: { activityDate: { gte: activityStart, lt: activityEnd } },
           select: { division: true, title: true, executionStatus: true },
           orderBy: [{ division: 'asc' }],
         })

@@ -335,7 +335,7 @@ function buildFilterWhere(filters: DailyActivityFilters): Prisma.DailyActivityIt
     where.division = String(filters.division).trim()
   }
   if (filters.subdivision && String(filters.subdivision).trim()) {
-    where.subdivision = String(filters.subdivision).trim()
+    where.subdivision = { equals: String(filters.subdivision).trim(), mode: 'insensitive' }
   }
   if (filters.ownerName && String(filters.ownerName).trim()) {
     where.ownerName = { contains: String(filters.ownerName).trim(), mode: 'insensitive' }
