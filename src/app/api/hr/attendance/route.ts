@@ -54,13 +54,15 @@ export async function GET(request: Request) {
       isActive: true,
       AND: [{ fingerprintId: { not: null } }, { fingerprintId: { not: '' } }],
     }
-    const isMarketing = String(session?.user.role ?? '').trim().toUpperCase() === 'MARKETING'
-    const marketingEmployeeId = isMarketing
+    // Role yang hanya boleh melihat absensi sendiri (tidak melebar ke karyawan lain).
+    const roleUpper = String(session?.user.role ?? '').trim().toUpperCase()
+    const isSelfOnlyRole = roleUpper === 'MARKETING' || roleUpper === 'GENERAL_AFFAIR'
+    const selfEmployeeId = isSelfOnlyRole
       ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
       : null
-    if (isMarketing) where.employeeId = marketingEmployeeId ?? -1
+    if (isSelfOnlyRole) where.employeeId = selfEmployeeId ?? -1
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {
-      where.employeeId = isMarketing && employeeIdRaw !== marketingEmployeeId
+      where.employeeId = isSelfOnlyRole && employeeIdRaw !== selfEmployeeId
         ? -1
         : employeeIdRaw
     }
@@ -121,7 +123,7 @@ export async function GET(request: Request) {
       .sort((a, b) => a.department.localeCompare(b.department))
 
     const employees = await prisma.employee.findMany({
-      where: isMarketing ? { id: marketingEmployeeId ?? -1 } : activeFingerprintFilter,
+      where: isSelfOnlyRole ? { id: selfEmployeeId ?? -1 } : activeFingerprintFilter,
       select: { id: true, name: true, department: true, fingerprintId: true, isActive: true },
       orderBy: { name: 'asc' },
     })
@@ -137,7 +139,7 @@ export async function GET(request: Request) {
       divisions,
       employees: employees.map((employee) => ({
         ...employee,
-        fingerprintId: isMarketing ? null : employee.fingerprintId,
+        fingerprintId: isSelfOnlyRole ? null : employee.fingerprintId,
       })),
     })
   } catch {

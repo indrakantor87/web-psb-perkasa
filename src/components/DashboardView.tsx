@@ -1097,6 +1097,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   )
 
   const isHr = roleUpper === 'HR'
+  const isGa = roleUpper === 'GENERAL_AFFAIR'
   const hrContent = hrStats ? (
     <div className="space-y-6 pb-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -1136,7 +1137,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               <Calendar className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-ink">Absensi HR</h3>
+              <h3 className="text-lg font-semibold text-ink">Absensi</h3>
               <p className="text-sm text-ink-muted">Lihat rekap absensi karyawan per periode</p>
             </div>
           </div>
@@ -1189,10 +1190,137 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     </div>
   ) : null
 
+  // Dashboard General Affair: fokus ke rekap Daily Activity lintas divisi (laporan manajemen).
+  const gaContent = gaDailyActivityStats ? (
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard General Affair</h1>
+          <p className="mt-1 text-sm text-ink-muted">Rekap aktivitas harian seluruh divisi untuk laporan manajemen.</p>
+        </div>
+        <Card className="grid grid-cols-2 gap-2 p-2 md:flex md:items-center">
+          <div className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2">
+            <Calendar className="h-4 w-4 text-ink-muted" />
+            <select
+              value={month}
+              onChange={(e) => {
+                const newMonth = Number(e.target.value)
+                pushFilters(newMonth, year, focusedDivision)
+              }}
+              className="w-full cursor-pointer rounded-md bg-transparent text-sm font-semibold text-ink focus:outline-none dark:[color-scheme:dark]"
+            >
+              {months.map((m, i) => (
+                <option key={i} value={i + 1}>{m}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center rounded-lg bg-surface-muted px-3 py-2">
+            <select
+              value={year}
+              onChange={(e) => {
+                const newYear = Number(e.target.value)
+                pushFilters(month, newYear, focusedDivision)
+              }}
+              className="w-full cursor-pointer rounded-md bg-transparent text-sm font-semibold text-ink focus:outline-none dark:[color-scheme:dark]"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Total Aktivitas" value={gaDailyActivityStats.total} hint="Seluruh divisi" />
+        <StatCard label="Selesai" value={gaDailyActivityStats.done} hint="Status DONE" />
+        <StatCard label="Direncanakan" value={gaDailyActivityStats.planned} hint="Status PLANNED" />
+        <StatCard label="Berjalan" value={gaDailyActivityStats.pending} hint="Status PENDING" />
+        <StatCard label="Dibatalkan" value={gaDailyActivityStats.cancel} hint="Status CANCEL" />
+        <StatCard label="Menunggu Approve" value={gaDailyActivityStats.pendingApproval} hint="Approval PENDING" />
+      </div>
+
+      <Card className="p-5 sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-ink">Aktivitas per Divisi</h3>
+            <p className="text-sm text-ink-muted">Total vs selesai pada periode aktif</p>
+          </div>
+          <Link href="/daily-activity" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+            Lihat detail →
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-line">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">Divisi</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Total</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-ink">Selesai %</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {gaDailyActivityStats.byDivision.map((row) => {
+                const pct = row.total > 0 ? Math.round((row.done / row.total) * 100) : 0
+                return (
+                  <tr key={row.division} className="transition-colors hover:bg-surface-muted">
+                    <td className="px-4 py-3 text-sm font-medium text-ink">{row.division}</td>
+                    <td className="px-4 py-3 text-center text-sm font-bold tabular-nums text-ink">{row.total}</td>
+                    <td className="px-4 py-3 text-center text-sm tabular-nums text-emerald-600 dark:text-emerald-400">{row.done}</td>
+                    <td className="px-4 py-3 text-center text-sm tabular-nums text-ink-muted">{pct}%</td>
+                  </tr>
+                )
+              })}
+              {gaDailyActivityStats.byDivision.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-10 text-center text-sm italic text-ink-muted">
+                    Belum ada data daily activity pada periode ini
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Link href="/daily-activity" className={cardClassName({ interactive: true, className: 'p-6' })}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Daily Activity</h3>
+              <p className="text-sm text-ink-muted">Lihat detail aktivitas harian seluruh divisi</p>
+            </div>
+          </div>
+        </Link>
+        <Link href="/hr" className={cardClassName({ interactive: true, className: 'p-6' })}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-ink">Absensi</h3>
+              <p className="text-sm text-ink-muted">Lihat rekap absensi Anda</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+    </div>
+  ) : null
+
+  const mainContent = isGa && gaContent
+    ? gaContent
+    : isHr && hrContent
+      ? hrContent
+      : dashboardContent
+
   return (
     <>
       <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
-      <div className="hidden md:block">{isHr && hrContent ? hrContent : dashboardContent}</div>
+      <div className="hidden md:block">{mainContent}</div>
     </>
   )
 }
