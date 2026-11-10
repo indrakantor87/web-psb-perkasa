@@ -1,6 +1,7 @@
 import { jwtVerify, SignJWT } from 'jose'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 let cachedKey: Uint8Array | null = null
 const encoder = new TextEncoder()
@@ -85,7 +86,30 @@ export async function getSession() {
   const session = cookieStore.get('session')?.value
   if (!session) return null
   try {
-    return await decrypt(session)
+    const parsed = await decrypt(session)
+    // Refresh field yang berpengaruh pada akses & scope (position, subdivision,
+    // division, role, name) dari DB. Session cookie hanya snapshot saat login,
+    // sehingga perubahan jabatan/divisi oleh admin langsung tercermin tanpa
+    // perlu login ulang.
+    try {
+      const fresh = await prisma.user.findUnique({
+        where: { id: parsed.user.id },
+        select: { position: true, subdivision: true, division: true, role: true, name: true },
+      })
+      if (fresh) {
+        parsed.user = {
+          ...parsed.user,
+          position: fresh.position ?? null,
+          subdivision: fresh.subdivision ?? null,
+          division: fresh.division ?? parsed.user.division ?? null,
+          role: fresh.role ?? parsed.user.role,
+          name: fresh.name ?? parsed.user.name,
+        }
+      }
+    } catch {
+      // Abaikan kegagalan DB; gunakan data session yang ada.
+    }
+    return parsed
   } catch {
     return null
   }
