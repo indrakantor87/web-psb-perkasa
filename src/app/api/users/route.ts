@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { userCreateSchema, userUpdateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
-import { ensureUserDivisionColumn, ensureUserRoleValues } from '@/lib/db-init'
+import { ensureUserDivisionColumn, ensureUserRoleValues, ensureUserPositionAndSubdivisionColumns } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
 import { canManageTargetUser } from '@/lib/access'
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
   try {
     await ensureUserDivisionColumn().catch(() => {})
     await ensureUserRoleValues().catch(() => {})
+    await ensureUserPositionAndSubdivisionColumns().catch(() => {})
     const body = await request.json()
 
     // Validate input
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, username, password, role } = result.data
+    const { name, username, password, role, position, subdivision } = result.data
     if (!canManageTargetUser(session.user.role, role)) {
       return NextResponse.json({ error: 'Hanya Developer yang dapat mengelola akun Developer' }, { status: 403 })
     }
@@ -82,6 +83,8 @@ export async function POST(request: Request) {
       password: hashedPassword,
       role,
       division,
+      position: position ?? null,
+      subdivision: subdivision ?? null,
     } as Prisma.UserUncheckedCreateInput & UserWithOptionalDivision
 
     let newUser
@@ -114,6 +117,8 @@ export async function POST(request: Request) {
       username: newUser.username,
       role: newUser.role,
       division: readUserDivision(newUser as UserWithOptionalDivision),
+      position: newUser.position ?? null,
+      subdivision: newUser.subdivision ?? null,
       createdAt: newUser.createdAt,
     }
     cache.invalidateByPrefix('users:')
@@ -139,6 +144,7 @@ export async function GET(request: Request) {
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
+    await ensureUserPositionAndSubdivisionColumns().catch(() => {})
     const { searchParams } = new URL(request.url)
     const roleParam = String(searchParams.get('role') ?? '').trim().toUpperCase()
     const where = roleParam ? { role: roleParam } : undefined
@@ -153,6 +159,8 @@ export async function GET(request: Request) {
       username: user.username,
       role: user.role,
       division: readUserDivision(user as UserWithOptionalDivision),
+      position: user.position ?? null,
+      subdivision: user.subdivision ?? null,
       createdAt: user.createdAt,
     }))
 
@@ -172,6 +180,7 @@ export async function PUT(request: Request) {
   try {
     await ensureUserDivisionColumn().catch(() => {})
     await ensureUserRoleValues().catch(() => {})
+    await ensureUserPositionAndSubdivisionColumns().catch(() => {})
     const body = await request.json()
 
     // Validate input
@@ -183,7 +192,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    const { id, password, name, username, role, division } = result.data
+    const { id, password, name, username, role, division, position, subdivision } = result.data
     const targetUser = await prisma.user.findUnique({ where: { id }, select: { id: true, role: true } })
     if (!targetUser) return NextResponse.json({ error: 'User not found' }, { status: 404 })
     if (
@@ -216,6 +225,8 @@ export async function PUT(request: Request) {
     } else if (typeof role === 'string') {
       updateData.division = getDefaultUserDivision(role)
     }
+    if (position !== undefined) updateData.position = position
+    if (subdivision !== undefined) updateData.subdivision = subdivision
     if (typeof password === 'string') {
       updateData.password = await bcrypt.hash(password, 10)
     }
@@ -230,6 +241,8 @@ export async function PUT(request: Request) {
       username: updatedUser.username,
       role: updatedUser.role,
       division: readUserDivision(updatedUser as UserWithOptionalDivision),
+      position: updatedUser.position ?? null,
+      subdivision: updatedUser.subdivision ?? null,
       createdAt: updatedUser.createdAt,
     }
     cache.invalidateByPrefix('users:')
@@ -242,6 +255,8 @@ export async function PUT(request: Request) {
         updatedRole: safeUser.role,
         updatedDivision: safeUser.division,
         updatedUsername: safeUser.username,
+        updatedPosition: safeUser.position,
+        updatedSubdivision: safeUser.subdivision,
       },
     }).catch(() => {})
     return NextResponse.json(safeUser)

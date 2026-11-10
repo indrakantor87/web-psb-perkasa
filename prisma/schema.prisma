@@ -9,14 +9,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  username  String   @unique
-  password  String
-  role      String   // ADMIN, CS, ADMIN_CS, NOC, MARKETING, TEKNISI, TROUBLESHOOTS, CREATOR_DIGITAL
-  division  String?
-  avatar    String?
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  name        String
+  username    String   @unique
+  password    String
+  role        String   // ADMIN, CS, ADMIN_CS, NOC, MARKETING, TEKNISI, TROUBLESHOOTS, CREATOR_DIGITAL, HR, GENERAL_AFFAIR, OPERASIONAL
+  division    String?
+  position    String?
+  subdivision String?
+  avatar      String?
+  createdAt   DateTime @default(now())
   
   ticketsClosed Ticket[] @relation("ClosedBy")
   employee Employee?

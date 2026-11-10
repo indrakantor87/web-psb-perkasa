@@ -35,6 +35,8 @@ export const userCreateSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
   role: z.enum(APP_ROLE_VALUES),
+  position: z.string().min(1, 'Jabatan harus diisi').nullable().optional(),
+  subdivision: z.string().min(1, 'Sub divisi harus diisi').nullable().optional(),
 })
 
 export const userUpdateSchema = z.object({
@@ -44,7 +46,9 @@ export const userUpdateSchema = z.object({
   password: z.string().min(6, 'Password minimal 6 karakter').optional(),
   role: z.enum(APP_ROLE_VALUES).optional(),
   division: z.enum(HR_DIVISIONS).nullable().optional(),
+  position: z.string().min(1, 'Jabatan harus diisi').nullable().optional(),
+  subdivision: z.string().min(1, 'Sub divisi harus diisi').nullable().optional(),
 }).refine(
-  (value) => Boolean(value.name || value.username || value.password || value.role || value.division !== undefined),
+  (value) => Boolean(value.name || value.username || value.password || value.role || value.division !== undefined || value.position !== undefined || value.subdivision !== undefined),
   { message: 'Tidak ada perubahan yang dikirim' },
 )

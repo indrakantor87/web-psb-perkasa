@@ -6,6 +6,7 @@ type GlobalState = {
   __dbInitPromise?: Promise<void>
   __userDivisionInitPromise?: Promise<void>
   __userRoleInitPromise?: Promise<void>
+  __userPositionSubdivisionInitPromise?: Promise<void>
 }
 
 const g = globalThis as unknown as GlobalState
@@ -168,4 +169,19 @@ export async function ensureUserRoleValues() {
   }
 
   await g.__userRoleInitPromise
+}
+
+export async function ensureUserPositionAndSubdivisionColumns() {
+  if (!g.__userPositionSubdivisionInitPromise) {
+    g.__userPositionSubdivisionInitPromise = (async () => {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "position" TEXT;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subdivision" TEXT;`)
+      } catch (e) {
+        g.__userPositionSubdivisionInitPromise = undefined
+        throw e
+      }
+    })()
+  }
+  await g.__userPositionSubdivisionInitPromise
 }

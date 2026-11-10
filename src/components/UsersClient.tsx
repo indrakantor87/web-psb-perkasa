@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 import { isAdminRole } from '@/lib/access'
-import { HR_DIVISIONS } from '@/lib/hr-departments'
+import { HR_DIVISIONS, HR_POSITIONS, getHrSubdivisions } from '@/lib/hr-departments'
 import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 
 interface User {
@@ -13,6 +13,8 @@ interface User {
   username: string
   role: string
   division?: string | null
+  position?: string | null
+  subdivision?: string | null
   createdAt: string
 }
 
@@ -38,6 +40,8 @@ const ROLE_OPTIONS = [
   { value: 'TEKNISI', label: 'Teknisi' },
   { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
   { value: 'HR', label: 'HR' },
+  { value: 'GENERAL_AFFAIR', label: 'General Affair' },
+  { value: 'OPERASIONAL', label: 'Operasional' },
 ] as const
 
 const DIVISION_OPTIONS = [
@@ -87,13 +91,17 @@ export function UsersClient({ currentUser }: UsersClientProps) {
     name: '',
     username: '',
     password: '',
-    role: 'MARKETING'
+    role: 'MARKETING',
+    position: '',
+    subdivision: '',
   })
   const [editFormData, setEditFormData] = useState({
     name: '',
     username: '',
     role: 'MARKETING',
     division: '',
+    position: '',
+    subdivision: '',
   })
 
   // Permissions
@@ -181,7 +189,13 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, name: normalizedName, username: normalizedUsername }),
+        body: JSON.stringify({
+          ...formData,
+          name: normalizedName,
+          username: normalizedUsername,
+          position: formData.position || null,
+          subdivision: formData.subdivision || null,
+        }),
       })
 
       let data: CreateUserErrorResponse
@@ -205,7 +219,9 @@ export function UsersClient({ currentUser }: UsersClientProps) {
         name: '',
         username: '',
         password: '',
-        role: 'MARKETING'
+        role: 'MARKETING',
+        position: '',
+        subdivision: '',
       })
       fetchUsers()
     } catch (err: unknown) {
@@ -231,6 +247,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       username: user.username,
       role: user.role,
       division: getEditableDivision(user),
+      position: user.position ?? '',
+      subdivision: user.subdivision ?? '',
     })
     setIsEditModalOpen(true)
     setError('')
@@ -245,6 +263,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
       username: '',
       role: 'MARKETING',
       division: '',
+      position: '',
+      subdivision: '',
     })
   }
 
@@ -345,6 +365,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
           username: editFormData.username,
           role: editFormData.role,
           division: editFormData.division || null,
+          position: editFormData.position || null,
+          subdivision: editFormData.subdivision || null,
         }),
       })
 
@@ -472,6 +494,39 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               </p>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jabatan</label>
+              <select
+                name="position"
+                value={formData.position}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">— Pilih Jabatan —</option>
+                {HR_POSITIONS.map((pos) => (
+                  <option key={pos} value={pos}>{pos}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sub Divisi</label>
+              <select
+                name="subdivision"
+                value={formData.subdivision}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">— Pilih Sub Divisi —</option>
+                {getHrSubdivisions(derivedDivision).map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+              {getHrSubdivisions(derivedDivision).length === 0 && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Sub divisi tidak tersedia untuk divisi ini.</p>
+              )}
+            </div>
+
             <div className="border-t border-gray-100 pt-4 dark:border-gray-700">
               <button
                 type="submit"
@@ -529,6 +584,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Username</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Divisi</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Jabatan</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sub Divisi</th>
                 {isAdmin && <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>}
               </tr>
             </thead>
@@ -551,6 +608,12 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                     {formatDivisionLabel(user.division)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    {user.position || '-'}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                    {user.subdivision || '-'}
                   </td>
                   {canManageUser(user) && (
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
@@ -586,7 +649,7 @@ export function UsersClient({ currentUser }: UsersClientProps) {
               ))}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 6 : 5} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={isAdmin ? 8 : 7} className="px-4 sm:px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                     Tidak ada user yang sesuai.
                   </td>
                 </tr>
@@ -603,7 +666,8 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <div>
                   <h3 className="font-medium text-gray-900 dark:text-white">{user.name}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDivisionLabel(user.division)}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{formatDivisionLabel(user.division)}{user.subdivision ? ` · ${user.subdivision}` : ''}</p>
+                  {user.position && <p className="text-xs text-gray-500 dark:text-gray-400">{user.position}</p>}
                 </div>
                 <span className={clsx(
                   "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
@@ -737,6 +801,36 @@ export function UsersClient({ currentUser }: UsersClientProps) {
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Divisi dapat diubah terpisah; hak akses tetap mengikuti role.
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Jabatan</label>
+                <select
+                  name="position"
+                  value={editFormData.position}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">— Pilih Jabatan —</option>
+                  {HR_POSITIONS.map((pos) => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Sub Divisi</label>
+                <select
+                  name="subdivision"
+                  value={editFormData.subdivision}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-black focus:border-gray-400 focus:outline-none focus:ring-0 sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">— Pilih Sub Divisi —</option>
+                  {getHrSubdivisions(editFormData.division).map((sub) => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">

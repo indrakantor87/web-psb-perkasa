@@ -40,6 +40,8 @@ export const APP_ROLE_VALUES = [
   'CREATOR_DIGITAL',
   'DISMANTLE',
   'HR',
+  'GENERAL_AFFAIR',
+  'OPERASIONAL',
 ] as const
 
 export function normalizeRole(role?: string | null) {
@@ -223,6 +225,14 @@ function getAccessibleMenus(role?: string | null) {
 
   if (roleUpper === 'HR') {
     return menuSet(['dashboard', 'daily-activity', 'hr'])
+  }
+
+  if (roleUpper === 'GENERAL_AFFAIR') {
+    return menuSet(['dashboard', 'daily-activity', 'hr'])
+  }
+
+  if (roleUpper === 'OPERASIONAL') {
+    return menuSet(['dashboard', 'list', 'daily-activity', 'trouble-ticket', 'odp', 'dismantle', 'isolir'])
   }
 
   if (roleUpper === 'MARKETING') {

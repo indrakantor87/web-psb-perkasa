@@ -22,9 +22,10 @@ export function getDefaultUserDivision(role: string): HrDivision | null {
   if (roleUpper === 'MARKETING' || roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'CREATOR_DIGITAL') {
     return 'Pemasaran dan Pelayanan'
   }
-  if (roleUpper === 'NOC' || roleUpper === 'TEKNISI' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'DISMANTLE') {
+  if (roleUpper === 'NOC' || roleUpper === 'TEKNISI' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'DISMANTLE' || roleUpper === 'OPERASIONAL') {
     return 'Teknisi'
   }
   if (roleUpper === 'HR') return 'Finance & HR'
+  if (roleUpper === 'GENERAL_AFFAIR') return 'General Affair'
   return null
 }
