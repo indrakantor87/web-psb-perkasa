@@ -13,6 +13,14 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.3] - 2026-11-11
+
+### Fixed
+- Perbaiki dropdown POP di ODC Master yang masih kosong. GET `/api/odp/pop` kini:
+  - Memakai filter `is_active IS NOT FALSE` (mencakup `TRUE` dan `NULL`) alih-alih `is_active = TRUE`.
+  - Memiliki fallback: jika kolom `is_active` belum ada, query dijalankan tanpa filter.
+  - Memiliki fallback: jika `psb_pop` kosong tapi ada ODC yang merujuk `pop_id`, tampilkan placeholder `POP {id}`.
+
 ## [1.18.2] - 2026-11-11
 
 ### Fixed

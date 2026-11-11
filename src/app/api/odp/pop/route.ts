@@ -12,15 +12,44 @@ export async function GET() {
   const session = await getSession().catch(() => null)
   const accessError = ensureMenuAccess(session, 'odp')
   if (accessError) return accessError
-  
+
   try {
     await ensureOdpTable()
-    const rows = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
-      SELECT id, nama_pop, lokasi
-      FROM psb_pop
-      WHERE is_active = TRUE
-      ORDER BY nama_pop ASC
-    `
+
+    let rows: Array<{ id: number; nama_pop: string; lokasi: string }> = []
+
+    // Coba query dengan filter is_active (yang sudah ditambahkan ensureOdpTable).
+    try {
+      rows = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
+        SELECT id, nama_pop, lokasi
+        FROM psb_pop
+        WHERE is_active IS NOT FALSE
+        ORDER BY nama_pop ASC
+      `
+    } catch {
+      // Fallback: jika kolom is_active belum ada, ambil semua tanpa filter.
+      rows = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
+        SELECT id, nama_pop, lokasi
+        FROM psb_pop
+        ORDER BY nama_pop ASC
+      `
+    }
+
+    // Fallback: jika psb_pop kosong tapi ada ODC yang merujuk pop_id,
+    // tampilkan placeholder agar dropdown tidak kosong.
+    if (rows.length === 0) {
+      const fromOdc = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
+        SELECT DISTINCT
+          d.pop_id AS id,
+          ('POP ' || d.pop_id) AS nama_pop,
+          '' AS lokasi
+        FROM psb_odc d
+        WHERE d.pop_id IS NOT NULL
+        ORDER BY d.pop_id ASC
+      `
+      if (fromOdc.length > 0) rows = fromOdc
+    }
+
     return NextResponse.json(rows)
   } catch (e) {
     console.error('[api/odp/pop] GET error:', e)
