@@ -252,11 +252,13 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   const koordinat = rawKoordinat ? (directKoordinat ?? asyncKoordinat) : null
 
   // Reverse geocode alamat untuk koordinat yang di-parse langsung (URL sudah berisi koordinat).
+  // Gunakan /api/geo/resolve agar alamat diambil dari HTML Google Maps (lebih akurat),
+  // dengan fallback Nominatim.
   useEffect(() => {
     if (!directKoordinat) return
 
     let cancelled = false
-    fetch(`/api/geo/reverse?lat=${directKoordinat.lat}&lng=${directKoordinat.lng}`)
+    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}&address=1`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return
@@ -269,7 +271,7 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
     return () => {
       cancelled = true
     }
-  }, [directKoordinat])
+  }, [directKoordinat, rawKoordinat])
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))

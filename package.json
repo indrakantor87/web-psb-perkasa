@@ -1,6 +1,6 @@
 {
   "name": "web-psb-perkasa",
-  "version": "1.19.2",
+  "version": "1.19.3",
   "private": true,
   "scripts": {
     "dev": "prisma generate && next dev",

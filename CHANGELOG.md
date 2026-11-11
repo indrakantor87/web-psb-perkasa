@@ -13,6 +13,13 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.3] - 2026-11-11
+
+### Fixed
+- Alamat di BA Aktivasi tidak muncul untuk input koordinat langsung (mis. `-6.758779, 111.030351`). Endpoint `/api/geo/resolve` sekarang juga fetch halaman Google Maps untuk koordinat langsung agar alamat bisa diekstrak dari HTML (bukan hanya Nominatim yang sering tidak akurat untuk area pedesaan).
+- BA form sekarang memakai `/api/geo/resolve?address=1` untuk kedua kasus (koordinat langsung & short link), sehingga alamat selalu diambil dari Google Maps HTML terlebih dahulu.
+- Perbaiki error TypeScript regex `s` flag (dotAll) di `geo/resolve/route.ts` dengan `[\s\S]`.
+
 ## [1.19.2] - 2026-11-11
 
 ### Changed
