@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
@@ -210,6 +210,48 @@ function BAHeader({ error, onError }: { error: boolean; onError: () => void }) {
 export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   const [data, setData] = useState<BAFormData>(() => buildInitialData(ticket))
   const [headerImgError, setHeaderImgError] = useState(false)
+  const [asyncKoordinat, setAsyncKoordinat] = useState<{ lat: number; lng: number } | null>(null)
+  const [resolvingKoordinat, setResolvingKoordinat] = useState(false)
+
+  const rawKoordinat = (data.koordinat ?? '').trim()
+
+  // Parsing sinkron untuk URL yang sudah berisi koordinat (tidak perlu request).
+  const directKoordinat = useMemo(() => {
+    if (!rawKoordinat) return null
+    const parsed = parseLatLng(rawKoordinat)
+    return parsed ? { lat: parsed.latitude, lng: parsed.longitude } : null
+  }, [rawKoordinat])
+
+  // Jika short link, panggil endpoint untuk mengikuti redirect.
+  useEffect(() => {
+    if (!rawKoordinat || directKoordinat) return
+
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResolvingKoordinat(true)
+    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        if (d && typeof d.latitude === 'number' && typeof d.longitude === 'number') {
+          setAsyncKoordinat({ lat: d.latitude, lng: d.longitude })
+        } else {
+          setAsyncKoordinat(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAsyncKoordinat(null)
+      })
+      .finally(() => {
+        if (!cancelled) setResolvingKoordinat(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [rawKoordinat, directKoordinat])
+
+  const koordinat = rawKoordinat ? (directKoordinat ?? asyncKoordinat) : null
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))
@@ -353,17 +395,20 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
             {field('Alamat', data.alamat, 'alamat')}
             {field('Nomor WhatsApp', data.whatsapp, 'whatsapp')}
             {field('Titik Koordinat (Gmaps)', data.koordinat, 'koordinat')}
-            {(() => {
-              const parsed = parseLatLng(data.koordinat)
-              if (!parsed) return null
-              return (
-                <div className="mb-1.5 flex items-start">
-                  <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-900">Latitude &amp; Longitude</span>
-                  <span className="mr-1 shrink-0 text-[13px] text-gray-900">:</span>
-                  <span className="text-[13px] text-gray-900">{formatLatLng(parsed.latitude, parsed.longitude)}</span>
-                </div>
-              )
-            })()}
+            {koordinat && (
+              <div className="mb-1.5 flex items-start">
+                <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-900">Latitude &amp; Longitude</span>
+                <span className="mr-1 shrink-0 text-[13px] text-gray-900">:</span>
+                <span className="text-[13px] text-gray-900">{formatLatLng(koordinat.lat, koordinat.lng)}</span>
+              </div>
+            )}
+            {resolvingKoordinat && !koordinat && (
+              <div className="mb-1.5 flex items-start">
+                <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-500">Latitude &amp; Longitude</span>
+                <span className="mr-1 shrink-0 text-[13px] text-gray-500">:</span>
+                <span className="text-[13px] text-gray-500">Menyelesaikan link...</span>
+              </div>
+            )}
           </div>
 
           <h2 className="mb-2 text-[13px] font-bold uppercase text-gray-900">II. Detail Layanan & Perangkat</h2>

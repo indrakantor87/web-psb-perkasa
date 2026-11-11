@@ -13,6 +13,14 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.8] - 2026-11-11
+
+### Added
+- Endpoint `GET /api/geo/resolve` untuk menyelesaikan short link Google Maps (`maps.app.goo.gl/...`) dengan mengikuti redirect dan mengekstrak koordinat lat/lng.
+
+### Changed
+- BA Aktivasi: jika link Google Maps berupa short link, koordinat di-resolve via endpoint server. Link yang sudah berisi koordinat tetap di-parse langsung tanpa request.
+
 ## [1.18.7] - 2026-11-11
 
 ### Changed
