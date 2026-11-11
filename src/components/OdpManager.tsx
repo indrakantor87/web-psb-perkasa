@@ -768,8 +768,14 @@ export function OdpManager({
     try {
       const r = await fetch('/api/odp/pop')
       const data = await r.json()
-      if (r.ok) setPops(data)
-    } catch {}
+      if (r.ok && Array.isArray(data)) {
+        setPops(data)
+      } else {
+        console.error('[OdpManager] Gagal memuat daftar POP:', r.status, data)
+      }
+    } catch (e) {
+      console.error('[OdpManager] Error fetchPops:', e)
+    }
   }, [])
 
   const fetchOdcs = useCallback(async (popId?: string) => {

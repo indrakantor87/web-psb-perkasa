@@ -25,6 +25,15 @@ export async function ensureOdpTable() {
         `)
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_pop_nama_active ON psb_pop (lower(nama_pop)) WHERE is_active = TRUE;`)
 
+        // Pastikan kolom pada psb_pop tersedia (untuk tabel yang sudah ada dari versi lama)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`)
+        // Pastikan baris lama yang is_active-nya NULL diaktifkan
+        await prisma.$executeRawUnsafe(`UPDATE psb_pop SET is_active = TRUE WHERE is_active IS NULL;`)
+
         // --- 2. ODC Table ---
         await prisma.$executeRawUnsafe(`
           CREATE TABLE IF NOT EXISTS psb_odc (
@@ -40,6 +49,16 @@ export async function ensureOdpTable() {
           );
         `)
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_odc_nama_active ON psb_odc (lower(nama_odc)) WHERE is_active = TRUE;`)
+
+        // Pastikan kolom pada psb_odc tersedia (untuk tabel yang sudah ada dari versi lama)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS pop_id INT REFERENCES psb_pop(id);`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`)
+        await prisma.$executeRawUnsafe(`ALTER TABLE psb_odc ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();`)
+        // Pastikan baris lama yang is_active-nya NULL diaktifkan
+        await prisma.$executeRawUnsafe(`UPDATE psb_odc SET is_active = TRUE WHERE is_active IS NULL;`)
 
         // --- 3. ODP Table ---
         const checks = await prisma.$queryRaw<

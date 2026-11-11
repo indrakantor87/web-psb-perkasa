@@ -22,7 +22,8 @@ export async function GET() {
       ORDER BY nama_pop ASC
     `
     return NextResponse.json(rows)
-  } catch {
+  } catch (e) {
+    console.error('[api/odp/pop] GET error:', e)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 }

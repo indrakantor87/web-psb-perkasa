@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.2] - 2026-11-11
+
+### Fixed
+- Perbaiki dropdown POP di Port ODC Master yang kosong. `ensureOdpTable` kini menambahkan kolom yang hilang (`is_active`, `latitude`, `longitude`, dll) pada tabel `psb_pop` dan `psb_odc` yang sudah ada dari versi lama, serta mengaktifkan baris dengan `is_active` NULL.
+- Tambahkan error logging pada `fetchPops` dan route `/api/odp/pop` untuk memudahkan debugging.
+
 ## [1.18.1] - 2026-11-11
 
 ### Changed
