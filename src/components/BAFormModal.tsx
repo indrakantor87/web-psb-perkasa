@@ -367,7 +367,7 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
                 <option value="">-- Pilih Paket --</option>
                 {PACKAGE_CATALOG.map((pkg) => (
                   <option key={pkg.name} value={pkg.name}>
-                    {pkg.name} {pkg.bandwidth} {pkg.price}
+                    {pkg.name}
                   </option>
                 ))}
               </select>

@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.1] - 2026-11-11
+
+### Changed
+- Dropdown Paket Layanan pada BA hanya menampilkan nama paket (HOME MINI, HOME LITE, dll) tanpa duplikasi bandwidth dan harga, karena keduanya sudah ada di baris masing-masing.
+
 ## [1.18.0] - 2026-11-11
 
 ### Added
