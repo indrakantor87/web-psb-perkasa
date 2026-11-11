@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.9] - 2026-11-11
+
+### Changed
+- BA Aktivasi: koordinat hasil generate dari link Google Maps sekarang **menggantikan** link pada baris "Titik Koordinat (Gmaps)" yang sama, tidak lagi membuat baris "Latitude & Longitude" terpisah.
+
 ## [1.18.8] - 2026-11-11
 
 ### Added

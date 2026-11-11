@@ -211,7 +211,6 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   const [data, setData] = useState<BAFormData>(() => buildInitialData(ticket))
   const [headerImgError, setHeaderImgError] = useState(false)
   const [asyncKoordinat, setAsyncKoordinat] = useState<{ lat: number; lng: number } | null>(null)
-  const [resolvingKoordinat, setResolvingKoordinat] = useState(false)
 
   const rawKoordinat = (data.koordinat ?? '').trim()
 
@@ -227,8 +226,6 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
     if (!rawKoordinat || directKoordinat) return
 
     let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setResolvingKoordinat(true)
     fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}`)
       .then((r) => r.json())
       .then((d) => {
@@ -241,9 +238,6 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
       })
       .catch(() => {
         if (!cancelled) setAsyncKoordinat(null)
-      })
-      .finally(() => {
-        if (!cancelled) setResolvingKoordinat(false)
       })
 
     return () => {
@@ -394,21 +388,7 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
             {field('Nama', data.nama, 'nama')}
             {field('Alamat', data.alamat, 'alamat')}
             {field('Nomor WhatsApp', data.whatsapp, 'whatsapp')}
-            {field('Titik Koordinat (Gmaps)', data.koordinat, 'koordinat')}
-            {koordinat && (
-              <div className="mb-1.5 flex items-start">
-                <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-900">Latitude &amp; Longitude</span>
-                <span className="mr-1 shrink-0 text-[13px] text-gray-900">:</span>
-                <span className="text-[13px] text-gray-900">{formatLatLng(koordinat.lat, koordinat.lng)}</span>
-              </div>
-            )}
-            {resolvingKoordinat && !koordinat && (
-              <div className="mb-1.5 flex items-start">
-                <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-500">Latitude &amp; Longitude</span>
-                <span className="mr-1 shrink-0 text-[13px] text-gray-500">:</span>
-                <span className="text-[13px] text-gray-500">Menyelesaikan link...</span>
-              </div>
-            )}
+            {field('Titik Koordinat (Gmaps)', koordinat ? formatLatLng(koordinat.lat, koordinat.lng) : data.koordinat, 'koordinat')}
           </div>
 
           <h2 className="mb-2 text-[13px] font-bold uppercase text-gray-900">II. Detail Layanan & Perangkat</h2>
