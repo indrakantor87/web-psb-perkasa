@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.4] - 2026-11-11
+
+### Fixed
+- Perbaiki dropdown POP di ODC Master yang kosong padahal data POP ada di tabel utama. Ternyata tabel `psb_pop` kosong, sementara "POP" di tabel utama berasal dari `psb_odp.wilayah`. GET `/api/odp/pop` kini auto-populate `psb_pop` dari `DISTINCT wilayah` di `psb_odp` jika `psb_pop` kosong.
+
 ## [1.18.3] - 2026-11-11
 
 ### Fixed

@@ -35,7 +35,41 @@ export async function GET() {
       `
     }
 
-    // Fallback: jika psb_pop kosong tapi ada ODC yang merujuk pop_id,
+    // Fallback: jika psb_pop kosong, auto-populate dari DISTINCT wilayah di psb_odp.
+    // Tabel utama menampilkan "POP" dari psb_odp.wilayah, sehingga nama POP yang
+    // valid sudah tersedia di sana dan bisa dijadikan master POP.
+    if (rows.length === 0) {
+      const wilayahRows = await prisma.$queryRaw<Array<{ wilayah: string }>>`
+        SELECT DISTINCT o.wilayah
+        FROM psb_odp o
+        WHERE o.is_active IS NOT FALSE
+          AND o.wilayah IS NOT NULL
+          AND o.wilayah <> ''
+        ORDER BY o.wilayah ASC
+      `
+      if (wilayahRows.length > 0) {
+        for (const w of wilayahRows) {
+          const nama = String(w.wilayah).trim()
+          if (!nama) continue
+          await prisma.$executeRaw(Prisma.sql`
+            INSERT INTO psb_pop (nama_pop, lokasi, is_active, created_at, updated_at)
+            VALUES (${nama}, '', TRUE, NOW(), NOW())
+            ON CONFLICT (lower(nama_pop)) WHERE is_active = TRUE
+            DO NOTHING
+          `)
+        }
+        // Ambil ulang setelah insert.
+        rows = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
+          SELECT id, nama_pop, lokasi
+          FROM psb_pop
+          WHERE is_active IS NOT FALSE
+          ORDER BY nama_pop ASC
+        `
+        cache.invalidateByPrefix('odp:')
+      }
+    }
+
+    // Fallback terakhir: jika psb_pop tetap kosong tapi ada ODC yang merujuk pop_id,
     // tampilkan placeholder agar dropdown tidak kosong.
     if (rows.length === 0) {
       const fromOdc = await prisma.$queryRaw<Array<{ id: number; nama_pop: string; lokasi: string }>>`
