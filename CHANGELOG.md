@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.7] - 2026-11-12
+
+### Fixed
+- Port ODP: urutan daftar ODC sekarang diurutkan secara numerik berdasarkan angka di nama (ODC 01, ODC 02, ..., ODC 14), bukan urutan acak dari database.
+
 ## [1.19.6] - 2026-11-12
 
 ### Fixed

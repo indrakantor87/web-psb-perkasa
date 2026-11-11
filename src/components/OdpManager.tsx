@@ -280,7 +280,18 @@ export function OdpManager({
         if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
         if (!unassignedResponse.ok) throw new Error(unassignedData?.error ?? 'Gagal memuat ODP yang belum terhubung')
 
-        const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
+        // Urutkan ODC asli dari API secara numerik berdasarkan angka di nama.
+        const sortedOdcData = (Array.isArray(odcData) ? odcData : []).slice().sort((a: OdcRow, b: OdcRow) => {
+          const extractNum = (s: string) => {
+            const m = s.match(/\d+/)
+            return m ? parseInt(m[0], 10) : 0
+          }
+          const na = extractNum(a.nama_odc)
+          const nb = extractNum(b.nama_odc)
+          if (na !== nb) return na - nb
+          return a.nama_odc.localeCompare(b.nama_odc, undefined, { numeric: true })
+        })
+        const hierarchyRows: OdcDisplayRow[] = sortedOdcData.map((odc: OdcRow) => ({
           ...odc,
           isOdc: true,
           wilayah,
@@ -431,7 +442,18 @@ export function OdpManager({
       if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
       if (!odpResponse.ok) throw new Error(odpData?.error ?? 'Gagal memuat ODP yang belum terhubung')
 
-      const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
+      // Urutkan ODC asli dari API secara numerik berdasarkan angka di nama (mis. ODC 1, ODC 2, ... ODC 14).
+      const sortedOdcData = (Array.isArray(odcData) ? odcData : []).slice().sort((a: OdcRow, b: OdcRow) => {
+        const extractNum = (s: string) => {
+          const m = s.match(/\d+/)
+          return m ? parseInt(m[0], 10) : 0
+        }
+        const na = extractNum(a.nama_odc)
+        const nb = extractNum(b.nama_odc)
+        if (na !== nb) return na - nb
+        return a.nama_odc.localeCompare(b.nama_odc, undefined, { numeric: true })
+      })
+      const hierarchyRows: OdcDisplayRow[] = sortedOdcData.map((odc: OdcRow) => ({
         ...odc,
         isOdc: true,
         wilayah: pop.nama_pop,
