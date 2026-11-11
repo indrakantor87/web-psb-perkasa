@@ -221,21 +221,17 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
     return parsed ? { lat: parsed.latitude, lng: parsed.longitude } : null
   }, [rawKoordinat])
 
-  // Jika short link, panggil endpoint untuk mengikuti redirect + reverse geocoding alamat.
+  // Jika short link, panggil endpoint untuk mengikuti redirect agar koordinat tampil.
   useEffect(() => {
     if (!rawKoordinat || directKoordinat) return
 
     let cancelled = false
-    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}&address=1`)
+    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return
         if (d && typeof d.latitude === 'number' && typeof d.longitude === 'number') {
           setAsyncKoordinat({ lat: d.latitude, lng: d.longitude })
-          // Auto-isi alamat jika field alamat masih kosong dan hasil reverse geocoding ada.
-          if (d.address && typeof d.address === 'string') {
-            setData((prev) => (prev.alamat?.trim() ? prev : { ...prev, alamat: d.address as string }))
-          }
         } else {
           setAsyncKoordinat(null)
         }
@@ -250,28 +246,6 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   }, [rawKoordinat, directKoordinat])
 
   const koordinat = rawKoordinat ? (directKoordinat ?? asyncKoordinat) : null
-
-  // Reverse geocode alamat untuk koordinat yang di-parse langsung (URL sudah berisi koordinat).
-  // Gunakan /api/geo/resolve agar alamat diambil dari HTML Google Maps (lebih akurat),
-  // dengan fallback Nominatim.
-  useEffect(() => {
-    if (!directKoordinat) return
-
-    let cancelled = false
-    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}&address=1`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (cancelled) return
-        if (d?.address && typeof d.address === 'string') {
-          setData((prev) => (prev.alamat?.trim() ? prev : { ...prev, alamat: d.address as string }))
-        }
-      })
-      .catch(() => {})
-
-    return () => {
-      cancelled = true
-    }
-  }, [directKoordinat, rawKoordinat])
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))

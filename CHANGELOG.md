@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.5] - 2026-11-11
+
+### Changed
+- BA Aktivasi: hapus fitur auto-generate alamat dari link/koordinat Google Maps. Field **Alamat** kembali diisi manual oleh user. Koordinat (Titik Koordinat Gmaps) tetap auto-generate dari link Google Maps.
+
 ## [1.19.4] - 2026-11-11
 
 ### Fixed
