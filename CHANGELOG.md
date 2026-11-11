@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.1] - 2026-11-11
+
+### Changed
+- Reverse geocoding alamat kini memakai filter akurasi (`isAddressAccurate`): hanya diisi otomatis jika mengandung nama jalan (Jalan/Jl/Gang/Gg/Raya/Kampung) atau cukup panjang dengan nomor. Jika kurang akurat, field Alamat dibiarkan kosong untuk diisi manual.
+
 ## [1.19.0] - 2026-11-11
 
 ### Added

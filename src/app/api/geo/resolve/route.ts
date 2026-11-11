@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess } from '@/lib/access-server'
-import { parseLatLng } from '@/lib/geo'
+import { isAddressAccurate, parseLatLng } from '@/lib/geo'
 
 export const runtime = 'nodejs'
 
@@ -41,6 +41,9 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
     // Nominatim menyediakan display_name (alamat lengkap) dan address (terstruktur).
     const display = String(data?.display_name ?? '').trim()
     if (!display) return null
+
+    // Hanya kembalikan alamat jika dianggap cukup akurat.
+    if (!isAddressAccurate(display)) return null
 
     // Gunakan display_name yang sudah berupa alamat lengkap.
     return display

@@ -50,3 +50,17 @@ export function parseLatLng(input: string) {
 export function formatLatLng(lat: number, lng: number) {
   return `${lat.toFixed(6)}, ${lng.toFixed(6)}`
 }
+
+/**
+ * Menilai apakah hasil alamat dari reverse geocoding cukup akurat untuk diisi
+ * otomatis. Kriteria: mengandung nama jalan (Jalan/Jl/Gang/Gg/Raya/Kampung)
+ * atau cukup panjang dan mengandung nomor. Jika tidak, dibiarkan kosong agar
+ * user isi manual.
+ */
+export function isAddressAccurate(addr: string): boolean {
+  if (!addr || addr.length < 40) return false
+  const lower = addr.toLowerCase()
+  const hasRoad = /\b(jalan|jl\.?|gang|gg\.?|raya|kampung|kp\.?)\b/.test(lower)
+  const hasNumber = /\d/.test(addr)
+  return hasRoad || (hasNumber && addr.length > 60)
+}

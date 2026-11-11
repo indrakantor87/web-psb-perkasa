@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess } from '@/lib/access-server'
+import { isAddressAccurate } from '@/lib/geo'
 
 export const runtime = 'nodejs'
 
 /**
  * Endpoint reverse geocoding: mengubah koordinat lat/lng menjadi alamat
  * menggunakan Nominatim (OpenStreetMap). Gratis tanpa API key.
+ *
+ * Mengembalikan `address: null` jika hasilnya dianggap kurang akurat,
+ * agar field alamat dibiarkan kosong untuk diisi manual oleh user.
  */
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
@@ -46,11 +50,11 @@ export async function GET(req: Request) {
     const data = await res.json()
     const display = String(data?.display_name ?? '').trim()
 
-    if (!display) {
-      return NextResponse.json({ error: 'Alamat tidak ditemukan' }, { status: 404 })
+    if (!display || !isAddressAccurate(display)) {
+      return NextResponse.json({ address: null, accurate: false })
     }
 
-    return NextResponse.json({ address: display })
+    return NextResponse.json({ address: display, accurate: true })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: `Gagal reverse geocoding: ${message}` }, { status: 500 })
