@@ -6,18 +6,63 @@ import { isAddressAccurate, parseLatLng } from '@/lib/geo'
 export const runtime = 'nodejs'
 
 /**
- * Endpoint untuk menyelesaikan (resolve) short link Google Maps menjadi
- * koordinat latitude & longitude, lalu melakukan reverse geocoding via
- * Nominatim (OpenStreetMap) untuk mendapatkan alamat.
+ * Mengekstrak alamat dari HTML halaman Google Maps.
  *
- * Short link seperti https://maps.app.goo.gl/XXXX tidak mengandung koordinat
- * secara langsung, melainkan redirect ke URL lengkap yang berisi lat/lng.
- * Endpoint ini mengikuti redirect tersebut dan mengekstrak koordinatnya.
+ * Google Maps menyimpan alamat di beberapa tempat:
+ * - `<meta name="description">` (paling umum, berisi nama tempat + alamat)
+ * - JSON-LD structured data
+ * - `window.APP_INITIALIZATION_STATE` (data inisialisasi)
  */
+function extractAddressFromGoogleMapsHtml(html: string): string | null {
+  if (!html) return null
+
+  // 1. Coba dari <meta name="description">
+  const metaDesc = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i)
+  if (metaDesc) {
+    const content = metaDesc[1].trim()
+    // Meta description biasanya format: "Nama Tempat · Alamat" atau "Nama Tempat, Alamat"
+    // Bersihkan entity HTML
+    const decoded = content
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;amp;/g, '&')
+    if (decoded && decoded.length > 10) {
+      return decoded
+    }
+  }
+
+  // 2. Coba dari JSON-LD (application/ld+json)
+  const jsonLdMatch = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i)
+  if (jsonLdMatch) {
+    try {
+      const json = JSON.parse(jsonLdMatch[1])
+      const address = json?.address
+      if (address) {
+        if (typeof address === 'string' && address.length > 10) return address
+        if (typeof address === 'object') {
+          const parts = [
+            address.streetAddress,
+            address.addressLocality,
+            address.addressRegion,
+            address.postalCode,
+            address.addressCountry,
+          ].filter(Boolean)
+          if (parts.length) return parts.join(', ')
+        }
+      }
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  return null
+}
 
 /**
  * Reverse geocoding via Nominatim (OpenStreetMap). Gratis tanpa API key.
- * Mengembalikan alamat terformat atau null jika gagal.
+ * Fallback jika scraping Google Maps tidak mendapatkan alamat.
  */
 async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   try {
@@ -38,14 +83,11 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
     if (!res.ok) return null
     const data = await res.json()
 
-    // Nominatim menyediakan display_name (alamat lengkap) dan address (terstruktur).
     const display = String(data?.display_name ?? '').trim()
     if (!display) return null
 
-    // Hanya kembalikan alamat jika dianggap cukup akurat.
     if (!isAddressAccurate(display)) return null
 
-    // Gunakan display_name yang sudah berupa alamat lengkap.
     return display
   } catch {
     return null
@@ -68,6 +110,7 @@ export async function GET(req: Request) {
   let latitude: number | null = null
   let longitude: number | null = null
   let source = ''
+  let googleMapsHtml = ''
 
   // Coba parsing langsung dulu (untuk URL yang sudah berisi koordinat).
   const direct = parseLatLng(target)
@@ -98,10 +141,14 @@ export async function GET(req: Request) {
         latitude = parsed.latitude
         longitude = parsed.longitude
         source = 'redirect'
-      } else {
-        // Fallback: coba ekstrak dari body respons (kadang koordinat ada di meta tag).
-        const text = await res.text().catch(() => '')
-        const fromBody = text.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
+      }
+
+      // Simpan HTML untuk ekstraksi alamat dari Google Maps.
+      googleMapsHtml = await res.text().catch(() => '')
+
+      if (!latitude) {
+        // Fallback: coba ekstrak koordinat dari body.
+        const fromBody = googleMapsHtml.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
         if (fromBody) {
           latitude = Number(fromBody[1])
           longitude = Number(fromBody[2])
@@ -124,9 +171,17 @@ export async function GET(req: Request) {
     source,
   }
 
-  // Reverse geocoding opsional via Nominatim.
   if (withAddress) {
-    result.address = await reverseGeocode(latitude, longitude)
+    // Prioritas 1: ambil alamat dari HTML halaman Google Maps (paling akurat).
+    let address = extractAddressFromGoogleMapsHtml(googleMapsHtml)
+
+    // Prioritas 2: jika dari HTML tidak ada atau kurang akurat, coba Nominatim.
+    if (!address || !isAddressAccurate(address)) {
+      const nominatimAddr = await reverseGeocode(latitude, longitude)
+      if (nominatimAddr) address = nominatimAddr
+    }
+
+    result.address = address || null
   }
 
   return NextResponse.json(result)
