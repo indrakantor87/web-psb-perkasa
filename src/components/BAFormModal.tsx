@@ -76,6 +76,59 @@ interface TicketLike {
   locationMap: string
   installedDate: string | null
   pembayaran?: string | null
+  birthDate?: string | null
+}
+
+/**
+ * Katalog paket layanan untuk auto-fill Bandwidth, Biaya Bulanan, dan Total Pembayaran.
+ * `name` adalah nama paket yang cocok dengan field `package` pada tiket.
+ */
+const PACKAGE_CATALOG = [
+  { name: 'HOME MINI', bandwidth: '25 Mbps', price: 'Rp. 110.000' },
+  { name: 'HOME LITE', bandwidth: '30 Mbps', price: 'Rp. 125.000' },
+  { name: 'HOME BASIC', bandwidth: '50 Mbps', price: 'Rp. 166.500' },
+  { name: 'HOME STREAM', bandwidth: '75 Mbps', price: 'Rp. 200.000' },
+  { name: 'HOME ENTERTAIN', bandwidth: '100 Mbps', price: 'Rp. 260.000' },
+  { name: 'HOME SMART', bandwidth: '150 Mbps', price: 'Rp. 325.000' },
+]
+
+/**
+ * Mencari paket dari katalog berdasarkan nama paket (case-insensitive, substring).
+ */
+function findPackage(packageName: string) {
+  const needle = packageName.trim().toUpperCase()
+  if (!needle) return null
+  return (
+    PACKAGE_CATALOG.find((p) => p.name === needle) ||
+    PACKAGE_CATALOG.find((p) => needle.includes(p.name)) ||
+    null
+  )
+}
+
+/**
+ * Membuat Service ID: 4 karakter awal nama (huruf kecil, non-alfanumerik dibuang)
+ * + 4 digit tanggal lahir (DDMM), total 8 karakter, diakhiri @perkasa.net.id.
+ * Contoh: nama "Andi", lahir 08 September => andi0809@perkasa.net.id
+ */
+function generateServiceId(name: string, birthDate: string | null | undefined): string {
+  const namePart = (name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 4)
+  let datePart = ''
+  if (birthDate) {
+    try {
+      const d = new Date(birthDate)
+      if (!Number.isNaN(d.getTime())) {
+        const day = String(d.getUTCDate()).padStart(2, '0')
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0')
+        datePart = day + month
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return namePart + datePart + '@perkasa.net.id'
 }
 
 function buildInitialData(ticket: TicketLike): BAFormData {
@@ -86,6 +139,16 @@ function buildInitialData(ticket: TicketLike): BAFormData {
   data.salesMarketing = ticket.marketingName || ''
   data.teknisi = ticket.teknisi || ''
   data.koordinat = ticket.locationMap || ''
+  // Service ID otomatis dari nama + tanggal lahir (DDMM), diakhiri @perkasa.net.id
+  data.serviceId = generateServiceId(ticket.customerName, ticket.birthDate)
+  // Auto-fill Bandwidth, Biaya Bulanan, dan Total Pembayaran dari katalog paket
+  const pkg = findPackage(ticket.package || '')
+  if (pkg) {
+    data.paketLayanan = pkg.name
+    data.bandwidth = pkg.bandwidth
+    data.biayaBulanan = pkg.price
+    data.totalPembayaran = pkg.price
+  }
   if (ticket.installedDate) {
     try {
       data.tanggal = format(new Date(ticket.installedDate), 'EEEE, d MMMM yyyy', { locale: idLocale })
@@ -149,6 +212,18 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // Saat paket layanan dipilih, otomatis isi Bandwidth, Biaya Bulanan, dan Total Pembayaran.
+  const handlePackageChange = (packageName: string) => {
+    const pkg = findPackage(packageName)
+    setData((prev) => ({
+      ...prev,
+      paketLayanan: packageName,
+      bandwidth: pkg ? pkg.bandwidth : prev.bandwidth,
+      biayaBulanan: pkg ? pkg.price : prev.biayaBulanan,
+      totalPembayaran: pkg ? pkg.price : prev.totalPembayaran,
+    }))
   }
 
   const handlePrint = () => {
@@ -221,9 +296,8 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
             break-after: auto !important;
           }
           .ba-input { border: none !important; background: transparent !important; }
-          input[type="checkbox"].ba-input, input[type="checkbox"] {
-            -webkit-appearance: none; appearance: none;
-          }
+          select.ba-input { -webkit-appearance: none; appearance: none; }
+          /* Checkbox tetap ditampilkan saat print (Status Koneksi, Pemasangan Kabel, Metode Pembayaran) */
           @page { size: A4; margin: 12mm; }
         }
       `}</style>
@@ -282,7 +356,22 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
 
           <h2 className="mb-2 text-[13px] font-bold uppercase text-gray-900">II. Detail Layanan & Perangkat</h2>
           <div className="mb-4 pl-1">
-            {field('Paket Layanan', data.paketLayanan, 'paketLayanan')}
+            <div className="mb-1.5 flex items-start">
+              <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-900">Paket Layanan</span>
+              <span className="mr-1 shrink-0 text-[13px] text-gray-900">:</span>
+              <select
+                value={data.paketLayanan}
+                onChange={(e) => handlePackageChange(e.target.value)}
+                className="ba-input min-w-0 flex-1 border-b border-dashed border-gray-400 bg-transparent text-[13px] text-gray-900 outline-none focus:border-blue-500"
+              >
+                <option value="">-- Pilih Paket --</option>
+                {PACKAGE_CATALOG.map((pkg) => (
+                  <option key={pkg.name} value={pkg.name}>
+                    {pkg.name} {pkg.bandwidth} {pkg.price}
+                  </option>
+                ))}
+              </select>
+            </div>
             {field('Bandwidth', data.bandwidth, 'bandwidth')}
             {field('Service ID', data.serviceId, 'serviceId')}
             {field('Status Kepemilikan Perangkat', data.statusPerangkat, 'statusPerangkat')}

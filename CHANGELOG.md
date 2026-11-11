@@ -13,6 +13,16 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.0] - 2026-11-11
+
+### Added
+- Paket Layanan pada Berita Acara (BA) kini berupa dropdown dengan 6 paket (HOME MINI s/d HOME SMART).
+- Service ID otomatis dibuat dari 4 karakter awal nama + DDMM tanggal lahir, diakhiri `@perkasa.net.id`.
+
+### Changed
+- Memilih Paket Layanan otomatis mengisi Bandwidth, Biaya Bulanan (+PPN), dan Total Pembayaran Pertama.
+- Checkbox Status Koneksi, Pemasangan Kabel, dan Metode Pembayaran tetap ditampilkan saat dokumen BA dicetak.
+
 ## [1.17.0] - 2026-11-11
 
 ### Added
