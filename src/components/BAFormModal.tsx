@@ -221,17 +221,21 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
     return parsed ? { lat: parsed.latitude, lng: parsed.longitude } : null
   }, [rawKoordinat])
 
-  // Jika short link, panggil endpoint untuk mengikuti redirect.
+  // Jika short link, panggil endpoint untuk mengikuti redirect + reverse geocoding alamat.
   useEffect(() => {
     if (!rawKoordinat || directKoordinat) return
 
     let cancelled = false
-    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}`)
+    fetch(`/api/geo/resolve?url=${encodeURIComponent(rawKoordinat)}&address=1`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return
         if (d && typeof d.latitude === 'number' && typeof d.longitude === 'number') {
           setAsyncKoordinat({ lat: d.latitude, lng: d.longitude })
+          // Auto-isi alamat jika field alamat masih kosong dan hasil reverse geocoding ada.
+          if (d.address && typeof d.address === 'string') {
+            setData((prev) => (prev.alamat?.trim() ? prev : { ...prev, alamat: d.address as string }))
+          }
         } else {
           setAsyncKoordinat(null)
         }
@@ -246,6 +250,26 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
   }, [rawKoordinat, directKoordinat])
 
   const koordinat = rawKoordinat ? (directKoordinat ?? asyncKoordinat) : null
+
+  // Reverse geocode alamat untuk koordinat yang di-parse langsung (URL sudah berisi koordinat).
+  useEffect(() => {
+    if (!directKoordinat) return
+
+    let cancelled = false
+    fetch(`/api/geo/reverse?lat=${directKoordinat.lat}&lng=${directKoordinat.lng}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return
+        if (d?.address && typeof d.address === 'string') {
+          setData((prev) => (prev.alamat?.trim() ? prev : { ...prev, alamat: d.address as string }))
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [directKoordinat])
 
   const update = (key: keyof BAFormData, value: string) => {
     setData((prev) => ({ ...prev, [key]: value }))

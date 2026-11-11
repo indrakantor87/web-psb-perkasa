@@ -13,6 +13,15 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.0] - 2026-11-11
+
+### Added
+- Endpoint `GET /api/geo/reverse` untuk reverse geocoding (koordinat → alamat) via Nominatim (OpenStreetMap), gratis tanpa API key.
+- Endpoint `GET /api/geo/resolve` kini mendukung parameter `address=1` untuk sekaligus mengembalikan alamat hasil reverse geocoding.
+
+### Changed
+- BA Aktivasi: field **Alamat** sekarang diisi otomatis dari hasil reverse geocoding link Google Maps (jika field alamat masih kosong). User tetap bisa mengedit manual.
+
 ## [1.18.9] - 2026-11-11
 
 ### Changed
