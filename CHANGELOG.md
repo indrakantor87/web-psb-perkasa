@@ -13,6 +13,18 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.20.0] - 2026-11-12
+
+### Added
+- Menu **Jalur Jaringan** baru (`/jalur`) — peta infrastruktur fiber berbasis Leaflet + citra satelit Esri World Imagery.
+- **Draw manual**: klik peta untuk membuat jalur (Backbone/Distribusi) dan titik splice (sambung kabel).
+- **Import/Export KML & KMZ** dua arah dengan Google Earth — warna dan marker disinkronkan (POP merah, ODC hijau, Splice kuning, jalur Backbone cyan, jalur Distribusi ungu).
+- **Tabel baru** `psb_jalur` dan `psb_splice` di schema Prisma.
+- **Hak akses**: menu terlihat oleh ADMIN/DEVELOPER/PRIORITY/NOC/TEKNISI; mutasi hanya untuk NOC & TEKNISI (serta Admin/Developer).
+
+### Changed
+- `access.ts`, `mobile-nav.ts`, `Header.tsx`, `Sidebar.tsx` — pendaftaran menu `jalur` di sidebar, header, dan navigasi mobile.
+
 ## [1.19.7] - 2026-11-12
 
 ### Fixed

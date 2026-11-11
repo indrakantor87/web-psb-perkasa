@@ -7,6 +7,7 @@ export type AppMenuKey =
   | 'isolir'
   | 'dismantle'
   | 'odp'
+  | 'jalur'
   | 'trouble-ticket'
   | 'content-calendar'
   | 'campaigns'
@@ -135,6 +136,8 @@ export function getMenuDataDivision(menu: AppMenuKey, perspectiveDivision?: stri
       return division === 'NOC_TROUBLESHOOTS' ? 'NOC_TROUBLESHOOTS' : 'CS_ADMIN'
     case 'odp':
       return 'CS_ADMIN'
+    case 'jalur':
+      return 'CS_ADMIN'
     case 'trouble-ticket':
       return 'NOC_TROUBLESHOOTS'
     case 'content-calendar':
@@ -165,6 +168,8 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
       return `/dismantle?division=${division}&status=OPEN`
     case 'odp':
       return `/odp?division=${division}`
+    case 'jalur':
+      return '/jalur'
     case 'trouble-ticket':
       return `/trouble-ticket?division=${division}`
     case 'content-calendar':
@@ -251,6 +256,7 @@ function getAccessibleMenus(
       'isolir',
       'dismantle',
       'odp',
+      'jalur',
       'trouble-ticket',
       'content-calendar',
       'campaigns',
@@ -274,7 +280,7 @@ function getAccessibleMenus(
   } else if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') {
     menus = menuSet(['dashboard', 'input', 'list', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
   } else if (roleUpper === 'NOC') {
-    menus = menuSet(['list', 'dismantle', 'odp', 'trouble-ticket'])
+    menus = menuSet(['list', 'dismantle', 'odp', 'jalur', 'trouble-ticket'])
   } else if (roleUpper === 'CREATOR_DIGITAL') {
     menus = menuSet([
       'dashboard',
@@ -289,7 +295,7 @@ function getAccessibleMenus(
       'analytics',
     ])
   } else if (isTechnicianRole(roleUpper)) {
-    menus = menuSet(['list', 'odp', 'trouble-ticket', 'dismantle'])
+    menus = menuSet(['list', 'odp', 'jalur', 'trouble-ticket', 'dismantle'])
   } else {
     menus = menuSet([])
   }
@@ -364,6 +370,8 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'odp':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
+    case 'jalur':
+      return roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'trouble-ticket':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'content-calendar':

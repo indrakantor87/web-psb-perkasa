@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi, ClipboardList, Wrench } from 'lucide-react'
+import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, Ban, Wifi, MapPinned, ClipboardList, Wrench } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
@@ -35,6 +35,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
     ...(canAccessMenu(user?.role, 'isolir') ? [{ href: getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }] : []),
     ...(canAccessMenu(user?.role, 'dismantle') ? [{ href: getMenuHref('dismantle', roleDivision), label: 'Dismantle Perangkat', icon: Wrench }] : []),
     ...(canAccessMenu(user?.role, 'odp') ? [{ href: getMenuHref('odp', roleDivision), label: 'PORT ODP', icon: Wifi }] : []),
+    ...(canAccessMenu(user?.role, 'jalur') ? [{ href: getMenuHref('jalur', roleDivision), label: 'Jalur Jaringan', icon: MapPinned }] : []),
     ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
   ]
 
