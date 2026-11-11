@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CircleMarker, LayersControl, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
+import { LayersControl, MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import * as L from 'leaflet'
 
 export type LatLngPoint = { latitude: number; longitude: number }
@@ -46,15 +46,23 @@ const COLOR_DISTRIBUSI = '#800080' // ungu
 const COLOR_POP = '#ef4444' // merah
 const COLOR_ODC = '#22c55e' // hijau
 const COLOR_SPLICE = '#facc15' // kuning
+const COLOR_ODP = '#3b82f6' // biru
 
-function makeCircleIcon(color: string, radius = 10): L.DivIcon {
+function makePushpinIcon(color: string): L.DivIcon {
   return L.divIcon({
-    className: '',
-    html: `<div style="width:${radius * 2}px;height:${radius * 2}px;border-radius:9999px;background:${color};border:2px solid #ffffff;box-shadow:0 1px 5px rgba(0,0,0,.5)"></div>`,
-    iconSize: [radius * 2, radius * 2],
-    iconAnchor: [radius, radius],
+    className: 'jalur-map-pin',
+    html: `<svg width="30" height="38" viewBox="0 0 30 38" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M15 1.5C7.82 1.5 2 7.32 2 14.5c0 9.15 13 22 13 22s13-12.85 13-22C28 7.32 22.18 1.5 15 1.5Z" fill="${color}" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><circle cx="15" cy="14" r="4.25" fill="#fff" stroke="rgba(0,0,0,.45)" stroke-width="1.25"/><circle cx="13.5" cy="12.5" r="1.1" fill="#fff" fill-opacity=".8"/></svg>`,
+    iconSize: [30, 38],
+    iconAnchor: [15, 36],
+    popupAnchor: [0, -34],
+    tooltipAnchor: [10, -30],
   })
 }
+
+const popIcon = makePushpinIcon(COLOR_POP)
+const odcIcon = makePushpinIcon(COLOR_ODC)
+const spliceIcon = makePushpinIcon(COLOR_SPLICE)
+const odpIcon = makePushpinIcon(COLOR_ODP)
 
 const drawPointIcon = L.divIcon({
   className: '',
@@ -372,9 +380,9 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
         </button>
 
         <div className="ml-auto flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODC }}></span> ODC</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_SPLICE }}></span> Splice</span>
+          <span className="flex items-center gap-1"><span className="jalur-map-legend-pin" style={{ background: COLOR_POP }}></span> POP</span>
+          <span className="flex items-center gap-1"><span className="jalur-map-legend-pin" style={{ background: COLOR_ODC }}></span> ODC</span>
+          <span className="flex items-center gap-1"><span className="jalur-map-legend-pin" style={{ background: COLOR_SPLICE }}></span> Splice</span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_BACKBONE }}></span> Backbone</span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_DISTRIBUSI }}></span> Distribusi</span>
         </div>
@@ -464,11 +472,10 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
             const loc = parseLoc(p.lokasi)
             if (!loc) return null
             return (
-              <CircleMarker
+              <Marker
                 key={`pop-${p.id}`}
-                center={[loc.latitude, loc.longitude]}
-                radius={10}
-                pathOptions={{ color: COLOR_POP, fillColor: COLOR_POP, fillOpacity: 0.9, weight: 2 }}
+                position={[loc.latitude, loc.longitude]}
+                icon={popIcon}
               >
                 <Popup>
                   <div className="min-w-[150px] space-y-1">
@@ -476,8 +483,8 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                     <div className="text-xs text-gray-500">POP</div>
                   </div>
                 </Popup>
-                <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>{p.nama_pop}</Tooltip>
-              </CircleMarker>
+                <Tooltip permanent direction="right" className="jalur-map-label">{p.nama_pop}</Tooltip>
+              </Marker>
             )
           })}
 
@@ -486,11 +493,10 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
             const loc = parseLoc(o.lokasi)
             if (!loc) return null
             return (
-              <CircleMarker
+              <Marker
                 key={`odc-${o.id}`}
-                center={[loc.latitude, loc.longitude]}
-                radius={8}
-                pathOptions={{ color: COLOR_ODC, fillColor: COLOR_ODC, fillOpacity: 0.9, weight: 2 }}
+                position={[loc.latitude, loc.longitude]}
+                icon={odcIcon}
               >
                 <Popup>
                   <div className="min-w-[150px] space-y-1">
@@ -498,8 +504,8 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                     <div className="text-xs text-gray-500">ODC</div>
                   </div>
                 </Popup>
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.9}>{o.nama_odc}</Tooltip>
-              </CircleMarker>
+                <Tooltip permanent direction="right" className="jalur-map-label">{o.nama_odc}</Tooltip>
+              </Marker>
             )
           })}
 
@@ -508,7 +514,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
             <Marker
               key={`splice-${s.id}`}
               position={[s.latitude, s.longitude]}
-              icon={makeCircleIcon(COLOR_SPLICE, 8)}
+              icon={spliceIcon}
             >
               <Popup>
                 <div className="min-w-[150px] space-y-1">
@@ -525,7 +531,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                   )}
                 </div>
               </Popup>
-              <Tooltip direction="top" offset={[0, -8]} opacity={0.9}>{s.nama}</Tooltip>
+              <Tooltip permanent direction="right" className="jalur-map-label">{s.nama}</Tooltip>
             </Marker>
           ))}
 
@@ -533,11 +539,10 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
           {odps
             .filter((o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude))
             .map((o) => (
-              <CircleMarker
+              <Marker
                 key={`odp-${o.id}`}
-                center={[o.latitude!, o.longitude!]}
-                radius={5}
-                pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.7, weight: 1 }}
+                position={[o.latitude!, o.longitude!]}
+                icon={odpIcon}
               >
                 <Popup>
                   <div className="min-w-[150px] space-y-1">
@@ -546,7 +551,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                     <div className="text-xs break-words">{o.lokasi}</div>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             ))}
         </MapContainer>
       </div>

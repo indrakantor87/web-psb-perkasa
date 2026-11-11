@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.20.1] - 2026-11-12
+
+### Changed
+- Peta Jalur Jaringan: marker POP, ODC, Splice, dan ODP menggunakan ikon pin berwarna bergaya Google Earth, dengan label permanen ber-outline pada POP, ODC, dan Splice.
+- Legenda marker diperbarui agar bentuk pin dan warnanya sesuai dengan marker di peta.
+
 ## [1.20.0] - 2026-11-12
 
 ### Added
