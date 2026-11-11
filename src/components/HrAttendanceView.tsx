@@ -46,7 +46,8 @@ type EmployeeOption = {
 
 type Summary = {
   totalRecords: number
-  totalEmployees: number
+  validRecords: number
+  invalidRecords: number
 }
 
 type DivisionRow = {
@@ -118,7 +119,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
   const range = useMemo(() => monthToRange(month), [month])
   const [items, setItems] = useState<AttendanceRow[]>([])
   const [employees, setEmployees] = useState<EmployeeOption[]>([])
-  const [summary, setSummary] = useState<Summary>({ totalRecords: 0, totalEmployees: 0 })
+  const [summary, setSummary] = useState<Summary>({ totalRecords: 0, validRecords: 0, invalidRecords: 0 })
   const [divisions, setDivisions] = useState<DivisionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -176,7 +177,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       }
       setItems(data.items ?? [])
       setEmployees(data.employees ?? [])
-      setSummary(data.summary ?? { totalRecords: 0, totalEmployees: 0 })
+      setSummary(data.summary ?? { totalRecords: 0, validRecords: 0, invalidRecords: 0 })
       setDivisions(data.divisions ?? [])
     } catch {
       setFeedback({ tone: 'danger', message: 'Gagal memuat data absensi' })
@@ -198,7 +199,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
     }
     const needle = query.trim().toLowerCase()
     return employees
-      .filter((employee) => employee.isActive && Boolean(employee.fingerprintId))
+      .filter((employee) => employee.isActive && (!canViewAllEmployees || Boolean(employee.fingerprintId)))
       .filter((employee) => !departmentFilter || employee.department === departmentFilter)
       .filter((employee) => !needle || employee.name.toLowerCase().includes(needle))
       .map((employee) => {
@@ -210,7 +211,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         const byDepartment = a.employee.department.localeCompare(b.employee.department)
         return byDepartment !== 0 ? byDepartment : a.employee.name.localeCompare(b.employee.name)
       })
-  }, [items, employees, departmentFilter, query])
+  }, [items, employees, departmentFilter, query, canViewAllEmployees])
 
   const loadMachine = useCallback(async (updateConfig = true) => {
     setMachineUsersLoading(true)
@@ -690,14 +691,18 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="p-4">
           <p className="text-xs font-medium text-ink-muted">Total Kehadiran</p>
           <p className="mt-1 text-2xl font-bold text-ink tabular-nums">{summary.totalRecords}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs font-medium text-ink-muted">Karyawan Tercatat</p>
-          <p className="mt-1 text-2xl font-bold text-ink tabular-nums">{summary.totalEmployees}</p>
+          <p className="text-xs font-medium text-ink-muted">Valid</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">{summary.validRecords}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs font-medium text-ink-muted">Invalid</p>
+          <p className="mt-1 text-2xl font-bold text-amber-600 tabular-nums dark:text-amber-400">{summary.invalidRecords}</p>
         </Card>
       </div>
 
@@ -712,9 +717,11 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
                   <span>
                     Kehadiran: <span className="font-medium tabular-nums text-ink">{division.records}</span>
                   </span>
-                  <span>
-                    Karyawan: <span className="font-medium tabular-nums text-ink">{division.employees}</span>
-                  </span>
+                  {canViewAllEmployees && (
+                    <span>
+                      Karyawan: <span className="font-medium tabular-nums text-ink">{division.employees}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -778,7 +785,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
             description={
               canViewAllEmployees
                 ? 'Tambahkan karyawan pada tab Daftar Karyawan, lalu tarik absensi dari mesin fingerprint.'
-                : 'Belum ada absensi untuk akun Anda pada bulan ini. Pastikan nama akun Anda sudah terdaftar di mesin fingerprint.'
+                : 'Belum ada absensi untuk akun Anda pada bulan ini. Pastikan nama karyawan Anda terdaftar di mesin fingerprint dan data bulan ini sudah ditarik oleh HR.'
             }
           />
         ) : (

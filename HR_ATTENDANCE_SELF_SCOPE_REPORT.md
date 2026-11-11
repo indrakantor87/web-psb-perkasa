@@ -1,12 +1,11 @@
 # HR ATTENDANCE — VISIBILITAS SEMUA ROLE & SCOPE ABSENSI PRIBADI
 
 - **Versi fitur**: 1.13.1 → **1.17.0**
-- **Versi saat ini**: **1.17.0**
+- **Versi saat ini**: **1.17.1**
 - **Tanggal**: 2026-11-11 (WIB)
 - **Branch**: `main`
 - **Baseline SHA**: `f545c40` (Daily Activity: gabung NOC & Troubleshoots, papan harian dikelompokkan per sub divisi)
-- **Status verifikasi**: `tsc --noEmit` = 0 error; `eslint` (8 file) = 0 error; unit test RBAC/navigasi = 22 lulus (1 gagal pre-existing)
-- **Status perubahan**: terverifikasi lokal, **belum di-commit**
+- **Status verifikasi**: TypeScript, ESLint, dan build produksi lulus; unit test RBAC/navigasi = 22 lulus (1 gagal pre-existing)
 
 ---
 
@@ -91,7 +90,8 @@ if (isSelfOnly) {
 |---|---|
 | `npx tsc --noEmit -p tsconfig.json` | Lulus (exit 0) |
 | `npx eslint` (8 file terubah) | Lulus (exit 0) |
-| `npx tsx --test src/lib/access.test.ts src/lib/mobile-nav.test.ts` | 22 lulus, 1 gagal |
+| `npx tsx --test src/lib/access.test.ts src/lib/mobile-nav.test.ts` | 22 lulus, 1 gagal (pre-existing) |
+| `npm run build` | Lulus; route table produksi berhasil dibuat |
 
 ### Catatan kegagalan tes
 
@@ -107,7 +107,22 @@ melihat menu Aktivitas Marketing, assertion tes tersebut tidak relevan dengan pe
 ## 6. Batas Verifikasi
 
 - Tidak dilakukan pengujian end-to-end terhadap data produksi (login nyata per role).
-- Belum dijalankan `next build` produksi pada working tree ini.
 - Pencocokan kepemilikan mengandalkan **nama karyawan yang unik** pada tabel `Employee`; bila terdapat
   dua karyawan dengan nama identik, user tersebut tidak akan melihat data apa pun (fail-closed),
   bukan melihat data karyawan lain.
+
+---
+
+## 7. Tindak Lanjut — Versi 1.17.1
+
+- Mengganti kartu `Karyawan Tercatat` menjadi tiga metrik: `Total Kehadiran`, `Valid`, dan `Invalid`.
+- Kehadiran berstatus **Valid** bila `checkIn` dan `checkOut` tersedia; bila salah satu tidak tersedia,
+  status hitungan masuk **Invalid**.
+- Jumlah karyawan pada rekap divisi tidak ditampilkan untuk role self-only.
+- Memperbaiki kondisi data tampak kosong untuk user biasa: UI sebelumnya memfilter karyawan memakai
+  `fingerprintId`, sementara API sengaja menyamarkan nilai tersebut untuk menjaga privasi. Filter UI
+  sekarang mengikuti akses role dan tidak bergantung pada nilai yang disamarkan.
+- Memperjelas pesan kondisi kosong bahwa HR perlu menarik data bulan tersebut dari mesin fingerprint.
+- Verifikasi tindak lanjut: TypeScript, ESLint endpoint/komponen, dan build produksi lulus.
+- Tes RBAC/navigasi: 22 lulus, 1 gagal pre-existing pada assertion HR dapat membuka Aktivitas Marketing;
+  kegagalan ini tidak terkait perubahan absensi.

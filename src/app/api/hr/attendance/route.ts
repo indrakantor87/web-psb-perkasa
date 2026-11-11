@@ -84,13 +84,15 @@ export async function GET(request: Request) {
       take: limit,
     })
 
-    const employeeIds = new Set<number>()
     let totalOvertimeMinutes = 0
+    let validRecords = 0
+    let invalidRecords = 0
     const divisionMap = new Map<string, { department: string; records: number; employees: Set<number>; overtimeMinutes: number }>()
     const items = records.map((row) => {
       const departmentName = row.employee?.department || 'Tanpa Divisi'
-      employeeIds.add(row.employeeId)
       totalOvertimeMinutes += row.overtimeMinutes
+      if (row.checkIn && row.checkOut) validRecords++
+      else invalidRecords++
 
       const bucket = divisionMap.get(departmentName) ?? {
         department: departmentName,
@@ -137,7 +139,8 @@ export async function GET(request: Request) {
       range: { from, to },
       summary: {
         totalRecords: items.length,
-        totalEmployees: employeeIds.size,
+        validRecords,
+        invalidRecords,
         totalOvertimeMinutes,
       },
       divisions,

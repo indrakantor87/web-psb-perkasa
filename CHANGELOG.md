@@ -29,6 +29,16 @@ Kategori perubahan:
 ### Notes
 - Role DEVELOPER, PRIORITY, ADMIN, dan HR tidak diubah: tetap dapat mengakses absensi seluruh karyawan.
 
+## [1.17.1] - 2026-11-11
+
+### Changed
+- Ringkasan absensi kini menampilkan Total Kehadiran, Valid (tap masuk dan pulang lengkap), dan Invalid (salah satu tap tidak ada), menggantikan kartu Karyawan Tercatat.
+- Jumlah karyawan pada rekap divisi disembunyikan untuk user yang hanya dapat melihat absensinya sendiri.
+
+### Fixed
+- Data absensi user biasa kini tampil meskipun `fingerprintId` disamarkan pada respons API; penyamaran data tidak lagi membuat UI menganggap karyawan tidak terdaftar.
+- Pesan kondisi kosong menjelaskan bahwa data bulan berjalan perlu ditarik oleh HR dari mesin fingerprint.
+
 ## [1.13.1] - 2026-11-10
 
 ### Security
