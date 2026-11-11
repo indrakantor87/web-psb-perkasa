@@ -37,7 +37,7 @@ export interface BAFormData {
 }
 
 const EMPTY_BA: BAFormData = {
-  orderSpk: '',
+  orderSpk: `mdp.${new Date().getFullYear()}.`,
   tanggal: format(new Date(), 'EEEE, d MMMM yyyy', { locale: idLocale }),
   nama: '',
   alamat: '',

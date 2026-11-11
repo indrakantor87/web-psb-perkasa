@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.5] - 2026-11-11
+
+### Changed
+- Field **No. Order / SPK** pada BA Aktivasi kini memiliki default `mdp.{tahun berjalan}.` (mis. `mdp.2026.`). Bagian nomor di akhir diisi manual oleh user.
+
 ## [1.18.4] - 2026-11-11
 
 ### Fixed
