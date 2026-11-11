@@ -6,46 +6,13 @@ import { Prisma } from '@prisma/client'
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 import { isAdminRole } from '@/lib/access'
+import { parseLatLng } from '@/lib/geo'
 
 export const runtime = 'nodejs'
 
 function toInt(v: string | null, fallback: number) {
   const n = Number(v)
   return Number.isFinite(n) ? Math.trunc(n) : fallback
-}
-
-function parseLatLng(input: string) {
-  const s = String(input ?? '').trim()
-  if (!s) return null
-
-  const direct = s.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/)
-  const at = s.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-  const q = s.match(/[?&]q=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-  const ll = s.match(/[?&]ll=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-  const m = direct ?? at ?? q ?? ll
-  if (!m) return null
-
-  const a = Number(m[1])
-  const b = Number(m[2])
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return null
-
-  const aIsLat = a >= -90 && a <= 90
-  const bIsLat = b >= -90 && b <= 90
-  const aIsLng = a >= -180 && a <= 180
-  const bIsLng = b >= -180 && b <= 180
-
-  let latitude: number
-  let longitude: number
-  if (aIsLat && bIsLng) {
-    latitude = a
-    longitude = b
-  } else if (aIsLng && bIsLat) {
-    latitude = b
-    longitude = a
-  } else {
-    return null
-  }
-  return { latitude, longitude }
 }
 
 function normalizeStatusTiang(s: string) {

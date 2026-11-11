@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { X, Printer } from 'lucide-react'
+import { parseLatLng, formatLatLng } from '@/lib/geo'
 
 export interface BAFormData {
   orderSpk: string
@@ -352,6 +353,17 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
             {field('Alamat', data.alamat, 'alamat')}
             {field('Nomor WhatsApp', data.whatsapp, 'whatsapp')}
             {field('Titik Koordinat (Gmaps)', data.koordinat, 'koordinat')}
+            {(() => {
+              const parsed = parseLatLng(data.koordinat)
+              if (!parsed) return null
+              return (
+                <div className="mb-1.5 flex items-start">
+                  <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-500">Koordinat (auto)</span>
+                  <span className="mr-1 shrink-0 text-[13px] text-gray-400">:</span>
+                  <span className="text-[13px] text-gray-700">{formatLatLng(parsed.latitude, parsed.longitude)}</span>
+                </div>
+              )
+            })()}
           </div>
 
           <h2 className="mb-2 text-[13px] font-bold uppercase text-gray-900">II. Detail Layanan & Perangkat</h2>

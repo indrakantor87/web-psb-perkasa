@@ -13,6 +13,15 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.6] - 2026-11-11
+
+### Added
+- Util `src/lib/geo.ts` untuk mengekstrak koordinat lat/lng dari link Google Maps (`parseLatLng`) dan memformatnya (`formatLatLng`).
+- Di BA Aktivasi, koordinat lat/lng otomatis di-generate dari link Google Maps yang diisi di field "Titik Koordinat (Gmaps)" dan ditampilkan di bawahnya.
+
+### Changed
+- `api/odp/route.ts` kini memakai `parseLatLng` dari `@/lib/geo` (dulu didefinisikan lokal).
+
 ## [1.18.5] - 2026-11-11
 
 ### Changed
