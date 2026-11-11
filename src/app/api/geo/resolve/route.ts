@@ -13,7 +13,41 @@ export const runtime = 'nodejs'
  * - `<meta property="og:description">`
  * - JSON-LD structured data
  * - `window.APP_INITIALIZATION_STATE` (data inisialisasi berisi array alamat)
+ *
+ * Setiap hasil harus lolos validasi `looksLikeAddress` agar data koordinat
+ * atau JSON mentah tidak salah terisi ke field Alamat.
  */
+
+/**
+ * Validasi apakah sebuah string benar-benar terlihat seperti alamat.
+ * Menolak string yang berisi data koordinat, JSON, atau didominasi angka.
+ */
+function looksLikeAddress(s: string): boolean {
+  if (!s) return false
+  const trimmed = s.trim()
+  if (trimmed.length < 15) return false
+
+  // Tolak jika dimulai dengan karakter JSON/XSSI
+  if (/^[)\]}'"\[]/.test(trimmed)) return false
+
+  // Tolak jika ada pola koordinat (mis. -6.758779,111.030351)
+  if (/-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/.test(trimmed)) return false
+
+  // Tolak jika mengandung banyak kurung siku (array/JSON)
+  if ((trimmed.match(/\[/g) || []).length > 1) return false
+  if ((trimmed.match(/\]/g) || []).length > 1) return false
+
+  // Hitung rasio huruf vs total karakter
+  const letters = (trimmed.match(/[a-zA-Z]/g) || []).length
+  const ratio = letters / trimmed.length
+  if (ratio < 0.3) return false // minimal 30% huruf
+
+  // Harus ada spasi (alamat selalu punya spasi antar kata)
+  if (!trimmed.includes(' ')) return false
+
+  return true
+}
+
 function extractAddressFromGoogleMapsHtml(html: string): string | null {
   if (!html) return null
 
@@ -29,14 +63,14 @@ function extractAddressFromGoogleMapsHtml(html: string): string | null {
   const metaDesc = html.match(/<meta\s+name="description"\s+content="([^"]+)"/i)
   if (metaDesc) {
     const decoded = decodeEntities(metaDesc[1].trim())
-    if (decoded && decoded.length > 15) return decoded
+    if (looksLikeAddress(decoded)) return decoded
   }
 
   // 2. Coba dari <meta property="og:description">
   const ogDesc = html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i)
   if (ogDesc) {
     const decoded = decodeEntities(ogDesc[1].trim())
-    if (decoded && decoded.length > 15) return decoded
+    if (looksLikeAddress(decoded)) return decoded
   }
 
   // 3. Coba dari JSON-LD (application/ld+json)
@@ -46,7 +80,7 @@ function extractAddressFromGoogleMapsHtml(html: string): string | null {
       const json = JSON.parse(jsonLdMatch[1])
       const address = json?.address
       if (address) {
-        if (typeof address === 'string' && address.length > 15) return address
+        if (typeof address === 'string' && looksLikeAddress(address)) return address
         if (typeof address === 'object') {
           const parts = [
             address.streetAddress,
@@ -55,7 +89,8 @@ function extractAddressFromGoogleMapsHtml(html: string): string | null {
             address.postalCode,
             address.addressCountry,
           ].filter(Boolean)
-          if (parts.length) return parts.join(', ')
+          const joined = parts.join(', ')
+          if (looksLikeAddress(joined)) return joined
         }
       }
     } catch {
@@ -65,26 +100,28 @@ function extractAddressFromGoogleMapsHtml(html: string): string | null {
 
   // 4. Coba dari window.APP_INITIALIZATION_STATE (alamat ada di array string)
   // Format: ...,"Alamat lengkap di sini",...
-  const appStateMatch = html.match(/window\.APP_INITIALIZATION_STATE\s*=\s*(\[\[[\s\S]*?\]\]);/)
+  const appStateMatch = html.match(/window\.APP_INITIALIZATION_STATE\s*=\s*\)\]\}'\s*(\[[\s\S]*\])\s*;?/)
   if (appStateMatch) {
     try {
       const state = JSON.parse(appStateMatch[1])
-      // Cari string yang mirip alamat (mengandung koma dan panjang)
-      const findAddress = (arr: unknown[]): string | null => {
+      // Kumpulkan semua string yang terlihat seperti alamat, pilih yang terbaik.
+      const candidates: string[] = []
+      const collect = (arr: unknown[]) => {
         for (const item of arr) {
           if (typeof item === 'string') {
-            if (item.length > 20 && item.includes(',') && !item.startsWith('http')) {
-              return item
-            }
+            const decoded = decodeEntities(item)
+            if (looksLikeAddress(decoded)) candidates.push(decoded)
           } else if (Array.isArray(item)) {
-            const found = findAddress(item)
-            if (found) return found
+            collect(item)
           }
         }
-        return null
       }
-      const found = findAddress(state)
-      if (found) return decodeEntities(found)
+      collect(state)
+      // Pilih kandidat terpanjang (biasanya alamat paling lengkap)
+      if (candidates.length) {
+        candidates.sort((a, b) => b.length - a.length)
+        return candidates[0]
+      }
     } catch {
       // ignore
     }

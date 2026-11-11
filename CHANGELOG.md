@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.4] - 2026-11-11
+
+### Fixed
+- Field Alamat di BA Aktivasi terisi data JSON mentah dari `window.APP_INITIALIZATION_STATE` Google Maps (bukan alamat). Ditambahkan validasi `looksLikeAddress` yang menolak string berisi koordinat, kurung array, atau didominasi angka. Ekstraksi APP_INITIALIZATION_STATE sekarang juga menangani prefix `)]}'` (XSSI protection) dan memilih kandidat alamat terpanjang.
+- `isAddressAccurate` dilonggarkan: alamat pedesaan Indonesia yang mengandung kata kunci administratif (Kec/Kab/Desa/Kel/Kota/Provinsi) kini diterima dari Nominatim, tidak harus ada nama jalan.
+
 ## [1.19.3] - 2026-11-11
 
 ### Fixed

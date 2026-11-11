@@ -53,14 +53,17 @@ export function formatLatLng(lat: number, lng: number) {
 
 /**
  * Menilai apakah hasil alamat dari reverse geocoding cukup akurat untuk diisi
- * otomatis. Kriteria: mengandung nama jalan (Jalan/Jl/Gang/Gg/Raya/Kampung)
- * atau cukup panjang dan mengandung nomor. Jika tidak, dibiarkan kosong agar
- * user isi manual.
+ * otomatis. Kriteria:
+ * - Mengandung nama jalan (Jalan/Jl/Gang/Gg/Raya/Kampung), ATAU
+ * - Mengandung kata kunci administratif Indonesia (Kec/Kab/Kel/Desa/Ds/Kota/Provinsi), ATAU
+ * - Cukup panjang dan mengandung nomor.
+ * Jika tidak, dibiarkan kosong agar user isi manual.
  */
 export function isAddressAccurate(addr: string): boolean {
-  if (!addr || addr.length < 40) return false
+  if (!addr || addr.length < 30) return false
   const lower = addr.toLowerCase()
-  const hasRoad = /\b(jalan|jl\.?|gang|gg\.?|raya|kampung|kp\.?)\b/.test(lower)
+  const hasRoad = /\b(jalan|jl\.?|gang|gg\.?|raya|kampung|kp\.?|lingkungan|perumahan|perum)\b/.test(lower)
+  const hasAdmin = /\b(kec\.?|kecamatan|kab\.?|kabupaten|kel\.?|kelurahan|desa|ds\.?|kota|prov\.?|provinsi|rt\.?|rw\.?)\b/.test(lower)
   const hasNumber = /\d/.test(addr)
-  return hasRoad || (hasNumber && addr.length > 60)
+  return hasRoad || hasAdmin || (hasNumber && addr.length > 50)
 }
