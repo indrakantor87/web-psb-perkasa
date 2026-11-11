@@ -706,12 +706,25 @@ export function OdpManager({
           <td className="py-3 pl-3 text-center text-xs text-gray-400">{isNested ? '↳' : '#'}</td>
           <td className="py-3 pr-4 font-bold text-emerald-600 dark:text-emerald-400">
             <span className="flex items-center gap-2">
-              {row.isUnassigned || row.isNameDerived ? row.nama_odc : `ODC: ${row.nama_odc}`}
+              {row.isUnassigned || row.isNameDerived || /^odc\s/i.test(row.nama_odc) ? row.nama_odc : `ODC: ${row.nama_odc}`}
               {isLoading && <span className="animate-pulse text-[10px] font-normal text-gray-400">(Loading...)</span>}
             </span>
           </td>
           <td className="py-3 pr-4">{row.wilayah || wilayah}</td>
-          <td className="py-3 pr-4">{row.lokasi || '-'}</td>
+          <td className="py-3 pr-4">
+            {(() => {
+              const parsed = parseLatLng(row.lokasi)
+              if (parsed) {
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${parsed.latitude},${parsed.longitude}`
+                return (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline decoration-dashed underline-offset-4 transition-colors" title="Buka di Google Maps">
+                    {row.lokasi}
+                  </a>
+                )
+              }
+              return row.lokasi || '-'
+            })()}
+          </td>
           <td className="py-3 pr-4 text-gray-400 dark:text-gray-500" colSpan={canEdit ? 6 : 5}>ODC</td>
         </tr>
         {isExpanded && children.map((odp, odpIndex) => renderOdpRow(odp, `${row.id}-${odp.id}`, odpIndex, true))}

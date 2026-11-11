@@ -13,6 +13,12 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.19.6] - 2026-11-12
+
+### Fixed
+- Port ODP: nama ODC tidak lagi menampilkan prefix duplikat "ODC:" (mis. "ODC: ODC 14 (MRGYSO)" menjadi "ODC 14 (MRGYSO)"). Prefix hanya ditambahkan jika nama belum diawali "ODC".
+- Port ODP: kolom koordinat (Lokasi) pada baris ODC sekarang bisa diklik untuk membuka Google Maps di tab baru.
+
 ## [1.19.5] - 2026-11-11
 
 ### Changed
