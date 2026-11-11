@@ -21,6 +21,7 @@ import { Chip, type ChipTone } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { HR_DIVISIONS } from '@/lib/hr-departments'
+import { canAccessHrEmployees } from '@/lib/access'
 
 type AttendanceRow = {
   id: number
@@ -112,6 +113,7 @@ function describeAttendance(row: AttendanceRow): { label: string; tone: ChipTone
 }
 
 export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: HrAttendanceViewProps) {
+  const canViewAllEmployees = canAccessHrEmployees(userRole)
   const [month, setMonth] = useState(currentMonthValue)
   const range = useMemo(() => monthToRange(month), [month])
   const [items, setItems] = useState<AttendanceRow[]>([])
@@ -721,7 +723,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
       )}
 
       <Card className="p-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className={clsx('grid grid-cols-1 gap-3', canViewAllEmployees && 'sm:grid-cols-3')}>
           <label className="text-xs font-medium text-ink-muted">
             Bulan
             <input
@@ -731,34 +733,38 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
               className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
             />
           </label>
-          <label className="text-xs font-medium text-ink-muted">
-            Cari karyawan
-            <div className="relative mt-1">
-              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
-              <input
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Nama karyawan"
-                className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink focus:outline-none"
-              />
-            </div>
-          </label>
-          <label className="text-xs font-medium text-ink-muted">
-            Divisi
-            <select
-              value={departmentFilter}
-              onChange={(event) => setDepartmentFilter(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
-            >
-              <option value="">Semua divisi</option>
-              {HR_DIVISIONS.map((division) => (
-                <option key={division} value={division}>
-                  {division}
-                </option>
-              ))}
-            </select>
-          </label>
+          {canViewAllEmployees && (
+            <>
+              <label className="text-xs font-medium text-ink-muted">
+                Cari karyawan
+                <div className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-muted" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Nama karyawan"
+                    className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink focus:outline-none"
+                  />
+                </div>
+              </label>
+              <label className="text-xs font-medium text-ink-muted">
+                Divisi
+                <select
+                  value={departmentFilter}
+                  onChange={(event) => setDepartmentFilter(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none"
+                >
+                  <option value="">Semua divisi</option>
+                  {HR_DIVISIONS.map((division) => (
+                    <option key={division} value={division}>
+                      {division}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
         </div>
       </Card>
 
@@ -768,8 +774,12 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         ) : employeeGroups.length === 0 ? (
           <EmptyState
             icon={Fingerprint}
-            title="Belum ada data karyawan"
-            description="Tambahkan karyawan pada tab Daftar Karyawan, lalu tarik absensi dari mesin fingerprint."
+            title={canViewAllEmployees ? 'Belum ada data karyawan' : 'Belum ada data absensi'}
+            description={
+              canViewAllEmployees
+                ? 'Tambahkan karyawan pada tab Daftar Karyawan, lalu tarik absensi dari mesin fingerprint.'
+                : 'Belum ada absensi untuk akun Anda pada bulan ini. Pastikan nama akun Anda sudah terdaftar di mesin fingerprint.'
+            }
           />
         ) : (
           <>

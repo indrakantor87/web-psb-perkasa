@@ -66,6 +66,10 @@ export function isTechnicianRole(role?: string | null) {
   return hasAnyRole(role, ['TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE'])
 }
 
+/**
+ * Role yang dapat melihat seluruh karyawan (Daftar Karyawan dan absensi semua
+ * karyawan). Role lain hanya boleh melihat absensi miliknya sendiri.
+ */
 export function canAccessHrEmployees(role?: string | null) {
   return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR'])
 }
@@ -291,6 +295,9 @@ function getAccessibleMenus(
   }
 
   if (daAllowed) menus.add('daily-activity')
+  // Semua role dapat membuka halaman Absensi; cakupan datanya dibatasi ke akun
+  // yang login, kecuali Developer/Priority/Admin/HR (lihat canAccessHrEmployees).
+  menus.add('hr')
   return menus
 }
 

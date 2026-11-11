@@ -13,6 +13,22 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.17.0] - 2026-11-11
+
+### Added
+- Menu Absensi kini tampil untuk semua role pada desktop dan mobile.
+
+### Changed
+- Cakupan data absensi dibatasi sesuai akun yang login: user biasa hanya dapat melihat absensi miliknya sendiri (berbasis kepemilikan nama karyawan, fail-closed bila nama tidak unik).
+- Filter Cari/Divisi dan tombol terkait disembunyikan pada halaman Absensi untuk role yang hanya melihat data sendiri.
+- Tab "Daftar Karyawan" dan halaman `/hr/employees` hanya tersedia untuk role DEVELOPER, PRIORITY, ADMIN, dan HR.
+
+### Security
+- Endpoint `/api/hr/attendance` dan `/api/hr/employees` memfilter data ke karyawan milik user yang login untuk role non-privileged, dan menyamarkan `fingerprintId` pada respons.
+
+### Notes
+- Role DEVELOPER, PRIORITY, ADMIN, dan HR tidak diubah: tetap dapat mengakses absensi seluruh karyawan.
+
 ## [1.13.1] - 2026-11-10
 
 ### Security

@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess } from '@/lib/access-server'
+import { canAccessHrEmployees } from '@/lib/access'
 import { ensureHrSchemaOnce } from '@/lib/hr-schema'
-import { resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
+import { resolveUniqueEmployeeIdByName, resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
 import { JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 
 export const runtime = 'nodejs'
@@ -54,11 +55,14 @@ export async function GET(request: Request) {
       isActive: true,
       AND: [{ fingerprintId: { not: null } }, { fingerprintId: { not: '' } }],
     }
-    // Role yang hanya boleh melihat absensi sendiri (tidak melebar ke karyawan lain).
+    // Developer, Priority, Admin, dan HR dapat melihat absensi semua karyawan.
+    // Role lain dibatasi hanya ke absensi miliknya sendiri (fail-closed).
     const roleUpper = String(session?.user.role ?? '').trim().toUpperCase()
-    const isSelfOnlyRole = roleUpper === 'MARKETING' || roleUpper === 'GENERAL_AFFAIR'
+    const isSelfOnlyRole = !canAccessHrEmployees(roleUpper)
     const selfEmployeeId = isSelfOnlyRole
-      ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
+      ? roleUpper === 'MARKETING'
+        ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
+        : await resolveUniqueEmployeeIdByName(session!.user.name)
       : null
     if (isSelfOnlyRole) where.employeeId = selfEmployeeId ?? -1
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {

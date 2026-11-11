@@ -3,8 +3,9 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
+import { canAccessHrEmployees } from '@/lib/access'
 import { ensureHrSchemaOnce } from '@/lib/hr-schema'
-import { resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
+import { resolveUniqueEmployeeIdByName, resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
 import {
   DEFAULT_HR_DIVISION,
   isKnownDivision,
@@ -47,12 +48,19 @@ export async function GET(request: Request) {
     const department = asTrimmed(url.searchParams.get('department'))
     const includeInactive = url.searchParams.get('inactive') === '1'
     const role = String(session?.user.role ?? '').trim().toUpperCase()
-    const isMarketing = role === 'MARKETING'
+    // Developer, Priority, Admin, dan HR dapat melihat semua karyawan.
+    // Role lain hanya dapat melihat data karyawannya sendiri (fail-closed).
+    const isSelfOnly = !canAccessHrEmployees(role)
+    const selfEmployeeId = isSelfOnly
+      ? role === 'MARKETING'
+        ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
+        : await resolveUniqueEmployeeIdByName(session!.user.name)
+      : null
 
     const where: Prisma.EmployeeWhereInput = {}
     if (!includeInactive) where.isActive = true
-    if (isMarketing) {
-      where.id = await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name) ?? -1
+    if (isSelfOnly) {
+      where.id = selfEmployeeId ?? -1
     }
     if (department) where.department = department
     if (query) where.name = { contains: query, mode: 'insensitive' }
@@ -83,7 +91,7 @@ export async function GET(request: Request) {
         subdivision: employee.subdivision,
         employmentStatus: employee.employmentStatus,
         joinDate: employee.joinDate,
-        fingerprintId: isMarketing ? null : employee.fingerprintId,
+        fingerprintId: isSelfOnly ? null : employee.fingerprintId,
         isActive: employee.isActive,
         attendanceCount: employee._count.attendances,
       })),

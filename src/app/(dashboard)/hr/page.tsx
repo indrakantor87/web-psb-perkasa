@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth'
-import { canAccessMenu, canMutateMenu, isDeveloperRole } from '@/lib/access'
+import { canAccessHrEmployees, canAccessMenu, canMutateMenu, isDeveloperRole } from '@/lib/access'
 import { redirect } from 'next/navigation'
 import { HrTabs } from '@/components/HrTabs'
 import { HrAttendanceView } from '@/components/HrAttendanceView'
@@ -13,7 +13,7 @@ export default async function HrPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <HrTabs />
+      <HrTabs canViewEmployees={canAccessHrEmployees(session.user.role)} />
       <HrAttendanceView
         userRole={session.user.role}
         canManage={canMutateMenu(session.user.role, 'hr')}

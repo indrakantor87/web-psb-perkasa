@@ -9,8 +9,11 @@ const TABS = [
   { href: '/hr/employees', label: 'Daftar Karyawan' },
 ]
 
-export function HrTabs() {
+export function HrTabs({ canViewEmployees = true }: { canViewEmployees?: boolean }) {
   const pathname = usePathname()
+
+  // Tab "Daftar Karyawan" hanya untuk role yang boleh melihat semua karyawan.
+  if (!canViewEmployees) return null
 
   return (
     <div className="flex gap-1 rounded-xl border border-line bg-surface p-1">
