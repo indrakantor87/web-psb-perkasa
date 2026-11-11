@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.18.7] - 2026-11-11
+
+### Changed
+- Koordinat auto (Latitude & Longitude) pada BA Aktivasi ditampilkan dengan warna teks normal (`text-gray-900`) agar terlihat jelas baik di layar maupun saat print.
+
 ## [1.18.6] - 2026-11-11
 
 ### Added

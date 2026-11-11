@@ -358,9 +358,9 @@ export function BAFormModal({ ticket, onClose }: BAFormModalProps) {
               if (!parsed) return null
               return (
                 <div className="mb-1.5 flex items-start">
-                  <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-500">Koordinat (auto)</span>
-                  <span className="mr-1 shrink-0 text-[13px] text-gray-400">:</span>
-                  <span className="text-[13px] text-gray-700">{formatLatLng(parsed.latitude, parsed.longitude)}</span>
+                  <span className="w-[180px] shrink-0 text-[13px] font-semibold text-gray-900">Latitude &amp; Longitude</span>
+                  <span className="mr-1 shrink-0 text-[13px] text-gray-900">:</span>
+                  <span className="text-[13px] text-gray-900">{formatLatLng(parsed.latitude, parsed.longitude)}</span>
                 </div>
               )
             })()}
