@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, Fragment } from 'react'
 import { clsx } from 'clsx'
 import { Map, Maximize2, Minimize2, Pencil, Plus, Trash2, Upload, ChevronRight, ChevronDown } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { compareOdcRows } from '@/lib/odc-sort'
 
 // Komponen peta diload secara dinamis hanya di sisi klien untuk menghindari error 'window is not defined'
 const OdpRealtimeMap = dynamic(() => import('./OdpRealtimeMap'), {
@@ -280,18 +281,7 @@ export function OdpManager({
         if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
         if (!unassignedResponse.ok) throw new Error(unassignedData?.error ?? 'Gagal memuat ODP yang belum terhubung')
 
-        // Urutkan ODC asli dari API secara numerik berdasarkan angka di nama.
-        const sortedOdcData = (Array.isArray(odcData) ? odcData : []).slice().sort((a: OdcRow, b: OdcRow) => {
-          const extractNum = (s: string) => {
-            const m = s.match(/\d+/)
-            return m ? parseInt(m[0], 10) : 0
-          }
-          const na = extractNum(a.nama_odc)
-          const nb = extractNum(b.nama_odc)
-          if (na !== nb) return na - nb
-          return a.nama_odc.localeCompare(b.nama_odc, undefined, { numeric: true })
-        })
-        const hierarchyRows: OdcDisplayRow[] = sortedOdcData.map((odc: OdcRow) => ({
+        const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
           ...odc,
           isOdc: true,
           wilayah,
@@ -344,6 +334,8 @@ export function OdpManager({
           derivedChildren[id] = unparsedOdps
         }
 
+        // Urutkan ODC master dan turunan bersama setelah seluruh hierarki terbentuk.
+        hierarchyRows.sort(compareOdcRows)
         setOdpsByOdc(derivedChildren)
         setRows(hierarchyRows)
         setTotal(hierarchyRows.length)
@@ -442,18 +434,7 @@ export function OdpManager({
       if (!odcResponse.ok) throw new Error(odcData?.error ?? 'Gagal memuat ODC')
       if (!odpResponse.ok) throw new Error(odpData?.error ?? 'Gagal memuat ODP yang belum terhubung')
 
-      // Urutkan ODC asli dari API secara numerik berdasarkan angka di nama (mis. ODC 1, ODC 2, ... ODC 14).
-      const sortedOdcData = (Array.isArray(odcData) ? odcData : []).slice().sort((a: OdcRow, b: OdcRow) => {
-        const extractNum = (s: string) => {
-          const m = s.match(/\d+/)
-          return m ? parseInt(m[0], 10) : 0
-        }
-        const na = extractNum(a.nama_odc)
-        const nb = extractNum(b.nama_odc)
-        if (na !== nb) return na - nb
-        return a.nama_odc.localeCompare(b.nama_odc, undefined, { numeric: true })
-      })
-      const hierarchyRows: OdcDisplayRow[] = sortedOdcData.map((odc: OdcRow) => ({
+      const hierarchyRows: OdcDisplayRow[] = (Array.isArray(odcData) ? odcData : []).map((odc: OdcRow) => ({
         ...odc,
         isOdc: true,
         wilayah: pop.nama_pop,
@@ -506,6 +487,8 @@ export function OdpManager({
         derivedChildren[id] = unparsedOdps
       }
 
+      // Urutkan ODC master dan turunan bersama setelah seluruh hierarki terbentuk.
+      hierarchyRows.sort(compareOdcRows)
       setOdcsByPop((prev) => ({ ...prev, [pop.id]: hierarchyRows }))
       setOdpsByOdc((prev) => ({ ...prev, ...derivedChildren }))
     } catch (e) {

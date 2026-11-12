@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [1.20.2] - 2026-11-12
+
+### Fixed
+- Port ODP: ODC master dan ODC hasil pengelompokan ODP sekarang diurutkan bersama secara numerik; grup tanpa nomor ditempatkan terakhir.
+
 ## [1.20.0] - 2026-11-12
 
 ### Added
