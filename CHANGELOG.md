@@ -20,6 +20,7 @@ Kategori perubahan:
 - Dashboard NOC desktop/mobile: ringkasan availability dan latency probe, status POP, Trouble Ticket aktif, peta Jalur ringkas, serta placeholder telemetry RouterOS tanpa angka rekaan.
 
 ### Changed
+- Marker Jalur diselaraskan dengan simbol Google Earth/KML: ODP pushpin hijau, ODC pushpin merah, dan Splice bintang kuning dengan skala serta anchor yang konsisten.
 - Peta Jalur: ODP memakai pin hijau, ODC pin merah, dan Splice bintang kuning bergaya Google Earth; ikon Splice pada KML ekspor juga menggunakan bintang.
 - Role Priority (GM/Direktur): menu **Pengaturan** kini hanya menampilkan kontrol personalisasi **Text Size** dan **Theme**; seluruh tautan pengaturan operasional (Penjualan, Admin & Sistem, NOC) disembunyikan di header desktop, sidebar, dan navigasi mobile.
 
