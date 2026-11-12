@@ -44,47 +44,57 @@ const DEFAULT_CENTER: [number, number] = [-6.75, 111.03]
 const COLOR_BACKBONE = '#00ffff' // cyan
 const COLOR_DISTRIBUSI = '#800080' // ungu
 const COLOR_POP = '#ef4444' // merah
-const COLOR_ODC = '#ff0000' // merah KML/KMZ
-const COLOR_ODP = '#00ff00' // hijau KML/KMZ
-const COLOR_SPLICE = '#ffff00' // kuning KML/KMZ
-const GOOGLE_EARTH_PIN_PATH = 'M16 38C13.5 30.8 4 23.1 4 14.8 4 8 9.4 2.5 16 2.5s12 5.5 12 12.3c0 8.3-9.5 16-12 23.2Z'
-const GOOGLE_EARTH_STAR_PATH = 'm16 1.5 4.3 9.1 10 1.3-7.2 7 1.7 10-8.8-4.8-8.8 4.8 1.7-10-7.2-7 10-1.3Z'
+const KMZ_ICON_SIZE = 64
+const KMZ_PUSH_PIN_SCALE = 1.1
+const KMZ_PUSH_PIN_HREF = 'https://maps.google.com/mapfiles/kml/pushpin'
+const KMZ_PADDLE_HREF = 'https://maps.google.com/mapfiles/kml/paddle'
+const KMZ_ODP_ICON = `${KMZ_PUSH_PIN_HREF}/grn-pushpin.png`
+const KMZ_ODC_ICON = `${KMZ_PUSH_PIN_HREF}/wht-pushpin.png`
+const KMZ_SPLICE_ICON = `${KMZ_PADDLE_HREF}/ylw-stars.png`
+// KML ff7f00ff (AABBGGRR) tints the white ODC pushpin to #FF007F.
+const KMZ_ODC_TINT_MATRIX = '1 0 0 0 0 0 0 0 0 0 0 0 0.498 0 0 0 0 0 1 0'
+const KMZ_ODC_TINT_FILTER = `
+  <filter id="kmz-odc-tint" color-interpolation-filters="sRGB">
+    <feColorMatrix type="matrix" values="${KMZ_ODC_TINT_MATRIX}" />
+  </filter>`
 
-function makePinIcon(color: string): L.DivIcon {
-  const html = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" aria-hidden="true">
-      <path d="${GOOGLE_EARTH_PIN_PATH}" fill="${color}" stroke="#263238" stroke-opacity=".45" stroke-width="1.5" stroke-linejoin="round" />
-      <path d="${GOOGLE_EARTH_PIN_PATH}" fill="${color}" stroke="#fff" stroke-width="2" stroke-linejoin="round" />
-      <circle cx="16" cy="14.5" r="7" fill="#fff" />
-      <circle cx="16" cy="14.5" r="4.7" fill="${color}" />
-      <circle cx="14.5" cy="13" r="1.5" fill="#fff" fill-opacity=".7" />
-    </svg>`
-  return L.divIcon({
-    className: '',
-    html,
-    iconSize: [32, 40],
-    iconAnchor: [16, 39],
-    popupAnchor: [0, -38],
+function makeKmzIcon(
+  href: string,
+  scale: number,
+  hotspotX: number,
+  hotspotY: number,
+  tintFilter?: string,
+): L.Icon | L.DivIcon {
+  const displaySize = KMZ_ICON_SIZE * scale
+  const anchorX = hotspotX * scale
+  const anchorY = displaySize - hotspotY * scale // KML y starts at the bottom; Leaflet anchor y starts at the top.
+
+  if (tintFilter) {
+    const html = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${displaySize}" height="${displaySize}" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>${tintFilter}</defs>
+        <image href="${href}" x="0" y="0" width="64" height="64" filter="url(#kmz-odc-tint)" />
+      </svg>`
+    return L.divIcon({
+      className: '',
+      html,
+      iconSize: [displaySize, displaySize],
+      iconAnchor: [anchorX, anchorY],
+      popupAnchor: [0, -anchorY],
+    })
+  }
+
+  return L.icon({
+    iconUrl: href,
+    iconSize: [displaySize, displaySize],
+    iconAnchor: [anchorX, anchorY],
+    popupAnchor: [0, -anchorY],
   })
 }
 
-function makeStarIcon(color: string): L.DivIcon {
-  const html = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="${GOOGLE_EARTH_STAR_PATH}" fill="${color}" stroke="#292929" stroke-width="1.5" stroke-linejoin="round" />
-    </svg>`
-  return L.divIcon({
-    className: '',
-    html,
-    iconSize: [35, 35],
-    iconAnchor: [17.5, 17.5],
-    popupAnchor: [0, -18],
-  })
-}
-
-const odcPinIcon = makePinIcon(COLOR_ODC)
-const odpPinIcon = makePinIcon(COLOR_ODP)
-const spliceStarIcon = makeStarIcon(COLOR_SPLICE)
+const odcPinIcon = makeKmzIcon(KMZ_ODC_ICON, KMZ_PUSH_PIN_SCALE, 20, 2, KMZ_ODC_TINT_FILTER)
+const odpPinIcon = makeKmzIcon(KMZ_ODP_ICON, KMZ_PUSH_PIN_SCALE, 20, 2)
+const spliceStarIcon = makeKmzIcon(KMZ_SPLICE_ICON, 1, 32, 1)
 
 const drawPointIcon = L.divIcon({
   className: '',
@@ -406,21 +416,26 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
         <div className={`${compact ? 'ml-0' : 'ml-auto'} flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400 sm:text-xs`}>
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-3" viewBox="0 0 32 40" aria-hidden="true">
-              <path d={GOOGLE_EARTH_PIN_PATH} fill={COLOR_ODC} stroke="white" strokeWidth="2" strokeLinejoin="round" />
-              <circle cx="16" cy="14.5" r="5.5" fill="white" />
+            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+              <defs>{/* Keep the legend tint identical to the KMZ ODC marker. */}
+                <filter id="kmz-odc-legend-tint" colorInterpolationFilters="sRGB">
+                  <feColorMatrix type="matrix" values={KMZ_ODC_TINT_MATRIX} />
+                </filter>
+              </defs>
+              <image href={KMZ_ODC_ICON} x="0" y="0" width="64" height="64" filter="url(#kmz-odc-legend-tint)" />
             </svg>
             ODC
           </span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-3" viewBox="0 0 32 40" aria-hidden="true">
-              <path d={GOOGLE_EARTH_PIN_PATH} fill={COLOR_ODP} stroke="white" strokeWidth="2" strokeLinejoin="round" />
-              <circle cx="16" cy="14.5" r="5.5" fill="white" />
+            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+              <image href={KMZ_ODP_ICON} x="0" y="0" width="64" height="64" />
             </svg>
             ODP
           </span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-4" viewBox="0 0 32 32" aria-hidden="true"><path d={GOOGLE_EARTH_STAR_PATH} fill={COLOR_SPLICE} stroke="#292929" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+              <image href={KMZ_SPLICE_ICON} x="0" y="0" width="64" height="64" />
+            </svg>
             Splice
           </span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_BACKBONE }}></span> Backbone</span>

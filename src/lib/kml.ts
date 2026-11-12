@@ -223,6 +223,19 @@ export function generateKml(data: {
     </Style>`
   })
   pointStyles.forEach((styleId, color) => {
+    if (color.toUpperCase() === '#FFFF00') {
+      stylesXml += `
+    <Style id="${styleId}">
+      <IconStyle>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/paddle/ylw-stars.png</href>
+        </Icon>
+        <hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
+      </IconStyle>
+    </Style>`
+      return
+    }
+
     stylesXml += `
     <Style id="${styleId}">
       <IconStyle>
