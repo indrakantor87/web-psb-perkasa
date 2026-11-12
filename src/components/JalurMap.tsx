@@ -44,17 +44,42 @@ const DEFAULT_CENTER: [number, number] = [-6.75, 111.03]
 const COLOR_BACKBONE = '#00ffff' // cyan
 const COLOR_DISTRIBUSI = '#800080' // ungu
 const COLOR_POP = '#ef4444' // merah
-const COLOR_ODC = '#22c55e' // hijau
+const COLOR_ODC = '#d93025' // merah Google Earth
+const COLOR_ODP = '#34a853' // hijau Google Earth
 const COLOR_SPLICE = '#facc15' // kuning
 
-function makeCircleIcon(color: string, radius = 10): L.DivIcon {
+function makePinIcon(color: string): L.DivIcon {
+  const html = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38" aria-hidden="true">
+      <path d="M15 1.5C7.7 1.5 2 7.2 2 14.3c0 9.1 13 21.8 13 21.8s13-12.7 13-21.8C28 7.2 22.3 1.5 15 1.5Z" fill="${color}" stroke="#fff" stroke-width="2.5" />
+      <circle cx="15" cy="14" r="4.5" fill="#fff" fill-opacity=".9" />
+    </svg>`
   return L.divIcon({
     className: '',
-    html: `<div style="width:${radius * 2}px;height:${radius * 2}px;border-radius:9999px;background:${color};border:2px solid #ffffff;box-shadow:0 1px 5px rgba(0,0,0,.5)"></div>`,
-    iconSize: [radius * 2, radius * 2],
-    iconAnchor: [radius, radius],
+    html,
+    iconSize: [30, 38],
+    iconAnchor: [15, 36],
+    popupAnchor: [0, -34],
   })
 }
+
+function makeStarIcon(color: string): L.DivIcon {
+  const html = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+      <path d="m14 2.2 3.5 7.2 7.9 1.1-5.7 5.6 1.4 7.9-7.1-3.7-7.1 3.7 1.4-7.9-5.7-5.6 7.9-1.1Z" fill="${color}" stroke="#3f3a20" stroke-width="1.8" stroke-linejoin="round" />
+    </svg>`
+  return L.divIcon({
+    className: '',
+    html,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -12],
+  })
+}
+
+const odcPinIcon = makePinIcon(COLOR_ODC)
+const odpPinIcon = makePinIcon(COLOR_ODP)
+const spliceStarIcon = makeStarIcon(COLOR_SPLICE)
 
 const drawPointIcon = L.divIcon({
   className: '',
@@ -373,8 +398,18 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
 
         <div className="ml-auto flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODC }}></span> ODC</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_SPLICE }}></span> Splice</span>
+          <span className="flex items-center gap-1">
+            <svg className="h-4 w-3" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1.5C7.7 1.5 2 7.2 2 14.3c0 9.1 13 21.8 13 21.8s13-12.7 13-21.8C28 7.2 22.3 1.5 15 1.5Z" fill={COLOR_ODC} stroke="white" strokeWidth="2.5" /><circle cx="15" cy="14" r="4.5" fill="white" /></svg>
+            ODC
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="h-4 w-3" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1.5C7.7 1.5 2 7.2 2 14.3c0 9.1 13 21.8 13 21.8s13-12.7 13-21.8C28 7.2 22.3 1.5 15 1.5Z" fill={COLOR_ODP} stroke="white" strokeWidth="2.5" /><circle cx="15" cy="14" r="4.5" fill="white" /></svg>
+            ODP
+          </span>
+          <span className="flex items-center gap-1">
+            <svg className="h-4 w-4" viewBox="0 0 28 28" aria-hidden="true"><path d="m14 2.2 3.5 7.2 7.9 1.1-5.7 5.6 1.4 7.9-7.1-3.7-7.1 3.7 1.4-7.9-5.7-5.6 7.9-1.1Z" fill={COLOR_SPLICE} stroke="#3f3a20" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+            Splice
+          </span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_BACKBONE }}></span> Backbone</span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_DISTRIBUSI }}></span> Distribusi</span>
         </div>
@@ -486,11 +521,10 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
             const loc = parseLoc(o.lokasi)
             if (!loc) return null
             return (
-              <CircleMarker
+              <Marker
                 key={`odc-${o.id}`}
-                center={[loc.latitude, loc.longitude]}
-                radius={8}
-                pathOptions={{ color: COLOR_ODC, fillColor: COLOR_ODC, fillOpacity: 0.9, weight: 2 }}
+                position={[loc.latitude, loc.longitude]}
+                icon={odcPinIcon}
               >
                 <Popup>
                   <div className="min-w-[150px] space-y-1">
@@ -499,7 +533,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                   </div>
                 </Popup>
                 <Tooltip direction="top" offset={[0, -8]} opacity={0.9}>{o.nama_odc}</Tooltip>
-              </CircleMarker>
+              </Marker>
             )
           })}
 
@@ -508,7 +542,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
             <Marker
               key={`splice-${s.id}`}
               position={[s.latitude, s.longitude]}
-              icon={makeCircleIcon(COLOR_SPLICE, 8)}
+              icon={spliceStarIcon}
             >
               <Popup>
                 <div className="min-w-[150px] space-y-1">
@@ -533,11 +567,10 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
           {odps
             .filter((o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude))
             .map((o) => (
-              <CircleMarker
+              <Marker
                 key={`odp-${o.id}`}
-                center={[o.latitude!, o.longitude!]}
-                radius={5}
-                pathOptions={{ color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.7, weight: 1 }}
+                position={[o.latitude!, o.longitude!]}
+                icon={odpPinIcon}
               >
                 <Popup>
                   <div className="min-w-[150px] space-y-1">
@@ -546,7 +579,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
                     <div className="text-xs break-words">{o.lokasi}</div>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             ))}
         </MapContainer>
       </div>

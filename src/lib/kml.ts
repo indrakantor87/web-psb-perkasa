@@ -229,7 +229,7 @@ export function generateKml(data: {
         <color>${cssColorToKml(color)}</color>
         <scale>1.1</scale>
         <Icon>
-          <href>http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png</href>
+          <href>http://maps.google.com/mapfiles/kml/shapes/star.png</href>
         </Icon>
       </IconStyle>
     </Style>`

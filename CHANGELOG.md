@@ -19,6 +19,7 @@ Kategori perubahan:
 - Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.
 
 ### Changed
+- Peta Jalur: ODP memakai pin hijau, ODC pin merah, dan Splice bintang kuning bergaya Google Earth; ikon Splice pada KML ekspor juga menggunakan bintang.
 - Role Priority (GM/Direktur): menu **Pengaturan** kini hanya menampilkan kontrol personalisasi **Text Size** dan **Theme**; seluruh tautan pengaturan operasional (Penjualan, Admin & Sistem, NOC) disembunyikan di header desktop, sidebar, dan navigasi mobile.
 
 ### Fixed
