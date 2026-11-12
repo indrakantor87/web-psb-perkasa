@@ -268,6 +268,8 @@ export default async function DashboardPage({
         initialPeriod={{ month: currentMonth, year: currentYear }}
         userRole={session.user.role}
         userName={session.user.name}
+        userPosition={session.user.position}
+        userSubdivision={session.user.subdivision}
         divisionSummary={payload.divisionSummary}
         focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}

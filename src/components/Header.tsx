@@ -4,6 +4,7 @@ import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
@@ -373,9 +374,9 @@ export function Header({ user }: { user: SessionUser }) {
     <header className={clsx("border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 relative z-20 pt-[env(safe-area-inset-top)]", !isMarketing && "transition-colors")}>
       {isDeveloper && <SecurityAlertsListener />}
       <div className="mx-auto w-full max-w-7xl md:max-w-none">
-        <div className="flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
+        <div className="relative flex h-16 items-center justify-between px-3 sm:px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2 md:gap-8">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <div className={clsx(
                 "flex items-center justify-center bg-white rounded-lg shadow-sm border border-white overflow-hidden",
                 isTechnician ? "h-11 w-11" : "h-10 w-10 sm:h-11 sm:w-11"
@@ -388,9 +389,9 @@ export function Header({ user }: { user: SessionUser }) {
             />
             </div>
             {isTechnician && (
-              <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                Operasional Perkasa Networks
-              </div>
+                <div className="hidden text-sm font-semibold text-gray-800 dark:text-gray-100 md:block">
+                  Operasional Perkasa Networks
+                </div>
             )}
           </div>
 
@@ -489,6 +490,14 @@ export function Header({ user }: { user: SessionUser }) {
             </div>
           </nav>
         </div>
+          <Image
+            src="/hdr-mble.png"
+            alt="Perkasa Networks"
+            width={2048}
+            height={1152}
+            sizes="(max-width: 768px) 38vw, 0px"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-8 w-[clamp(7rem,38vw,9rem)] -translate-x-1/2 -translate-y-1/2 object-cover object-center md:hidden"
+          />
         
           <div className="flex items-center space-x-3 sm:space-x-4">
           <div className="hidden md:block text-right">

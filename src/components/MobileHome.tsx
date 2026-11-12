@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { canAccessMenu, getDivisionFromRole, getMenuHref } from '@/lib/access'
-import { canShowMobilePsbSummary, getRoleLabel, mobileMenuEntries } from '@/lib/mobile-nav'
+import { getDivisionFromRole, getMenuHref } from '@/lib/access'
+import { canShowMobilePsbSummary, getMobileShortcuts, getRoleLabel } from '@/lib/mobile-nav'
 
 type Props = {
   userName: string
@@ -10,6 +10,9 @@ type Props = {
   statusCounts: { total: number; open: number; close: number; on_progress: number }
   showPsbSummaryOverride?: boolean
   mobileOnly?: boolean
+  showWelcome?: boolean
+  position?: string | null
+  subdivision?: string | null
 }
 
 export function MobileHome({
@@ -18,12 +21,15 @@ export function MobileHome({
   statusCounts,
   showPsbSummaryOverride,
   mobileOnly = true,
+  showWelcome = true,
+  position,
+  subdivision,
 }: Props) {
   const firstName = userName.trim().split(/\s+/)[0] || 'Pengguna'
   const roleLabel = getRoleLabel(userRole)
   const roleDivision = getDivisionFromRole(userRole)
 
-  const shortcuts = mobileMenuEntries.filter((item) => canAccessMenu(userRole, item.key))
+  const shortcuts = getMobileShortcuts(userRole, position, subdivision)
   const showPsbSummary = showPsbSummaryOverride ?? canShowMobilePsbSummary(userRole)
 
   const stats = [
@@ -35,13 +41,15 @@ export function MobileHome({
 
   return (
     <section className={mobileOnly ? 'space-y-5 md:hidden' : 'space-y-5'}>
-      <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 py-5 text-white shadow-sm">
-        <p className="text-sm text-blue-100">Ruang kerja {roleLabel}</p>
-        <h1 className="mt-1 text-2xl font-bold">Halo, {firstName}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-200">
-          Akses cepat ke modul yang sesuai dengan izin akun Anda.
-        </p>
-      </div>
+      {showWelcome && (
+        <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-5 py-5 text-white shadow-sm">
+          <p className="text-sm text-blue-100">Ruang kerja {roleLabel}</p>
+          <h1 className="mt-1 text-2xl font-bold">Halo, {firstName}</h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-200">
+            Akses cepat ke modul yang sesuai dengan izin akun Anda.
+          </p>
+        </div>
+      )}
 
       {showPsbSummary && (
         <section aria-label="Ringkasan PSB">

@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { ChevronRight, Home, Menu, X } from 'lucide-react'
 import {
-  canAccessMenu,
   canAccessSettingsPage,
   getDivisionFromRole,
   getMenuHref,
@@ -16,10 +15,7 @@ import {
 import {
   canAccessMobileHome,
   getMobileHomeHref,
-  getMobileMenuGroups,
-  isMobileTechnicianRole,
-  MOBILE_PRIMARY_ORDER,
-  mobileMenuEntries,
+  getMobilePrimaryLinks,
 } from '@/lib/mobile-nav'
 
 type Props = {
@@ -48,9 +44,6 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
     const savedZoom = Number(window.localStorage.getItem('zoomLevel'))
     return Number.isFinite(savedZoom) && savedZoom > 0 ? savedZoom : 100
   })
-  const roleDivision = getDivisionFromRole(role)
-  const isTechnician = isMobileTechnicianRole(role)
-
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`
     localStorage.setItem('zoomLevel', String(zoomLevel))
@@ -65,20 +58,16 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
     }
   }, [isMenuOpen])
 
-  const primaryLinks = MOBILE_PRIMARY_ORDER
-    .filter((key) => canAccessMenu(role, key, position, subdivision))
-    .slice(0, 4)
-    .map((key) => mobileMenuEntries.find((item) => item.key === key))
-    .filter((item): item is (typeof mobileMenuEntries)[number] => Boolean(item))
-
-  const menuGroups = getMobileMenuGroups(role, primaryLinks.map((item) => item.key), position, subdivision)
+  const roleDivision = getDivisionFromRole(role)
+  const homeHref = getMobileHomeHref(role)
+  const primaryLinks = getMobilePrimaryLinks(role, position, subdivision)
 
   // GM/Direktur (role PRIORITY) hanya mendapat kontrol personalisasi UI
   // (Ukuran teks & Tema) pada menu Pengaturan, tanpa tautan menu operasional.
   const accessibleSettings = isReadOnlyRole(role)
     ? []
     : settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
-  const isHomeActive = pathname === '/' || (isTechnician && pathname === '/beranda')
+  const isHomeActive = pathname === homeHref
 
   const menuSheet = isMenuOpen && typeof document !== 'undefined'
     ? createPortal(
@@ -94,14 +83,7 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-slate-300 dark:bg-slate-600" />
             <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Menu Lainnya
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Modul yang belum ada di navigasi bawah
-                </p>
-              </div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pengaturan</h2>
               <button
                 type="button"
                 aria-label="Tutup menu"
@@ -113,46 +95,7 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
             </div>
 
             <div className="space-y-5">
-              {menuGroups.map((group) => (
-                <section key={group.label}>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    {group.label}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.links.map((item) => {
-                      const Icon = item.icon
-                      const active = pathname.startsWith(item.activePath)
-                      return (
-                        <Link
-                          key={item.key}
-                          href={getMenuHref(item.key, roleDivision)}
-                          prefetch={false}
-                          onClick={() => setIsMenuOpen(false)}
-                          className={`flex min-h-14 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${
-                            active
-                              ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300'
-                              : 'border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span className="min-w-0 flex-1 leading-tight">{item.label}</span>
-                          <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </section>
-              ))}
-              {menuGroups.length === 0 && (
-                <p className="rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                  Semua modul Anda sudah tersedia di navigasi bawah.
-                </p>
-              )}
-
               <section>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Pengaturan
-                </h3>
                 {accessibleSettings.length > 0 && (
                   <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                     {accessibleSettings.map((item) => (
@@ -219,9 +162,9 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
         <div className="mx-auto flex max-w-lg">
-          {canAccessMobileHome(role, position, subdivision) && (
+          {canAccessMobileHome(role) && (
             <Link
-              href={getMobileHomeHref(role)}
+              href={homeHref}
               prefetch={false}
               aria-current={isHomeActive ? 'page' : undefined}
               className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-medium ${

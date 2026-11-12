@@ -101,6 +101,8 @@ interface DashboardViewProps {
   initialPeriod: { month: number; year: number }
   userRole?: string
   userName?: string
+  userPosition?: string | null
+  userSubdivision?: string | null
   divisionSummary?: DivisionSummary[]
   focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
@@ -108,7 +110,7 @@ interface DashboardViewProps {
   gaDailyActivityStats?: GaDailyActivityStats
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats, gaDailyActivityStats }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, userPosition, userSubdivision, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats, gaDailyActivityStats }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -1686,9 +1688,25 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   return (
     <>
       {isPriorityRole ? (
-        <div className="md:hidden">{mainContent}</div>
+        <div className="md:hidden">
+          <MobileHome
+            userName={userName ?? 'Pengguna'}
+            userRole={userRole}
+            position={userPosition}
+            subdivision={userSubdivision}
+            statusCounts={statusCounts}
+            showPsbSummaryOverride={false}
+          />
+          {mainContent}
+        </div>
       ) : (
-        <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
+        <MobileHome
+          userName={userName ?? 'Pengguna'}
+          userRole={userRole}
+          position={userPosition}
+          subdivision={userSubdivision}
+          statusCounts={statusCounts}
+        />
       )}
       <div className="hidden md:block">{mainContent}</div>
     </>

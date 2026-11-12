@@ -47,7 +47,6 @@ export const mobileMenuEntries: MobileMenuEntry[] = [
   { key: 'hr', label: 'Absensi Karyawan', shortLabel: 'Absen', detail: 'Data absensi dari mesin fingerprint', group: 'HR', activePath: '/hr', icon: Fingerprint, tone: 'bg-lime-50 text-lime-700 dark:bg-lime-950/60 dark:text-lime-300' },
 ]
 
-// Urutan prioritas item bottom-nav; difilter lagi sesuai akses role (maks 4 item).
 export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
   'list',
   'trouble-ticket',
@@ -65,10 +64,8 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
   'hr',
 ]
 
-const MOBILE_MENU_GROUP_ORDER: MobileMenuEntry['group'][] = ['Operasional', 'Digital', 'HR']
-
-export function canAccessMobileHome(role?: string | null, position?: string | null, subdivision?: string | null) {
-  return canAccessMenu(role, 'dashboard', position, subdivision) || isMobileTechnicianRole(role)
+export function canAccessMobileHome(role?: string | null) {
+  return Boolean(normalizeRole(role))
 }
 
 export function isMobileTechnicianRole(role?: string | null) {
@@ -76,29 +73,31 @@ export function isMobileTechnicianRole(role?: string | null) {
 }
 
 export function getMobileHomeHref(role?: string | null) {
-  return isMobileTechnicianRole(role) ? '/beranda' : '/'
+  return isMobileTechnicianRole(role) || !canAccessMenu(role, 'dashboard') ? '/beranda' : '/'
 }
 
 export function canShowMobilePsbSummary(role?: string | null) {
   return canAccessMenu(role, 'list') && !isMobileTechnicianRole(role)
 }
 
-export function getMobileMenuGroups(
+export function getMobileShortcuts(
   role?: string | null,
-  excludedKeys: readonly MobileMenuKey[] = [],
   position?: string | null,
-  subdivision?: string | null
+  subdivision?: string | null,
 ) {
-  const excluded = new Set(excludedKeys)
+  return mobileMenuEntries.filter((item) => canAccessMenu(role, item.key, position, subdivision))
+}
 
-  return MOBILE_MENU_GROUP_ORDER
-    .map((label) => ({
-      label,
-      links: mobileMenuEntries.filter(
-        (item) => item.group === label && canAccessMenu(role, item.key, position, subdivision) && !excluded.has(item.key),
-      ),
-    }))
-    .filter((group) => group.links.length > 0)
+export function getMobilePrimaryLinks(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null,
+) {
+  return MOBILE_PRIMARY_ORDER
+    .filter((key) => canAccessMenu(role, key, position, subdivision))
+    .slice(0, 4)
+    .map((key) => mobileMenuEntries.find((item) => item.key === key))
+    .filter((item): item is MobileMenuEntry => Boolean(item))
 }
 
 const ROLE_LABELS: Record<string, string> = {

@@ -5,9 +5,9 @@ import {
   canAccessMobileHome,
   canShowMobilePsbSummary,
   getMobileHomeHref,
-  getMobileMenuGroups,
+  getMobilePrimaryLinks,
+  getMobileShortcuts,
   isMobileTechnicianRole,
-  MOBILE_PRIMARY_ORDER,
   mobileMenuEntries,
 } from '@/lib/mobile-nav'
 
@@ -26,14 +26,11 @@ test('Mobile Beranda teknisi dan NOC memakai halaman khusus', () => {
 
 test('Mobile Beranda tetap mengikuti akses dashboard role lain', () => {
   assert.equal(canAccessMobileHome('ADMIN'), true)
-  assert.equal(canAccessMobileHome('MARKETING'), false)
+  assert.equal(canAccessMobileHome('MARKETING'), true)
+  assert.equal(getMobileHomeHref('MARKETING'), '/beranda')
 })
 
-function primaryKeysFor(role: string) {
-  return MOBILE_PRIMARY_ORDER.filter((key) => canAccessMenu(role, key)).slice(0, 4)
-}
-
-test('PRIORITY mobile navigation hides marketing activity and Digital modules', () => {
+test('PRIORITY Beranda tetap menyembunyikan modul marketing dan Digital', () => {
   const restrictedMenus = [
     'marketing-activities',
     'content-calendar',
@@ -41,47 +38,48 @@ test('PRIORITY mobile navigation hides marketing activity and Digital modules', 
     'digital-leads',
     'analytics',
   ] as const
-  const primaryKeys = primaryKeysFor('PRIORITY')
-  const mobileMenuKeys = getMobileMenuGroups('PRIORITY', primaryKeys).flatMap((group) =>
-    group.links.map((link) => link.key),
-  )
+  const shortcuts = getMobileShortcuts('PRIORITY').map((item) => item.key)
 
   for (const menu of restrictedMenus) {
     assert.equal(canAccessMenu('PRIORITY', menu), false, `${menu} must not be accessible`)
-    assert.equal(primaryKeys.includes(menu), false, `${menu} must not appear in bottom navigation`)
-    assert.equal(mobileMenuKeys.includes(menu), false, `${menu} must not appear in the mobile menu`)
+    assert.equal(shortcuts.includes(menu), false, `${menu} must not appear on Beranda`)
   }
 })
 
-test('Menu mobile tidak mengulang modul yang sudah ada di bottom navigation untuk semua role', () => {
+test('Beranda menampilkan semua modul mobile yang diizinkan untuk setiap role', () => {
   for (const role of APP_ROLE_VALUES) {
-    const primaryKeys = primaryKeysFor(role)
-    const remainingKeys = getMobileMenuGroups(role, primaryKeys).flatMap((group) =>
-      group.links.map((link) => link.key),
-    )
-
-    assert.deepEqual(
-      remainingKeys.filter((key) => primaryKeys.includes(key)),
-      [],
-      `${role} menampilkan modul yang sama di bottom navigation dan menu`,
-    )
-  }
-})
-
-test('Menu mobile tetap menjangkau semua modul yang tidak muat di bottom navigation', () => {
-  for (const role of APP_ROLE_VALUES) {
-    const primaryKeys = primaryKeysFor(role)
-    const remainingKeys = getMobileMenuGroups(role, primaryKeys).flatMap((group) =>
-      group.links.map((link) => link.key),
-    )
-    const reachable = new Set([...primaryKeys, ...remainingKeys])
+    const shortcuts = new Set(getMobileShortcuts(role).map((item) => item.key))
+    const primaryLinks = getMobilePrimaryLinks(role)
+    assert.equal(canAccessMobileHome(role), true, `${role} needs a Beranda link`)
+    assert.ok(primaryLinks.length <= 4, `${role} exceeds the mobile quick-link limit`)
+    assert.equal(new Set(primaryLinks.map((item) => item.key)).size, primaryLinks.length)
 
     for (const entry of mobileMenuEntries) {
       if (canAccessMenu(role, entry.key)) {
-        assert.ok(reachable.has(entry.key), `${role} kehilangan akses ke ${entry.key}`)
+        assert.ok(shortcuts.has(entry.key), `${role} loses ${entry.key} from Beranda`)
       }
     }
+    for (const link of primaryLinks) {
+      assert.equal(canAccessMenu(role, link.key), true, `${role} has an unauthorized quick link`)
+    }
+
+    const expectedHome = isMobileTechnicianRole(role) || !canAccessMenu(role, 'dashboard')
+      ? '/beranda'
+      : '/'
+    assert.equal(getMobileHomeHref(role), expectedHome, `${role} has the wrong Beranda target`)
   }
+})
+
+test('Admin mempertahankan empat pintasan utama di bar bawah', () => {
+  assert.deepEqual(
+    getMobilePrimaryLinks('ADMIN').map((item) => item.key),
+    ['list', 'trouble-ticket', 'odp', 'jalur'],
+  )
+})
+
+test('Beranda menyertakan Daily Activity sesuai jabatan dan sub divisi', () => {
+  assert.ok(getMobileShortcuts('OPERASIONAL', 'Manager').some((item) => item.key === 'daily-activity'))
+  assert.ok(getMobileShortcuts('GENERAL_AFFAIR', null, 'Legal').some((item) => item.key === 'daily-activity'))
 })
 
 test('Beranda teknisi tidak menampilkan ringkasan PSB global', () => {
@@ -89,11 +87,4 @@ test('Beranda teknisi tidak menampilkan ringkasan PSB global', () => {
     assert.equal(canShowMobilePsbSummary(role), false)
   }
   assert.equal(canShowMobilePsbSummary('ADMIN'), true)
-})
-
-test('Label List PSB pada bottom navigation cukup ringkas', () => {
-  const listEntry = mobileMenuEntries.find((item) => item.key === 'list')
-
-  assert.equal(listEntry?.label, 'List Data PSB')
-  assert.equal(listEntry?.shortLabel, 'List PSB')
 })
