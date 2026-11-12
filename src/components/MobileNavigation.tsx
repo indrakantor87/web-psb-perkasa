@@ -11,6 +11,7 @@ import {
   canAccessSettingsPage,
   getDivisionFromRole,
   getMenuHref,
+  isReadOnlyRole,
 } from '@/lib/access'
 import {
   canAccessMobileHome,
@@ -72,7 +73,11 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
 
   const menuGroups = getMobileMenuGroups(role, primaryLinks.map((item) => item.key), position, subdivision)
 
-  const accessibleSettings = settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
+  // GM/Direktur (role PRIORITY) hanya mendapat kontrol personalisasi UI
+  // (Ukuran teks & Tema) pada menu Pengaturan, tanpa tautan menu operasional.
+  const accessibleSettings = isReadOnlyRole(role)
+    ? []
+    : settingsLinks.filter((item) => canAccessSettingsPage(role, item.key))
   const isHomeActive = pathname === '/' || (isTechnician && pathname === '/beranda')
 
   const menuSheet = isMenuOpen && typeof document !== 'undefined'

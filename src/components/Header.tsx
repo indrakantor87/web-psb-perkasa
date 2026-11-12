@@ -8,7 +8,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
 import { useTheme } from 'next-themes'
 import type { SessionUser } from '@/lib/auth'
-import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, isTechnicianRole } from '@/lib/access'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, isReadOnlyRole, isTechnicianRole } from '@/lib/access'
 import { SecurityAlertsListener } from '@/components/SecurityAlertsListener'
 import { normalizeUserDivision } from '@/lib/user-division'
 
@@ -316,38 +316,42 @@ export function Header({ user }: { user: SessionUser }) {
     )
   }
 
-  const settingsGroups: HeaderSettingsGroup[] = [
-    {
-      key: 'sales-master',
-      label: 'Penjualan',
-      description: 'Master data PSB dan komunikasi marketing.',
-      items: [
-        ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
-        ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
-        ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
-      ],
-    },
-    {
-      key: 'admin-system',
-      label: 'Admin & Sistem',
-      description: 'Pengguna dan pengaturan akses.',
-      items: [
-        ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
-        ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
-        ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
-      ],
-    },
-    {
-      key: 'noc-ticketing',
-      label: 'NOC',
-      description: 'Konfigurasi trouble ticket dan operasional teknis.',
-      items: [
-        ...(canAccessSettingsPage(user?.role, 'trouble-ticket')
-          ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }]
-          : []),
-      ],
-    },
-  ].filter((group) => group.items.length > 0)
+  // GM/Direktur (role PRIORITY) hanya mendapat kontrol personalisasi UI
+  // (Text Size & Theme) pada menu Pengaturan, tanpa tautan menu operasional.
+  const settingsGroups: HeaderSettingsGroup[] = isReadOnlyRole(user?.role)
+    ? []
+    : [
+        {
+          key: 'sales-master',
+          label: 'Penjualan',
+          description: 'Master data PSB dan komunikasi marketing.',
+          items: [
+            ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
+            ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
+            ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
+          ],
+        },
+        {
+          key: 'admin-system',
+          label: 'Admin & Sistem',
+          description: 'Pengguna dan pengaturan akses.',
+          items: [
+            ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
+            ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
+            ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
+          ],
+        },
+        {
+          key: 'noc-ticketing',
+          label: 'NOC',
+          description: 'Konfigurasi trouble ticket dan operasional teknis.',
+          items: [
+            ...(canAccessSettingsPage(user?.role, 'trouble-ticket')
+              ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }]
+              : []),
+          ],
+        },
+      ].filter((group) => group.items.length > 0)
 
   const settingsPanelClass =
     'overflow-hidden rounded-2xl border border-gray-200 bg-white/95 py-1 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-gray-800/95'

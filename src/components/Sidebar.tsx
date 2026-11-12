@@ -6,7 +6,7 @@ import { LayoutDashboard, FileInput, List, Settings, ChevronDown, ChevronRight, 
 import { clsx } from 'clsx'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess } from '@/lib/access'
+import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess, isReadOnlyRole } from '@/lib/access'
 
 export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string; position?: string | null; subdivision?: string | null }; onExpand?: () => void }) {
   const pathname = usePathname()
@@ -41,15 +41,19 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
 
   const hasSettingsAccess = hasAnySettingsAccess(user?.role)
 
-  const settingsLinks = [
-    ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'trouble-ticket') ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
-    ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
-  ]
+  // GM/Direktur (role PRIORITY) hanya mendapat kontrol personalisasi UI
+  // (Text Size & Theme) pada menu Pengaturan, tanpa tautan menu operasional.
+  const settingsLinks = isReadOnlyRole(user?.role)
+    ? []
+    : [
+        ...(canAccessSettingsPage(user?.role, 'areas') ? [{ href: '/settings/areas', label: 'Master Area' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'packages') ? [{ href: '/settings/packages', label: 'Master Paket' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'users') ? [{ href: '/settings/users', label: 'Manajemen Pengguna' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'templates') ? [{ href: '/settings/templates', label: 'Template WA' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'trouble-ticket') ? [{ href: '/settings/trouble-ticket', label: 'Trouble Ticket' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'role-audit') ? [{ href: '/settings/role-audit', label: 'Audit Role' }] : []),
+        ...(canAccessSettingsPage(user?.role, 'security-logs') ? [{ href: '/settings/security-logs', label: 'Log Aktivitas' }] : []),
+      ]
 
   const handleLinkClick = () => {
     if (mobile && onClose) {
