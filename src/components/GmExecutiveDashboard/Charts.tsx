@@ -36,45 +36,51 @@ export function CustomersIsolationBarChart({ data }: { data: SeriesPoint[] }) {
       <p className="mb-3 text-xs text-ink-muted">
         Perbandingan total pelanggan, pelanggan aktif, dan total data isolir per tanggal
       </p>
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }} barCategoryGap="18%" barGap={2}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 10, fill: 'var(--chart-axis)' }}
-              stroke="var(--chart-axis)"
-              interval="preserveStartEnd"
-              angle={-35}
-              textAnchor="end"
-              height={58}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
-              stroke="var(--chart-axis)"
-              domain={[0, 'auto']}
-              width={48}
-            />
-            <Tooltip
-              contentStyle={chartTooltipStyle}
-              cursor={chartCursorFill}
-              labelStyle={{ color: 'var(--ink)' }}
-              itemStyle={{ color: 'var(--ink)' }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ink)' }} />
-            <Bar dataKey="totalCustomers" name="Pelanggan" fill="#facc15" maxBarSize={22}>
-              <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
-            </Bar>
-            <Bar dataKey="activeCustomers" name="Pelanggan Aktif" fill="#84cc16" maxBarSize={22}>
-              <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
-            </Bar>
-            <Bar dataKey="isolationTotal" name="Isolir" fill="#ef4444" maxBarSize={22}>
-              <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {chartData.length === 0 ? (
+        <div className="flex h-80 items-center justify-center text-sm text-ink-muted">
+          Belum ada data laporan harian pada periode ini
+        </div>
+      ) : (
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }} barCategoryGap="18%" barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: 'var(--chart-axis)' }}
+                stroke="var(--chart-axis)"
+                interval="preserveStartEnd"
+                angle={-35}
+                textAnchor="end"
+                height={58}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
+                stroke="var(--chart-axis)"
+                domain={[0, 'auto']}
+                width={48}
+              />
+              <Tooltip
+                contentStyle={chartTooltipStyle}
+                cursor={chartCursorFill}
+                labelStyle={{ color: 'var(--ink)' }}
+                itemStyle={{ color: 'var(--ink)' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ink)' }} />
+              <Bar dataKey="totalCustomers" name="Pelanggan" fill="#facc15" maxBarSize={22}>
+                <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+              </Bar>
+              <Bar dataKey="activeCustomers" name="Pelanggan Aktif" fill="#84cc16" maxBarSize={22}>
+                <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+              </Bar>
+              <Bar dataKey="isolationTotal" name="Isolir" fill="#ef4444" maxBarSize={22}>
+                <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   )
 }
@@ -99,7 +105,7 @@ function DailyLineChart({
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
       <h3 className="mb-3 text-sm font-semibold text-ink">{title}</h3>
       {empty ? (
-        <div className="flex h-64 items-center justify-center text-sm text-ink-muted">Belum ada data laporan harian</div>
+        <div className="flex h-64 items-center justify-center text-sm text-ink-muted">Belum ada data laporan harian pada periode ini</div>
       ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -138,7 +144,7 @@ function DailyLineChart({
 export function TotalCustomersLineChart({ data }: { data: SeriesPoint[] }) {
   return (
     <DailyLineChart
-      title="Total Pelanggan RadBoox 24, 25 & 26"
+      title="Total Pelanggan Harian RadBoox 24, 25 & 26"
       data={data}
       lines={[{ key: 'totalCustomers', name: 'Total Pelanggan', color: '#ef4444' }]}
     />
@@ -148,7 +154,7 @@ export function TotalCustomersLineChart({ data }: { data: SeriesPoint[] }) {
 export function ActiveCustomersLineChart({ data }: { data: SeriesPoint[] }) {
   return (
     <DailyLineChart
-      title="Total Pelanggan Aktif RadBoox 24, 25 & 26"
+      title="Pelanggan Aktif Harian RadBoox 24, 25 & 26"
       data={data}
       lines={[{ key: 'activeCustomers', name: 'Pelanggan Aktif', color: '#ef4444' }]}
     />
@@ -158,7 +164,7 @@ export function ActiveCustomersLineChart({ data }: { data: SeriesPoint[] }) {
 export function IsolationLineChart({ data }: { data: SeriesPoint[] }) {
   return (
     <DailyLineChart
-      title="Data Isolir (30 Hari Terakhir)"
+      title="Data Isolir Harian"
       data={data}
       lines={[
         { key: 'isolationContinued', name: 'Masih Dilanjutkan', color: '#3b82f6' },
@@ -171,7 +177,7 @@ export function IsolationLineChart({ data }: { data: SeriesPoint[] }) {
 export function DismantleLineChart({ data }: { data: SeriesPoint[] }) {
   return (
     <DailyLineChart
-      title="Dismantle (30 Hari Terakhir)"
+      title="Dismantle Harian"
       data={data}
       lines={[
         { key: 'dismantleOpen', name: 'Open', color: '#3b82f6' },
@@ -184,7 +190,7 @@ export function DismantleLineChart({ data }: { data: SeriesPoint[] }) {
 export function CustomerTrendChart({ data }: { data: GmDashboardData['customerTrend'] }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-ink">Tren Pelanggan (YTD)</h3>
+      <h3 className="mb-3 text-sm font-semibold text-ink">Tren Pelanggan Harian</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -215,7 +221,7 @@ export function CustomerTrendChart({ data }: { data: GmDashboardData['customerTr
 export function PsbTrendChart({ data }: { data: GmDashboardData['psbTrend'] }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-ink">Pemasangan PSB per Bulan</h3>
+      <h3 className="mb-3 text-sm font-semibold text-ink">Pemasangan PSB per Hari</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -242,7 +248,7 @@ export function TroubleTrendChart({ data }: { data: GmDashboardData['troubleTren
   })
   return (
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-ink">Gangguan per Kategori (YTD)</h3>
+      <h3 className="mb-3 text-sm font-semibold text-ink">Gangguan per Kategori pada Periode</h3>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -288,13 +294,19 @@ export function PackageDonut({ data }: { data: GmDashboardData['packageDistribut
   )
 }
 
-export function DivisionPerformance({ divisions }: { divisions: GmDashboardData['divisions'] }) {
+export function DivisionPerformance({
+  divisions,
+  periodLabel,
+}: {
+  divisions: GmDashboardData['divisions']
+  periodLabel: string
+}) {
   const fmtValue = (value: number, suffix?: string) =>
     `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(value)}${suffix ?? ''}`
 
   return (
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-      <h3 className="mb-4 text-sm font-semibold text-ink">Ringkasan Kinerja Divisi</h3>
+      <h3 className="mb-4 text-sm font-semibold text-ink">Ringkasan Kinerja Divisi · {periodLabel}</h3>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {divisions.map((d) => {
           const pct = Math.max(0, Math.min(100, d.progress))

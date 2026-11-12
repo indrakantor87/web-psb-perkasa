@@ -31,28 +31,41 @@ type KpiDef = {
   accent: string
 }
 
-export function KpiCards({ kpis, deltas }: { kpis: GmDashboardData['kpis']; deltas: GmDashboardData['deltas'] }) {
+export function KpiCards({
+  kpis,
+  deltas,
+  periodLabel,
+  snapshotAvailable,
+}: {
+  kpis: GmDashboardData['kpis']
+  deltas: GmDashboardData['deltas']
+  periodLabel: string
+  snapshotAvailable: boolean
+}) {
+  const snapshotLabel = snapshotAvailable ? `Snapshot ${periodLabel}` : 'Belum ada snapshot'
   const cards: KpiDef[] = [
     {
       label: 'Total Pelanggan',
       value: fmtNum(kpis.totalCustomers),
-      sub: 'Seluruh RadBox',
+      sub: snapshotLabel,
       delta: deltas.customerGrowth,
+      deltaSuffix: '% YoY',
       icon: '👥',
       accent: 'from-blue-500 to-blue-600',
     },
     {
       label: 'Pelanggan Aktif',
       value: fmtNum(kpis.activeCustomers),
-      sub: 'Tidak isolir',
+      sub: snapshotLabel,
       delta: deltas.activeGrowth,
+      deltaSuffix: '% YoY',
       icon: '✅',
       accent: 'from-emerald-500 to-emerald-600',
     },
     {
       label: 'Penurunan Pelanggan',
       value: fmtPct(kpis.customerDeclinePercent),
-      sub: 'Isolir total',
+      sub: snapshotLabel,
       deltaInvert: true,
       icon: '📉',
       accent: 'from-amber-500 to-orange-600',
@@ -60,15 +73,16 @@ export function KpiCards({ kpis, deltas }: { kpis: GmDashboardData['kpis']; delt
     {
       label: 'PSB Terpasang',
       value: fmtNum(kpis.psbInstalled),
-      sub: 'YTD',
+      sub: periodLabel,
       delta: deltas.psbGrowth,
+      deltaSuffix: '% YoY',
       icon: '🔌',
       accent: 'from-indigo-500 to-purple-600',
     },
     {
       label: 'Availability Jaringan',
       value: fmtPct(kpis.availabilityPercent, 2),
-      sub: kpis.availabilityPercent > 0 ? 'Monitoring aktif' : 'Belum ada data',
+      sub: kpis.availabilityPercent > 0 ? periodLabel : 'Belum ada data',
       icon: '📡',
       accent: 'from-cyan-500 to-teal-600',
     },

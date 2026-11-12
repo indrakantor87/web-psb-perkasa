@@ -15,6 +15,9 @@ Kategori perubahan:
 
 ## [Unreleased]
 
+### Added
+- Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.
+
 ### Fixed
 - Dashboard GM/Priority: tambahkan grafik batang gabungan pelanggan, pelanggan aktif, dan isolir ke tampilan utama; label angka dan seluruh panel mengikuti warna tema terang/gelap.
 - Role Priority: tegakkan mode baca-saja pada endpoint mutasi API dan nonaktifkan perubahan foto profil.

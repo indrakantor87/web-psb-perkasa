@@ -12,7 +12,13 @@ function statusColor(kapasitas: number, terpakai: number) {
   return '#10b981'
 }
 
-export function NetworkSection({ network }: { network: GmDashboardData['network'] }) {
+export function NetworkSection({
+  network,
+  periodLabel,
+}: {
+  network: GmDashboardData['network']
+  periodLabel: string
+}) {
   const points = network.odpMapPoints || []
   const center: [number, number] = points.length
     ? [points.reduce((a, b) => a + b.latitude, 0) / points.length, points.reduce((a, b) => a + b.longitude, 0) / points.length]
@@ -22,7 +28,10 @@ export function NetworkSection({ network }: { network: GmDashboardData['network'
     <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-ink">Peta & Infrastruktur Jaringan</h3>
-        <span className="text-[11px] text-ink-muted">Wilayah Pati</span>
+        <div className="text-right text-[11px] text-ink-muted">
+          <div>Wilayah Pati · Kapasitas saat ini</div>
+          <div>Availability {periodLabel}</div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

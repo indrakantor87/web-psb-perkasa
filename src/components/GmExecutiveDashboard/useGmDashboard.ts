@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { jakartaNow } from '@/lib/jakarta-time'
+import { GM_DASHBOARD_MONTHS } from '@/lib/gm-dashboard-period'
 
 export type GmDashboardData = {
   year: number
+  month: number
+  periodLabel: string
+  snapshotAvailable: boolean
   generatedAt: string
   kpis: {
     totalCustomers: number
@@ -78,39 +83,61 @@ export type GmDashboardData = {
   }
   hr: {
     activeEmployees: number
-    presentToday: number
-    absentToday: number
+    averagePresentPerDay: number
+    averageAbsentPerDay: number
+    attendanceDays: number
   }
   risks: Array<{ category: string; count: number; detail: string }>
   execSummary: string
 }
 
-const YEARS = [2024, 2025, 2026, 2027]
+const FIRST_YEAR = 2024
+const CURRENT_YEAR = new Date().getFullYear()
+const YEARS = Array.from({ length: Math.max(1, CURRENT_YEAR - FIRST_YEAR + 2) }, (_, index) => FIRST_YEAR + index)
 
 export function useGmDashboard() {
-  const [year, setYear] = useState<number>(() => new Date().getFullYear())
+  const [initialPeriod] = useState(() => {
+    const now = jakartaNow()
+    return { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 }
+  })
+  const [year, setYear] = useState(initialPeriod.year)
+  const [month, setMonth] = useState(initialPeriod.month)
   const [data, setData] = useState<GmDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(async (y: number) => {
+  const fetchData = useCallback(async (y: number, m: number, signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/gm-dashboard?year=${y}`, { cache: 'no-store' })
+      const res = await fetch(`/api/gm-dashboard?year=${y}&month=${m}`, { cache: 'no-store', signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = (await res.json()) as GmDashboardData
       setData(json)
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return
       setError(e instanceof Error ? e.message : 'Gagal memuat data')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    fetchData(year)
-  }, [year, fetchData])
+    const controller = new AbortController()
+    void fetchData(year, month, controller.signal)
+    return () => controller.abort()
+  }, [year, month, fetchData])
 
-  return { year, setYear, data, loading, error, years: YEARS, refresh: () => fetchData(year) }
+  return {
+    year,
+    setYear,
+    month,
+    setMonth,
+    data,
+    loading,
+    error,
+    years: YEARS,
+    months: GM_DASHBOARD_MONTHS,
+    refresh: () => fetchData(year, month),
+  }
 }
