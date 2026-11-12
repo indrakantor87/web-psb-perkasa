@@ -30,6 +30,7 @@ function normalizeHeader(value: unknown) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
+    .replace(/RADBOOX/g, 'RADBOX')
     .replace(/[^A-Z0-9]+/g, ' ')
     .trim()
 }

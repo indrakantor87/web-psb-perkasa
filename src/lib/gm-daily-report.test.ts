@@ -63,6 +63,23 @@ test('requires active-customer and decline values reported in the source workboo
   assert.match(result.errors[0], /pelanggan aktif, penurunan pelanggan/)
 })
 
+test('accepts the RADBOOX spelling used by the exported workbook headers', () => {
+  const radbooxHeader = [
+    reportHeader[0],
+    ['TANGGAL', 'TOTAL LIST PSB', 'ANTRIAN PASANG', 'TERPASANG', 'TOTAL PELANGGAN (RADBOOX 24, 25 & 26)', 'TOTAL DATA ISOLIR', '', 'TOTAL DISMANTLE', '', 'PENURUNAN PELANGGAN', 'TOTAL PELANGGAN AKTIF (RADBOOX 24, 25 & 26)'],
+    reportHeader[2],
+  ]
+  const result = parseGmReportGrid(
+    [...radbooxHeader, ['01/11/2026', 3, 3, 0, 371, 78, 237, 57, '', '8%', 326]],
+    reportMerges,
+  )
+
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.rows.length, 1)
+  assert.equal(result.rows[0].totalCustomers, 371)
+  assert.equal(result.rows[0].activeCustomers, 326)
+})
+
 test('parses ISO, Indonesian, Excel serial, and Date values as date keys', () => {
   assert.equal(parseGmReportDate('2026-11-01'), '2026-11-01')
   assert.equal(parseGmReportDate('01/11/2026'), '2026-11-01')
