@@ -2,29 +2,29 @@ import type { GmDashboardData } from './useGmDashboard'
 
 export function HrSection({ hr }: { hr: GmDashboardData['hr'] }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">SDM & Kehadiran</h3>
+    <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+      <h3 className="mb-3 text-sm font-semibold text-ink">SDM & Kehadiran</h3>
       <div className="grid grid-cols-3 gap-2">
         <div className="text-center">
-          <div className="text-2xl font-bold text-slate-800">{hr.activeEmployees}</div>
-          <div className="text-[11px] text-slate-400">Karyawan Aktif</div>
+          <div className="text-2xl font-bold text-ink">{hr.activeEmployees}</div>
+          <div className="text-[11px] text-ink-muted">Karyawan Aktif</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-emerald-600">{hr.presentToday}</div>
-          <div className="text-[11px] text-slate-400">Hadir Hari Ini</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{hr.presentToday}</div>
+          <div className="text-[11px] text-ink-muted">Hadir Hari Ini</div>
         </div>
         <div className="text-center">
-          <div className="text-2xl font-bold text-red-500">{hr.absentToday}</div>
-          <div className="text-[11px] text-slate-400">Tidak Hadir</div>
+          <div className="text-2xl font-bold text-red-500 dark:text-red-400">{hr.absentToday}</div>
+          <div className="text-[11px] text-ink-muted">Tidak Hadir</div>
         </div>
       </div>
       {hr.activeEmployees > 0 && (
         <div className="mt-3">
-          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+          <div className="mb-1 flex justify-between text-[11px] text-ink-muted">
             <span>Tingkat Kehadiran</span>
             <span className="font-semibold">{((hr.presentToday / hr.activeEmployees) * 100).toFixed(0)}%</span>
           </div>
-          <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-line">
             <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (hr.presentToday / hr.activeEmployees) * 100)}%` }} />
           </div>
         </div>
@@ -35,20 +35,20 @@ export function HrSection({ hr }: { hr: GmDashboardData['hr'] }) {
 
 export function RisksTable({ risks }: { risks: GmDashboardData['risks'] }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-slate-700">Kendala & Risiko Utama</h3>
+        <h3 className="text-sm font-semibold text-ink">Kendala & Risiko Utama</h3>
         {risks.length > 0 && (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">{risks.length} item</span>
+          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-600 dark:bg-red-950 dark:text-red-300">{risks.length} item</span>
         )}
       </div>
       {risks.length === 0 ? (
-        <div className="text-sm text-slate-400 text-center py-6">Tidak ada risiko teridentifikasi 🎉</div>
+        <div className="py-6 text-center text-sm text-ink-muted">Tidak ada risiko teridentifikasi 🎉</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-slate-500">
+              <tr className="border-b border-line text-ink-muted">
                 <th className="text-left py-2 px-2">Kategori</th>
                 <th className="text-center py-2 px-2">Jumlah</th>
                 <th className="text-left py-2 px-2">Detail</th>
@@ -56,14 +56,14 @@ export function RisksTable({ risks }: { risks: GmDashboardData['risks'] }) {
             </thead>
             <tbody>
               {risks.map((r, i) => (
-                <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="py-2 px-2 font-medium text-slate-700">{r.category}</td>
+                <tr key={i} className="border-b border-line hover:bg-surface-muted">
+                  <td className="px-2 py-2 font-medium text-ink">{r.category}</td>
                   <td className="py-2 px-2 text-center">
-                    <span className="inline-flex items-center justify-center min-w-[24px] h-5 px-1.5 rounded-full bg-red-100 text-red-600 font-bold text-[11px]">
+                    <span className="inline-flex min-w-[24px] items-center justify-center rounded-full bg-red-100 px-1.5 text-[11px] font-bold text-red-600 dark:bg-red-950 dark:text-red-300 h-5">
                       {r.count}
                     </span>
                   </td>
-                  <td className="py-2 px-2 text-slate-500 truncate max-w-[200px]">{r.detail}</td>
+                  <td className="max-w-[200px] truncate px-2 py-2 text-ink-muted">{r.detail}</td>
                 </tr>
               ))}
             </tbody>

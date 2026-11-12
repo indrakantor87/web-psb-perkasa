@@ -11,7 +11,7 @@ function fmtPct(n: number, digits = 1) {
 function DeltaBadge({ value, suffix = '%', invert = false }: { value: number; suffix?: string; invert?: boolean }) {
   if (!isFinite(value) || value === 0) return null
   const positive = invert ? value < 0 : value > 0
-  const color = positive ? 'text-emerald-600' : 'text-red-600'
+  const color = positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
   const arrow = positive ? '↑' : '↓'
   return (
     <span className={`text-xs font-semibold ${color}`}>
@@ -86,15 +86,15 @@ export function KpiCards({ kpis, deltas }: { kpis: GmDashboardData['kpis']; delt
       {cards.map((c) => (
         <div
           key={c.label}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
+          className="rounded-xl border border-line bg-surface p-4 shadow-sm transition-shadow hover:shadow-md"
         >
           <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${c.accent} text-white text-base mb-2`}>
             {c.icon}
           </div>
-          <div className="text-xs text-slate-500 font-medium">{c.label}</div>
-          <div className="text-xl font-bold text-slate-800 mt-0.5">{c.value}</div>
+          <div className="text-xs font-medium text-ink-muted">{c.label}</div>
+          <div className="mt-0.5 text-xl font-bold text-ink">{c.value}</div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[11px] text-slate-400">{c.sub}</span>
+            <span className="text-[11px] text-ink-muted">{c.sub}</span>
             {c.delta !== undefined && <DeltaBadge value={c.delta} suffix={c.deltaSuffix} invert={c.deltaInvert} />}
           </div>
         </div>

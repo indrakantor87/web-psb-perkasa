@@ -13,6 +13,11 @@ Kategori perubahan:
 - `Fixed` — perbaikan bug
 - `Security` — perbaikan terkait keamanan
 
+## [Unreleased]
+
+### Fixed
+- Dashboard GM/Priority: kartu KPI, ringkasan divisi, grafik, panel jaringan, kehadiran, tabel risiko, tooltip, dan popup peta kini mengikuti tema gelap.
+
 ## [1.20.2] - 2026-11-12
 
 ### Fixed

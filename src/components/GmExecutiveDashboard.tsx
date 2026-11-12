@@ -61,7 +61,7 @@ export function GmExecutiveDashboard() {
       )}
 
       {error && !loading && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-200">
           Gagal memuat data: {error}
         </div>
       )}

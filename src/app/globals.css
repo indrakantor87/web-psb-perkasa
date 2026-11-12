@@ -13,6 +13,9 @@
   --ink: #0f172a;
   --ink-muted: #64748b;
   --brand: #2563eb;
+  --chart-grid: #e2e8f0;
+  --chart-axis: #64748b;
+  --chart-cursor: rgba(100, 116, 139, 0.08);
 }
 
 .dark {
@@ -26,6 +29,9 @@
   --ink: #f8fafc;
   --ink-muted: #94a3b8;
   --brand: #3b82f6;
+  --chart-grid: #334155;
+  --chart-axis: #94a3b8;
+  --chart-cursor: rgba(148, 163, 184, 0.12);
 }
 
 @theme inline {
@@ -69,6 +75,12 @@ body {
 
 .dark .mp-table-enhanced thead th {
   background-color: rgba(30, 58, 138, 0.28);
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .mp-clamp-3 {
