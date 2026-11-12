@@ -59,12 +59,21 @@ test('ADMIN and DEVELOPER can access and mutate every menu', () => {
   }
 })
 
-test('PRIORITY has global read access without mutation rights', () => {
+test('PRIORITY keeps global read access except input, marketing activity, and Digital menus', () => {
+  const restrictedMenus = new Set<string>([
+    'input',
+    'marketing-activities',
+    'content-calendar',
+    'campaigns',
+    'digital-leads',
+    'analytics',
+  ])
+
   for (const menu of menus) {
-    assert.equal(canAccessMenu('PRIORITY', menu), menu !== 'input', `unexpected PRIORITY access to ${menu}`)
+    const shouldHaveAccess = !restrictedMenus.has(menu)
+    assert.equal(canAccessMenu('PRIORITY', menu), shouldHaveAccess, `unexpected PRIORITY access to ${menu}`)
     assert.equal(canMutateMenu('PRIORITY', menu), false, `PRIORITY must not mutate ${menu}`)
   }
-  assert.equal(canAccessMenu('PRIORITY', 'input'), false)
 })
 
 test('HR can manage HR while marketing activity access remains read-only', () => {

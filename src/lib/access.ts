@@ -265,7 +265,14 @@ function getAccessibleMenus(
       'hr',
       'settings',
     ])
-    if (roleUpper === 'PRIORITY') menus.delete('input')
+    if (roleUpper === 'PRIORITY') {
+      menus.delete('input')
+      menus.delete('marketing-activities')
+      menus.delete('content-calendar')
+      menus.delete('campaigns')
+      menus.delete('digital-leads')
+      menus.delete('analytics')
+    }
     return menus
   }
 

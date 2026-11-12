@@ -29,6 +29,26 @@ function primaryKeysFor(role: string) {
   return MOBILE_PRIMARY_ORDER.filter((key) => canAccessMenu(role, key)).slice(0, 4)
 }
 
+test('PRIORITY mobile navigation hides marketing activity and Digital modules', () => {
+  const restrictedMenus = [
+    'marketing-activities',
+    'content-calendar',
+    'campaigns',
+    'digital-leads',
+    'analytics',
+  ] as const
+  const primaryKeys = primaryKeysFor('PRIORITY')
+  const mobileMenuKeys = getMobileMenuGroups('PRIORITY', primaryKeys).flatMap((group) =>
+    group.links.map((link) => link.key),
+  )
+
+  for (const menu of restrictedMenus) {
+    assert.equal(canAccessMenu('PRIORITY', menu), false, `${menu} must not be accessible`)
+    assert.equal(primaryKeys.includes(menu), false, `${menu} must not appear in bottom navigation`)
+    assert.equal(mobileMenuKeys.includes(menu), false, `${menu} must not appear in the mobile menu`)
+  }
+})
+
 test('Menu mobile tidak mengulang modul yang sudah ada di bottom navigation untuk semua role', () => {
   for (const role of APP_ROLE_VALUES) {
     const primaryKeys = primaryKeysFor(role)
