@@ -40,6 +40,7 @@ const ROLE_OPTIONS = [
   { value: 'TEKNISI', label: 'Teknisi' },
   { value: 'CREATOR_DIGITAL', label: 'Creator Digital' },
   { value: 'HR', label: 'HR' },
+  { value: 'FINANCE', label: 'Finance & HR' },
   { value: 'GENERAL_AFFAIR', label: 'General Affair' },
   { value: 'OPERASIONAL', label: 'Operasional' },
 ] as const

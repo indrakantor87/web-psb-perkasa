@@ -113,6 +113,7 @@ const ROLE_LABELS: Record<string, string> = {
   DISMANTLE: 'Dismantle',
   CREATOR_DIGITAL: 'Creator Digital',
   HR: 'HR',
+  FINANCE: 'Finance & HR',
 }
 
 export function getRoleLabel(role?: string | null) {

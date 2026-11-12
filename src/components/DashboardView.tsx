@@ -1126,7 +1126,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     </div>
   )
 
-  const isHr = roleUpper === 'HR'
+  const isHr = roleUpper === 'HR' || roleUpper === 'FINANCE'
   const isGa = roleUpper === 'GENERAL_AFFAIR'
   const hrContent = hrStats ? (
     <div className="space-y-6 pb-10">

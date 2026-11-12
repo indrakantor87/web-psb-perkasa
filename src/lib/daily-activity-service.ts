@@ -272,7 +272,7 @@ function toItemDto(row: DailyActivityRow): DailyActivityItemDto {
 function deriveDefaultPlanningLevel(role?: string | null, position?: string | null): DailyActivityPlanningLevel {
   const roleUpper = normalizeRole(role)
   if (isAdminRole(roleUpper)) return 'MANAGER'
-  if (roleUpper === 'HR') return 'SPV'
+  if (roleUpper === 'HR' || roleUpper === 'FINANCE') return 'SPV'
   const pos = String(position ?? '').trim().toLowerCase()
   if (pos === 'general manager' || pos === 'manager') return 'MANAGER'
   if (pos === 'spv') return 'SPV'

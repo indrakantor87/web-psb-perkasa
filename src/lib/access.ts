@@ -41,6 +41,7 @@ export const APP_ROLE_VALUES = [
   'CREATOR_DIGITAL',
   'DISMANTLE',
   'HR',
+  'FINANCE',
   'GENERAL_AFFAIR',
   'OPERASIONAL',
 ] as const
@@ -72,11 +73,11 @@ export function isTechnicianRole(role?: string | null) {
  * karyawan). Role lain hanya boleh melihat absensi miliknya sendiri.
  */
 export function canAccessHrEmployees(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR', 'FINANCE'])
 }
 
 export function canManageHrRecords(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR', 'FINANCE'])
 }
 
 export function canReadFingerprintMachine(role?: string | null) {
@@ -88,7 +89,7 @@ export function canConfigureFingerprintMachine(role?: string | null) {
 }
 
 export function canRunAttendanceOperations(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR', 'FINANCE'])
 }
 
 export function canManageTargetUser(actorRole?: string | null, targetRole?: string | null) {
@@ -276,7 +277,7 @@ function getAccessibleMenus(
     return menus
   }
 
-  if (roleUpper === 'HR') {
+  if (roleUpper === 'HR' || roleUpper === 'FINANCE') {
     menus = menuSet(['dashboard', 'hr'])
   } else if (roleUpper === 'GENERAL_AFFAIR') {
     menus = menuSet(['dashboard', 'hr'])
@@ -387,7 +388,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'analytics':
       return roleUpper === 'CREATOR_DIGITAL'
     case 'hr':
-      return roleUpper === 'HR'
+      return roleUpper === 'HR' || roleUpper === 'FINANCE'
     default:
       return false
   }

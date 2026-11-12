@@ -1010,7 +1010,7 @@ export default async function DashboardPage({
 
     // Statistik HR untuk role HR (fokus ke karyawan & absensi, bukan performa divisi).
     let hrStats: HrDashboardStats | undefined
-    if (normalizeRole(session.user.role) === 'HR') {
+    if (normalizeRole(session.user.role) === 'HR' || normalizeRole(session.user.role) === 'FINANCE') {
       try {
         const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1)

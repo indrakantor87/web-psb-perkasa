@@ -25,7 +25,7 @@ export function getDefaultUserDivision(role: string): HrDivision | null {
   if (roleUpper === 'NOC' || roleUpper === 'TEKNISI' || roleUpper === 'TROUBLESHOOTS' || roleUpper === 'DISMANTLE' || roleUpper === 'OPERASIONAL') {
     return 'Teknisi'
   }
-  if (roleUpper === 'HR') return 'Finance & HR'
+  if (roleUpper === 'HR' || roleUpper === 'FINANCE') return 'Finance & HR'
   if (roleUpper === 'GENERAL_AFFAIR') return 'General Affair'
   return null
 }

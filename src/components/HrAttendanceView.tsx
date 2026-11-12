@@ -1130,7 +1130,7 @@ export function HrAttendanceView({ userRole, canManage, canConfigureMachine }: H
         </Card>
       )}
 
-      {(userRole || '').toUpperCase() === 'HR' && (
+      {['HR', 'FINANCE'].includes((userRole || '').toUpperCase()) && (
         <p className="text-xs text-ink-muted">
           Sumber absensi tunggal: mesin fingerprint (FINGERPRINT_MACHINE).
         </p>

@@ -18,6 +18,7 @@ const roles = [
   'ADMIN',
   'PRIORITY',
   'HR',
+  'FINANCE',
   'MARKETING',
   'CS',
   'ADMIN_CS',
