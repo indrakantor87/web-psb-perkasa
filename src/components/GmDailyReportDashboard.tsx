@@ -463,13 +463,13 @@ export function GmDailyReportDashboard({ canManage }: { canManage: boolean }) {
                   />
                   <Legend />
                   <Bar dataKey="totalCustomers" name="Pelanggan" fill="#facc15" maxBarSize={18}>
-                    <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                    <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
                   </Bar>
                   <Bar dataKey="activeCustomers" name="Pelanggan Aktif" fill="#84cc16" maxBarSize={18}>
-                    <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                    <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
                   </Bar>
                   <Bar dataKey="isolationTotal" name="Isolir" fill="#ef4444" maxBarSize={18}>
-                    <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                    <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

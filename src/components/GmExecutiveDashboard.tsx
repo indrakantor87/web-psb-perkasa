@@ -4,6 +4,7 @@ import { useGmDashboard } from './GmExecutiveDashboard/useGmDashboard'
 import { KpiCards } from './GmExecutiveDashboard/KpiCards'
 import {
   ActiveCustomersLineChart,
+  CustomersIsolationBarChart,
   DismantleLineChart,
   DivisionPerformance,
   IsolationLineChart,
@@ -71,6 +72,8 @@ export function GmExecutiveDashboard() {
           <KpiCards kpis={data.kpis} deltas={data.deltas} />
 
           <DivisionPerformance divisions={data.divisions} />
+
+          <CustomersIsolationBarChart data={data.dailySeries} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TotalCustomersLineChart data={data.dailySeries} />

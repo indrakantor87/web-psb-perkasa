@@ -16,7 +16,7 @@ Kategori perubahan:
 ## [Unreleased]
 
 ### Fixed
-- Dashboard GM/Priority: kartu KPI, ringkasan divisi, grafik, panel jaringan, kehadiran, tabel risiko, tooltip, dan popup peta kini mengikuti tema gelap.
+- Dashboard GM/Priority: tambahkan grafik batang gabungan pelanggan, pelanggan aktif, dan isolir ke tampilan utama; label angka dan seluruh panel mengikuti warna tema terang/gelap.
 
 ## [1.20.2] - 2026-11-12
 

@@ -5,6 +5,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -17,11 +18,66 @@ import {
 } from 'recharts'
 import type { GmDashboardData } from './useGmDashboard'
 import { getFocusedIntegerAxisDomain } from '@/lib/chart-axis'
-import { chartTooltipStyle } from '@/components/ui/chart'
+import { chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
 type SeriesPoint = GmDashboardData['dailySeries'][number]
+
+export function CustomersIsolationBarChart({ data }: { data: SeriesPoint[] }) {
+  const chartData = data.map((point) => ({
+    ...point,
+    isolationTotal: point.isolationContinued + point.isolationNotContinued,
+  }))
+
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+      <h3 className="mb-1 text-sm font-semibold text-ink">Pelanggan & Isolir Harian</h3>
+      <p className="mb-3 text-xs text-ink-muted">
+        Perbandingan total pelanggan, pelanggan aktif, dan total data isolir per tanggal
+      </p>
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 10 }} barCategoryGap="18%" barGap={2}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: 'var(--chart-axis)' }}
+              stroke="var(--chart-axis)"
+              interval="preserveStartEnd"
+              angle={-35}
+              textAnchor="end"
+              height={58}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 11, fill: 'var(--chart-axis)' }}
+              stroke="var(--chart-axis)"
+              domain={[0, 'auto']}
+              width={48}
+            />
+            <Tooltip
+              contentStyle={chartTooltipStyle}
+              cursor={chartCursorFill}
+              labelStyle={{ color: 'var(--ink)' }}
+              itemStyle={{ color: 'var(--ink)' }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--ink)' }} />
+            <Bar dataKey="totalCustomers" name="Pelanggan" fill="#facc15" maxBarSize={22}>
+              <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+            </Bar>
+            <Bar dataKey="activeCustomers" name="Pelanggan Aktif" fill="#84cc16" maxBarSize={22}>
+              <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+            </Bar>
+            <Bar dataKey="isolationTotal" name="Isolir" fill="#ef4444" maxBarSize={22}>
+              <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="var(--ink)" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
 
 function DailyLineChart({
   title,
