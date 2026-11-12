@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -423,6 +424,58 @@ export function GmDailyReportDashboard({ canManage }: { canManage: boolean }) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <ChartCard
+            title="Pelanggan & Isolir Harian"
+            description="Perbandingan total pelanggan, pelanggan aktif, dan total data isolir per tanggal"
+            className="xl:col-span-2"
+          >
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartRows}
+                  margin={{ top: 18, right: 14, left: 0, bottom: 12 }}
+                  barCategoryGap="18%"
+                  barGap={2}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
+                  <XAxis
+                    dataKey="label"
+                    tick={chartAxisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                    angle={-35}
+                    textAnchor="end"
+                    height={58}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={chartAxisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 'auto']}
+                    width={48}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    cursor={chartCursorFill}
+                    formatter={(value) => numberFormatter.format(Number(value ?? 0))}
+                  />
+                  <Legend />
+                  <Bar dataKey="totalCustomers" name="Pelanggan" fill="#facc15" maxBarSize={18}>
+                    <LabelList dataKey="totalCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                  </Bar>
+                  <Bar dataKey="activeCustomers" name="Pelanggan Aktif" fill="#84cc16" maxBarSize={18}>
+                    <LabelList dataKey="activeCustomers" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                  </Bar>
+                  <Bar dataKey="isolationTotal" name="Isolir" fill="#ef4444" maxBarSize={18}>
+                    <LabelList dataKey="isolationTotal" position="top" offset={4} fontSize={10} fontWeight={700} fill="#475569" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
+
           <ChartCard title="Total Pelanggan & Aktif" description="Jumlah per tanggal laporan">
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">

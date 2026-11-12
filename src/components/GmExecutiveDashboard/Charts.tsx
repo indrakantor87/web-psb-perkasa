@@ -16,6 +16,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { GmDashboardData } from './useGmDashboard'
+import { getFocusedIntegerAxisDomain } from '@/lib/chart-axis'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
@@ -31,6 +32,12 @@ function DailyLineChart({
   lines: Array<{ key: keyof SeriesPoint; name: string; color: string }>
 }) {
   const empty = data.length === 0
+  const focusedKey = lines.length === 1 && ['totalCustomers', 'activeCustomers'].includes(String(lines[0].key))
+    ? lines[0].key
+    : null
+  const focusedDomain = focusedKey
+    ? getFocusedIntegerAxisDomain(data.map((point) => Number(point[focusedKey] ?? 0)))
+    : undefined
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-700 mb-3">{title}</h3>
@@ -42,7 +49,13 @@ function DailyLineChart({
             <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#94a3b8" interval={Math.max(0, Math.floor(data.length / 8) - 1)} />
-              <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" width={50} />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                stroke="#94a3b8"
+                width={50}
+                allowDecimals={false}
+                domain={focusedDomain}
+              />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               {lines.map((l) => (
