@@ -179,6 +179,107 @@ function DrawCollector({
   return null
 }
 
+type OdpMapItem =
+  | { kind: 'marker'; row: OdpRow }
+  | { kind: 'cluster'; key: string; rows: OdpRow[]; center: [number, number] }
+
+function OdpMarkerLayer({ rows }: { rows: OdpRow[] }) {
+  const map = useMap()
+  const [zoom, setZoom] = useState(() => map.getZoom())
+  const [isMobile, setIsMobile] = useState(() => map.getSize().x < 768)
+  const [bounds, setBounds] = useState(() => map.getBounds().pad(0.5))
+
+  useEffect(() => {
+    const updateMapView = () => {
+      setIsMobile(map.getSize().x < 768)
+      setZoom(map.getZoom())
+      setBounds(map.getBounds().pad(0.5))
+    }
+    map.on('moveend', updateMapView)
+    map.on('resize', updateMapView)
+    updateMapView()
+    return () => {
+      map.off('moveend', updateMapView)
+      map.off('resize', updateMapView)
+    }
+  }, [map])
+
+  const items = useMemo(() => {
+    const validRows = rows.filter(
+      (row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude),
+    )
+    if (!isMobile) {
+      return validRows.map((row): OdpMapItem => ({ kind: 'marker', row }))
+    }
+
+    const visibleRows = validRows.filter((row) =>
+      bounds.contains([row.latitude!, row.longitude!]),
+    )
+    if (zoom >= 19) {
+      return visibleRows.map((row): OdpMapItem => ({ kind: 'marker', row }))
+    }
+
+    const buckets = new Map<string, OdpRow[]>()
+    visibleRows.forEach((row) => {
+      const point = map.project([row.latitude!, row.longitude!], zoom)
+      const key = `${Math.floor(point.x / 64)}:${Math.floor(point.y / 64)}`
+      const bucket = buckets.get(key)
+      if (bucket) bucket.push(row)
+      else buckets.set(key, [row])
+    })
+
+    return Array.from(buckets, ([key, bucket]): OdpMapItem => {
+      if (bucket.length === 1) return { kind: 'marker', row: bucket[0] }
+      const center: [number, number] = [
+        bucket.reduce((sum, row) => sum + row.latitude!, 0) / bucket.length,
+        bucket.reduce((sum, row) => sum + row.longitude!, 0) / bucket.length,
+      ]
+      return { kind: 'cluster', key, rows: bucket, center }
+    })
+  }, [bounds, isMobile, map, rows, zoom])
+
+  return (
+    <>
+      {items.map((item) => {
+        if (item.kind === 'cluster') {
+          return (
+            <CircleMarker
+              key={`odp-cluster-${item.key}`}
+              center={item.center}
+              radius={Math.min(20, 12 + Math.log2(item.rows.length))}
+              pathOptions={{ color: '#ffffff', fillColor: '#15803d', fillOpacity: 0.95, weight: 2 }}
+              eventHandlers={{
+                click: () => map.flyTo(item.center, Math.min(19, map.getZoom() + 2), { duration: 0.35 }),
+              }}
+            >
+              <Tooltip permanent direction="center" className="jalur-map-label">
+                {item.rows.length}
+              </Tooltip>
+            </CircleMarker>
+          )
+        }
+
+        const row = item.row
+        return (
+          <Marker
+            key={`odp-${row.id}`}
+            position={[row.latitude!, row.longitude!]}
+            icon={odpPinIcon}
+          >
+            <Popup>
+              <div className="min-w-[150px] space-y-1">
+                <div className="text-sm font-bold">{row.nama_odp}</div>
+                <div className="text-xs text-gray-500">ODP • {row.wilayah}</div>
+                <div className="text-xs break-words">{row.lokasi}</div>
+              </div>
+            </Popup>
+          </Marker>
+        )
+      })}
+    </>
+  )
+}
+
 export default function JalurMap({ canEdit, compact = false }: { canEdit: boolean; compact?: boolean }) {
   const [jalur, setJalur] = useState<JalurRow[]>([])
   const [splices, setSplices] = useState<SpliceRow[]>([])
@@ -655,24 +756,8 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
             </Marker>
           ))}
 
-          {/* ODP markers */}
-          {odps
-            .filter((o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude))
-            .map((o) => (
-              <Marker
-                key={`odp-${o.id}`}
-                position={[o.latitude!, o.longitude!]}
-                icon={odpPinIcon}
-              >
-                <Popup>
-                  <div className="min-w-[150px] space-y-1">
-                    <div className="text-sm font-bold">{o.nama_odp}</div>
-                    <div className="text-xs text-gray-500">ODP • {o.wilayah}</div>
-                    <div className="text-xs break-words">{o.lokasi}</div>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+          {/* Cluster nearby ODP markers on mobile; retain KMZ pins when zoomed in. */}
+          <OdpMarkerLayer rows={odps} />
         </MapContainer>
         {loading && (
           <div
