@@ -23,6 +23,7 @@ Kategori perubahan:
 - Dashboard NOC memastikan kolom IP POP tersedia pada skema lama sebelum membaca status probe.
 - Peta Jalur menggunakan aset marker yang dirujuk KMZ POP MARGOYOSO: pushpin hijau ODP, pushpin putih bertint KML untuk ODC, dan paddle bintang kuning untuk Splice, termasuk skala serta hotspot-nya.
 - Ekspor KML untuk Splice memakai ikon `ylw-stars.png` dan hotspot yang sama dengan style normal KMZ.
+- Import KML/KMZ mempertahankan nama placemark serta metadata ikon (gambar, warna, skala, hotspot) agar marker dan label tampil di peta.
 - Role Priority (GM/Direktur): menu **Pengaturan** kini hanya menampilkan kontrol personalisasi **Text Size** dan **Theme**; seluruh tautan pengaturan operasional (Penjualan, Admin & Sistem, NOC) disembunyikan di header desktop, sidebar, dan navigasi mobile.
 
 ### Fixed

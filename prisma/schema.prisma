@@ -152,6 +152,7 @@ model Splice {
   longitude   Float    @map("longitude")
   keterangan  String?  @map("keterangan")
   jalur_id    Int?     @map("jalur_id")
+  kml_icon_style Json? @map("kml_icon_style")
   jalur       Jalur?   @relation(fields: [jalur_id], references: [id], onDelete: SetNull)
   created_at  DateTime @default(now()) @map("created_at")
   updated_at  DateTime @default(now()) @map("updated_at")

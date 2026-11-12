@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuMutation } from '@/lib/access-server'
+import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
 export const runtime = 'nodejs'
 
@@ -11,6 +12,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (accessError) return accessError
 
   try {
+    await ensureSpliceKmlIconStyleColumn()
     const { id } = await params
     const spliceId = Number(id)
     if (!Number.isFinite(spliceId)) {

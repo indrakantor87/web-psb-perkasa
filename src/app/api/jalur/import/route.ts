@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuMutation, requireSession } from '@/lib/access-server'
 import { parseKml } from '@/lib/kml'
+import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 import JSZip from 'jszip'
 
 export const runtime = 'nodejs'
@@ -79,6 +81,7 @@ export async function POST(req: Request) {
     }
 
     // Simpan splice (points)
+    if (parsed.points.length > 0) await ensureSpliceKmlIconStyleColumn()
     for (const point of parsed.points) {
       const splice = await prisma.splice.create({
         data: {
@@ -86,6 +89,7 @@ export async function POST(req: Request) {
           latitude: point.latitude,
           longitude: point.longitude,
           keterangan: point.description || null,
+          kml_icon_style: (point.iconStyle ?? {}) as Prisma.InputJsonValue,
         },
       })
       spliceIds.push(splice.id)

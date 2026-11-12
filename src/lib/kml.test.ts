@@ -1,6 +1,39 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { generateKml } from './kml'
+import { generateKml, parseKml } from './kml'
+
+test('KML import preserves point name and normal IconStyle metadata', () => {
+  const parsed = parseKml(`
+    <kml><Document>
+      <Style id="redPin">
+        <IconStyle>
+          <color>ff7f00ff</color>
+          <scale>1.1</scale>
+          <Icon><href>http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png</href></Icon>
+          <hotSpot x="20" y="2" xunits="pixels" yunits="pixels"/>
+        </IconStyle>
+      </Style>
+      <StyleMap id="pin">
+        <Pair><key>normal</key><styleUrl>#redPin</styleUrl></Pair>
+        <Pair><key>highlight</key><styleUrl>#redPin</styleUrl></Pair>
+      </StyleMap>
+      <Placemark>
+        <name>ODC &amp; POP</name>
+        <styleUrl>#pin</styleUrl>
+        <Point><coordinates>111.02,-6.75,0</coordinates></Point>
+      </Placemark>
+    </Document></kml>
+  `)
+
+  assert.equal(parsed.points.length, 1)
+  assert.equal(parsed.points[0].name, 'ODC & POP')
+  assert.deepEqual(parsed.points[0].iconStyle, {
+    color: '#FF007F',
+    href: 'http://maps.google.com/mapfiles/kml/pushpin/wht-pushpin.png',
+    scale: 1.1,
+    hotSpot: { x: 20, y: 2, xunits: 'pixels', yunits: 'pixels' },
+  })
+})
 
 test('KML export uses the Google Earth yellow stars icon for splice points', () => {
   const kml = generateKml({

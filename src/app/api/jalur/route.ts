@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
 export const runtime = 'nodejs'
 
@@ -26,6 +27,7 @@ export async function GET() {
   if (accessError) return accessError
 
   try {
+    await ensureSpliceKmlIconStyleColumn()
     const jalur = await prisma.jalur.findMany({
       orderBy: { id: 'asc' },
       include: { splices: { orderBy: { id: 'asc' } } },

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
+import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
 export const runtime = 'nodejs'
 
@@ -11,6 +12,7 @@ export async function GET() {
   if (accessError) return accessError
 
   try {
+    await ensureSpliceKmlIconStyleColumn()
     const splices = await prisma.splice.findMany({ orderBy: { id: 'asc' } })
     return NextResponse.json(splices)
   } catch (e) {
@@ -26,6 +28,7 @@ export async function POST(req: Request) {
   requireSession(session)
 
   try {
+    await ensureSpliceKmlIconStyleColumn()
     const body = await req.json()
     const nama = typeof body.nama === 'string' && body.nama.trim() ? body.nama.trim() : 'S'
     const latitude = Number(body.latitude)

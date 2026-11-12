@@ -16,6 +16,19 @@ export type KmlPoint = {
   latitude: number
   longitude: number
   color?: string // hex CSS (#RRGGBB) dari IconStyle
+  iconStyle?: KmlIconStyle
+}
+
+export type KmlIconStyle = {
+  href?: string
+  color?: string
+  scale?: number
+  hotSpot?: {
+    x: number
+    y: number
+    xunits?: string
+    yunits?: string
+  }
 }
 
 export type KmlLine = {
@@ -87,6 +100,61 @@ function parseKmlCoordinates(raw: string): { latitude: number; longitude: number
     .filter((p): p is { latitude: number; longitude: number } => p !== null)
 }
 
+function decodeXmlEntities(value: string): string {
+  return value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (entity, code: string) => {
+    const named: Record<string, string> = {
+      amp: '&',
+      lt: '<',
+      gt: '>',
+      quot: '"',
+      apos: "'",
+    }
+    const normalized = code.toLowerCase()
+    if (normalized in named) return named[normalized]
+    const numeric = normalized.startsWith('#x')
+      ? Number.parseInt(normalized.slice(2), 16)
+      : Number.parseInt(normalized.slice(1), 10)
+    return Number.isInteger(numeric) && numeric >= 0 && numeric <= 0x10ffff
+      ? String.fromCodePoint(numeric)
+      : entity
+  })
+}
+
+function parseKmlIconStyle(styleBody: string): KmlIconStyle | undefined {
+  const iconStyleBody = styleBody.match(/<IconStyle\b[^>]*>([\s\S]*?)<\/IconStyle>/i)?.[1]
+  if (!iconStyleBody) return undefined
+
+  const result: KmlIconStyle = {}
+  const color = iconStyleBody.match(/<color>([^<]+)<\/color>/i)?.[1]?.trim()
+  const href = iconStyleBody.match(/<Icon\b[^>]*>[\s\S]*?<href>([\s\S]*?)<\/href>[\s\S]*?<\/Icon>/i)?.[1]?.trim()
+  const rawScale = iconStyleBody.match(/<scale>([^<]+)<\/scale>/i)?.[1]?.trim()
+  const scale = rawScale ? Number.parseFloat(rawScale) : undefined
+  const hotspotTag = iconStyleBody.match(/<hotSpot\b([^>]*)\/?>/i)?.[1]
+
+  if (color) result.color = kmlColorToCss(color)
+  if (href) result.href = decodeXmlEntities(href)
+  if (Number.isFinite(scale)) result.scale = scale
+
+  if (hotspotTag) {
+    const readAttribute = (name: string) =>
+      hotspotTag.match(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, 'i'))?.[1]
+    const x = Number.parseFloat(readAttribute('x') ?? '')
+    const y = Number.parseFloat(readAttribute('y') ?? '')
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      const xunits = readAttribute('xunits')
+      const yunits = readAttribute('yunits')
+      result.hotSpot = {
+        x,
+        y,
+        ...(xunits ? { xunits } : {}),
+        ...(yunits ? { yunits } : {}),
+      }
+    }
+  }
+
+  return Object.keys(result).length ? result : undefined
+}
+
 /**
  * Parse isi KML menjadi daftar point (marker) dan line (polyline).
  * Menangani <Style> dengan LineStyle & IconStyle.
@@ -94,26 +162,26 @@ function parseKmlCoordinates(raw: string): { latitude: number; longitude: number
 export function parseKml(kml: string): KmlParseResult {
   const result: KmlParseResult = { points: [], lines: [] }
 
-  // Parse style map: styleId -> {lineColor, iconColor}
-  const styles = new Map<string, { lineColor?: string; iconColor?: string }>()
-  const styleRegex = /<Style\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/Style>/gi
+  // Parse styles first so StyleMap references can inherit normal icon details.
+  const styles = new Map<string, { lineColor?: string; iconColor?: string; iconStyle?: KmlIconStyle }>()
+  const styleRegex = /<Style\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/Style>/gi
   let styleMatch: RegExpExecArray | null
   while ((styleMatch = styleRegex.exec(kml)) !== null) {
     const id = styleMatch[1]
     const body = styleMatch[2]
-    const style: { lineColor?: string; iconColor?: string } = {}
+    const style: { lineColor?: string; iconColor?: string; iconStyle?: KmlIconStyle } = {}
 
     const lineColorMatch = body.match(/<LineStyle>[\s\S]*?<color>([^<]+)<\/color>[\s\S]*?<\/LineStyle>/i)
     if (lineColorMatch) style.lineColor = kmlColorToCss(lineColorMatch[1])
 
-    const iconColorMatch = body.match(/<IconStyle>[\s\S]*?<color>([^<]+)<\/color>[\s\S]*?<\/IconStyle>/i)
-    if (iconColorMatch) style.iconColor = kmlColorToCss(iconColorMatch[1])
+    style.iconStyle = parseKmlIconStyle(body)
+    style.iconColor = style.iconStyle?.color
 
     styles.set(id, style)
   }
 
   // Parse StyleMap (Google Earth sering pakai StyleMap dengan normal/highlight)
-  const styleMapRegex = /<StyleMap\s+id="([^"]+)"[^>]*>([\s\S]*?)<\/StyleMap>/gi
+  const styleMapRegex = /<StyleMap\b[^>]*\bid=["']([^"']+)["'][^>]*>([\s\S]*?)<\/StyleMap>/gi
   let smMatch: RegExpExecArray | null
   while ((smMatch = styleMapRegex.exec(kml)) !== null) {
     const id = smMatch[1]
@@ -130,12 +198,13 @@ export function parseKml(kml: string): KmlParseResult {
   let pmMatch: RegExpExecArray | null
   while ((pmMatch = placemarkRegex.exec(kml)) !== null) {
     const body = pmMatch[1]
-    const name = (body.match(/<name>([\s\S]*?)<\/name>/i)?.[1] ?? '').trim()
-    const description = (body.match(/<description>([\s\S]*?)<\/description>/i)?.[1] ?? '').trim()
+    const name = decodeXmlEntities((body.match(/<name>([\s\S]*?)<\/name>/i)?.[1] ?? '').trim())
+    const description = decodeXmlEntities((body.match(/<description>([\s\S]*?)<\/description>/i)?.[1] ?? '').trim())
 
     // Resolve style: bisa inline <Style> atau <styleUrl>#id>
     let lineColor: string | undefined
     let iconColor: string | undefined
+    let iconStyle: KmlIconStyle | undefined
 
     const styleUrlMatch = body.match(/<styleUrl>#([^<]+)<\/styleUrl>/i)
     if (styleUrlMatch) {
@@ -143,6 +212,7 @@ export function parseKml(kml: string): KmlParseResult {
       if (style) {
         lineColor = style.lineColor
         iconColor = style.iconColor
+        iconStyle = style.iconStyle
       }
     }
 
@@ -151,8 +221,8 @@ export function parseKml(kml: string): KmlParseResult {
       const inlineBody = inlineStyleMatch[1]
       const lc = inlineBody.match(/<LineStyle>[\s\S]*?<color>([^<]+)<\/color>[\s\S]*?<\/LineStyle>/i)
       if (lc) lineColor = kmlColorToCss(lc[1])
-      const ic = inlineBody.match(/<IconStyle>[\s\S]*?<color>([^<]+)<\/color>[\s\S]*?<\/IconStyle>/i)
-      if (ic) iconColor = kmlColorToCss(ic[1])
+      iconStyle = parseKmlIconStyle(inlineBody)
+      iconColor = iconStyle?.color
     }
 
     // LineString
@@ -181,6 +251,7 @@ export function parseKml(kml: string): KmlParseResult {
           latitude: coordinates[0].latitude,
           longitude: coordinates[0].longitude,
           color: iconColor,
+          iconStyle,
         })
       }
     }
