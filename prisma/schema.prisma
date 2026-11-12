@@ -498,3 +498,27 @@ model DailyActivityProfile {
 
   @@map("psb_daily_activity_profiles")
 }
+
+model GmDailyReportSnapshot {
+  id                     Int      @id @default(autoincrement())
+  reportDate             DateTime @unique @db.Date
+  totalPsbList           Int
+  installationQueue      Int
+  installedToday         Int
+  totalCustomers         Int
+  activeCustomers        Int
+  isolationContinued     Int
+  isolationNotContinued  Int
+  dismantleOpen          Int
+  dismantleClosed        Int
+  customerDeclinePercent Float
+  source                 String   @default("MANUAL")
+  createdByUserId        Int?
+  createdByName          String?
+  updatedByUserId        Int?
+  updatedByName          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("gm_daily_report_snapshots")
+}

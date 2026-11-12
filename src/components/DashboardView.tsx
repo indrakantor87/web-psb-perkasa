@@ -13,6 +13,7 @@ import { ChartCard } from '@/components/ui/ChartCard'
 import { Chip } from '@/components/ui/Chip'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { StatCard } from '@/components/ui/StatCard'
+import { GmDailyReportDashboard } from '@/components/GmDailyReportDashboard'
 import { chartAxisTick, chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type DivisionSummary = {
@@ -140,6 +141,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isAdmin = isAdminRole(userRole)
   const roleUpper = String(userRole ?? '').trim().toUpperCase()
   const isCsRole = roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
+  const showGmDailyReport = isAdmin || roleUpper === 'PRIORITY'
   const roleDivision = getDivisionFromRole(userRole)
   const focusedDivision = isAdmin ? selectedDivision : roleDivision
 
@@ -345,6 +347,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           )}
         </Card>
       </div>
+
+      {showGmDailyReport && <GmDailyReportDashboard canManage={isAdmin} />}
 
       {visibleDivisionSummary.length > 0 && (
         <div className="space-y-3">
