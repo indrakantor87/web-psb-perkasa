@@ -120,24 +120,30 @@ export function PackageDonut({ data }: { data: GmDashboardData['packageDistribut
 }
 
 export function DivisionPerformance({ divisions }: { divisions: GmDashboardData['divisions'] }) {
+  const fmtValue = (value: number, suffix?: string) =>
+    `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(value)}${suffix ?? ''}`
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-700 mb-4">Ringkasan Kinerja Divisi</h3>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {divisions.map((d) => {
-          const pct = d.target > 0 ? Math.min(100, (d.primaryValue / d.target) * 100) : 0
+          const pct = Math.max(0, Math.min(100, d.progress))
           const color = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'
           return (
             <div key={d.code} className="rounded-lg border border-slate-100 p-3 bg-slate-50">
-              <div className="text-xs font-semibold text-slate-600 mb-1">{d.label}</div>
-              <div className="text-lg font-bold text-slate-800">
-                {typeof d.primaryValue === 'number' && d.primaryLabel.includes('%') ? `${d.primaryValue.toFixed(0)}%` : d.primaryValue}
-              </div>
+              <div className="text-xs font-semibold text-slate-600 mb-1 leading-tight">{d.label}</div>
+              <div className="text-lg font-bold text-slate-800">{fmtValue(d.primaryValue, d.valueSuffix)}</div>
               <div className="text-[10px] text-slate-400 mb-2">{d.primaryLabel}</div>
               <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
                 <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
               </div>
-              <div className="text-[10px] text-slate-400 mt-1">{d.secondaryValue} {d.secondaryLabel.toLowerCase()}</div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-[10px] text-slate-400">{pct}% aktivitas</span>
+                <span className="text-[10px] text-slate-400">
+                  {fmtValue(d.secondaryValue, d.secondarySuffix)} {d.secondaryLabel.toLowerCase()}
+                </span>
+              </div>
             </div>
           )
         })}

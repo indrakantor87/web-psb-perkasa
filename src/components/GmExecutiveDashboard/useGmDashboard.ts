@@ -23,9 +23,11 @@ export type GmDashboardData = {
     label: string
     primaryValue: number
     primaryLabel: string
+    valueSuffix?: string
     secondaryValue: number
     secondaryLabel: string
-    target: number
+    secondarySuffix?: string
+    progress: number
     members: number
   }>
   customerTrend: Array<{ month: string; totalCustomers: number; activeCustomers: number }>

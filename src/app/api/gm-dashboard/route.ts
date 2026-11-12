@@ -17,9 +17,11 @@ type DivisionRow = {
   label: string
   primaryValue: number
   primaryLabel: string
+  valueSuffix?: string
   secondaryValue: number
   secondaryLabel: string
-  target: number
+  secondarySuffix?: string
+  progress: number
   members: number
 }
 
@@ -70,6 +72,7 @@ export async function GET(req: Request) {
     slaBreachRows,
     isolirOverdueRows,
     dismantleBacklogRows,
+    employeeDivisionRows,
   ] = await Promise.all([
     prisma.ticket.count({ where: { installedDate: { gte: yearStart, lt: yearEnd } } }).catch(() => 0),
     prisma.ticket.count({ where: { installedDate: { gte: lyStart, lt: lyEnd } } }).catch(() => 0),
@@ -197,6 +200,14 @@ export async function GET(req: Request) {
       WHERE "status" = 'OPEN'
         AND COALESCE(TRIM("ticketDismantle"), '') <> ''
     `).catch(() => []),
+    prisma.$queryRaw<Array<{ department: string; count: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM("department"), ''), 'Pemasaran dan Pelayanan') AS department,
+        COUNT(*)::int AS count
+      FROM "Employee"
+      WHERE "isActive" = TRUE
+      GROUP BY 1
+    `).catch(() => []),
   ])
 
   // Network availability (YTD)
@@ -298,26 +309,76 @@ export async function GET(req: Request) {
   // HR
   const presentToday = Number(presentTodayRows[0]?.present || 0)
 
-  // Division performance (5 divisions with progress)
-  const divisions: DivisionRow[] = [
-    { code: 'PENJUALAN', label: 'Penjualan', primaryValue: psbInstalled, primaryLabel: 'PSB terpasang', secondaryValue: isolationNew, secondaryLabel: 'Isolir baru', target: Math.max(psbInstalled, 1), members: 0 },
-    { code: 'CS_ADMIN', label: 'CS & Admin', primaryValue: isolationCloseRate, primaryLabel: 'Close rate isolir', secondaryValue: isolationNew, secondaryLabel: 'Isolir baru', target: 100, members: 0 },
-    { code: 'NOC', label: 'NOC', primaryValue: ttCloseRate, primaryLabel: 'Close rate TT', secondaryValue: mttrHours, secondaryLabel: 'MTTR (jam)', target: 100, members: 0 },
-    { code: 'CREATOR_DIGITAL', label: 'Creator Digital', primaryValue: 0, primaryLabel: 'Leads converted', secondaryValue: 0, secondaryLabel: 'Konten', target: 100, members: 0 },
-    { code: 'OPERASIONAL', label: 'Operasional', primaryValue: availability.availabilityPercent, primaryLabel: 'Availability', secondaryValue: portUtilization, secondaryLabel: 'Utilisasi port', target: 99.9, members: 0 },
-  ]
+  // Ringkasan kinerja per divisi organisasi (mengikuti departemen HR).
+  const memberMap = new Map(
+    employeeDivisionRows.map((r) => [String(r.department || '').trim(), Number(r.count || 0)])
+  )
+  const dailyMap = new Map(
+    dailyActivityRows.map((r) => [
+      String(r.division || '').trim(),
+      { total: Number(r.total || 0), done: Number(r.done || 0) },
+    ])
+  )
+  const dailyProgress = (name: string) => {
+    const da = dailyMap.get(name)
+    if (!da || da.total === 0) return 0
+    return Math.round((da.done / da.total) * 100)
+  }
 
-  // Daily activity fill rate per division (for progress)
-  const dailyMap = new Map(dailyActivityRows.map((r) => [String(r.division || '').trim().toUpperCase(), { total: Number(r.total || 0), done: Number(r.done || 0) }]))
-  divisions.forEach((d) => {
-    const da = dailyMap.get(d.code) || dailyMap.get(d.label.toUpperCase())
-    if (da) {
-      d.primaryValue = da.total > 0 ? Math.round((da.done / da.total) * 100) : 0
-      d.primaryLabel = '% daily activity selesai'
-      d.secondaryValue = da.total
-      d.secondaryLabel = 'Total aktivitas'
-    }
-  })
+  const divisions: DivisionRow[] = [
+    {
+      code: 'Pemasaran dan Pelayanan',
+      label: 'Pemasaran dan Pelayanan',
+      primaryValue: psbInstalled,
+      primaryLabel: 'PSB terpasang',
+      secondaryValue: isolationNew,
+      secondaryLabel: 'Isolir baru',
+      progress: dailyProgress('Pemasaran dan Pelayanan'),
+      members: memberMap.get('Pemasaran dan Pelayanan') || 0,
+    },
+    {
+      code: 'Teknisi',
+      label: 'Teknisi',
+      primaryValue: ttClosed,
+      primaryLabel: 'TT diselesaikan',
+      secondaryValue: mttrHours,
+      secondaryLabel: 'MTTR (jam)',
+      progress: dailyProgress('Teknisi'),
+      members: memberMap.get('Teknisi') || 0,
+    },
+    {
+      code: 'General Affair',
+      label: 'General Affair',
+      primaryValue: dailyMap.get('General Affair')?.total ?? 0,
+      primaryLabel: 'Aktivitas harian',
+      secondaryValue: memberMap.get('General Affair') || 0,
+      secondaryLabel: 'Anggota',
+      progress: dailyProgress('General Affair'),
+      members: memberMap.get('General Affair') || 0,
+    },
+    {
+      code: 'Finance & HR',
+      label: 'Finance & HR',
+      primaryValue: activeEmployees,
+      primaryLabel: 'Karyawan aktif',
+      secondaryValue: presentToday,
+      secondaryLabel: 'Hadir hari ini',
+      progress: activeEmployees > 0 ? Math.round((presentToday / activeEmployees) * 100) : 0,
+      members: memberMap.get('Finance & HR') || 0,
+    },
+    {
+      code: 'Operasional',
+      label: 'Operasional',
+      primaryValue: availability.availabilityPercent,
+      primaryLabel: 'Availability jaringan',
+      valueSuffix: '%',
+      secondaryValue: portUtilization,
+      secondaryLabel: 'Utilisasi port',
+      secondarySuffix: '%',
+      progress: availability.availabilityPercent,
+      members: memberMap.get('Operasional') || 0,
+    },
+  ]
 
   // Risks
   const risks = []
@@ -343,6 +404,7 @@ export async function GET(req: Request) {
     `PSB terpasang ${psbInstalled} unit (${psbGrowth !== 0 ? `${psbGrowth > 0 ? '+' : ''}${psbGrowth.toFixed(1)}% YoY` : '-'})`,
     `Availability jaringan ${availability.availabilityPercent.toFixed(2)}%`,
     `TT close rate ${ttCloseRate.toFixed(1)}% (MTTR ${mttrHours.toFixed(1)} jam)`,
+    `Isolir close rate ${isolationCloseRate.toFixed(1)}%`,
   ].filter(Boolean)
   const execSummary = `Kinerja YTD ${year}: ${summaryParts.join('; ')}.`
 
