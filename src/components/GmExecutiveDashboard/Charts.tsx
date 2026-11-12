@@ -6,6 +6,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -16,6 +18,98 @@ import {
 import type { GmDashboardData } from './useGmDashboard'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+
+type SeriesPoint = GmDashboardData['dailySeries'][number]
+
+function DailyLineChart({
+  title,
+  data,
+  lines,
+}: {
+  title: string
+  data: SeriesPoint[]
+  lines: Array<{ key: keyof SeriesPoint; name: string; color: string }>
+}) {
+  const empty = data.length === 0
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-700 mb-3">{title}</h3>
+      {empty ? (
+        <div className="h-64 flex items-center justify-center text-sm text-slate-400">Belum ada data laporan harian</div>
+      ) : (
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="#94a3b8" interval={Math.max(0, Math.floor(data.length / 8) - 1)} />
+              <YAxis tick={{ fontSize: 11 }} stroke="#94a3b8" width={50} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {lines.map((l) => (
+                <Line
+                  key={String(l.key)}
+                  type="monotone"
+                  dataKey={l.key as string}
+                  name={l.name}
+                  stroke={l.color}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function TotalCustomersLineChart({ data }: { data: SeriesPoint[] }) {
+  return (
+    <DailyLineChart
+      title="Total Pelanggan RadBoox 24, 25 & 26"
+      data={data}
+      lines={[{ key: 'totalCustomers', name: 'Total Pelanggan', color: '#ef4444' }]}
+    />
+  )
+}
+
+export function ActiveCustomersLineChart({ data }: { data: SeriesPoint[] }) {
+  return (
+    <DailyLineChart
+      title="Total Pelanggan Aktif RadBoox 24, 25 & 26"
+      data={data}
+      lines={[{ key: 'activeCustomers', name: 'Pelanggan Aktif', color: '#ef4444' }]}
+    />
+  )
+}
+
+export function IsolationLineChart({ data }: { data: SeriesPoint[] }) {
+  return (
+    <DailyLineChart
+      title="Data Isolir (30 Hari Terakhir)"
+      data={data}
+      lines={[
+        { key: 'isolationContinued', name: 'Masih Dilanjutkan', color: '#3b82f6' },
+        { key: 'isolationNotContinued', name: 'Tidak Dilanjutkan', color: '#f59e0b' },
+      ]}
+    />
+  )
+}
+
+export function DismantleLineChart({ data }: { data: SeriesPoint[] }) {
+  return (
+    <DailyLineChart
+      title="Dismantle (30 Hari Terakhir)"
+      data={data}
+      lines={[
+        { key: 'dismantleOpen', name: 'Open', color: '#3b82f6' },
+        { key: 'dismantleClosed', name: 'Close', color: '#f59e0b' },
+      ]}
+    />
+  )
+}
 
 export function CustomerTrendChart({ data }: { data: GmDashboardData['customerTrend'] }) {
   return (

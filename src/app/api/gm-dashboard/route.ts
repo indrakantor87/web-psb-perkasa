@@ -73,6 +73,7 @@ export async function GET(req: Request) {
     isolirOverdueRows,
     dismantleBacklogRows,
     employeeDivisionRows,
+    recentSnapshotRows,
   ] = await Promise.all([
     prisma.ticket.count({ where: { installedDate: { gte: yearStart, lt: yearEnd } } }).catch(() => 0),
     prisma.ticket.count({ where: { installedDate: { gte: lyStart, lt: lyEnd } } }).catch(() => 0),
@@ -207,6 +208,13 @@ export async function GET(req: Request) {
       FROM "Employee"
       WHERE "isActive" = TRUE
       GROUP BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<Array<{ reportDate: Date; totalCustomers: number; activeCustomers: number; isolationContinued: number; isolationNotContinued: number; dismantleOpen: number; dismantleClosed: number }>>(PrismaSql.sql`
+      SELECT "reportDate", "totalCustomers", "activeCustomers", "isolationContinued", "isolationNotContinued", "dismantleOpen", "dismantleClosed"
+      FROM "gm_daily_report_snapshots"
+      WHERE "reportDate" >= NOW() - INTERVAL '45 days'
+      ORDER BY "reportDate" ASC
+      LIMIT 45
     `).catch(() => []),
   ])
 
@@ -397,6 +405,20 @@ export async function GET(req: Request) {
     risks.push({ category: 'Daily activity < 50%', count: lowActivityDivisions.length, detail: lowActivityDivisions.map((r) => r.division).join(', ') })
   }
 
+  // Daily snapshot series (last 30 days) for GM report charts.
+  const dailySeries = recentSnapshotRows
+    .slice(-30)
+    .map((r) => ({
+      date: new Date(r.reportDate).toISOString().slice(0, 10),
+      label: new Date(r.reportDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }),
+      totalCustomers: Number(r.totalCustomers || 0),
+      activeCustomers: Number(r.activeCustomers || 0),
+      isolationContinued: Number(r.isolationContinued || 0),
+      isolationNotContinued: Number(r.isolationNotContinued || 0),
+      dismantleOpen: Number(r.dismantleOpen || 0),
+      dismantleClosed: Number(r.dismantleClosed || 0),
+    }))
+
   // Executive summary
   const summaryParts = [
     `Total pelanggan ${totalCustomers.toLocaleString('id-ID')} (aktif ${activeCustomers.toLocaleString('id-ID')})`,
@@ -427,6 +449,7 @@ export async function GET(req: Request) {
       psbGrowth,
     },
     divisions,
+    dailySeries,
     customerTrend,
     psbTrend,
     troubleTrend,

@@ -3,11 +3,11 @@
 import { useGmDashboard } from './GmExecutiveDashboard/useGmDashboard'
 import { KpiCards } from './GmExecutiveDashboard/KpiCards'
 import {
-  CustomerTrendChart,
+  ActiveCustomersLineChart,
+  DismantleLineChart,
   DivisionPerformance,
-  PackageDonut,
-  PsbTrendChart,
-  TroubleTrendChart,
+  IsolationLineChart,
+  TotalCustomersLineChart,
 } from './GmExecutiveDashboard/Charts'
 import { NetworkSection } from './GmExecutiveDashboard/NetworkSection'
 import { ExecutiveSummary, HrSection, RisksTable } from './GmExecutiveDashboard/Panels'
@@ -73,13 +73,13 @@ export function GmExecutiveDashboard() {
           <DivisionPerformance divisions={data.divisions} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CustomerTrendChart data={data.customerTrend} />
-            <PsbTrendChart data={data.psbTrend} />
+            <TotalCustomersLineChart data={data.dailySeries} />
+            <ActiveCustomersLineChart data={data.dailySeries} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <TroubleTrendChart data={data.troubleTrend} />
-            <PackageDonut data={data.packageDistribution} />
+            <IsolationLineChart data={data.dailySeries} />
+            <DismantleLineChart data={data.dailySeries} />
           </div>
 
           <NetworkSection network={data.network} />

@@ -30,6 +30,16 @@ export type GmDashboardData = {
     progress: number
     members: number
   }>
+  dailySeries: Array<{
+    date: string
+    label: string
+    totalCustomers: number
+    activeCustomers: number
+    isolationContinued: number
+    isolationNotContinued: number
+    dismantleOpen: number
+    dismantleClosed: number
+  }>
   customerTrend: Array<{ month: string; totalCustomers: number; activeCustomers: number }>
   psbTrend: Array<{ month: string; installed: number }>
   troubleTrend: {
