@@ -14,6 +14,7 @@ import { Chip } from '@/components/ui/Chip'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { StatCard } from '@/components/ui/StatCard'
 import { GmDailyReportDashboard } from '@/components/GmDailyReportDashboard'
+import { GmExecutiveDashboard } from '@/components/GmExecutiveDashboard'
 import { chartAxisTick, chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type DivisionSummary = {
@@ -141,7 +142,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isAdmin = isAdminRole(userRole)
   const roleUpper = String(userRole ?? '').trim().toUpperCase()
   const isCsRole = roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
-  const showGmDailyReport = isAdmin || roleUpper === 'PRIORITY'
+  const isPriorityRole = roleUpper === 'PRIORITY'
+  const showGmDailyReport = isAdmin
   const roleDivision = getDivisionFromRole(userRole)
   const focusedDivision = isAdmin ? selectedDivision : roleDivision
 
@@ -1673,15 +1675,21 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     )
   })() : null
 
-  const mainContent = isGa && gaContent
-    ? gaContent
-    : isHr && hrContent
-      ? hrContent
-      : dashboardContent
+  const mainContent = isPriorityRole
+    ? <GmExecutiveDashboard />
+    : isGa && gaContent
+      ? gaContent
+      : isHr && hrContent
+        ? hrContent
+        : dashboardContent
 
   return (
     <>
-      <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
+      {isPriorityRole ? (
+        <div className="md:hidden">{mainContent}</div>
+      ) : (
+        <MobileHome userName={userName ?? 'Pengguna'} userRole={userRole} statusCounts={statusCounts} />
+      )}
       <div className="hidden md:block">{mainContent}</div>
     </>
   )
