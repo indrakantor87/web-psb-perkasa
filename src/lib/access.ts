@@ -317,7 +317,7 @@ function getAccessibleMenus(
   } else if (roleUpper === 'CS' || roleUpper === 'ADMIN_CS') {
     menus = menuSet(['dashboard', 'input', 'list', 'isolir', 'dismantle', 'odp', 'trouble-ticket'])
   } else if (roleUpper === 'NOC') {
-    menus = menuSet(['list', 'dismantle', 'odp', 'jalur', 'trouble-ticket'])
+    menus = menuSet(['dashboard', 'list', 'dismantle', 'odp', 'jalur', 'trouble-ticket'])
   } else if (roleUpper === 'CREATOR_DIGITAL') {
     menus = menuSet([
       'dashboard',

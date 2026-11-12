@@ -1,5 +1,7 @@
 import { MobileHome } from '@/components/MobileHome'
+import { NocDashboard } from '@/components/NocDashboard'
 import { getSession } from '@/lib/auth'
+import { normalizeRole } from '@/lib/access'
 import { isMobileTechnicianRole } from '@/lib/mobile-nav'
 import { redirect } from 'next/navigation'
 
@@ -8,6 +10,7 @@ export default async function TechnicianHomePage() {
 
   if (!session) redirect('/login')
   if (!isMobileTechnicianRole(session.user.role)) redirect('/')
+  if (normalizeRole(session.user.role) === 'NOC') return <NocDashboard />
 
   return (
     <MobileHome

@@ -132,7 +132,7 @@ function DrawCollector({
   return null
 }
 
-export default function JalurMap({ canEdit }: { canEdit: boolean }) {
+export default function JalurMap({ canEdit, compact = false }: { canEdit: boolean; compact?: boolean }) {
   const [jalur, setJalur] = useState<JalurRow[]>([])
   const [splices, setSplices] = useState<SpliceRow[]>([])
   const [pops, setPops] = useState<PopRow[]>([])
@@ -314,7 +314,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
   const drawColor = jenisJalur === 'BACKBONE' ? COLOR_BACKBONE : COLOR_DISTRIBUSI
 
   if (loading) {
-    return <div className="flex h-[600px] items-center justify-center text-gray-500">Memuat peta jalur...</div>
+    return <div className={`flex ${compact ? 'h-[320px] sm:h-[400px]' : 'h-[600px]'} items-center justify-center text-gray-500`}>Memuat peta jalur...</div>
   }
 
   return (
@@ -322,8 +322,8 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</div>}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-gray-800">
-        {canEdit && (
+      <div className={`flex flex-wrap items-center gap-2 rounded-xl bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-gray-800 ${compact ? 'p-2' : 'p-3'}`}>
+        {!compact && canEdit && (
           <>
             <button
               type="button"
@@ -388,15 +388,17 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
           </>
         )}
 
-        <button
-          type="button"
-          onClick={handleExport}
-          className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-        >
-          Export KML
-        </button>
+        {!compact && (
+          <button
+            type="button"
+            onClick={handleExport}
+            className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200"
+          >
+            Export KML
+          </button>
+        )}
 
-        <div className="ml-auto flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <div className={`${compact ? 'ml-0' : 'ml-auto'} flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400 sm:text-xs`}>
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
           <span className="flex items-center gap-1">
             <svg className="h-4 w-3" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1.5C7.7 1.5 2 7.2 2 14.3c0 9.1 13 21.8 13 21.8s13-12.7 13-21.8C28 7.2 22.3 1.5 15 1.5Z" fill={COLOR_ODC} stroke="white" strokeWidth="2.5" /><circle cx="15" cy="14" r="4.5" fill="white" /></svg>
@@ -424,7 +426,7 @@ export default function JalurMap({ canEdit }: { canEdit: boolean }) {
       )}
 
       {/* Map */}
-      <div className="h-[600px] w-full overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800">
+      <div className={`${compact ? 'h-[320px] sm:h-[400px]' : 'h-[600px]'} w-full overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800`}>
         <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-full w-full" maxZoom={19} preferCanvas>
           <LayersControl position="topright">
             <LayersControl.BaseLayer checked name="Satelit (Esri)">

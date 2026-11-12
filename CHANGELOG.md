@@ -17,6 +17,7 @@ Kategori perubahan:
 
 ### Added
 - Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.
+- Dashboard NOC desktop/mobile: ringkasan availability dan latency probe, status POP, Trouble Ticket aktif, peta Jalur ringkas, serta placeholder telemetry RouterOS tanpa angka rekaan.
 
 ### Changed
 - Peta Jalur: ODP memakai pin hijau, ODC pin merah, dan Splice bintang kuning bergaya Google Earth; ikon Splice pada KML ekspor juga menggunakan bintang.

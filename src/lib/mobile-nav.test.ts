@@ -11,13 +11,17 @@ import {
   mobileMenuEntries,
 } from '@/lib/mobile-nav'
 
-test('Mobile Beranda teknisi dan NOC memakai halaman khusus tanpa akses dashboard desktop', () => {
-  for (const role of ['TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE', 'NOC']) {
+test('Mobile Beranda teknisi dan NOC memakai halaman khusus', () => {
+  for (const role of ['TEKNISI', 'TROUBLESHOOTS', 'DISMANTLE']) {
     assert.equal(canAccessMobileHome(role), true)
     assert.equal(canAccessMenu(role, 'dashboard'), false)
     assert.equal(isMobileTechnicianRole(role), true)
     assert.equal(getMobileHomeHref(role), '/beranda')
   }
+  assert.equal(canAccessMobileHome('NOC'), true)
+  assert.equal(canAccessMenu('NOC', 'dashboard'), true)
+  assert.equal(isMobileTechnicianRole('NOC'), true)
+  assert.equal(getMobileHomeHref('NOC'), '/beranda')
 })
 
 test('Mobile Beranda tetap mengikuti akses dashboard role lain', () => {

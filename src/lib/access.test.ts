@@ -157,6 +157,11 @@ test('CS and ADMIN_CS gain the operational dashboard without mutation rights', (
   }
 })
 
+test('NOC gains its read-only operational dashboard', () => {
+  assert.equal(canAccessMenu('NOC', 'dashboard'), true)
+  assert.equal(canMutateMenu('NOC', 'dashboard'), false)
+})
+
 test('legacy technician roles preserve TEKNISI menu and mutation access', () => {
   for (const role of ['TROUBLESHOOTS', 'DISMANTLE']) {
     for (const menu of menus) {
