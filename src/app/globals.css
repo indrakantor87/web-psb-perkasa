@@ -195,3 +195,23 @@ body {
     animation: none;
   }
 }
+
+.leaflet-tooltip.jalur-map-label {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  font-weight: 600;
+  text-shadow:
+    -1px -1px 1px #111,
+    1px -1px 1px #111,
+    -1px 1px 1px #111,
+    1px 1px 1px #111,
+    0 0 3px #111;
+}
+
+.leaflet-tooltip.jalur-map-label::before {
+  display: none;
+}

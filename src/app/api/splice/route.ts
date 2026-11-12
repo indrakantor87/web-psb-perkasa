@@ -13,7 +13,18 @@ export async function GET() {
 
   try {
     await ensureSpliceKmlIconStyleColumn()
-    const splices = await prisma.splice.findMany({ orderBy: { id: 'asc' } })
+    const splices = await prisma.splice.findMany({
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        nama: true,
+        latitude: true,
+        longitude: true,
+        keterangan: true,
+        jalur_id: true,
+        kml_icon_style: true,
+      },
+    })
     return NextResponse.json(splices)
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

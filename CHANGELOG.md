@@ -22,6 +22,8 @@ Kategori perubahan:
 ### Changed
 - Navigasi mobile menampilkan Beranda, pintasan cepat sesuai role, dan Menu khusus Pengaturan; modul lainnya tersedia di Beranda.
 - Header mobile mengganti teks di samping logo dengan gambar `hdr-mble.png`.
+- Label marker dan jalur pada peta tidak lagi memakai kotak putih; teks menggunakan outline gelap agar tetap terbaca di atas peta.
+- Peta Jalur menampilkan basemap sejak awal, memakai OSM sebagai layer awal, dan mengambil payload data marker yang lebih ringkas; citra satelit tetap tersedia.
 - Dashboard NOC memastikan kolom IP POP tersedia pada skema lama sebelum membaca status probe.
 - Peta Jalur menggunakan aset marker yang dirujuk KMZ POP MARGOYOSO: pushpin hijau ODP, pushpin putih bertint KML untuk ODC, dan paddle bintang kuning untuk Splice, termasuk skala serta hotspot-nya.
 - Ekspor KML untuk Splice memakai ikon `ylw-stars.png` dan hotspot yang sama dengan style normal KMZ.

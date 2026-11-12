@@ -13,13 +13,7 @@ export type JalurRow = {
   jenis: string
   warna: string
   path: LatLngPoint[]
-  pop_id: number | null
-  odc_id: number | null
   keterangan: string | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-  splices?: SpliceRow[]
 }
 
 export type SpliceRow = {
@@ -30,8 +24,6 @@ export type SpliceRow = {
   keterangan: string | null
   jalur_id: number | null
   kml_icon_style?: KmlIconStyle | null
-  created_at: string
-  updated_at: string
 }
 
 type PopRow = { id: number; nama_pop: string; lokasi: string | null }
@@ -203,26 +195,30 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
+    setError(null)
+
+    const loadRows = async <T,>(url: string, setRows: (rows: T[]) => void) => {
+      const response = await fetch(url, { cache: 'no-store' })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(data?.error || 'Gagal memuat data peta')
+      }
+      if (!Array.isArray(data)) {
+        throw new Error('Format data peta tidak valid')
+      }
+      setRows(data)
+    }
+
     try {
-      const [jRes, sRes, popRes, odcRes, odpRes] = await Promise.all([
-        fetch('/api/jalur', { cache: 'no-store' }),
-        fetch('/api/splice', { cache: 'no-store' }),
-        fetch('/api/odp/pop', { cache: 'no-store' }),
-        fetch('/api/odp/odc', { cache: 'no-store' }),
-        fetch('/api/odp?all=1&map=1', { cache: 'no-store' }),
+      const results = await Promise.allSettled([
+        loadRows<JalurRow>('/api/jalur', setJalur),
+        loadRows<SpliceRow>('/api/splice', setSplices),
+        loadRows<PopRow>('/api/odp/pop', setPops),
+        loadRows<OdcRow>('/api/odp/odc', setOdcs),
+        loadRows<OdpRow>('/api/odp?all=1&map=1', setOdps),
       ])
-      const [jData, sData, popData, odcData, odpData] = await Promise.all([
-        jRes.json().catch(() => []),
-        sRes.json().catch(() => []),
-        popRes.json().catch(() => []),
-        odcRes.json().catch(() => []),
-        odpRes.json().catch(() => []),
-      ])
-      if (Array.isArray(jData)) setJalur(jData)
-      if (Array.isArray(sData)) setSplices(sData)
-      if (Array.isArray(popData)) setPops(popData)
-      if (Array.isArray(odcData)) setOdcs(odcData)
-      if (Array.isArray(odpData)) setOdps(odpData)
+      const failed = results.find((result) => result.status === 'rejected')
+      if (failed?.status === 'rejected') throw failed.reason
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data')
     } finally {
@@ -375,10 +371,6 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
   }, [splices])
   const drawColor = jenisJalur === 'BACKBONE' ? COLOR_BACKBONE : COLOR_DISTRIBUSI
 
-  if (loading) {
-    return <div className={`flex ${compact ? 'h-[320px] sm:h-[400px]' : 'h-[600px]'} items-center justify-center text-gray-500`}>Memuat peta jalur...</div>
-  }
-
   return (
     <div className="space-y-3">
       {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200">{error}</div>}
@@ -499,18 +491,10 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
       )}
 
       {/* Map */}
-      <div className={`${compact ? 'h-[320px] sm:h-[400px]' : 'h-[600px]'} w-full overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800`}>
+      <div className={`relative ${compact ? 'h-[320px] sm:h-[400px]' : 'h-[600px]'} w-full overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800`}>
         <MapContainer center={DEFAULT_CENTER} zoom={13} scrollWheelZoom className="h-full w-full" maxZoom={19} preferCanvas>
           <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="Satelit (Esri)">
-              <TileLayer
-                attribution="Tiles &copy; Esri"
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={19}
-                maxNativeZoom={18}
-              />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Street (OSM)">
+            <LayersControl.BaseLayer checked name="Street (OSM)">
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -518,7 +502,15 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                 maxNativeZoom={19}
               />
             </LayersControl.BaseLayer>
-            <LayersControl.Overlay checked name="Label Jalan">
+            <LayersControl.BaseLayer name="Satelit (Esri)">
+              <TileLayer
+                attribution="Tiles &copy; Esri"
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+                maxNativeZoom={18}
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.Overlay name="Label Jalan">
               <TileLayer
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
                 maxZoom={19}
@@ -527,7 +519,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
             </LayersControl.Overlay>
           </LayersControl>
 
-          <MapFitController bounds={bounds} />
+          <MapFitController bounds={loading ? null : bounds} />
           <SizeInvalidator />
           <DrawCollector
             mode={drawMode}
@@ -557,7 +549,9 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                   )}
                 </div>
               </Popup>
-              <Tooltip permanent direction="center">{j.nama_jalur || `Jalur ${j.id}`}</Tooltip>
+              <Tooltip permanent direction="center" className="jalur-map-label">
+                {j.nama_jalur || `Jalur ${j.id}`}
+              </Tooltip>
             </Polyline>
           ))}
 
@@ -587,7 +581,14 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                     <div className="text-xs text-gray-500">POP</div>
                   </div>
                 </Popup>
-                <Tooltip direction="top" offset={[0, -10]} opacity={0.9}>{p.nama_pop}</Tooltip>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={0.9}
+                  className="jalur-map-label"
+                >
+                  {p.nama_pop}
+                </Tooltip>
               </CircleMarker>
             )
           })}
@@ -608,7 +609,14 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                     <div className="text-xs text-gray-500">ODC</div>
                   </div>
                 </Popup>
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.9}>{o.nama_odc}</Tooltip>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -8]}
+                  opacity={0.9}
+                  className="jalur-map-label"
+                >
+                  {o.nama_odc}
+                </Tooltip>
               </Marker>
             )
           })}
@@ -640,6 +648,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                 direction="top"
                 offset={[0, -8]}
                 opacity={0.9}
+                className="jalur-map-label"
               >
                 {s.nama}
               </Tooltip>
@@ -665,6 +674,14 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
               </Marker>
             ))}
         </MapContainer>
+        {loading && (
+          <div
+            role="status"
+            className="pointer-events-none absolute left-3 top-3 z-[1000] rounded-lg bg-white/90 px-3 py-2 text-xs font-medium text-gray-700 shadow dark:bg-gray-900/90 dark:text-gray-200"
+          >
+            Memuat data peta...
+          </div>
+        )}
       </div>
     </div>
   )

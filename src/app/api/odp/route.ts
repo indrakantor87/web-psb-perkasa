@@ -89,13 +89,50 @@ export async function GET(req: Request) {
     }
     const whereSql = Prisma.join(whereParts, ' AND ')
 
-    const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
-      SELECT COUNT(*) AS total
-      FROM psb_odp o
-      WHERE ${whereSql}
-    `)
-    const totalValue = totalRows[0]?.total
-    const total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue ?? 0)
+    let total = 0
+    if (!map) {
+      const totalRows = await prisma.$queryRaw<Array<{ total: bigint }>>(Prisma.sql`
+        SELECT COUNT(*) AS total
+        FROM psb_odp o
+        WHERE ${whereSql}
+      `)
+      const totalValue = totalRows[0]?.total
+      total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue ?? 0)
+    }
+
+    if (map) {
+      const mapRows = await prisma.$queryRaw<
+        Array<{
+          id: number
+          nama_odp: string
+          wilayah: string
+          lokasi: string
+          latitude: number | null
+          longitude: number | null
+        }>
+      >(Prisma.sql`
+        SELECT o.id, o.nama_odp, o.wilayah, o.lokasi, o.latitude, o.longitude
+        FROM psb_odp o
+        WHERE ${whereSql}
+        ORDER BY o.id DESC
+        LIMIT 8000
+      `)
+      const result = mapRows
+        .map((row) => {
+          if (row.latitude !== null && row.longitude !== null) return row
+          const parsed = parseLatLng(row.lokasi)
+          return {
+            ...row,
+            latitude: parsed?.latitude ?? null,
+            longitude: parsed?.longitude ?? null,
+          }
+        })
+        .filter((row) => row.latitude !== null && row.longitude !== null)
+        .slice(0, 5000)
+
+      if (!bypassCache) cache.set(cacheKey, result, 60_000)
+      return NextResponse.json(result, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })
+    }
 
     const rows = await prisma.$queryRaw<
       Array<{
@@ -116,10 +153,10 @@ export async function GET(req: Request) {
       FROM psb_odp o
       WHERE ${whereSql}
       ORDER BY o.id DESC
-      LIMIT ${map ? 8000 : all ? 50000 : pageSize} OFFSET ${all || map ? 0 : offset}
+      LIMIT ${all ? 50000 : pageSize} OFFSET ${all ? 0 : offset}
     `)
 
-    if (all || map) {
+    if (all) {
       const mapped = rows
         .map((r) => {
           if (r.latitude !== null && r.longitude !== null) return r
@@ -127,9 +164,7 @@ export async function GET(req: Request) {
           if (!parsed) return { ...r, latitude: null, longitude: null }
           return { ...r, latitude: parsed.latitude, longitude: parsed.longitude }
         })
-      const result = map
-        ? mapped.filter((r) => r.latitude !== null && r.longitude !== null).slice(0, 5000)
-        : mapped.slice(0, 50000)
+      const result = mapped.slice(0, 50000)
 
       if (!bypassCache) cache.set(cacheKey, result, 60_000)
       return NextResponse.json(result, { headers: { 'Cache-Control': bypassCache ? 'no-store' : 'private, max-age=60, stale-while-revalidate=120', 'X-Cache': bypassCache ? 'BYPASS' : 'MISS' } })

@@ -30,7 +30,14 @@ export async function GET() {
     await ensureSpliceKmlIconStyleColumn()
     const jalur = await prisma.jalur.findMany({
       orderBy: { id: 'asc' },
-      include: { splices: { orderBy: { id: 'asc' } } },
+      select: {
+        id: true,
+        nama_jalur: true,
+        jenis: true,
+        warna: true,
+        path: true,
+        keterangan: true,
+      },
     })
     return NextResponse.json(jalur)
   } catch (e) {
