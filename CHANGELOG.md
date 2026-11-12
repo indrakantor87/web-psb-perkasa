@@ -17,6 +17,7 @@ Kategori perubahan:
 
 ### Fixed
 - Dashboard GM/Priority: tambahkan grafik batang gabungan pelanggan, pelanggan aktif, dan isolir ke tampilan utama; label angka dan seluruh panel mengikuti warna tema terang/gelap.
+- Role Priority: tegakkan mode baca-saja pada endpoint mutasi API dan nonaktifkan perubahan foto profil.
 
 ## [1.20.2] - 2026-11-12
 

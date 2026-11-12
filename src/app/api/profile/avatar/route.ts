@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isReadOnlyRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -16,6 +17,9 @@ function getExternalBaseUrl(request: Request) {
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (isReadOnlyRole(session.user.role)) {
+    return NextResponse.json({ error: 'Role Priority hanya dapat melihat data.' }, { status: 403 })
+  }
 
   try {
     const formData = await request.formData()

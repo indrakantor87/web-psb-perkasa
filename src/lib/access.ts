@@ -50,6 +50,35 @@ export function normalizeRole(role?: string | null) {
   return String(role ?? '').trim().toUpperCase()
 }
 
+export function isReadOnlyRole(role?: string | null) {
+  return normalizeRole(role) === 'PRIORITY'
+}
+
+const PRIORITY_ALLOWED_API_WRITES = new Set([
+  'POST /api/auth/logout',
+  'POST /api/auth/change-password',
+  'POST /api/maps/resolve',
+  'POST /api/push-tokens',
+  'DELETE /api/push-tokens',
+])
+
+export function isPriorityMutationBlocked(role: string | null | undefined, method: string, pathname: string) {
+  if (!isReadOnlyRole(role)) return false
+
+  const normalizedMethod = method.trim().toUpperCase()
+  const normalizedPath = pathname.trim().replace(/\/+$/, '') || '/'
+
+  if (
+    ['GET', 'HEAD'].includes(normalizedMethod) &&
+    normalizedPath === '/api/marketing-activities/setup-db'
+  ) {
+    return true
+  }
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalizedMethod)) return false
+
+  return !PRIORITY_ALLOWED_API_WRITES.has(`${normalizedMethod} ${normalizedPath}`)
+}
+
 export function isAdminRole(role?: string | null) {
   const roleUpper = normalizeRole(role)
   return roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
@@ -360,7 +389,7 @@ export function hasAnySettingsAccess(role: string | null | undefined) {
 export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey) {
   const roleUpper = normalizeRole(role)
 
-  if (roleUpper === 'PRIORITY') return false
+  if (isReadOnlyRole(roleUpper)) return false
   if (isAdminRole(roleUpper)) return true
 
   switch (menu) {

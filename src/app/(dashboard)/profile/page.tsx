@@ -4,6 +4,7 @@ import ChangePasswordForm from '@/components/ChangePasswordForm'
 import { prisma } from '@/lib/prisma'
 import { ProfileAvatarForm } from '@/components/ProfileAvatarForm'
 import { normalizeUserDivision } from '@/lib/user-division'
+import { isReadOnlyRole } from '@/lib/access'
 
 export default async function ProfilePage() {
   const session = await getSession()
@@ -38,7 +39,11 @@ export default async function ProfilePage() {
           </p>
         </div>
         <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 sm:py-5">
-          <ProfileAvatarForm initialAvatar={avatar} userInitial={user?.name?.charAt(0) ?? 'U'} />
+          <ProfileAvatarForm
+            initialAvatar={avatar}
+            userInitial={user?.name?.charAt(0) ?? 'U'}
+            readOnly={isReadOnlyRole(user.role)}
+          />
         </div>
       </div>
 

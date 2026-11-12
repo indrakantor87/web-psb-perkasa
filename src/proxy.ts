@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { decrypt } from '@/lib/auth'
-import { canAccessMenu, getDefaultPathForRole } from '@/lib/access'
+import { canAccessMenu, getDefaultPathForRole, isPriorityMutationBlocked } from '@/lib/access'
 
 const rateLimit = new Map<string, { count: number; lastReset: number }>()
 
@@ -47,6 +47,14 @@ export async function proxy(request: NextRequest) {
     } catch {
       // invalid session
     }
+  }
+
+  if (
+    currentUser &&
+    pathname.startsWith('/api/') &&
+    isPriorityMutationBlocked(currentUser.role, request.method, pathname)
+  ) {
+    return NextResponse.json({ error: 'Role Priority hanya dapat melihat data.' }, { status: 403 })
   }
 
   const publicPaths = ['/login', '/api/auth/login']

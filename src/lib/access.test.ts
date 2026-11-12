@@ -15,6 +15,8 @@ import {
   canRunAttendanceOperations,
   isAccountOwnerScopedRole,
   isDeveloperRole,
+  isPriorityMutationBlocked,
+  isReadOnlyRole,
   isMarketingNameScopedRole,
   resolveAccountOwnerFilter,
 } from '@/lib/access'
@@ -74,6 +76,31 @@ test('PRIORITY keeps global read access except input, marketing activity, and Di
     assert.equal(canAccessMenu('PRIORITY', menu), shouldHaveAccess, `unexpected PRIORITY access to ${menu}`)
     assert.equal(canMutateMenu('PRIORITY', menu), false, `PRIORITY must not mutate ${menu}`)
   }
+})
+
+test('PRIORITY is blocked from API data mutations while account and system actions remain available', () => {
+  assert.equal(isReadOnlyRole('PRIORITY'), true)
+  assert.equal(isReadOnlyRole(' priority '), true)
+  assert.equal(isReadOnlyRole('ADMIN'), false)
+
+  for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+    assert.equal(isPriorityMutationBlocked('PRIORITY', method, '/api/tickets'), true, `${method} must be blocked`)
+  }
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'GET', '/api/tickets'), false)
+  for (const method of ['GET', 'HEAD']) {
+    assert.equal(isPriorityMutationBlocked('PRIORITY', method, '/api/marketing-activities/setup-db'), true)
+  }
+
+  for (const [method, path] of [
+    ['POST', '/api/auth/logout'],
+    ['POST', '/api/auth/change-password'],
+    ['POST', '/api/maps/resolve'],
+    ['POST', '/api/push-tokens'],
+    ['DELETE', '/api/push-tokens'],
+  ]) {
+    assert.equal(isPriorityMutationBlocked('PRIORITY', method, path), false, `${method} ${path} is a non-business action`)
+  }
+  assert.equal(isPriorityMutationBlocked('ADMIN', 'POST', '/api/tickets'), false)
 })
 
 test('HR can manage HR while marketing activity access remains read-only', () => {
