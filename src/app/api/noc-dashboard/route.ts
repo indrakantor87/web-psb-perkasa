@@ -3,6 +3,7 @@ import { Prisma as PrismaSql } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { ensureNetworkPingTableOnce } from '@/lib/network-ping-db'
+import { ensureOdpTable } from '@/lib/odp-init'
 import { getNocPopStatus, getProbeAvailability } from '@/lib/noc-dashboard'
 
 export const dynamic = 'force-dynamic'
@@ -46,6 +47,7 @@ export async function GET() {
   }
 
   try {
+    await ensureOdpTable()
     await ensureNetworkPingTableOnce()
     const now = new Date()
     const hourMs = 60 * 60 * 1000
