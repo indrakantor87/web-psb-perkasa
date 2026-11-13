@@ -179,103 +179,181 @@ function DrawCollector({
   return null
 }
 
-type OdpMapItem =
-  | { kind: 'marker'; row: OdpRow }
-  | { kind: 'cluster'; key: string; rows: OdpRow[]; center: [number, number] }
+// KMZ pushpin images and marker labels are too heavy on small screens, so every marker is
+// drawn as a canvas circle marker there, mirroring the lightweight ODP map.
+const SMALL_MAP_MAX_WIDTH = 768
+const COLOR_ODC_SMALL = '#ff007f'
+const COLOR_ODP_SMALL = '#10b981'
+const COLOR_SPLICE_SMALL = '#eab308'
 
-function OdpMarkerLayer({ rows }: { rows: OdpRow[] }) {
+function useIsSmallMap() {
   const map = useMap()
-  const [zoom, setZoom] = useState(() => map.getZoom())
-  const [isMobile, setIsMobile] = useState(() => map.getSize().x < 768)
-  const [bounds, setBounds] = useState(() => map.getBounds().pad(0.5))
+  const [isSmall, setIsSmall] = useState(() => map.getSize().x < SMALL_MAP_MAX_WIDTH)
 
   useEffect(() => {
-    const updateMapView = () => {
-      setIsMobile(map.getSize().x < 768)
-      setZoom(map.getZoom())
-      setBounds(map.getBounds().pad(0.5))
-    }
-    map.on('moveend', updateMapView)
-    map.on('resize', updateMapView)
-    updateMapView()
+    const updateSize = () => setIsSmall(map.getSize().x < SMALL_MAP_MAX_WIDTH)
+    map.on('resize', updateSize)
+    updateSize()
     return () => {
-      map.off('moveend', updateMapView)
-      map.off('resize', updateMapView)
+      map.off('resize', updateSize)
     }
   }, [map])
 
-  const items = useMemo(() => {
-    const validRows = rows.filter(
-      (row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude),
-    )
-    if (!isMobile) {
-      return validRows.map((row): OdpMapItem => ({ kind: 'marker', row }))
-    }
+  return isSmall
+}
 
-    const visibleRows = validRows.filter((row) =>
-      bounds.contains([row.latitude!, row.longitude!]),
-    )
-    if (zoom >= 19) {
-      return visibleRows.map((row): OdpMapItem => ({ kind: 'marker', row }))
-    }
+function useIsSmallViewport() {
+  const [isSmall, setIsSmall] = useState(false)
 
-    const buckets = new Map<string, OdpRow[]>()
-    visibleRows.forEach((row) => {
-      const point = map.project([row.latitude!, row.longitude!], zoom)
-      const key = `${Math.floor(point.x / 64)}:${Math.floor(point.y / 64)}`
-      const bucket = buckets.get(key)
-      if (bucket) bucket.push(row)
-      else buckets.set(key, [row])
-    })
+  useEffect(() => {
+    const query = window.matchMedia(`(max-width: ${SMALL_MAP_MAX_WIDTH - 1}px)`)
+    const updateMatch = () => setIsSmall(query.matches)
+    updateMatch()
+    query.addEventListener('change', updateMatch)
+    return () => query.removeEventListener('change', updateMatch)
+  }, [])
 
-    return Array.from(buckets, ([key, bucket]): OdpMapItem => {
-      if (bucket.length === 1) return { kind: 'marker', row: bucket[0] }
-      const center: [number, number] = [
-        bucket.reduce((sum, row) => sum + row.latitude!, 0) / bucket.length,
-        bucket.reduce((sum, row) => sum + row.longitude!, 0) / bucket.length,
-      ]
-      return { kind: 'cluster', key, rows: bucket, center }
-    })
-  }, [bounds, isMobile, map, rows, zoom])
+  return isSmall
+}
+
+function JalurMarkerLayer({
+  odcs,
+  splices,
+  odps,
+  importedSpliceIcons,
+  canEdit,
+  onDeleteSplice,
+}: {
+  odcs: OdcRow[]
+  splices: SpliceRow[]
+  odps: OdpRow[]
+  importedSpliceIcons: Map<number, L.Icon | L.DivIcon>
+  canEdit: boolean
+  onDeleteSplice: (id: number) => void
+}) {
+  const isSmall = useIsSmallMap()
+
+  const odcPopup = (row: OdcRow) => (
+    <Popup>
+      <div className="min-w-[150px] space-y-1">
+        <div className="text-sm font-bold">{row.nama_odc}</div>
+        <div className="text-xs text-gray-500">ODC</div>
+      </div>
+    </Popup>
+  )
+
+  const splicePopup = (row: SpliceRow) => (
+    <Popup>
+      <div className="min-w-[150px] space-y-1">
+        <div className="text-sm font-bold">{row.nama}</div>
+        <div className="text-xs text-gray-500">Splice</div>
+        {row.keterangan && <div className="text-xs">{row.keterangan}</div>}
+        {canEdit && (
+          <button
+            onClick={() => onDeleteSplice(row.id)}
+            className="mt-1 rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
+          >
+            Hapus Splice
+          </button>
+        )}
+      </div>
+    </Popup>
+  )
+
+  const odpPopup = (row: OdpRow) => (
+    <Popup>
+      <div className="min-w-[150px] space-y-1">
+        <div className="text-sm font-bold">{row.nama_odp}</div>
+        <div className="text-xs text-gray-500">ODP • {row.wilayah}</div>
+        <div className="text-xs break-words">{row.lokasi}</div>
+      </div>
+    </Popup>
+  )
 
   return (
     <>
-      {items.map((item) => {
-        if (item.kind === 'cluster') {
+      {/* ODC markers */}
+      {odcs.map((o) => {
+        const loc = parseLoc(o.lokasi)
+        if (!loc) return null
+        if (isSmall) {
           return (
             <CircleMarker
-              key={`odp-cluster-${item.key}`}
-              center={item.center}
-              radius={Math.min(20, 12 + Math.log2(item.rows.length))}
-              pathOptions={{ color: '#ffffff', fillColor: '#15803d', fillOpacity: 0.95, weight: 2 }}
-              eventHandlers={{
-                click: () => map.flyTo(item.center, Math.min(19, map.getZoom() + 2), { duration: 0.35 }),
-              }}
+              key={`odc-${o.id}`}
+              center={[loc.latitude, loc.longitude]}
+              radius={10}
+              pathOptions={{ color: COLOR_ODC_SMALL, fillColor: COLOR_ODC_SMALL, fillOpacity: 0.8, weight: 2 }}
             >
-              <Tooltip permanent direction="center" className="jalur-map-label">
-                {item.rows.length}
-              </Tooltip>
+              {odcPopup(o)}
             </CircleMarker>
           )
         }
-
-        const row = item.row
         return (
-          <Marker
-            key={`odp-${row.id}`}
-            position={[row.latitude!, row.longitude!]}
-            icon={odpPinIcon}
-          >
-            <Popup>
-              <div className="min-w-[150px] space-y-1">
-                <div className="text-sm font-bold">{row.nama_odp}</div>
-                <div className="text-xs text-gray-500">ODP • {row.wilayah}</div>
-                <div className="text-xs break-words">{row.lokasi}</div>
-              </div>
-            </Popup>
+          <Marker key={`odc-${o.id}`} position={[loc.latitude, loc.longitude]} icon={odcPinIcon}>
+            {odcPopup(o)}
+            <Tooltip direction="top" offset={[0, -8]} opacity={0.9} className="jalur-map-label">
+              {o.nama_odc}
+            </Tooltip>
           </Marker>
         )
       })}
+
+      {/* Splice markers */}
+      {splices.map((s) => {
+        if (isSmall) {
+          return (
+            <CircleMarker
+              key={`splice-${s.id}`}
+              center={[s.latitude, s.longitude]}
+              radius={7}
+              pathOptions={{ color: COLOR_SPLICE_SMALL, fillColor: COLOR_SPLICE_SMALL, fillOpacity: 0.9, weight: 2 }}
+            >
+              {splicePopup(s)}
+            </CircleMarker>
+          )
+        }
+        return (
+          <Marker
+            key={`splice-${s.id}`}
+            position={[s.latitude, s.longitude]}
+            icon={importedSpliceIcons.get(s.id) ?? spliceStarIcon}
+          >
+            {splicePopup(s)}
+            <Tooltip
+              permanent={Boolean(s.kml_icon_style)}
+              direction="top"
+              offset={[0, -8]}
+              opacity={0.9}
+              className="jalur-map-label"
+            >
+              {s.nama}
+            </Tooltip>
+          </Marker>
+        )
+      })}
+
+      {/* ODP markers: always all rows, never grouped. */}
+      {odps
+        .filter((o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude))
+        .map((o) => {
+          if (isSmall) {
+            return (
+              <CircleMarker
+                key={`odp-${o.id}`}
+                center={[o.latitude!, o.longitude!]}
+                radius={8}
+                pathOptions={{ color: COLOR_ODP_SMALL, fillColor: COLOR_ODP_SMALL, fillOpacity: 0.8, weight: 2 }}
+              >
+                {odpPopup(o)}
+              </CircleMarker>
+            )
+          }
+          return (
+            <Marker key={`odp-${o.id}`} position={[o.latitude!, o.longitude!]} icon={odpPinIcon}>
+              {odpPopup(o)}
+            </Marker>
+          )
+        })}
     </>
   )
 }
@@ -293,6 +371,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isSmallViewport = useIsSmallViewport()
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -556,26 +635,38 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
         <div className={`${compact ? 'ml-0' : 'ml-auto'} flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400 sm:text-xs`}>
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-              <defs>{/* Keep the legend tint identical to the KMZ ODC marker. */}
-                <filter id="kmz-odc-legend-tint" colorInterpolationFilters="sRGB">
-                  <feColorMatrix type="matrix" values={KMZ_ODC_TINT_MATRIX} />
-                </filter>
-              </defs>
-              <image href={KMZ_ODC_ICON} x="0" y="0" width="64" height="64" filter="url(#kmz-odc-legend-tint)" />
-            </svg>
+            {isSmallViewport ? (
+              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODC_SMALL }}></span>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+                <defs>{/* Keep the legend tint identical to the KMZ ODC marker. */}
+                  <filter id="kmz-odc-legend-tint" colorInterpolationFilters="sRGB">
+                    <feColorMatrix type="matrix" values={KMZ_ODC_TINT_MATRIX} />
+                  </filter>
+                </defs>
+                <image href={KMZ_ODC_ICON} x="0" y="0" width="64" height="64" filter="url(#kmz-odc-legend-tint)" />
+              </svg>
+            )}
             ODC
           </span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-              <image href={KMZ_ODP_ICON} x="0" y="0" width="64" height="64" />
-            </svg>
+            {isSmallViewport ? (
+              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODP_SMALL }}></span>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+                <image href={KMZ_ODP_ICON} x="0" y="0" width="64" height="64" />
+              </svg>
+            )}
             ODP
           </span>
           <span className="flex items-center gap-1">
-            <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-              <image href={KMZ_SPLICE_ICON} x="0" y="0" width="64" height="64" />
-            </svg>
+            {isSmallViewport ? (
+              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_SPLICE_SMALL }}></span>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
+                <image href={KMZ_SPLICE_ICON} x="0" y="0" width="64" height="64" />
+              </svg>
+            )}
             Splice
           </span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_BACKBONE }}></span> Backbone</span>
@@ -694,70 +785,14 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
             )
           })}
 
-          {/* ODC markers */}
-          {odcs.map((o) => {
-            const loc = parseLoc(o.lokasi)
-            if (!loc) return null
-            return (
-              <Marker
-                key={`odc-${o.id}`}
-                position={[loc.latitude, loc.longitude]}
-                icon={odcPinIcon}
-              >
-                <Popup>
-                  <div className="min-w-[150px] space-y-1">
-                    <div className="text-sm font-bold">{o.nama_odc}</div>
-                    <div className="text-xs text-gray-500">ODC</div>
-                  </div>
-                </Popup>
-                <Tooltip
-                  direction="top"
-                  offset={[0, -8]}
-                  opacity={0.9}
-                  className="jalur-map-label"
-                >
-                  {o.nama_odc}
-                </Tooltip>
-              </Marker>
-            )
-          })}
-
-          {/* Splice markers */}
-          {splices.map((s) => (
-            <Marker
-              key={`splice-${s.id}`}
-              position={[s.latitude, s.longitude]}
-              icon={importedSpliceIcons.get(s.id) ?? spliceStarIcon}
-            >
-              <Popup>
-                <div className="min-w-[150px] space-y-1">
-                  <div className="text-sm font-bold">{s.nama}</div>
-                  <div className="text-xs text-gray-500">Splice</div>
-                  {s.keterangan && <div className="text-xs">{s.keterangan}</div>}
-                  {canEdit && (
-                    <button
-                      onClick={() => deleteSplice(s.id)}
-                      className="mt-1 rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
-                    >
-                      Hapus Splice
-                    </button>
-                  )}
-                </div>
-              </Popup>
-              <Tooltip
-                permanent={Boolean(s.kml_icon_style)}
-                direction="top"
-                offset={[0, -8]}
-                opacity={0.9}
-                className="jalur-map-label"
-              >
-                {s.nama}
-              </Tooltip>
-            </Marker>
-          ))}
-
-          {/* Cluster nearby ODP markers on mobile; retain KMZ pins when zoomed in. */}
-          <OdpMarkerLayer rows={odps} />
+          <JalurMarkerLayer
+            odcs={odcs}
+            splices={splices}
+            odps={odps}
+            importedSpliceIcons={importedSpliceIcons}
+            canEdit={canEdit}
+            onDeleteSplice={deleteSplice}
+          />
         </MapContainer>
         {loading && (
           <div
