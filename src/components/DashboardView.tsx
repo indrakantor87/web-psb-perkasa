@@ -15,6 +15,7 @@ import { SectionHeading } from '@/components/ui/SectionHeading'
 import { StatCard } from '@/components/ui/StatCard'
 import { GmDailyReportDashboard } from '@/components/GmDailyReportDashboard'
 import { GmExecutiveDashboard } from '@/components/GmExecutiveDashboard'
+import { FinanceDashboard } from '@/components/FinanceDashboard'
 import { chartAxisTick, chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type DivisionSummary = {
@@ -1128,7 +1129,8 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     </div>
   )
 
-  const isHr = roleUpper === 'HR' || roleUpper === 'FINANCE'
+  const isHr = roleUpper === 'HR'
+  const isFinance = roleUpper === 'FINANCE'
   const isGa = roleUpper === 'GENERAL_AFFAIR'
   const hrContent = hrStats ? (
     <div className="space-y-6 pb-10">
@@ -1677,13 +1679,17 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     )
   })() : null
 
+  const financeContent = isFinance ? <FinanceDashboard canManage={isFinance} /> : null
+
   const mainContent = isPriorityRole
     ? <GmExecutiveDashboard />
-    : isGa && gaContent
-      ? gaContent
-      : isHr && hrContent
-        ? hrContent
-        : dashboardContent
+    : isFinance && financeContent
+      ? financeContent
+      : isGa && gaContent
+        ? gaContent
+        : isHr && hrContent
+          ? hrContent
+          : dashboardContent
 
   return (
     <>

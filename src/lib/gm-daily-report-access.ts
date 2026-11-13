@@ -1,9 +1,11 @@
 import { isAdminRole, normalizeRole } from '@/lib/access'
 
 export function canReadGmDailyReport(role?: string | null) {
-  return isAdminRole(role) || normalizeRole(role) === 'PRIORITY'
+  const roleUpper = normalizeRole(role)
+  return isAdminRole(role) || roleUpper === 'PRIORITY' || roleUpper === 'FINANCE'
 }
 
 export function canManageGmDailyReport(role?: string | null) {
-  return isAdminRole(role)
+  const roleUpper = normalizeRole(role)
+  return isAdminRole(role) || roleUpper === 'FINANCE'
 }
