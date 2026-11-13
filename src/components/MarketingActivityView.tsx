@@ -429,13 +429,16 @@ export function MarketingActivityView({
 
     return [
       '*LAPORAN AKTIVITAS HARIAN*',
-      `NAMA MARKETING : ${activity.marketingName}`,
       dateLine,
-      `*AKTIVITAS* : ${area}`,
+      `${activity.marketingName} - Marketing`,
+      '',
+      `*Area* : ${area}`,
+      '',
       line('FLYER', String(activity.flyer)),
       line('SOSIALISASI', String(activity.sosialisasi)),
-      line('TOTAL', String(activity.total)),
-      line('DATA BASE', String(activity.dataBase)),
+      `*${'TOTAL'.padEnd(13, ' ')}: ${activity.total}*`,
+      '-'.repeat(46),
+      line('DATABASE', String(activity.dataBase)),
       line('PSB', activity.psb > 0 ? String(activity.psb) : '-'),
     ].join('\n')
   }, [])
