@@ -91,7 +91,9 @@ export function GmExecutiveDashboard() {
             snapshotAvailable={data.snapshotAvailable}
           />
 
-          <DivisionPerformance divisions={data.divisions} periodLabel={data.periodLabel} />
+          <div className="hidden md:block">
+            <DivisionPerformance divisions={data.divisions} periodLabel={data.periodLabel} />
+          </div>
 
           <CustomersIsolationBarChart data={data.dailySeries} />
 
