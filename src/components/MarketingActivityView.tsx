@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check } from 'lucide-react'
 
 interface MarketingActivityRecord {
   id: number
@@ -109,6 +109,7 @@ export function MarketingActivityView({
   const [marketingOptions, setMarketingOptions] = useState<string[]>([])
   const [marketingOptionsLoading, setMarketingOptionsLoading] = useState(false)
   const [marketingOptionsError, setMarketingOptionsError] = useState('')
+  const [copiedId, setCopiedId] = useState<number | null>(null)
 
   const now = useMemo(() => new Date(), [])
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -421,6 +422,47 @@ export function MarketingActivityView({
 
   const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1`
 
+  const buildWhatsAppText = useCallback((activity: MarketingActivityRecord) => {
+    const dateLine = format(new Date(activity.date), 'EEEE , d MMMM yyyy', { locale: idLocale })
+    const area = activity.area?.name || activity.activity || '-'
+    const line = (label: string, value: string) => `- ${label.padEnd(13, ' ')}: ${value}`
+
+    return [
+      '*LAPORAN AKTIVITAS HARIAN*',
+      `NAMA MARKETING : ${activity.marketingName}`,
+      dateLine,
+      `*AKTIVITAS* : ${area}`,
+      line('FLYER', String(activity.flyer)),
+      line('SOSIALISASI', String(activity.sosialisasi)),
+      line('TOTAL', String(activity.total)),
+      line('DATA BASE', String(activity.dataBase)),
+      line('PSB', activity.psb > 0 ? String(activity.psb) : '-'),
+    ].join('\n')
+  }, [])
+
+  const handleCopy = useCallback(async (activity: MarketingActivityRecord) => {
+    const text = buildWhatsAppText(activity)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+      setCopiedId(activity.id)
+      setTimeout(() => setCopiedId((prev) => (prev === activity.id ? null : prev)), 1500)
+    } catch (error) {
+      console.error('Copy error:', error)
+      alert('Gagal menyalin laporan')
+    }
+  }, [buildWhatsAppText])
+
   return (
     <div className="space-y-4">
       {/* Filter & Aksi */}
@@ -612,9 +654,7 @@ export function MarketingActivityView({
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
-                {canMutate && (
-                  <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>
-                )}
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
@@ -649,26 +689,39 @@ export function MarketingActivityView({
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">
                       {activity.psb > 0 ? activity.psb : '-'}
                     </td>
-                    {canMutate && (
-                      <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <div className="flex justify-center gap-1">
-                          <button
-                            onClick={() => openEditModal(activity)}
-                            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
-                            title="Edit"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(activity.id)}
-                            className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 dark:hover:bg-red-950"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <div className="flex justify-center gap-1">
+                        <button
+                          onClick={() => handleCopy(activity)}
+                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
+                          title="Salin laporan untuk WhatsApp"
+                        >
+                          {copiedId === activity.id ? (
+                            <Check className="h-3.5 w-3.5 text-green-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        {canMutate && (
+                          <>
+                            <button
+                              onClick={() => openEditModal(activity)}
+                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(activity.id)}
+                              className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 dark:hover:bg-red-950"
+                              title="Hapus"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -697,24 +750,37 @@ export function MarketingActivityView({
                       <p className="mt-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">{activity.marketingName}</p>
                     )}
                   </div>
-                  {canMutate && (
-                    <div className="flex flex-shrink-0 gap-1">
-                      <button
-                        onClick={() => openEditModal(activity)}
-                        className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        title="Edit"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(activity.id)}
-                        className="rounded-md p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                        title="Hapus"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex flex-shrink-0 gap-1">
+                    <button
+                      onClick={() => handleCopy(activity)}
+                      className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                      title="Salin laporan untuk WhatsApp"
+                    >
+                      {copiedId === activity.id ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
+                    {canMutate && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(activity)}
+                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(activity.id)}
+                          className="rounded-md p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                          title="Hapus"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
