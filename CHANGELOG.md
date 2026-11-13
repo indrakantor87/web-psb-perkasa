@@ -15,6 +15,11 @@ Kategori perubahan:
 
 ## [Unreleased]
 
+### Changed
+- Peta Jalur: semua marker (ODC, ODP, Splice) diganti dari ikon gambar KMZ menjadi `CircleMarker` canvas agar ringan seperti peta ODP.
+- Peta Jalur: layer padat (ODP, Splice) hanya dirender saat zoom ≥ 14 untuk menghindari ratusan marker menumpuk di zoom rendah.
+- Peta Jalur: tooltip jalur tidak lagi permanen (hanya muncul saat hover) untuk mengurangi beban DOM.
+
 ### Added
 - Dashboard GM/Priority: tabel Kinerja Marketing tampil di bawah grafik Data Isolir Harian dan Dismantle Harian, dengan ringkasan status, progres target close, serta jumlah isolir.
 - Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.

@@ -5,6 +5,18 @@ import { CircleMarker, LayersControl, MapContainer, Marker, Polyline, Popup, Til
 import * as L from 'leaflet'
 import type { KmlIconStyle } from '@/lib/kml'
 
+// Marker digambar sebagai CircleMarker di canvas (preferCanvas) agar ringan seperti peta ODP.
+const COLOR_ODC = '#ff007f'
+const COLOR_ODP = '#10b981'
+const COLOR_SPLICE = '#eab308'
+const COLOR_POP = '#ef4444'
+const COLOR_BACKBONE = '#00ffff'
+const COLOR_DISTRIBUSI = '#800080'
+
+// Zoom threshold: layer padat (ODP, splice) hanya dirender saat cukup dekat agar
+// ratusan marker tidak menumpuk dan membebani render di zoom rendah.
+const DENSE_LAYER_MIN_ZOOM = 14
+
 export type LatLngPoint = { latitude: number; longitude: number }
 
 export type JalurRow = {
@@ -47,100 +59,6 @@ type MapDataSnapshot = {
 }
 
 let mapDataCache: { at: number; data: MapDataSnapshot } | null = null
-
-// Warna default per jenis
-const COLOR_BACKBONE = '#00ffff' // cyan
-const COLOR_DISTRIBUSI = '#800080' // ungu
-const COLOR_POP = '#ef4444' // merah
-// Google Earth displays these 64px source images at a 32px logical size.
-const KMZ_ICON_SOURCE_SIZE = 64
-const KMZ_ICON_DISPLAY_SIZE = 32
-const KMZ_ICON_PIXEL_RATIO = KMZ_ICON_DISPLAY_SIZE / KMZ_ICON_SOURCE_SIZE
-const KMZ_PUSH_PIN_SCALE = 1.1
-const KMZ_PUSH_PIN_HREF = 'https://maps.google.com/mapfiles/kml/pushpin'
-const KMZ_PADDLE_HREF = 'https://maps.google.com/mapfiles/kml/paddle'
-const KMZ_ODP_ICON = `${KMZ_PUSH_PIN_HREF}/grn-pushpin.png`
-const KMZ_ODC_ICON = `${KMZ_PUSH_PIN_HREF}/wht-pushpin.png`
-const KMZ_SPLICE_ICON = `${KMZ_PADDLE_HREF}/ylw-stars.png`
-// KML ff7f00ff (AABBGGRR) tints the white ODC pushpin to #FF007F.
-const KMZ_ODC_TINT = '#FF007F'
-
-function makeKmlColorMatrix(color: string): string | null {
-  const match = color.match(/^#([0-9a-f]{6})$/i)
-  if (!match) return null
-  const channels = [0, 2, 4].map((offset) => (Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255).toFixed(3))
-  return `${channels[0]} 0 0 0 0 0 ${channels[1]} 0 0 0 0 0 ${channels[2]} 0 0 0 0 0 1 0`
-}
-
-const KMZ_ODC_TINT_MATRIX = makeKmlColorMatrix(KMZ_ODC_TINT) ?? ''
-
-function makeKmzIcon(
-  href: string,
-  scale: number,
-  hotspotX: number,
-  hotspotY: number,
-  tintColor?: string,
-): L.Icon | L.DivIcon {
-  const displaySize = KMZ_ICON_DISPLAY_SIZE * scale
-  const anchorX = hotspotX * KMZ_ICON_PIXEL_RATIO * scale
-  const anchorY = displaySize - hotspotY * KMZ_ICON_PIXEL_RATIO * scale // KML y starts at the bottom; Leaflet anchor y starts at the top.
-  const tintMatrix = tintColor ? makeKmlColorMatrix(tintColor) : null
-  const tintId = tintMatrix ? `kmz-tint-${tintColor!.replace('#', '').toLowerCase()}` : null
-
-  if (tintId && tintMatrix) {
-    const html = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${displaySize}" height="${displaySize}" viewBox="0 0 ${KMZ_ICON_SOURCE_SIZE} ${KMZ_ICON_SOURCE_SIZE}" aria-hidden="true">
-        <defs><filter id="${tintId}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${tintMatrix}" /></filter></defs>
-        <image href="${href}" x="0" y="0" width="${KMZ_ICON_SOURCE_SIZE}" height="${KMZ_ICON_SOURCE_SIZE}" filter="url(#${tintId})" />
-      </svg>`
-    return L.divIcon({
-      className: '',
-      html,
-      iconSize: [displaySize, displaySize],
-      iconAnchor: [anchorX, anchorY],
-      popupAnchor: [0, -anchorY],
-    })
-  }
-
-  return L.icon({
-    iconUrl: href,
-    iconSize: [displaySize, displaySize],
-    iconAnchor: [anchorX, anchorY],
-    popupAnchor: [0, -anchorY],
-  })
-}
-
-function normalizeKmlIconHref(href?: string): string | null {
-  if (!href) return null
-  try {
-    const url = new URL(href)
-    if (url.hostname.toLowerCase() !== 'maps.google.com' || !url.pathname.startsWith('/mapfiles/kml/')) return null
-    return `https://maps.google.com${url.pathname}`
-  } catch {
-    return null
-  }
-}
-
-function hotspotToPixels(value: number | undefined, units: string | undefined): number {
-  const coordinate = value ?? 0.5
-  if (units === 'pixels') return coordinate
-  if (units === 'insetPixels') return KMZ_ICON_SOURCE_SIZE - coordinate
-  if (units === 'insetFraction') return KMZ_ICON_SOURCE_SIZE * (1 - coordinate)
-  return KMZ_ICON_SOURCE_SIZE * coordinate
-}
-
-function makeImportedKmlIcon(style: KmlIconStyle): L.Icon | L.DivIcon {
-  const href = normalizeKmlIconHref(style.href) ?? KMZ_SPLICE_ICON
-  const scale = Number.isFinite(style.scale) && style.scale! > 0 ? Math.min(style.scale!, 4) : 1
-  const hotSpot = style.hotSpot
-  const hotspotX = hotspotToPixels(hotSpot?.x, hotSpot?.xunits)
-  const hotspotY = hotspotToPixels(hotSpot?.y, hotSpot?.yunits)
-  return makeKmzIcon(href, scale, hotspotX, hotspotY, style.color)
-}
-
-const odcPinIcon = makeKmzIcon(KMZ_ODC_ICON, KMZ_PUSH_PIN_SCALE, 20, 2, KMZ_ODC_TINT)
-const odpPinIcon = makeKmzIcon(KMZ_ODP_ICON, KMZ_PUSH_PIN_SCALE, 20, 2)
-const spliceStarIcon = makeKmzIcon(KMZ_SPLICE_ICON, 1, 32, 1)
 
 const drawPointIcon = L.divIcon({
   className: '',
@@ -193,31 +111,8 @@ function DrawCollector({
   return null
 }
 
-// KMZ pushpin images and marker labels are too heavy on small screens, so every marker is
-// drawn as a canvas circle marker there, mirroring the lightweight ODP map.
-const SMALL_MAP_MAX_WIDTH = 768
-const COLOR_ODC_SMALL = '#ff007f'
-const COLOR_ODP_SMALL = '#10b981'
-const COLOR_SPLICE_SMALL = '#eab308'
-
-function useIsSmallMap() {
-  const map = useMap()
-  const [isSmall, setIsSmall] = useState(() => map.getSize().x < SMALL_MAP_MAX_WIDTH)
-
-  useEffect(() => {
-    const updateSize = () => setIsSmall(map.getSize().x < SMALL_MAP_MAX_WIDTH)
-    map.on('resize', updateSize)
-    updateSize()
-    return () => {
-      map.off('resize', updateSize)
-    }
-  }, [map])
-
-  return isSmall
-}
-
 // Viewport culling: hanya marker di area layar (+margin) yang dirender, supaya ribuan titik
-// tidak sekaligus menjadi ribuan node DOM (marker gambar + popup + tooltip).
+// tidak sekaligus menjadi ribuan node DOM.
 const CULL_PADDING_RATIO = 0.25
 
 function useVisibleBounds() {
@@ -246,37 +141,37 @@ function useVisibleBounds() {
   return bounds
 }
 
-function useIsSmallViewport() {
-  const [isSmall, setIsSmall] = useState(false)
+function useZoomLevel() {
+  const map = useMap()
+  const [zoom, setZoom] = useState(() => map.getZoom())
 
   useEffect(() => {
-    const query = window.matchMedia(`(max-width: ${SMALL_MAP_MAX_WIDTH - 1}px)`)
-    const updateMatch = () => setIsSmall(query.matches)
-    updateMatch()
-    query.addEventListener('change', updateMatch)
-    return () => query.removeEventListener('change', updateMatch)
-  }, [])
+    const update = () => setZoom(map.getZoom())
+    map.on('zoomend', update)
+    return () => {
+      map.off('zoomend', update)
+    }
+  }, [map])
 
-  return isSmall
+  return zoom
 }
 
 function JalurMarkerLayer({
   odcs,
   splices,
   odps,
-  importedSpliceIcons,
   canEdit,
   onDeleteSplice,
 }: {
   odcs: OdcRow[]
   splices: SpliceRow[]
   odps: OdpRow[]
-  importedSpliceIcons: Map<number, L.Icon | L.DivIcon>
   canEdit: boolean
   onDeleteSplice: (id: number) => void
 }) {
-  const isSmall = useIsSmallMap()
   const bounds = useVisibleBounds()
+  const zoom = useZoomLevel()
+  const showDense = zoom >= DENSE_LAYER_MIN_ZOOM
 
   // Saring marker yang berada di (atau dekat) viewport saat ini.
   const visible = useMemo(() => {
@@ -334,88 +229,62 @@ function JalurMarkerLayer({
     </Popup>
   )
 
+  // Ambil warna dari KML icon style bila ada (import KMZ), selain itu pakai default.
+  const spliceColor = (s: SpliceRow) => {
+    const c = s.kml_icon_style?.color
+    if (c && /^#([0-9a-f]{6})$/i.test(c)) return c
+    return COLOR_SPLICE
+  }
+
   return (
     <>
-      {/* ODC markers */}
+      {/* ODC markers: jumlah sedikit, selalu tampil. */}
       {visible.odcs.map((o) => {
         const loc = parseLoc(o.lokasi)
         if (!loc) return null
-        if (isSmall) {
-          return (
-            <CircleMarker
-              key={`odc-${o.id}`}
-              center={[loc.latitude, loc.longitude]}
-              radius={10}
-              pathOptions={{ color: COLOR_ODC_SMALL, fillColor: COLOR_ODC_SMALL, fillOpacity: 0.8, weight: 2 }}
-            >
-              {odcPopup(o)}
-            </CircleMarker>
-          )
-        }
         return (
-          <Marker key={`odc-${o.id}`} position={[loc.latitude, loc.longitude]} icon={odcPinIcon}>
+          <CircleMarker
+            key={`odc-${o.id}`}
+            center={[loc.latitude, loc.longitude]}
+            radius={9}
+            pathOptions={{ color: COLOR_ODC, fillColor: COLOR_ODC, fillOpacity: 0.85, weight: 2 }}
+          >
             {odcPopup(o)}
             <Tooltip direction="top" offset={[0, -8]} opacity={0.9} className="jalur-map-label">
               {o.nama_odc}
             </Tooltip>
-          </Marker>
+          </CircleMarker>
         )
       })}
 
-      {/* Splice markers */}
-      {visible.splices.map((s) => {
-        if (isSmall) {
-          return (
-            <CircleMarker
-              key={`splice-${s.id}`}
-              center={[s.latitude, s.longitude]}
-              radius={7}
-              pathOptions={{ color: COLOR_SPLICE_SMALL, fillColor: COLOR_SPLICE_SMALL, fillOpacity: 0.9, weight: 2 }}
-            >
-              {splicePopup(s)}
-            </CircleMarker>
-          )
-        }
-        return (
-          <Marker
+      {/* Splice markers: hanya tampil saat zoom cukup dekat. */}
+      {showDense &&
+        visible.splices.map((s) => (
+          <CircleMarker
             key={`splice-${s.id}`}
-            position={[s.latitude, s.longitude]}
-            icon={importedSpliceIcons.get(s.id) ?? spliceStarIcon}
+            center={[s.latitude, s.longitude]}
+            radius={6}
+            pathOptions={{ color: spliceColor(s), fillColor: spliceColor(s), fillOpacity: 0.9, weight: 2 }}
           >
             {splicePopup(s)}
-            <Tooltip
-              permanent={Boolean(s.kml_icon_style)}
-              direction="top"
-              offset={[0, -8]}
-              opacity={0.9}
-              className="jalur-map-label"
-            >
+            <Tooltip direction="top" offset={[0, -6]} opacity={0.9} className="jalur-map-label">
               {s.nama}
             </Tooltip>
-          </Marker>
-        )
-      })}
+          </CircleMarker>
+        ))}
 
-      {/* ODP markers: seluruh baris dirender tanpa grouping, hanya disaring ke viewport. */}
-      {visible.odps.map((o) => {
-        if (isSmall) {
-          return (
-            <CircleMarker
-              key={`odp-${o.id}`}
-              center={[o.latitude!, o.longitude!]}
-              radius={8}
-              pathOptions={{ color: COLOR_ODP_SMALL, fillColor: COLOR_ODP_SMALL, fillOpacity: 0.8, weight: 2 }}
-            >
-              {odpPopup(o)}
-            </CircleMarker>
-          )
-        }
-        return (
-          <Marker key={`odp-${o.id}`} position={[o.latitude!, o.longitude!]} icon={odpPinIcon}>
+      {/* ODP markers: hanya tampil saat zoom cukup dekat. */}
+      {showDense &&
+        visible.odps.map((o) => (
+          <CircleMarker
+            key={`odp-${o.id}`}
+            center={[o.latitude!, o.longitude!]}
+            radius={7}
+            pathOptions={{ color: COLOR_ODP, fillColor: COLOR_ODP, fillOpacity: 0.85, weight: 2 }}
+          >
             {odpPopup(o)}
-          </Marker>
-        )
-      })}
+          </CircleMarker>
+        ))}
     </>
   )
 }
@@ -433,7 +302,6 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const isSmallViewport = useIsSmallViewport()
 
   const fetchAll = useCallback(async (force = false) => {
     // Pakai cache memori bila masih segar, kecuali dipaksa (setelah mutasi/import).
@@ -637,13 +505,6 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
   }, [allPoints])
 
   const drawPositions = useMemo(() => drawPoints.map((p) => [p.latitude, p.longitude] as [number, number]), [drawPoints])
-  const importedSpliceIcons = useMemo(() => {
-    const icons = new Map<number, L.Icon | L.DivIcon>()
-    splices.forEach((splice) => {
-      if (splice.kml_icon_style) icons.set(splice.id, makeImportedKmlIcon(splice.kml_icon_style))
-    })
-    return icons
-  }, [splices])
   const drawColor = jenisJalur === 'BACKBONE' ? COLOR_BACKBONE : COLOR_DISTRIBUSI
 
   return (
@@ -729,41 +590,9 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
 
         <div className={`${compact ? 'ml-0' : 'ml-auto'} flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500 dark:text-gray-400 sm:text-xs`}>
           <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_POP }}></span> POP</span>
-          <span className="flex items-center gap-1">
-            {isSmallViewport ? (
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODC_SMALL }}></span>
-            ) : (
-              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-                <defs>{/* Keep the legend tint identical to the KMZ ODC marker. */}
-                  <filter id="kmz-odc-legend-tint" colorInterpolationFilters="sRGB">
-                    <feColorMatrix type="matrix" values={KMZ_ODC_TINT_MATRIX} />
-                  </filter>
-                </defs>
-                <image href={KMZ_ODC_ICON} x="0" y="0" width="64" height="64" filter="url(#kmz-odc-legend-tint)" />
-              </svg>
-            )}
-            ODC
-          </span>
-          <span className="flex items-center gap-1">
-            {isSmallViewport ? (
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODP_SMALL }}></span>
-            ) : (
-              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-                <image href={KMZ_ODP_ICON} x="0" y="0" width="64" height="64" />
-              </svg>
-            )}
-            ODP
-          </span>
-          <span className="flex items-center gap-1">
-            {isSmallViewport ? (
-              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_SPLICE_SMALL }}></span>
-            ) : (
-              <svg className="h-4 w-4" viewBox="0 0 64 64" aria-hidden="true">
-                <image href={KMZ_SPLICE_ICON} x="0" y="0" width="64" height="64" />
-              </svg>
-            )}
-            Splice
-          </span>
+          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODC }}></span> ODC</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_ODP }}></span> ODP</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded-full" style={{ background: COLOR_SPLICE }}></span> Splice</span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_BACKBONE }}></span> Backbone</span>
           <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-5" style={{ background: COLOR_DISTRIBUSI }}></span> Distribusi</span>
         </div>
@@ -836,7 +665,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
                   )}
                 </div>
               </Popup>
-              <Tooltip permanent direction="center" className="jalur-map-label">
+              <Tooltip direction="center" className="jalur-map-label">
                 {j.nama_jalur || `Jalur ${j.id}`}
               </Tooltip>
             </Polyline>
@@ -884,7 +713,6 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
             odcs={odcs}
             splices={splices}
             odps={odps}
-            importedSpliceIcons={importedSpliceIcons}
             canEdit={canEdit}
             onDeleteSplice={deleteSplice}
           />
