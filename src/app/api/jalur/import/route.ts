@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 import { ensureMenuMutation, requireSession } from '@/lib/access-server'
 import { parseKml } from '@/lib/kml'
 import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
@@ -94,6 +95,9 @@ export async function POST(req: Request) {
       })
       spliceIds.push(splice.id)
     }
+
+    cache.invalidateByPrefix('jalur:')
+    cache.invalidateByPrefix('splice:')
 
     return NextResponse.json({
       ok: true,

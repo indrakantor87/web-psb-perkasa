@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
 export const runtime = 'nodejs'
+
+// Cache singkat untuk daftar splice; di-invalidasi setiap ada perubahan data splice.
+const SPLICE_CACHE_KEY = 'splice:list'
+const SPLICE_CACHE_TTL = 30_000
 
 export async function GET() {
   const session = await getSession().catch(() => null)
@@ -12,6 +17,11 @@ export async function GET() {
   if (accessError) return accessError
 
   try {
+    const cached = cache.get<unknown[]>(SPLICE_CACHE_KEY)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
+    }
+
     await ensureSpliceKmlIconStyleColumn()
     const splices = await prisma.splice.findMany({
       orderBy: { id: 'asc' },
@@ -25,7 +35,8 @@ export async function GET() {
         kml_icon_style: true,
       },
     })
-    return NextResponse.json(splices)
+    cache.set(SPLICE_CACHE_KEY, splices, SPLICE_CACHE_TTL)
+    return NextResponse.json(splices, { headers: { 'X-Cache': 'MISS' } })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: message || 'Gagal memuat splice' }, { status: 500 })
@@ -59,6 +70,7 @@ export async function POST(req: Request) {
       },
     })
 
+    cache.invalidate(SPLICE_CACHE_KEY)
     return NextResponse.json(splice, { status: 201 })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

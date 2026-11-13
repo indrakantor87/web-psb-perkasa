@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
 import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
 export const runtime = 'nodejs'
+
+// Cache singkat untuk daftar jalur agar muat ulang peta tidak selalu menekan database.
+// Di-invalidasi setiap kali jalur dibuat, dihapus, atau di-import.
+const JALUR_CACHE_KEY = 'jalur:list'
+const JALUR_CACHE_TTL = 30_000
 
 type PathPoint = { latitude: number; longitude: number }
 
@@ -27,6 +33,11 @@ export async function GET() {
   if (accessError) return accessError
 
   try {
+    const cached = cache.get<unknown[]>(JALUR_CACHE_KEY)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
+    }
+
     await ensureSpliceKmlIconStyleColumn()
     const jalur = await prisma.jalur.findMany({
       orderBy: { id: 'asc' },
@@ -39,7 +50,8 @@ export async function GET() {
         keterangan: true,
       },
     })
-    return NextResponse.json(jalur)
+    cache.set(JALUR_CACHE_KEY, jalur, JALUR_CACHE_TTL)
+    return NextResponse.json(jalur, { headers: { 'X-Cache': 'MISS' } })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     return NextResponse.json({ error: message || 'Gagal memuat jalur' }, { status: 500 })
@@ -76,6 +88,7 @@ export async function POST(req: Request) {
       },
     })
 
+    cache.invalidate(JALUR_CACHE_KEY)
     return NextResponse.json(jalur, { status: 201 })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

@@ -8,6 +8,8 @@ import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
+const ODC_CACHE_TTL = 60_000
+
 export async function GET(req: Request) {
   const session = await getSession().catch(() => null)
   const accessError = ensureMenuAccess(session, 'odp')
@@ -16,9 +18,16 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const popId = url.searchParams.get('popId')
   const popName = (url.searchParams.get('popName') ?? '').trim()
+  const cacheKey = `odp:odcList:${popId ?? ''}:${popName.toLowerCase()}`
 
   try {
     await ensureOdpTable()
+
+    const cached = cache.get<unknown[]>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
+    }
+
     let rows;
     if (popId) {
       const parsedPopId = Number(popId)
@@ -48,7 +57,8 @@ export async function GET(req: Request) {
         ORDER BY nama_odc ASC
       `
     }
-    return NextResponse.json(rows)
+    if (rows.length > 0) cache.set(cacheKey, rows, ODC_CACHE_TTL)
+    return NextResponse.json(rows, { headers: { 'X-Cache': 'MISS' } })
   } catch {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }

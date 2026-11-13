@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 import { ensureMenuMutation } from '@/lib/access-server'
 import { ensureSpliceKmlIconStyleColumn } from '@/lib/splice-kml-schema'
 
@@ -20,6 +21,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
 
     await prisma.splice.delete({ where: { id: spliceId } })
+    cache.invalidateByPrefix('splice:')
     return NextResponse.json({ ok: true })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

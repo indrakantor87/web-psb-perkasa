@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { cache } from '@/lib/cache'
 import { ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
@@ -23,6 +24,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     })
     await prisma.jalur.delete({ where: { id: jalurId } })
 
+    cache.invalidateByPrefix('jalur:')
+    cache.invalidateByPrefix('splice:')
     return NextResponse.json({ ok: true })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

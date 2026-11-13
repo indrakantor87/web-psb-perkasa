@@ -34,6 +34,20 @@ type DrawMode = 'none' | 'jalur' | 'splice'
 
 const DEFAULT_CENTER: [number, number] = [-6.75, 111.03]
 
+// Cache in-memory sisi klien: membuka ulang peta (atau pindah halaman lalu kembali)
+// tidak perlu menarik ulang semua layer dari server.
+const MAP_DATA_TTL = 60_000
+
+type MapDataSnapshot = {
+  jalur: JalurRow[]
+  splices: SpliceRow[]
+  pops: PopRow[]
+  odcs: OdcRow[]
+  odps: OdpRow[]
+}
+
+let mapDataCache: { at: number; data: MapDataSnapshot } | null = null
+
 // Warna default per jenis
 const COLOR_BACKBONE = '#00ffff' // cyan
 const COLOR_DISTRIBUSI = '#800080' // ungu
@@ -202,6 +216,36 @@ function useIsSmallMap() {
   return isSmall
 }
 
+// Viewport culling: hanya marker di area layar (+margin) yang dirender, supaya ribuan titik
+// tidak sekaligus menjadi ribuan node DOM (marker gambar + popup + tooltip).
+const CULL_PADDING_RATIO = 0.25
+
+function useVisibleBounds() {
+  const map = useMap()
+  const [bounds, setBounds] = useState<L.LatLngBounds>(() => map.getBounds())
+
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      // moveend dan zoomend sering berpasangan; cukup satu render per frame.
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => setBounds(map.getBounds()))
+    }
+    map.on('moveend', update)
+    map.on('zoomend', update)
+    map.on('resize', update)
+    update()
+    return () => {
+      cancelAnimationFrame(frame)
+      map.off('moveend', update)
+      map.off('zoomend', update)
+      map.off('resize', update)
+    }
+  }, [map])
+
+  return bounds
+}
+
 function useIsSmallViewport() {
   const [isSmall, setIsSmall] = useState(false)
 
@@ -232,6 +276,26 @@ function JalurMarkerLayer({
   onDeleteSplice: (id: number) => void
 }) {
   const isSmall = useIsSmallMap()
+  const bounds = useVisibleBounds()
+
+  // Saring marker yang berada di (atau dekat) viewport saat ini.
+  const visible = useMemo(() => {
+    const padded = bounds.pad(CULL_PADDING_RATIO)
+    const sw = padded.getSouthWest()
+    const ne = padded.getNorthEast()
+    const inView = (lat: number, lng: number) => lat >= sw.lat && lat <= ne.lat && lng >= sw.lng && lng <= ne.lng
+
+    return {
+      odcs: odcs.filter((o) => {
+        const loc = parseLoc(o.lokasi)
+        return loc ? inView(loc.latitude, loc.longitude) : false
+      }),
+      splices: splices.filter((s) => inView(s.latitude, s.longitude)),
+      odps: odps.filter(
+        (o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude) && inView(o.latitude!, o.longitude!),
+      ),
+    }
+  }, [bounds, odcs, splices, odps])
 
   const odcPopup = (row: OdcRow) => (
     <Popup>
@@ -273,7 +337,7 @@ function JalurMarkerLayer({
   return (
     <>
       {/* ODC markers */}
-      {odcs.map((o) => {
+      {visible.odcs.map((o) => {
         const loc = parseLoc(o.lokasi)
         if (!loc) return null
         if (isSmall) {
@@ -299,7 +363,7 @@ function JalurMarkerLayer({
       })}
 
       {/* Splice markers */}
-      {splices.map((s) => {
+      {visible.splices.map((s) => {
         if (isSmall) {
           return (
             <CircleMarker
@@ -332,28 +396,26 @@ function JalurMarkerLayer({
         )
       })}
 
-      {/* ODP markers: always all rows, never grouped. */}
-      {odps
-        .filter((o) => Number.isFinite(o.latitude) && Number.isFinite(o.longitude))
-        .map((o) => {
-          if (isSmall) {
-            return (
-              <CircleMarker
-                key={`odp-${o.id}`}
-                center={[o.latitude!, o.longitude!]}
-                radius={8}
-                pathOptions={{ color: COLOR_ODP_SMALL, fillColor: COLOR_ODP_SMALL, fillOpacity: 0.8, weight: 2 }}
-              >
-                {odpPopup(o)}
-              </CircleMarker>
-            )
-          }
+      {/* ODP markers: seluruh baris dirender tanpa grouping, hanya disaring ke viewport. */}
+      {visible.odps.map((o) => {
+        if (isSmall) {
           return (
-            <Marker key={`odp-${o.id}`} position={[o.latitude!, o.longitude!]} icon={odpPinIcon}>
+            <CircleMarker
+              key={`odp-${o.id}`}
+              center={[o.latitude!, o.longitude!]}
+              radius={8}
+              pathOptions={{ color: COLOR_ODP_SMALL, fillColor: COLOR_ODP_SMALL, fillOpacity: 0.8, weight: 2 }}
+            >
               {odpPopup(o)}
-            </Marker>
+            </CircleMarker>
           )
-        })}
+        }
+        return (
+          <Marker key={`odp-${o.id}`} position={[o.latitude!, o.longitude!]} icon={odpPinIcon}>
+            {odpPopup(o)}
+          </Marker>
+        )
+      })}
     </>
   )
 }
@@ -373,11 +435,24 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isSmallViewport = useIsSmallViewport()
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (force = false) => {
+    // Pakai cache memori bila masih segar, kecuali dipaksa (setelah mutasi/import).
+    if (!force && mapDataCache && Date.now() - mapDataCache.at < MAP_DATA_TTL) {
+      const cached = mapDataCache.data
+      setJalur(cached.jalur)
+      setSplices(cached.splices)
+      setPops(cached.pops)
+      setOdcs(cached.odcs)
+      setOdps(cached.odps)
+      setError(null)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     setError(null)
 
-    const loadRows = async <T,>(url: string, setRows: (rows: T[]) => void) => {
+    const loadRows = async <T,>(url: string): Promise<T[]> => {
       const response = await fetch(url, { cache: 'no-store' })
       const data = await response.json().catch(() => null)
       if (!response.ok) {
@@ -386,19 +461,39 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
       if (!Array.isArray(data)) {
         throw new Error('Format data peta tidak valid')
       }
-      setRows(data)
+      return data as T[]
     }
 
     try {
-      const results = await Promise.allSettled([
-        loadRows<JalurRow>('/api/jalur', setJalur),
-        loadRows<SpliceRow>('/api/splice', setSplices),
-        loadRows<PopRow>('/api/odp/pop', setPops),
-        loadRows<OdcRow>('/api/odp/odc', setOdcs),
-        loadRows<OdpRow>('/api/odp?all=1&map=1', setOdps),
+      const [jalurRes, spliceRes, popRes, odcRes, odpRes] = await Promise.allSettled([
+        loadRows<JalurRow>('/api/jalur'),
+        loadRows<SpliceRow>('/api/splice'),
+        loadRows<PopRow>('/api/odp/pop'),
+        loadRows<OdcRow>('/api/odp/odc'),
+        loadRows<OdpRow>('/api/odp?all=1&map=1'),
       ])
-      const failed = results.find((result) => result.status === 'rejected')
-      if (failed?.status === 'rejected') throw failed.reason
+
+      const jalurRows = jalurRes.status === 'fulfilled' ? jalurRes.value : null
+      const spliceRows = spliceRes.status === 'fulfilled' ? spliceRes.value : null
+      const popRows = popRes.status === 'fulfilled' ? popRes.value : null
+      const odcRows = odcRes.status === 'fulfilled' ? odcRes.value : null
+      const odpRows = odpRes.status === 'fulfilled' ? odpRes.value : null
+
+      if (jalurRows) setJalur(jalurRows)
+      if (spliceRows) setSplices(spliceRows)
+      if (popRows) setPops(popRows)
+      if (odcRows) setOdcs(odcRows)
+      if (odpRows) setOdps(odpRows)
+
+      if (!jalurRows || !spliceRows || !popRows || !odcRows || !odpRows) {
+        const failed = [jalurRes, spliceRes, popRes, odcRes, odpRes].find((result) => result.status === 'rejected')
+        throw (failed as PromiseRejectedResult | undefined)?.reason ?? new Error('Gagal memuat data peta')
+      }
+
+      mapDataCache = {
+        at: Date.now(),
+        data: { jalur: jalurRows, splices: spliceRows, pops: popRows, odcs: odcRows, odps: odpRows },
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data')
     } finally {
@@ -433,7 +528,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
       }
       setDrawPoints([])
       setDrawMode('none')
-      await fetchAll()
+      await fetchAll(true)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Gagal menyimpan jalur')
     }
@@ -454,7 +549,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
           throw new Error(data.error || 'Gagal menyimpan splice')
         }
         setDrawMode('none')
-        await fetchAll()
+        await fetchAll(true)
       } catch (e) {
         alert(e instanceof Error ? e.message : 'Gagal menyimpan splice')
       }
@@ -468,7 +563,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
       try {
         const res = await fetch(`/api/jalur/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Gagal menghapus jalur')
-        await fetchAll()
+        await fetchAll(true)
       } catch (e) {
         alert(e instanceof Error ? e.message : 'Gagal menghapus jalur')
       }
@@ -482,7 +577,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
       try {
         const res = await fetch(`/api/splice/${id}`, { method: 'DELETE' })
         if (!res.ok) throw new Error('Gagal menghapus splice')
-        await fetchAll()
+        await fetchAll(true)
       } catch (e) {
         alert(e instanceof Error ? e.message : 'Gagal menghapus splice')
       }
@@ -501,7 +596,7 @@ export default function JalurMap({ canEdit, compact = false }: { canEdit: boolea
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.error || 'Gagal import')
         alert(`Import berhasil: ${data.jalurCount} jalur, ${data.spliceCount} splice`)
-        await fetchAll()
+        await fetchAll(true)
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Gagal import file')
       } finally {

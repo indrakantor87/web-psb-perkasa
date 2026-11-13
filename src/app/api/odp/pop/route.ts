@@ -8,6 +8,9 @@ import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
 
+const POP_CACHE_KEY = 'odp:popList'
+const POP_CACHE_TTL = 60_000
+
 export async function GET() {
   const session = await getSession().catch(() => null)
   const accessError = ensureMenuAccess(session, 'odp')
@@ -15,6 +18,11 @@ export async function GET() {
 
   try {
     await ensureOdpTable()
+
+    const cached = cache.get<Array<{ id: number; nama_pop: string; lokasi: string }>>(POP_CACHE_KEY)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } })
+    }
 
     let rows: Array<{ id: number; nama_pop: string; lokasi: string }> = []
 
@@ -84,7 +92,9 @@ export async function GET() {
       if (fromOdc.length > 0) rows = fromOdc
     }
 
-    return NextResponse.json(rows)
+    // Hanya cache bila ada isinya, agar fallback auto-populate tetap berjalan saat tabel masih kosong.
+    if (rows.length > 0) cache.set(POP_CACHE_KEY, rows, POP_CACHE_TTL)
+    return NextResponse.json(rows, { headers: { 'X-Cache': 'MISS' } })
   } catch (e) {
     console.error('[api/odp/pop] GET error:', e)
     return NextResponse.json({ error: 'DB error' }, { status: 500 })

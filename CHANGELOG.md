@@ -25,6 +25,8 @@ Kategori perubahan:
 - Header mobile mengganti teks di samping logo dengan gambar `hdr-mble.png`.
 - Label marker dan jalur pada peta tidak lagi memakai kotak putih; teks menggunakan outline gelap agar tetap terbaca di atas peta.
 - Peta Jalur menampilkan basemap sejak awal, memakai OSM sebagai layer awal, dan mengambil payload data marker yang lebih ringkas; citra satelit tetap tersedia.
+- Peta Jalur: marker ODC/Splice/ODP hanya dirender untuk area peta yang terlihat (viewport culling dengan margin), sehingga ribuan titik tidak lagi menjadi ribuan elemen DOM saat peta dimuat dan digeser.
+- Peta Jalur: pemuatan data dioptimalkan dengan cache berlapis — cache memori di sisi klien (60 detik) serta cache TTL pada endpoint `jalur`, `splice`, `odp/pop`, dan `odp/odc` yang otomatis di-invalidasi setiap ada perubahan, import, atau penghapusan data.
 - Dashboard NOC memastikan kolom IP POP tersedia pada skema lama sebelum membaca status probe.
 - Peta Jalur menggunakan aset marker yang dirujuk KMZ POP MARGOYOSO: pushpin hijau ODP, pushpin putih bertint KML untuk ODC, dan paddle bintang kuning untuk Splice, termasuk skala serta hotspot-nya.
 - Ekspor KML untuk Splice memakai ikon `ylw-stars.png` dan hotspot yang sama dengan style normal KMZ.
