@@ -476,70 +476,78 @@ export function GmDailyReportDashboard({ canManage }: { canManage: boolean }) {
             </div>
           </ChartCard>
 
-          <ChartCard title="Total Pelanggan & Aktif" description="Jumlah per tanggal laporan">
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Total Pelanggan &amp; Aktif</h3>
+            <p className="mb-3 text-xs text-ink-muted">Jumlah per tanggal laporan</p>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartRows} margin={{ top: 12, right: 14, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} minTickGap={18} />
-                  <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={48} />
-                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
-                  <Legend />
-                  <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#f59e0b" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#84cc16" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+          </div>
 
-          <ChartCard title="Rekap PSB" description="Total list kumulatif bulanan, backlog antrian akhir hari, dan pemasangan harian">
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Rekap PSB</h3>
+            <p className="mb-3 text-xs text-ink-muted">Total list kumulatif bulanan, backlog antrian akhir hari, dan pemasangan harian</p>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartRows} margin={{ top: 12, right: 14, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} minTickGap={18} />
-                  <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
-                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
-                  <Legend />
-                  <Line type="monotone" dataKey="totalPsbList" name="Total List PSB" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="installationQueue" name="Antrian Pasang" stroke="#8b5cf6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="installedToday" name="Terpasang" stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="totalPsbList" name="Total List PSB" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="installationQueue" name="Antrian Pasang" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="installedToday" name="Terpasang" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+          </div>
 
-          <ChartCard title="Data Isolir" description="Jumlah yang masih dilanjutkan dan tidak dilanjutkan">
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Data Isolir</h3>
+            <p className="mb-3 text-xs text-ink-muted">Jumlah yang masih dilanjutkan dan tidak dilanjutkan</p>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartRows} margin={{ top: 12, right: 14, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} minTickGap={18} />
-                  <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
-                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
-                  <Legend />
+                <BarChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
                   <Bar dataKey="isolationContinued" name="Masih Dilanjutkan" fill="#ef4444" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="isolationNotContinued" name="Tidak Dilanjutkan" fill="#3b82f6" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+          </div>
 
-          <ChartCard title="Dismantle" description="Open adalah backlog akhir hari; Close adalah jumlah yang ditutup pada hari tersebut">
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Dismantle</h3>
+            <p className="mb-3 text-xs text-ink-muted">Open adalah backlog akhir hari; Close adalah jumlah yang ditutup pada hari tersebut</p>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartRows} margin={{ top: 12, right: 14, left: 0, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.12} />
-                  <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} minTickGap={18} />
-                  <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
-                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
-                  <Legend />
-                  <Line type="monotone" dataKey="dismantleOpen" name="Open (backlog)" stroke="#64748b" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="dismantleClosed" name="Close harian" stroke="#f97316" strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} />
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="dismantleOpen" name="Open (backlog)" stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="dismantleClosed" name="Close harian" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </ChartCard>
+          </div>
         </div>
       )}
 
