@@ -234,7 +234,7 @@ function downloadCsv(filename: string, rows: string[][]) {
   URL.revokeObjectURL(url)
 }
 
-export function FinanceDashboard({ canManage }: { canManage: boolean }) {
+export function FinanceDashboard({ canManage, showHeader = true }: { canManage: boolean; showHeader?: boolean }) {
   const [entries, setEntries] = useState<ReportEntry[]>([])
   const [form, setForm] = useState<ReportForm>(() => emptyForm(jakartaTodayKey()))
   const [formOpen, setFormOpen] = useState(false)
@@ -413,6 +413,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
 
   return (
     <section className="space-y-4 pb-10">
+      {showHeader && (
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0b2b5e] via-[#0f3a7a] to-[#1e5fbf] px-5 py-5 text-white shadow-md sm:px-6">
         <div className="absolute inset-y-0 right-0 w-1/2 opacity-20">
           <svg viewBox="0 0 400 200" className="h-full w-full" preserveAspectRatio="xMaxYMid slice" fill="none">
@@ -456,6 +457,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
           </div>
         </div>
       </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         <button

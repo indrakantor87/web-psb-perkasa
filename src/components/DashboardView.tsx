@@ -1263,7 +1263,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           <h2 className="text-lg font-bold tracking-tight text-ink">Admin Billing</h2>
           <span className="text-xs text-ink-muted">Laporan harian PSB, Isolir &amp; Dismantle</span>
         </div>
-        <FinanceDashboard canManage={isFinance} />
+        <FinanceDashboard canManage={isFinance} showHeader={false} />
       </div>
 
       {/* Section: Ringkasan HR */}
