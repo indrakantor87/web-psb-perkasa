@@ -12,6 +12,7 @@ import {
 } from './GmExecutiveDashboard/Charts'
 import { NetworkSection } from './GmExecutiveDashboard/NetworkSection'
 import { ExecutiveSummary, HrSection, RisksTable } from './GmExecutiveDashboard/Panels'
+import { MarketingPerformanceTable } from './GmExecutiveDashboard/MarketingPerformanceTable'
 
 export function GmExecutiveDashboard() {
   const { year, setYear, month, setMonth, data, loading, error, years, months, refresh } = useGmDashboard()
@@ -103,6 +104,8 @@ export function GmExecutiveDashboard() {
             <IsolationLineChart data={data.dailySeries} />
             <DismantleLineChart data={data.dailySeries} />
           </div>
+
+          <MarketingPerformanceTable rows={data.marketingPerformance} />
 
           <NetworkSection network={data.network} periodLabel={data.periodLabel} />
 

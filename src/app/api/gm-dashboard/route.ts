@@ -13,6 +13,7 @@ import {
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureGmDailyReportTableOnce } from '@/lib/gm-daily-report-db'
 import { getNetworkAvailability } from '@/lib/network-ping'
+import { getMarketingNameMap, marketingNameKey, toDashboardMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,11 @@ export async function GET(req: Request) {
   const { start: comparisonStart, end: comparisonEnd } = getGmDashboardPeriodRange(year - 1, month)
   const daysInPeriod = new Date(Date.UTC(year, month, 0)).getUTCDate()
   const dayLabels = Array.from({ length: daysInPeriod }, (_, index) => String(index + 1).padStart(2, '0'))
+  const isCurrentPeriod = now.getUTCFullYear() === year && now.getUTCMonth() + 1 === month
+  const carryClause = isCurrentPeriod
+    ? PrismaSql.sql`OR ("installedDate" IS NULL AND "status" IN ('OPEN', 'ON_PROGRESS') AND "requestDate" < ${periodEnd})`
+    : PrismaSql.sql``
+  const marketingNameMap = await getMarketingNameMap().catch(() => new Map<string, string>())
 
   await Promise.all([ensureGmDailyReportTableOnce().catch(() => {}), ensureOdpTable().catch(() => {})])
 
@@ -73,6 +79,8 @@ export async function GET(req: Request) {
     isolirOverdueRows,
     dismantleBacklogRows,
     employeeDivisionRows,
+    marketingRows,
+    isolirMarketingRows,
   ] = await Promise.all([
     prisma.ticket.count({ where: { installedDate: { gte: periodStart, lt: periodEnd } } }).catch(() => 0),
     prisma.ticket.count({ where: { installedDate: { gte: comparisonStart, lt: comparisonEnd } } }).catch(() => 0),
@@ -204,7 +212,55 @@ export async function GET(req: Request) {
       WHERE "isActive" = TRUE
       GROUP BY 1
     `).catch(() => []),
+    prisma.$queryRaw<Array<{ name: string; count: number; open: number; on_progress: number; close: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
+        COUNT(*)::int AS count,
+        SUM(CASE WHEN UPPER(TRIM("status")) = 'OPEN' THEN 1 ELSE 0 END)::int AS open,
+        SUM(CASE WHEN UPPER(TRIM("status")) IN ('ON_PROGRESS', 'PENDING') THEN 1 ELSE 0 END)::int AS on_progress,
+        SUM(CASE WHEN UPPER(TRIM("status")) = 'CLOSE' THEN 1 ELSE 0 END)::int AS close
+      FROM "Ticket"
+      WHERE (
+        ("installedDate" IS NOT NULL AND "installedDate" >= ${periodStart} AND "installedDate" < ${periodEnd})
+        ${carryClause}
+      )
+      GROUP BY COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown')
+      ORDER BY SUM(CASE WHEN UPPER(TRIM("status")) = 'CLOSE' THEN 1 ELSE 0 END) DESC
+    `).catch(() => []),
+    prisma.$queryRaw<Array<{ name: string; count: number }>>(PrismaSql.sql`
+      SELECT COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown') AS name, COUNT(*)::int AS count
+      FROM "Isolation"
+      WHERE "status" = 'OPEN'
+      GROUP BY COALESCE(NULLIF(TRIM("marketing"), ''), 'Unknown')
+    `).catch(() => []),
   ])
+
+  const isolirByMarketing = new Map<string, number>()
+  for (const row of isolirMarketingRows) {
+    const name = toDashboardMarketingLabel(row.name, marketingNameMap)
+    const key = marketingNameKey(name)
+    isolirByMarketing.set(key, (isolirByMarketing.get(key) || 0) + Number(row.count || 0))
+  }
+  const marketingPerformanceMap = new Map<string, {
+    name: string
+    count: number
+    open: number
+    on_progress: number
+    close: number
+  }>()
+  for (const row of marketingRows) {
+    const name = toDashboardMarketingLabel(row.name, marketingNameMap)
+    const key = marketingNameKey(name)
+    const current = marketingPerformanceMap.get(key) ?? { name, count: 0, open: 0, on_progress: 0, close: 0 }
+    current.count += Number(row.count || 0)
+    current.open += Number(row.open || 0)
+    current.on_progress += Number(row.on_progress || 0)
+    current.close += Number(row.close || 0)
+    marketingPerformanceMap.set(key, current)
+  }
+  const marketingPerformance = Array.from(marketingPerformanceMap.values())
+    .map((row) => ({ ...row, isolir: isolirByMarketing.get(marketingNameKey(row.name)) || 0 }))
+    .sort((a, b) => b.close - a.close || a.name.localeCompare(b.name))
 
   const availability = await getNetworkAvailability(periodStart, periodEnd).catch(() => ({
     availabilityPercent: 0,
@@ -437,6 +493,7 @@ export async function GET(req: Request) {
       psbGrowth,
     },
     divisions,
+    marketingPerformance,
     dailySeries,
     customerTrend,
     psbTrend,

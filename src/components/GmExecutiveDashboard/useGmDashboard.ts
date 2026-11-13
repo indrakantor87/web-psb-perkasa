@@ -35,6 +35,14 @@ export type GmDashboardData = {
     progress: number
     members: number
   }>
+  marketingPerformance: Array<{
+    name: string
+    count: number
+    open: number
+    on_progress: number
+    close: number
+    isolir: number
+  }>
   dailySeries: Array<{
     date: string
     label: string
