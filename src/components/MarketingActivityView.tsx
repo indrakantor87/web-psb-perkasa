@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check, MapPin } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check, MapPin, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface MarketingActivityRecord {
   id: number
@@ -83,6 +83,7 @@ export function MarketingActivityView({
   const [rankingLoading, setRankingLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [detailExpanded, setDetailExpanded] = useState(false)
   const [editingActivity, setEditingActivity] = useState<MarketingActivityRecord | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -714,17 +715,37 @@ export function MarketingActivityView({
         </div>
       </div>
 
-      {/* Detail Data Harian */}
+      {/* Detail Data Harian (collapsible) */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
-          <h3 className="font-semibold text-gray-800 dark:text-white">Detail Data Harian</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {isAdmin
-              ? 'Laporan aktivitas harian seluruh marketing.'
-              : 'Laporan aktivitas harian milik Anda.'}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setDetailExpanded((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 p-4 text-left transition-colors hover:bg-gray-100/60 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-900/60"
+        >
+          <div>
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+              {detailExpanded ? (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-500" />
+              )}
+              Detail Data Harian
+              <span className="ml-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                {activities.length} data
+              </span>
+            </h3>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {detailExpanded
+                ? isAdmin
+                  ? 'Laporan aktivitas harian seluruh marketing.'
+                  : 'Laporan aktivitas harian milik Anda.'
+                : 'Klik untuk melihat detail laporan aktivitas harian.'}
+            </p>
+          </div>
+        </button>
 
+        {detailExpanded && (
+        <>
         {/* Tabel (desktop) */}
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[860px] divide-y divide-gray-200 dark:divide-gray-700">
@@ -903,6 +924,8 @@ export function MarketingActivityView({
             ))
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Modal */}
