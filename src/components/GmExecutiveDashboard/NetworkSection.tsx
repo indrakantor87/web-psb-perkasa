@@ -35,7 +35,7 @@ export function NetworkSection({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="h-72 overflow-hidden rounded-lg border border-line lg:col-span-2">
+        <div className="h-full min-h-[288px] overflow-hidden rounded-lg border border-line lg:col-span-2">
           {points.length > 0 ? (
             <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
               <TileLayer
