@@ -15,6 +15,7 @@ interface MarketingActivityRecord {
   flyer: number
   sosialisasi: number
   dataBase: number
+  event: number
   total: number
   psb: number
   areaId?: number | null
@@ -42,6 +43,7 @@ interface RankingRow {
   flyer: number
   sosialisasi: number
   dataBase: number
+  event: number
   total: number
 }
 
@@ -127,6 +129,7 @@ export function MarketingActivityView({
     areaId: '',
     flyer: '',
     sosialisasi: '',
+    event: '',
     dataBase: '',
     notes: '',
   })
@@ -271,6 +274,7 @@ export function MarketingActivityView({
       areaId: '',
       flyer: '',
       sosialisasi: '',
+      event: '',
       dataBase: '',
       notes: '',
     })
@@ -286,6 +290,7 @@ export function MarketingActivityView({
       areaId: activity.areaId ? String(activity.areaId) : '',
       flyer: String(activity.flyer ?? 0),
       sosialisasi: String(activity.sosialisasi ?? 0),
+      event: String(activity.event ?? 0),
       dataBase: String(activity.dataBase ?? 0),
       notes: activity.notes || '',
     })
@@ -315,6 +320,7 @@ export function MarketingActivityView({
           areaId: formData.areaId || null,
           flyer: toNumber(formData.flyer),
           sosialisasi: toNumber(formData.sosialisasi),
+          event: toNumber(formData.event),
           dataBase: toNumber(formData.dataBase),
           notes: formData.notes,
         }),
@@ -363,6 +369,7 @@ export function MarketingActivityView({
         'Aktivitas (Area)': a.area?.name || a.activity || '-',
         'Flyer': a.flyer,
         'Sosialisasi': a.sosialisasi,
+        'Event': a.event,
         'Total': a.total,
         'Data Base': a.dataBase,
         'PSB': a.psb > 0 ? a.psb : '-',
@@ -418,9 +425,9 @@ export function MarketingActivityView({
     [now]
   )
 
-  const formTotal = toNumber(formData.flyer) + toNumber(formData.sosialisasi)
+  const formTotal = toNumber(formData.flyer) + toNumber(formData.sosialisasi) + toNumber(formData.event)
 
-  const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1`
+  const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1`
 
   const buildWhatsAppText = useCallback((activity: MarketingActivityRecord) => {
     const dateLine = format(new Date(activity.date), 'EEEE , d MMMM yyyy', { locale: idLocale })
@@ -440,6 +447,7 @@ export function MarketingActivityView({
       '-'.repeat(46),
       line('DATABASE', String(activity.dataBase)),
       line('PSB', activity.psb > 0 ? String(activity.psb) : '-'),
+      line('EVENT', String(activity.event)),
     ].join('\n')
   }, [])
 
@@ -599,6 +607,7 @@ export function MarketingActivityView({
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Flyer</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total</th>
               </tr>
@@ -606,11 +615,11 @@ export function MarketingActivityView({
             <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
               {rankingLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
+                  <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
                 </tr>
               ) : ranking.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
+                  <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
                 </tr>
               ) : (
                 ranking.map((row) => (
@@ -621,6 +630,7 @@ export function MarketingActivityView({
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.psb}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.flyer}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.sosialisasi}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.event}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.dataBase}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.total}</td>
                   </tr>
@@ -654,6 +664,7 @@ export function MarketingActivityView({
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aktivitas (Area)</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Flyer</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
@@ -663,11 +674,11 @@ export function MarketingActivityView({
             <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
               {loading ? (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="px-4 py-4 text-center text-sm text-gray-500">Memuat data...</td>
+                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-4 text-center text-sm text-gray-500">Memuat data...</td>
                 </tr>
               ) : activities.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 9 : 8} className="px-4 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-4 text-center text-sm text-gray-500">
                     Belum ada laporan aktivitas pada periode ini.
                   </td>
                 </tr>
@@ -687,6 +698,7 @@ export function MarketingActivityView({
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.flyer}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.sosialisasi}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.event}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-semibold text-gray-900 dark:text-gray-100">{activity.total}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.dataBase}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">
@@ -795,6 +807,10 @@ export function MarketingActivityView({
                     <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.sosialisasi}</span>
                   </div>
                   <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                    <span className="block text-gray-500 dark:text-gray-400">Event</span>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.event}</span>
+                  </div>
+                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
                     <span className="block text-gray-500 dark:text-gray-400">Total</span>
                     <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.total}</span>
                   </div>
@@ -891,7 +907,7 @@ export function MarketingActivityView({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Flyer</label>
                   <input
@@ -912,6 +928,18 @@ export function MarketingActivityView({
                     inputMode="numeric"
                     value={formData.sosialisasi}
                     onChange={(e) => setFormData({ ...formData, sosialisasi: e.target.value })}
+                    placeholder="0"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Event</label>
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={formData.event}
+                    onChange={(e) => setFormData({ ...formData, event: e.target.value })}
                     placeholder="0"
                     className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />

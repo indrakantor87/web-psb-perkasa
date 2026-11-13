@@ -71,6 +71,7 @@ export async function PUT(
       flyer,
       sosialisasi,
       dataBase,
+      event,
     } = body
 
     const resolvedMarketingName =
@@ -93,23 +94,25 @@ export async function PUT(
     })
 
     const hasNumbers =
-      typeof flyer !== 'undefined' || typeof sosialisasi !== 'undefined' || typeof dataBase !== 'undefined'
+      typeof flyer !== 'undefined' || typeof sosialisasi !== 'undefined' || typeof dataBase !== 'undefined' || typeof event !== 'undefined'
 
-    let numericData: { flyer?: number; sosialisasi?: number; dataBase?: number; total?: number } = {}
+    let numericData: { flyer?: number; sosialisasi?: number; dataBase?: number; event?: number; total?: number } = {}
     if (hasNumbers) {
       const current = await prisma.marketingActivity.findUnique({
         where: { id: activityId },
-        select: { flyer: true, sosialisasi: true, dataBase: true },
+        select: { flyer: true, sosialisasi: true, dataBase: true, event: true },
       })
       const flyerValue = typeof flyer === 'undefined' ? current?.flyer ?? 0 : toNonNegativeInt(flyer)
       const sosialisasiValue =
         typeof sosialisasi === 'undefined' ? current?.sosialisasi ?? 0 : toNonNegativeInt(sosialisasi)
       const dataBaseValue = typeof dataBase === 'undefined' ? current?.dataBase ?? 0 : toNonNegativeInt(dataBase)
+      const eventValue = typeof event === 'undefined' ? current?.event ?? 0 : toNonNegativeInt(event)
       numericData = {
         flyer: flyerValue,
         sosialisasi: sosialisasiValue,
         dataBase: dataBaseValue,
-        total: flyerValue + sosialisasiValue,
+        event: eventValue,
+        total: flyerValue + sosialisasiValue + eventValue,
       }
     }
 

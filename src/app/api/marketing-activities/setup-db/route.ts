@@ -14,6 +14,7 @@ export async function GET() {
           "flyer" INTEGER NOT NULL DEFAULT 0,
           "sosialisasi" INTEGER NOT NULL DEFAULT 0,
           "dataBase" INTEGER NOT NULL DEFAULT 0,
+          "event" INTEGER NOT NULL DEFAULT 0,
           "total" INTEGER NOT NULL DEFAULT 0,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -118,6 +119,9 @@ export async function GET() {
       `)
       await prisma.$executeRawUnsafe(`
         ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "dataBase" INTEGER NOT NULL DEFAULT 0;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "event" INTEGER NOT NULL DEFAULT 0;
       `)
       await prisma.$executeRawUnsafe(`
         ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "total" INTEGER NOT NULL DEFAULT 0;

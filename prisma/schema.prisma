@@ -231,6 +231,7 @@ model MarketingActivity {
   flyer         Int      @default(0)
   sosialisasi   Int      @default(0)
   dataBase      Int      @default(0)
+  event         Int      @default(0)
   total         Int      @default(0)
   
   areaId        Int?

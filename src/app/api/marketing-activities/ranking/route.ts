@@ -16,10 +16,11 @@ type RankingRow = {
   flyer: number
   sosialisasi: number
   dataBase: number
+  event: number
   total: number
 }
 
-const WEIGHT = { psb: 10, dataBase: 3, sosialisasi: 1, flyer: 1 }
+const WEIGHT = { psb: 10, dataBase: 3, sosialisasi: 1, flyer: 1, event: 1 }
 
 export async function GET(request: Request) {
   const session = await getSession()
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
       getMarketingUsers(),
       prisma.marketingActivity.findMany({
         where: { date: { gte: start, lt: end } },
-        select: { marketingName: true, flyer: true, sosialisasi: true, dataBase: true, total: true },
+        select: { marketingName: true, flyer: true, sosialisasi: true, dataBase: true, event: true, total: true },
       }),
       prisma.ticket.findMany({
         where: { requestDate: { gte: start, lt: end } },
@@ -73,7 +74,7 @@ export async function GET(request: Request) {
       let row = stats.get(key)
       if (!row) {
         const name = namesByKey.get(key) ?? normalizeMarketingName(displayName)
-        row = { name, skor: 0, psb: 0, flyer: 0, sosialisasi: 0, dataBase: 0, total: 0 }
+        row = { name, skor: 0, psb: 0, flyer: 0, sosialisasi: 0, dataBase: 0, event: 0, total: 0 }
         stats.set(key, row)
         if (!namesByKey.has(key)) namesByKey.set(key, row.name)
       }
@@ -88,6 +89,7 @@ export async function GET(request: Request) {
       row.flyer += activity.flyer
       row.sosialisasi += activity.sosialisasi
       row.dataBase += activity.dataBase
+      row.event += activity.event
       row.total += activity.total
     }
 
@@ -102,7 +104,8 @@ export async function GET(request: Request) {
         row.psb * WEIGHT.psb +
         row.dataBase * WEIGHT.dataBase +
         row.sosialisasi * WEIGHT.sosialisasi +
-        row.flyer * WEIGHT.flyer,
+        row.flyer * WEIGHT.flyer +
+        row.event * WEIGHT.event,
     }))
 
     rows.sort((a, b) => {

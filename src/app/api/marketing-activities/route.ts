@@ -166,6 +166,7 @@ export async function POST(request: Request) {
       flyer,
       sosialisasi,
       dataBase,
+      event,
     } = body
 
     if (!date || (!marketingName && activeSession.user.role !== 'MARKETING')) {
@@ -201,6 +202,7 @@ export async function POST(request: Request) {
     const flyerValue = toNonNegativeInt(flyer)
     const sosialisasiValue = toNonNegativeInt(sosialisasi)
     const dataBaseValue = toNonNegativeInt(dataBase)
+    const eventValue = toNonNegativeInt(event)
 
     const newActivity = await prisma.marketingActivity.create({
       data: {
@@ -211,7 +213,8 @@ export async function POST(request: Request) {
         flyer: flyerValue,
         sosialisasi: sosialisasiValue,
         dataBase: dataBaseValue,
-        total: flyerValue + sosialisasiValue,
+        event: eventValue,
+        total: flyerValue + sosialisasiValue + eventValue,
         areaId: uniquePicked[0],
         areaId2: uniquePicked[1],
         areaId3: uniquePicked[2],
