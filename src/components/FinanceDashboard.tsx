@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import Image from 'next/image'
 import {
   CartesianGrid,
   Legend,
@@ -454,13 +453,6 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
           <div className="min-w-0">
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard Admin Billing</h1>
             <p className="mt-0.5 text-sm text-white/80">Rekapitulasi data pelanggan baru (PSB) dan pengaduan (Solir)</p>
-          </div>
-          <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
-            <Image src="/logo-white.svg" alt="Perkasa Networks" width={32} height={32} className="h-8 w-auto" />
-            <div className="text-right">
-              <div className="text-sm font-bold leading-tight">PERKASA</div>
-              <div className="text-[11px] leading-tight text-white/70">NETWORKS</div>
-            </div>
           </div>
         </div>
       </div>
