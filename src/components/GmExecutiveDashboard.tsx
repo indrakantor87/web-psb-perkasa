@@ -95,7 +95,9 @@ export function GmExecutiveDashboard() {
             <DivisionPerformance divisions={data.divisions} periodLabel={data.periodLabel} />
           </div>
 
-          <CustomersIsolationBarChart data={data.dailySeries} />
+          <div className="hidden lg:block">
+            <CustomersIsolationBarChart data={data.dailySeries} />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TotalCustomersLineChart data={data.dailySeries} />
@@ -109,7 +111,9 @@ export function GmExecutiveDashboard() {
 
           <MarketingPerformanceTable rows={data.marketingPerformance} />
 
-          <NetworkSection network={data.network} periodLabel={data.periodLabel} />
+          <div className="hidden lg:block">
+            <NetworkSection network={data.network} periodLabel={data.periodLabel} />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
