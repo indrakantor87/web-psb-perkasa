@@ -91,7 +91,7 @@ export function GmExecutiveDashboard() {
             snapshotAvailable={data.snapshotAvailable}
           />
 
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <DivisionPerformance divisions={data.divisions} periodLabel={data.periodLabel} />
           </div>
 
