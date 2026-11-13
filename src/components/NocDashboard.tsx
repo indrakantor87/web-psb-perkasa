@@ -481,7 +481,7 @@ export function NocDashboard() {
               action={<Link href="/trouble-ticket?division=NOC_TROUBLESHOOTS" className="text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">Lihat semua</Link>}
               className="xl:col-span-5"
             >
-              <div className="space-y-2">
+              <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
                 {data?.incidents.latest.map((incident) => (
                   <Link
                     key={incident.id}
