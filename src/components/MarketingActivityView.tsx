@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
@@ -83,7 +83,7 @@ export function MarketingActivityView({
   const [rankingLoading, setRankingLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [detailExpanded, setDetailExpanded] = useState(false)
+  const [expandedMarketing, setExpandedMarketing] = useState<string | null>(null)
   const [editingActivity, setEditingActivity] = useState<MarketingActivityRecord | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
@@ -591,6 +591,7 @@ export function MarketingActivityView({
           <table className="w-full min-w-[640px] divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
+                <th className="w-8 px-2 py-3"></th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Peringkat</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Nama Marketing</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Skor</th>
@@ -599,32 +600,224 @@ export function MarketingActivityView({
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total Flyer</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
               {rankingLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
+                  <td colSpan={10} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
                 </tr>
               ) : ranking.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
+                  <td colSpan={10} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
                 </tr>
               ) : (
-                ranking.map((row) => (
-                  <tr key={row.name} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">#{row.rank}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{row.name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-bold text-gray-900 dark:text-gray-100">{row.skor}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.psb}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.flyer}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.sosialisasi}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.event}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.dataBase}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.total}</td>
-                  </tr>
-                ))
+                ranking.map((row) => {
+                  const isExpanded = expandedMarketing === row.name
+                  const marketingActivities = activities.filter((a) => a.marketingName === row.name)
+                  return (
+                    <Fragment key={row.name}>
+                      <tr
+                        className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                        onClick={() => setExpandedMarketing(isExpanded ? null : row.name)}
+                      >
+                        <td className="px-2 py-3 text-center">
+                          {isExpanded ? (
+                            <ChevronDown className="mx-auto h-4 w-4 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="mx-auto h-4 w-4 text-gray-500" />
+                          )}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-gray-100">#{row.rank}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{row.name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-bold text-gray-900 dark:text-gray-100">{row.skor}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.psb}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.flyer}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.sosialisasi}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.event}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.dataBase}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.total}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-gray-50/60 dark:bg-gray-900/30">
+                          <td colSpan={10} className="p-4">
+                            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                              Detail Data Harian — {row.name} ({marketingActivities.length} data)
+                            </div>
+                            {/* Tabel (desktop) */}
+                            <div className="hidden overflow-x-auto md:block">
+                              <table className="w-full min-w-[820px] divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-gray-50 dark:bg-gray-900">
+                                  <tr>
+                                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Tanggal</th>
+                                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aktivitas (Area)</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Flyer</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total Flyer</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
+                                    <th className="px-4 py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+                                  {loading ? (
+                                    <tr>
+                                      <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">Memuat data...</td>
+                                    </tr>
+                                  ) : marketingActivities.length === 0 ? (
+                                    <tr>
+                                      <td colSpan={9} className="px-4 py-4 text-center text-sm text-gray-500">
+                                        Belum ada laporan aktivitas pada periode ini.
+                                      </td>
+                                    </tr>
+                                  ) : (
+                                    marketingActivities.map((activity) => (
+                                      <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                        <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
+                                          {format(new Date(activity.date), 'dd MMM yyyy', { locale: idLocale })}
+                                        </td>
+                                        <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+                                          {activity.area?.name || activity.activity || '-'}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.flyer}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.sosialisasi}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.event}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm font-semibold text-gray-900 dark:text-gray-100">{activity.total}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.dataBase}</td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">
+                                          {activity.psb > 0 ? activity.psb : '-'}
+                                        </td>
+                                        <td className="px-4 py-2 whitespace-nowrap text-center">
+                                          <div className="flex justify-center gap-1">
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleCopy(activity) }}
+                                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
+                                              title="Salin laporan untuk WhatsApp"
+                                            >
+                                              {copiedId === activity.id ? (
+                                                <Check className="h-3.5 w-3.5 text-green-600" />
+                                              ) : (
+                                                <Copy className="h-3.5 w-3.5" />
+                                              )}
+                                            </button>
+                                            {canMutate && (
+                                              <>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); openEditModal(activity) }}
+                                                  className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                  title="Edit"
+                                                >
+                                                  <Edit2 className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); handleDelete(activity.id) }}
+                                                  className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 dark:hover:bg-red-950"
+                                                  title="Hapus"
+                                                >
+                                                  <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Kartu (mobile) */}
+                            <div className="space-y-3 md:hidden">
+                              {loading ? (
+                                <div className="p-4 text-center text-sm text-gray-500">Memuat data...</div>
+                              ) : marketingActivities.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-gray-500">Belum ada laporan aktivitas pada periode ini.</div>
+                              ) : (
+                                marketingActivities.map((activity) => (
+                                  <div key={activity.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                          {activity.area?.name || activity.activity || '-'}
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                          {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: idLocale })}
+                                        </p>
+                                      </div>
+                                      <div className="flex flex-shrink-0 gap-1">
+                                        <button
+                                          onClick={() => handleCopy(activity)}
+                                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                          title="Salin laporan untuk WhatsApp"
+                                        >
+                                          {copiedId === activity.id ? (
+                                            <Check className="h-4 w-4 text-green-600" />
+                                          ) : (
+                                            <Copy className="h-4 w-4" />
+                                          )}
+                                        </button>
+                                        {canMutate && (
+                                          <>
+                                            <button
+                                              onClick={() => openEditModal(activity)}
+                                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                              title="Edit"
+                                            >
+                                              <Edit2 className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                              onClick={() => handleDelete(activity.id)}
+                                              className="rounded-md p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                                              title="Hapus"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">Flyer</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.flyer}</span>
+                                      </div>
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">Sosialisasi</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.sosialisasi}</span>
+                                      </div>
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">Event</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.event}</span>
+                                      </div>
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">Total Flyer</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.total}</span>
+                                      </div>
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">Data Base</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.dataBase}</span>
+                                      </div>
+                                      <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
+                                        <span className="block text-gray-500 dark:text-gray-400">PSB</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.psb > 0 ? activity.psb : '-'}</span>
+                                      </div>
+                                    </div>
+                                    {activity.notes && (
+                                      <p className="mt-2 text-xs italic text-gray-500 dark:text-gray-400">{activity.notes}</p>
+                                    )}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -713,219 +906,6 @@ export function MarketingActivityView({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Detail Data Harian (collapsible) */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <button
-          type="button"
-          onClick={() => setDetailExpanded((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 border-b border-gray-100 bg-gray-50 p-4 text-left transition-colors hover:bg-gray-100/60 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-900/60"
-        >
-          <div>
-            <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
-              {detailExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-gray-500" />
-              )}
-              Detail Data Harian
-              <span className="ml-1 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                {activities.length} data
-              </span>
-            </h3>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {detailExpanded
-                ? isAdmin
-                  ? 'Laporan aktivitas harian seluruh marketing.'
-                  : 'Laporan aktivitas harian milik Anda.'
-                : 'Klik untuk melihat detail laporan aktivitas harian.'}
-            </p>
-          </div>
-        </button>
-
-        {detailExpanded && (
-        <>
-        {/* Tabel (desktop) */}
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full min-w-[860px] divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Tanggal</th>
-                {isAdmin && (
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Marketing</th>
-                )}
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aktivitas (Area)</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Flyer</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
-              {loading ? (
-                <tr>
-                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-4 text-center text-sm text-gray-500">Memuat data...</td>
-                </tr>
-              ) : activities.length === 0 ? (
-                <tr>
-                  <td colSpan={isAdmin ? 10 : 9} className="px-4 py-4 text-center text-sm text-gray-500">
-                    Belum ada laporan aktivitas pada periode ini.
-                  </td>
-                </tr>
-              ) : (
-                activities.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-                      {format(new Date(activity.date), 'dd MMM yyyy', { locale: idLocale })}
-                    </td>
-                    {isAdmin && (
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {activity.marketingName}
-                      </td>
-                    )}
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
-                      {activity.area?.name || activity.activity || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.flyer}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.sosialisasi}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.event}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-semibold text-gray-900 dark:text-gray-100">{activity.total}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{activity.dataBase}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">
-                      {activity.psb > 0 ? activity.psb : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
-                      <div className="flex justify-center gap-1">
-                        <button
-                          onClick={() => handleCopy(activity)}
-                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
-                          title="Salin laporan untuk WhatsApp"
-                        >
-                          {copiedId === activity.id ? (
-                            <Check className="h-3.5 w-3.5 text-green-600" />
-                          ) : (
-                            <Copy className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        {canMutate && (
-                          <>
-                            <button
-                              onClick={() => openEditModal(activity)}
-                              className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700"
-                              title="Edit"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(activity.id)}
-                              className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 dark:hover:bg-red-950"
-                              title="Hapus"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Kartu (mobile) */}
-        <div className="divide-y divide-gray-100 dark:divide-gray-700 md:hidden">
-          {loading ? (
-            <div className="p-4 text-center text-sm text-gray-500">Memuat data...</div>
-          ) : activities.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">Belum ada laporan aktivitas pada periode ini.</div>
-          ) : (
-            activities.map((activity) => (
-              <div key={activity.id} className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {activity.area?.name || activity.activity || '-'}
-                    </p>
-                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                      {format(new Date(activity.date), 'EEEE, d MMMM yyyy', { locale: idLocale })}
-                    </p>
-                    {isAdmin && (
-                      <p className="mt-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">{activity.marketingName}</p>
-                    )}
-                  </div>
-                  <div className="flex flex-shrink-0 gap-1">
-                    <button
-                      onClick={() => handleCopy(activity)}
-                      className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                      title="Salin laporan untuk WhatsApp"
-                    >
-                      {copiedId === activity.id ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
-                    {canMutate && (
-                      <>
-                        <button
-                          onClick={() => openEditModal(activity)}
-                          className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(activity.id)}
-                          className="rounded-md p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                          title="Hapus"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">Flyer</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.flyer}</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">Sosialisasi</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.sosialisasi}</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">Event</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.event}</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">Total</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.total}</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">Data Base</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.dataBase}</span>
-                  </div>
-                  <div className="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-900">
-                    <span className="block text-gray-500 dark:text-gray-400">PSB</span>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">{activity.psb > 0 ? activity.psb : '-'}</span>
-                  </div>
-                </div>
-                {activity.notes && (
-                  <p className="mt-2 text-xs italic text-gray-500 dark:text-gray-400">{activity.notes}</p>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-        </>
-        )}
       </div>
 
       {/* Modal */}
