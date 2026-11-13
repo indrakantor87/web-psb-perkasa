@@ -708,7 +708,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
                 <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <YAxis allowDecimals={false} domain={['dataMin - 15', 'dataMax + 15']} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
                   <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
                   <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
                   <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
@@ -724,7 +724,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
                 <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <YAxis allowDecimals={false} domain={['dataMin - 10', 'dataMax + 10']} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
                   <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
                   <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
                   <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
