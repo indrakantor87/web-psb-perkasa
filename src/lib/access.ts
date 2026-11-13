@@ -400,7 +400,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'list':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'marketing-activities':
-      return false
+      return roleUpper === 'MARKETING'
     case 'daily-activity':
       return true
     case 'isolir':
@@ -467,7 +467,22 @@ export function canUseAdminIsolationDismantleScope(role: string | null | undefin
 }
 
 export function canMutateMarketingActivities(role: string | null | undefined) {
+  return isAdminRole(role) || normalizeRole(role) === 'MARKETING'
+}
+
+/**
+ * Hanya Admin/Developer yang boleh impor massal aktivitas marketing.
+ * Role MARKETING hanya boleh membuat/mengubah data miliknya sendiri.
+ */
+export function canImportMarketingActivities(role: string | null | undefined) {
   return isAdminRole(role)
+}
+
+/**
+ * Role yang hanya boleh melihat aktivitas marketing miliknya sendiri.
+ */
+export function isMarketingActivityOwnerScopedRole(role?: string | null) {
+  return normalizeRole(role) === 'MARKETING'
 }
 
 export function canMutateOdpRecords(role: string | null | undefined) {

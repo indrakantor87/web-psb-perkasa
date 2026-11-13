@@ -228,6 +228,10 @@ model MarketingActivity {
   marketingName String
   activity      String
   notes         String?
+  flyer         Int      @default(0)
+  sosialisasi   Int      @default(0)
+  dataBase      Int      @default(0)
+  total         Int      @default(0)
   
   areaId        Int?
   area          CoveredArea? @relation("MarketingActivityArea1", fields: [areaId], references: [id])

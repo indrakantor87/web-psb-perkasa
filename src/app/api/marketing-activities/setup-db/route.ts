@@ -11,6 +11,10 @@ export async function GET() {
           "marketingName" TEXT NOT NULL,
           "activity" TEXT NOT NULL,
           "notes" TEXT,
+          "flyer" INTEGER NOT NULL DEFAULT 0,
+          "sosialisasi" INTEGER NOT NULL DEFAULT 0,
+          "dataBase" INTEGER NOT NULL DEFAULT 0,
+          "total" INTEGER NOT NULL DEFAULT 0,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -102,6 +106,24 @@ export async function GET() {
       }
     } catch (colError) {
       console.log('Error adding areaId column:', colError)
+    }
+
+    // Add numeric activity columns to MarketingActivity if they don't exist
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "flyer" INTEGER NOT NULL DEFAULT 0;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "sosialisasi" INTEGER NOT NULL DEFAULT 0;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "dataBase" INTEGER NOT NULL DEFAULT 0;
+      `)
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "MarketingActivity" ADD COLUMN IF NOT EXISTS "total" INTEGER NOT NULL DEFAULT 0;
+      `)
+    } catch (numColError) {
+      console.log('Error adding numeric activity columns:', numColError)
     }
 
     return NextResponse.json({ message: 'Database setup completed successfully' })

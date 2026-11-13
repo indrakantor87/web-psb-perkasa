@@ -20,3 +20,17 @@ export function jakartaDateFromExcelSerial(serial: number) {
   if (isNaN(d.getTime())) return null
   return jakartaDateFromDMY(d.getUTCDate(), d.getUTCMonth() + 1, d.getUTCFullYear())
 }
+
+/**
+ * Kunci tanggal (YYYY-MM-DD) berdasarkan zona waktu Asia/Jakarta.
+ * Dipakai untuk mencocokkan laporan aktivitas marketing dengan data tiket PSB per hari.
+ */
+export function jakartaDayKey(date: Date | string | number) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (isNaN(d.getTime())) return ''
+  const shifted = new Date(d.getTime() + JAKARTA_OFFSET_MS)
+  const y = shifted.getUTCFullYear()
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(shifted.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
