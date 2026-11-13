@@ -388,7 +388,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
     setMessage('Detail Data Harian berhasil diekspor ke Excel (CSV).')
   }
 
-  const totalSolir = latest ? latest.isolationContinued + latest.isolationNotContinued : 0
+  const totalIsolir = latest ? latest.isolationContinued + latest.isolationNotContinued : 0
   const totalDismantle = latest ? latest.dismantleOpen : 0
 
   const baseline = entries.at(0) ?? null
@@ -398,10 +398,10 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
   const psbChange = getChangePercent(psbValue, baseline?.totalPsbList ?? 0)
   const psbSpark = sparkWindow.map((entry) => entry.totalPsbList)
 
-  const solirValue = totalSolir
-  const solirBaseline = baseline ? baseline.isolationContinued + baseline.isolationNotContinued : 0
-  const solirChange = getChangePercent(solirValue, solirBaseline)
-  const solirSpark = sparkWindow.map((entry) => entry.isolationContinued + entry.isolationNotContinued)
+  const isolirValue = totalIsolir
+  const isolirBaseline = baseline ? baseline.isolationContinued + baseline.isolationNotContinued : 0
+  const isolirChange = getChangePercent(isolirValue, isolirBaseline)
+  const isolirSpark = sparkWindow.map((entry) => entry.isolationContinued + entry.isolationNotContinued)
 
   const dismantleValue = totalDismantle
   const dismantleChange = getChangePercent(dismantleValue, baseline?.dismantleOpen ?? 0)
@@ -452,7 +452,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard Admin Billing</h1>
-            <p className="mt-0.5 text-sm text-white/80">Rekapitulasi data pelanggan baru (PSB) dan pengaduan (Solir)</p>
+            <p className="mt-0.5 text-sm text-white/80">Rekapitulasi data pelanggan baru (PSB) dan pengaduan (Isolir)</p>
           </div>
         </div>
       </div>
@@ -528,10 +528,10 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
           sparkColor="#3b82f6"
         />
         <BillingStatCard
-          label="Total Solir"
-          value={solirValue}
-          changePercent={solirChange}
-          sparkValues={solirSpark}
+          label="Total Isolir"
+          value={isolirValue}
+          changePercent={isolirChange}
+          sparkValues={isolirSpark}
           icon={<Wrench className="h-6 w-6" />}
           iconBg="bg-emerald-500"
           sparkColor="#10b981"
