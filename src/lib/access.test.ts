@@ -178,8 +178,8 @@ test('marketing ownership requires a non-empty matching session owner', () => {
   assert.equal(isMarketingOwnerMatch('Budi Santoso', 'Siti Aminah'), false)
 })
 
-test('Isolir and Dismantle mutations stay limited to Admin, Developer, CS, and Admin CS', () => {
-  for (const role of ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS']) {
+test('Isolir and Dismantle mutations stay limited to Admin, Developer, CS, Admin CS, and Finance', () => {
+  for (const role of ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'FINANCE']) {
     assert.equal(canMutateIsolationRecords(role), true, `${role} should mutate Isolir`)
     assert.equal(canDeleteIsolationRecords(role), true, `${role} should delete Isolir`)
   }

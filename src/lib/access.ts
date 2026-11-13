@@ -102,11 +102,11 @@ export function isTechnicianRole(role?: string | null) {
  * karyawan). Role lain hanya boleh melihat absensi miliknya sendiri.
  */
 export function canAccessHrEmployees(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR', 'FINANCE'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR'])
 }
 
 export function canManageHrRecords(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR', 'FINANCE'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR'])
 }
 
 export function canReadFingerprintMachine(role?: string | null) {
@@ -118,7 +118,7 @@ export function canConfigureFingerprintMachine(role?: string | null) {
 }
 
 export function canRunAttendanceOperations(role?: string | null) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR', 'FINANCE'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'HR'])
 }
 
 export function canManageTargetUser(actorRole?: string | null, targetRole?: string | null) {
@@ -306,8 +306,10 @@ function getAccessibleMenus(
     return menus
   }
 
-  if (roleUpper === 'HR' || roleUpper === 'FINANCE') {
+  if (roleUpper === 'HR') {
     menus = menuSet(['dashboard', 'hr'])
+  } else if (roleUpper === 'FINANCE') {
+    menus = menuSet(['dashboard', 'hr', 'isolir'])
   } else if (roleUpper === 'GENERAL_AFFAIR') {
     menus = menuSet(['dashboard', 'hr'])
   } else if (roleUpper === 'OPERASIONAL') {
@@ -402,7 +404,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'daily-activity':
       return true
     case 'isolir':
-      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
+      return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'FINANCE'
     case 'dismantle':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'odp':
@@ -417,7 +419,7 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
     case 'analytics':
       return roleUpper === 'CREATOR_DIGITAL'
     case 'hr':
-      return roleUpper === 'HR' || roleUpper === 'FINANCE'
+      return roleUpper === 'HR'
     default:
       return false
   }
@@ -453,15 +455,15 @@ export function canMutateTroubleTicketRecords(role: string | null | undefined) {
 }
 
 export function canMutateIsolationRecords(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'FINANCE'])
 }
 
 export function canDeleteIsolationRecords(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'FINANCE'])
 }
 
 export function canUseAdminIsolationDismantleScope(role: string | null | undefined) {
-  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'CS', 'ADMIN_CS'])
+  return hasAnyRole(role, ['ADMIN', 'DEVELOPER', 'PRIORITY', 'CS', 'ADMIN_CS', 'FINANCE'])
 }
 
 export function canMutateMarketingActivities(role: string | null | undefined) {
