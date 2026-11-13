@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import Image from 'next/image'
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -712,8 +710,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
       {entries.length > 0 && (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-            <h3 className="mb-1 text-sm font-semibold text-ink">Total Pelanggan &amp; Aktif</h3>
-            <p className="mb-3 text-xs text-ink-muted">Jumlah per tanggal laporan</p>
+            <h3 className="mb-1 text-sm font-semibold text-ink">Total Pelanggan Harian RadBoox 24, 25 &amp; 26</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -722,16 +719,14 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
                   <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
                   <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
-                  <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-            <h3 className="mb-1 text-sm font-semibold text-ink">Rekap PSB</h3>
-            <p className="mb-3 text-xs text-ink-muted">Total list kumulatif bulanan, backlog antrian akhir hari, dan pemasangan harian</p>
+            <h3 className="mb-1 text-sm font-semibold text-ink">Pelanggan Aktif Harian RadBoox 24, 25 &amp; 26</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -740,35 +735,14 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
                   <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
                   <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
-                  <Line type="monotone" dataKey="totalPsbList" name="Total List PSB" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="installationQueue" name="Antrian Pasang" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="installedToday" name="Terpasang" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-            <h3 className="mb-1 text-sm font-semibold text-ink">Data Isolir</h3>
-            <p className="mb-3 text-xs text-ink-muted">Jumlah yang masih dilanjutkan dan tidak dilanjutkan</p>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
-                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
-                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
-                  <Bar dataKey="isolationContinued" name="Masih Dilanjutkan" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="isolationNotContinued" name="Tidak Dilanjutkan" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
-            <h3 className="mb-1 text-sm font-semibold text-ink">Dismantle</h3>
-            <p className="mb-3 text-xs text-ink-muted">Open adalah backlog akhir hari; Close adalah jumlah yang ditutup pada hari tersebut</p>
+            <h3 className="mb-1 text-sm font-semibold text-ink">Data Isolir Harian</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -777,8 +751,25 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
                   <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
                   <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
-                  <Line type="monotone" dataKey="dismantleOpen" name="Open (backlog)" stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="dismantleClosed" name="Close harian" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="isolationContinued" name="Masih Dilanjutkan" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="isolationNotContinued" name="Tidak Dilanjutkan" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Dismantle Harian</h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="dismantleClosed" name="Close" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="dismantleOpen" name="Open" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#fff' }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
