@@ -16,7 +16,6 @@ export async function ensureOdpTable() {
             id SERIAL PRIMARY KEY,
             nama_pop VARCHAR(100) NOT NULL,
             lokasi TEXT,
-            ip_address TEXT,
             latitude DOUBLE PRECISION,
             longitude DOUBLE PRECISION,
             is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -27,7 +26,6 @@ export async function ensureOdpTable() {
         await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS uq_psb_pop_nama_active ON psb_pop (lower(nama_pop)) WHERE is_active = TRUE;`)
 
         // Pastikan kolom pada psb_pop tersedia (untuk tabel yang sudah ada dari versi lama)
-        await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS ip_address TEXT;`)
         await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;`)
         await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;`)
         await prisma.$executeRawUnsafe(`ALTER TABLE psb_pop ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;`)

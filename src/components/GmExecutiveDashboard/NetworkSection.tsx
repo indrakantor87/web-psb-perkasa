@@ -97,11 +97,11 @@ export function NetworkSection({
               <div className="mt-1 text-[10px] text-ink-muted">Cek terakhir: {new Date(network.lastCheckedAt).toLocaleString('id-ID')}</div>
             )}
           </div>
-          {network.byPop.length > 0 && (
+          {network.byPlatform.length > 0 && (
             <div className="space-y-1 max-h-32 overflow-y-auto">
-              {network.byPop.map((p) => (
-                <div key={p.popId} className="flex items-center justify-between text-xs">
-                  <span className="truncate text-ink-muted">{p.popName}</span>
+              {network.byPlatform.map((p) => (
+                <div key={p.platform} className="flex items-center justify-between text-xs">
+                  <span className="truncate text-ink-muted">{p.label}</span>
                   <span className={`font-semibold ${p.currentStatus === 'UP' ? 'text-emerald-600 dark:text-emerald-400' : p.currentStatus === 'DOWN' ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
                     {p.currentStatus} {p.availabilityPercent.toFixed(1)}%
                   </span>

@@ -18,7 +18,7 @@ Kategori perubahan:
 ### Added
 - Dashboard GM/Priority: tabel Kinerja Marketing tampil di bawah grafik Data Isolir Harian dan Dismantle Harian, dengan ringkasan status, progres target close, serta jumlah isolir.
 - Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.
-- Dashboard NOC desktop/mobile: ringkasan availability dan latency probe, status POP, Trouble Ticket aktif, peta Jalur ringkas, serta placeholder telemetry RouterOS tanpa angka rekaan.
+- Dashboard NOC desktop/mobile: ringkasan availability dan latency probe, status layanan media sosial, Trouble Ticket aktif, peta Jalur ringkas, serta placeholder telemetry RouterOS tanpa angka rekaan.
 
 ### Changed
 - Navigasi mobile menampilkan Beranda, pintasan cepat sesuai role, dan Menu khusus Pengaturan; modul lainnya tersedia di Beranda.
@@ -27,7 +27,7 @@ Kategori perubahan:
 - Peta Jalur menampilkan basemap sejak awal, memakai OSM sebagai layer awal, dan mengambil payload data marker yang lebih ringkas; citra satelit tetap tersedia.
 - Peta Jalur: marker ODC/Splice/ODP hanya dirender untuk area peta yang terlihat (viewport culling dengan margin), sehingga ribuan titik tidak lagi menjadi ribuan elemen DOM saat peta dimuat dan digeser.
 - Peta Jalur: pemuatan data dioptimalkan dengan cache berlapis — cache memori di sisi klien (60 detik) serta cache TTL pada endpoint `jalur`, `splice`, `odp/pop`, dan `odp/odc` yang otomatis di-invalidasi setiap ada perubahan, import, atau penghapusan data.
-- Dashboard NOC memastikan kolom IP POP tersedia pada skema lama sebelum membaca status probe.
+- Dashboard NOC: probe diganti dari ping ICMP ke POP menjadi probe HTTP ke layanan media sosial (Instagram, Facebook, TikTok, WhatsApp, YouTube, X) dengan interval aman 5 menit, ambang stale 15 menit, serta tabel `social_ping_results`. Dashboard GM/Priority kini menghitung metrik availability jaringan dari hasil probe media sosial.
 - Peta Jalur menggunakan aset marker yang dirujuk KMZ POP MARGOYOSO: pushpin hijau ODP, pushpin putih bertint KML untuk ODC, dan paddle bintang kuning untuk Splice, termasuk skala serta hotspot-nya.
 - Ekspor KML untuk Splice memakai ikon `ylw-stars.png` dan hotspot yang sama dengan style normal KMZ.
 - Import KML/KMZ mempertahankan nama placemark serta metadata ikon (gambar, warna, skala, hotspot) agar marker dan label tampil di peta.
@@ -36,6 +36,9 @@ Kategori perubahan:
 ### Fixed
 - Dashboard GM/Priority: tambahkan grafik batang gabungan pelanggan, pelanggan aktif, dan isolir ke tampilan utama; label angka dan seluruh panel mengikuti warna tema terang/gelap.
 - Role Priority: tegakkan mode baca-saja pada endpoint mutasi API dan nonaktifkan perubahan foto profil.
+
+### Removed
+- Ping ICMP ke POP beserta seluruh kode terkait: tabel `network_ping_results`, script cron `run-network-ping.js`, endpoint `/api/cron/network-ping`, dependensi `iputils-ping` pada Dockerfile, dan kolom `psb_pop.ip_address`.
 
 ## [1.20.2] - 2026-11-12
 

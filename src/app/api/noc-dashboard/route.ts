@@ -2,18 +2,20 @@ import { NextResponse } from 'next/server'
 import { Prisma as PrismaSql } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { ensureNetworkPingTableOnce } from '@/lib/network-ping-db'
+import { ensureSocialPingTableOnce } from '@/lib/social-ping-db'
+import { SOCIAL_PLATFORMS } from '@/lib/social-ping'
 import { ensureOdpTable } from '@/lib/odp-init'
-import { getNocPopStatus, getProbeAvailability } from '@/lib/noc-dashboard'
+import { getProbeStatus, getProbeAvailability } from '@/lib/noc-dashboard'
 
 export const dynamic = 'force-dynamic'
 
-type PopMonitorRow = {
-  id: number
-  nama_pop: string
+type PlatformMonitorRow = {
+  platform: string
+  label: string
   results: boolean[] | null
   last_checked_at: Date | null
   latest_latency_ms: number | null
+  latest_status_code: number | null
 }
 
 type ProbeHourRow = {
@@ -47,52 +49,46 @@ export async function GET() {
   }
 
   try {
-    await ensureOdpTable()
-    await ensureNetworkPingTableOnce()
+    await Promise.all([ensureOdpTable(), ensureSocialPingTableOnce()])
     const now = new Date()
     const hourMs = 60 * 60 * 1000
     const bucketStartMs = Math.floor(now.getTime() / hourMs) * hourMs - 23 * hourMs
     const bucketStart = new Date(bucketStartMs)
 
-    const [popRows, probeHours, incidentCounts, latestIncidents] = await Promise.all([
-      prisma.$queryRaw<PopMonitorRow[]>(PrismaSql.sql`
+    const [platformRows, probeHours, incidentCounts, latestIncidents] = await Promise.all([
+      prisma.$queryRaw<PlatformMonitorRow[]>(PrismaSql.sql`
         SELECT
-          p.id,
-          p.nama_pop,
-          recent.results,
-          recent.last_checked_at,
-          recent.latest_latency_ms
-        FROM psb_pop p
-        LEFT JOIN LATERAL (
+          ranked.platform,
+          (ARRAY_AGG(ranked.label ORDER BY ranked.checked_at DESC))[1] AS label,
+          ARRAY_AGG(ranked.success ORDER BY ranked.checked_at DESC) AS results,
+          MAX(ranked.checked_at) AS last_checked_at,
+          (ARRAY_AGG(ranked.latency_ms ORDER BY ranked.checked_at DESC))[1] AS latest_latency_ms,
+          (ARRAY_AGG(ranked.status_code ORDER BY ranked.checked_at DESC))[1] AS latest_status_code
+        FROM (
           SELECT
-            ARRAY_AGG(samples.success ORDER BY samples.checked_at DESC) AS results,
-            MAX(samples.checked_at) AS last_checked_at,
-            (ARRAY_AGG(samples.latency_ms ORDER BY samples.checked_at DESC))[1] AS latest_latency_ms
-          FROM (
-            SELECT success, checked_at, latency_ms
-            FROM network_ping_results
-            WHERE pop_id = p.id
-            ORDER BY checked_at DESC
-            LIMIT 2
-          ) samples
-        ) recent ON TRUE
-        WHERE p.is_active IS NOT FALSE
-          AND NULLIF(TRIM(p.ip_address), '') IS NOT NULL
-        ORDER BY p.nama_pop ASC
+            platform,
+            label,
+            success,
+            latency_ms,
+            status_code,
+            checked_at,
+            ROW_NUMBER() OVER (PARTITION BY platform ORDER BY checked_at DESC) AS rn
+          FROM social_ping_results
+          WHERE checked_at >= NOW() - INTERVAL '7 days'
+        ) ranked
+        WHERE ranked.rn <= 2
+        GROUP BY ranked.platform
       `),
       prisma.$queryRaw<ProbeHourRow[]>(PrismaSql.sql`
         SELECT
-          date_trunc('hour', r.checked_at) AS hour,
+          date_trunc('hour', checked_at) AS hour,
           COUNT(*)::int AS total,
-          COUNT(*) FILTER (WHERE r.success)::int AS successful,
-          SUM(r.latency_ms) FILTER (WHERE r.success AND r.latency_ms IS NOT NULL)::float8 AS latency_sum,
-          COUNT(r.latency_ms) FILTER (WHERE r.success)::int AS latency_count
-        FROM network_ping_results r
-        INNER JOIN psb_pop p ON p.id = r.pop_id
-        WHERE p.is_active IS NOT FALSE
-          AND NULLIF(TRIM(p.ip_address), '') IS NOT NULL
-          AND r.checked_at >= ${bucketStart}
-          AND r.checked_at <= ${now}
+          COUNT(*) FILTER (WHERE success)::int AS successful,
+          SUM(latency_ms) FILTER (WHERE success AND latency_ms IS NOT NULL)::float8 AS latency_sum,
+          COUNT(latency_ms) FILTER (WHERE success)::int AS latency_count
+        FROM social_ping_results
+        WHERE checked_at >= ${bucketStart}
+          AND checked_at <= ${now}
         GROUP BY 1
         ORDER BY 1 ASC
       `),
@@ -103,7 +99,7 @@ export async function GET() {
               AND UPPER(TRIM(COALESCE(type, ''))) <> 'PREVENTIVE'
           )::int AS trouble_active,
           COUNT(*) FILTER (
-            WHERE UPPER(TRIM(COALESCE(category, 'TT'))) = 'PV'
+            WHERE UPPER(TRIM(COALESCE(category, 'PV'))) = 'PV'
               OR UPPER(TRIM(COALESCE(type, ''))) = 'PREVENTIVE'
           )::int AS preventive_active
         FROM "TroubleTicket"
@@ -125,26 +121,29 @@ export async function GET() {
       `),
     ])
 
-    const pops = popRows.map((pop) => {
-      const samples = (pop.results ?? []).map((success) => ({
+    const platformMap = new Map(platformRows.map((row) => [row.platform, row]))
+    const platforms = SOCIAL_PLATFORMS.map((platform) => {
+      const row = platformMap.get(platform.id)
+      const samples = (row?.results ?? []).map((success) => ({
         success,
-        checkedAt: pop.last_checked_at ?? now,
+        checkedAt: row?.last_checked_at ?? now,
       }))
-      const status = getNocPopStatus(samples, now)
       return {
-        id: pop.id,
-        name: pop.nama_pop,
-        status,
-        latestCheckedAt: pop.last_checked_at,
-        latencyMs: pop.latest_latency_ms,
+        id: platform.id,
+        label: platform.label,
+        url: platform.url,
+        status: getProbeStatus(samples, now),
+        latestCheckedAt: row?.last_checked_at ?? null,
+        latencyMs: row?.latest_latency_ms ?? null,
+        statusCode: row?.latest_status_code ?? null,
       }
     })
 
     const statusSummary = {
-      up: pops.filter((pop) => pop.status === 'UP').length,
-      warning: pops.filter((pop) => pop.status === 'WARNING').length,
-      down: pops.filter((pop) => pop.status === 'DOWN').length,
-      unknown: pops.filter((pop) => pop.status === 'UNKNOWN').length,
+      up: platforms.filter((platform) => platform.status === 'UP').length,
+      warning: platforms.filter((platform) => platform.status === 'WARNING').length,
+      down: platforms.filter((platform) => platform.status === 'DOWN').length,
+      unknown: platforms.filter((platform) => platform.status === 'UNKNOWN').length,
     }
 
     const byHour = new Map(
@@ -166,9 +165,9 @@ export async function GET() {
     const successfulChecks = probeHours.reduce((sum, row) => sum + row.successful, 0)
     const latencyCount = probeHours.reduce((sum, row) => sum + row.latency_count, 0)
     const latencySum = probeHours.reduce((sum, row) => sum + Number(row.latency_sum ?? 0), 0)
-    const lastCheckedAt = pops.reduce<Date | null>((latest, pop) => {
-      if (!pop.latestCheckedAt) return latest
-      if (!latest || pop.latestCheckedAt > latest) return pop.latestCheckedAt
+    const lastCheckedAt = platforms.reduce<Date | null>((latest, platform) => {
+      if (!platform.latestCheckedAt) return latest
+      if (!latest || platform.latestCheckedAt > latest) return platform.latestCheckedAt
       return latest
     }, null)
     const counts = incidentCounts[0] ?? { trouble_active: 0, preventive_active: 0 }
@@ -177,12 +176,12 @@ export async function GET() {
       {
         generatedAt: now.toISOString(),
         network: {
-          popTotal: pops.length,
+          platformTotal: platforms.length,
           statusSummary,
           availabilityPercent: getProbeAvailability(successfulChecks, totalChecks),
           avgLatencyMs: latencyCount > 0 ? latencySum / latencyCount : null,
           lastCheckedAt,
-          pops,
+          platforms,
           series,
         },
         incidents: {

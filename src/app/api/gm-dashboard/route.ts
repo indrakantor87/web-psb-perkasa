@@ -12,7 +12,7 @@ import {
 } from '@/lib/gm-dashboard-period'
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureGmDailyReportTableOnce } from '@/lib/gm-daily-report-db'
-import { getNetworkAvailability } from '@/lib/network-ping'
+import { getSocialAvailability } from '@/lib/social-ping'
 import { getMarketingNameMap, marketingNameKey, toDashboardMarketingLabel } from '@/lib/marketing-users'
 
 export const dynamic = 'force-dynamic'
@@ -262,14 +262,14 @@ export async function GET(req: Request) {
     .map((row) => ({ ...row, isolir: isolirByMarketing.get(marketingNameKey(row.name)) || 0 }))
     .sort((a, b) => b.close - a.close || a.name.localeCompare(b.name))
 
-  const availability = await getNetworkAvailability(periodStart, periodEnd).catch(() => ({
+  const availability = await getSocialAvailability(periodStart, periodEnd).catch(() => ({
     availabilityPercent: 0,
     totalChecks: 0,
     successfulChecks: 0,
     avgLatencyMs: null as number | null,
     downtimeMinutes: 0,
     lastCheckedAt: null as Date | null,
-    byPop: [] as Array<{ popId: number; popName: string; ipAddress: string; availabilityPercent: number; totalChecks: number; successfulChecks: number; lastSuccessAt: Date | null; lastFailureAt: Date | null; currentStatus: 'UP' | 'DOWN' | 'UNKNOWN' }>,
+    byPlatform: [] as Array<{ platform: string; label: string; availabilityPercent: number; totalChecks: number; successfulChecks: number; lastSuccessAt: Date | null; lastFailureAt: Date | null; currentStatus: 'UP' | 'DOWN' | 'UNKNOWN' }>,
   }))
 
   const latest = snapshotPeriodRows[snapshotPeriodRows.length - 1]
@@ -509,7 +509,7 @@ export async function GET(req: Request) {
       avgLatencyMs: availability.avgLatencyMs,
       downtimeMinutes: availability.downtimeMinutes,
       lastCheckedAt: availability.lastCheckedAt,
-      byPop: availability.byPop,
+      byPlatform: availability.byPlatform,
       odpMapPoints,
     },
     hr: {

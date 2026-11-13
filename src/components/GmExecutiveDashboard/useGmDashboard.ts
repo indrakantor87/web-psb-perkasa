@@ -70,10 +70,9 @@ export type GmDashboardData = {
     avgLatencyMs: number | null
     downtimeMinutes: number
     lastCheckedAt: string | null
-    byPop: Array<{
-      popId: number
-      popName: string
-      ipAddress: string
+    byPlatform: Array<{
+      platform: string
+      label: string
       availabilityPercent: number
       totalChecks: number
       successfulChecks: number

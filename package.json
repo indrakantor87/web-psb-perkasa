@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "photo-retention:run": "node scripts/run-photo-retention.js",
+    "social-ping:run": "node scripts/run-social-ping.js",
     "postinstall": "prisma generate",
     "mobile:sync": "npx cap sync",
     "mobile:open": "npx cap open android"

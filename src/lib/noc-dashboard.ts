@@ -1,21 +1,22 @@
-export type NocProbeSample = {
+export type ProbeSample = {
   success: boolean
   checkedAt: Date | string
 }
 
-export type NocPopStatus = 'UP' | 'WARNING' | 'DOWN' | 'UNKNOWN'
+export type ProbeStatus = 'UP' | 'WARNING' | 'DOWN' | 'UNKNOWN'
 
-const NOC_PROBE_STALE_AFTER_MS = 3 * 60 * 1000
+// Probe berjalan tiap 5 menit; data dianggap stale setelah 3 kali interval terlewat.
+export const PROBE_STALE_AFTER_MS = 15 * 60 * 1000
 
-export function getNocPopStatus(
-  latestFirstSamples: readonly NocProbeSample[],
+export function getProbeStatus(
+  latestFirstSamples: readonly ProbeSample[],
   now = new Date(),
-): NocPopStatus {
+): ProbeStatus {
   const latest = latestFirstSamples[0]
   if (!latest) return 'UNKNOWN'
 
   const ageMs = now.getTime() - new Date(latest.checkedAt).getTime()
-  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > NOC_PROBE_STALE_AFTER_MS) {
+  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > PROBE_STALE_AFTER_MS) {
     return 'UNKNOWN'
   }
 

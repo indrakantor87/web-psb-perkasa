@@ -99,7 +99,6 @@ model Pop {
   id         Int      @id @default(autoincrement())
   nama_pop   String   @map("nama_pop")
   lokasi     String?  @map("lokasi")
-  ip_address String?  @map("ip_address")
   is_active  Boolean  @default(true) @map("is_active")
   created_at DateTime @default(now()) @map("created_at")
   updated_at DateTime @default(now()) @map("updated_at")

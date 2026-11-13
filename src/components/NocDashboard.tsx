@@ -25,6 +25,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { PROBE_STALE_AFTER_MS } from '@/lib/noc-dashboard'
 
 const JalurMap = dynamic(() => import('@/components/JalurMap'), {
   ssr: false,
@@ -35,22 +36,22 @@ const JalurMap = dynamic(() => import('@/components/JalurMap'), {
   ),
 })
 
-type PopStatus = 'UP' | 'WARNING' | 'DOWN' | 'UNKNOWN'
-
 type NocDashboardData = {
   generatedAt: string
   network: {
-    popTotal: number
+    platformTotal: number
     statusSummary: { up: number; warning: number; down: number; unknown: number }
     availabilityPercent: number | null
     avgLatencyMs: number | null
     lastCheckedAt: string | null
-    pops: Array<{
-      id: number
-      name: string
-      status: PopStatus
+    platforms: Array<{
+      id: string
+      label: string
+      url: string
+      status: StatusTone
       latestCheckedAt: string | null
       latencyMs: number | null
+      statusCode: number | null
     }>
     series: Array<{
       hour: string
@@ -117,7 +118,7 @@ function formatHour(value: string) {
 }
 
 function getOverallStatus(data: NocDashboardData | null) {
-  if (!data || data.network.popTotal === 0) return 'UNKNOWN'
+  if (!data || data.network.platformTotal === 0) return 'UNKNOWN'
   const { up, warning, down } = data.network.statusSummary
   if (down > 0) return 'DOWN'
   if (warning > 0 || data.network.statusSummary.unknown > 0) return 'WARNING'
@@ -251,7 +252,7 @@ export function NocDashboard() {
   const overallStatus = getOverallStatus(data)
   const summary = data?.network.statusSummary
   const checkedAt = data?.network.lastCheckedAt ?? null
-  const hasRecentProbe = checkedAt != null && Date.now() - new Date(checkedAt).getTime() <= 3 * 60 * 1000
+  const hasRecentProbe = checkedAt != null && Date.now() - new Date(checkedAt).getTime() <= PROBE_STALE_AFTER_MS
   const statusIcon = overallStatus === 'UP'
     ? <CheckCircle2 className="h-4 w-4" />
     : overallStatus === 'DOWN'
@@ -270,7 +271,7 @@ export function NocDashboard() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Network Operations Center</p>
               <h1 className="mt-1 text-xl font-extrabold sm:text-2xl">Monitoring Jaringan</h1>
-              <p className="mt-1 text-xs text-slate-300 sm:text-sm">Status POP, performa probe, dan insiden operasional</p>
+              <p className="mt-1 text-xs text-slate-300 sm:text-sm">Status layanan media sosial, performa probe, dan insiden operasional</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -282,7 +283,7 @@ export function NocDashboard() {
                   : 'bg-amber-300/15 text-amber-100'
             }`}>
               {statusIcon}
-              {overallStatus === 'UP' ? 'Semua POP Normal' : overallStatus === 'DOWN' ? 'Ada POP Down' : 'Data Perlu Diperiksa'}
+              {overallStatus === 'UP' ? 'Semua Layanan Normal' : overallStatus === 'DOWN' ? 'Ada Layanan Down' : 'Data Perlu Diperiksa'}
             </span>
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
               hasRecentProbe ? 'bg-white/10 text-slate-100' : 'bg-amber-300/15 text-amber-100'
@@ -304,7 +305,7 @@ export function NocDashboard() {
         <div className="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-white/10 pt-3 text-[11px] text-slate-300">
           <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />Pemeriksaan terakhir: {formatDateTime(checkedAt)}</span>
           <span>Data dashboard diperbarui: {data ? formatDateTime(data.generatedAt) : 'Memuat...'}</span>
-          <span>Probe koneksi TCP per POP</span>
+          <span>Probe HTTP ke layanan media sosial</span>
         </div>
       </section>
 
@@ -324,8 +325,8 @@ export function NocDashboard() {
         />
         <KpiCard
           icon={Wifi}
-          label="POP Online"
-          value={data ? `${summary?.up ?? 0}/${data.network.popTotal}` : 'Memuat'}
+          label="Platform Online"
+          value={data ? `${summary?.up ?? 0}/${data.network.platformTotal}` : 'Memuat'}
           detail={data ? `${summary?.down ?? 0} down · ${summary?.unknown ?? 0} unknown` : 'Status target monitoring'}
           tone="green"
         />
@@ -376,9 +377,9 @@ export function NocDashboard() {
             </Panel>
 
             <Panel
-              title="Status POP"
-              description="Status mengikuti dua pemeriksaan terakhir dan batas stale tiga menit"
-              action={<span className="text-[10px] text-slate-500 dark:text-slate-400">{data?.network.popTotal ?? 0} target</span>}
+              title="Status Media Sosial"
+              description="Status mengikuti dua pemeriksaan terakhir dan batas stale 15 menit"
+              action={<span className="text-[10px] text-slate-500 dark:text-slate-400">{data?.network.platformTotal ?? 0} target</span>}
               className="xl:col-span-5"
             >
               <div className="mb-3 grid grid-cols-4 gap-1.5">
@@ -395,23 +396,31 @@ export function NocDashboard() {
                 ))}
               </div>
               <div className="max-h-[330px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
-                {data?.network.pops.map((pop) => (
-                  <div key={pop.id} className="flex items-center justify-between gap-3 py-2.5">
+                {data?.network.platforms.map((platform) => (
+                  <div key={platform.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{pop.name}</p>
+                      <a
+                        href={platform.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sm font-semibold text-slate-800 hover:underline dark:text-slate-100"
+                      >
+                        {platform.label}
+                      </a>
                       <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-                        {pop.latestCheckedAt ? formatDateTime(pop.latestCheckedAt) : 'Belum pernah diperiksa'}
+                        {platform.latestCheckedAt ? formatDateTime(platform.latestCheckedAt) : 'Belum pernah diperiksa'}
+                        {platform.statusCode ? ` · HTTP ${platform.statusCode}` : ''}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">{formatLatency(pop.latencyMs)}</span>
-                      <StatusPill status={pop.status} />
+                      <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300">{formatLatency(platform.latencyMs)}</span>
+                      <StatusPill status={platform.status} />
                     </div>
                   </div>
                 ))}
-                {data?.network.popTotal === 0 && (
+                {data?.network.platformTotal === 0 && (
                   <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                    Belum ada POP dengan alamat monitoring aktif.
+                    Belum ada target media sosial yang dipantau.
                   </div>
                 )}
               </div>
@@ -421,7 +430,7 @@ export function NocDashboard() {
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
             <Panel
               title="Performa Probe"
-              description="Availability koneksi TCP per jam · 24 jam terakhir"
+              description="Availability probe media sosial per jam · 24 jam terakhir"
               className="xl:col-span-7"
             >
               <div className="h-[250px] w-full">
@@ -532,7 +541,7 @@ export function NocDashboard() {
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Availability 24 jam</p>
                   <p className="mt-1 text-lg font-bold tabular-nums text-slate-900 dark:text-white">{formatPercent(data?.network.availabilityPercent ?? null)}</p>
-                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Dari sampel koneksi TCP tersimpan</p>
+                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">Dari sampel probe media sosial tersimpan</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/70">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Pemeriksaan Terakhir</p>
@@ -543,7 +552,7 @@ export function NocDashboard() {
                   <div className="flex items-start gap-2">
                     <CircleHelp className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
                     <p className="text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-                      Status ini mengukur koneksi TCP ke POP, bukan packet loss ICMP. Traffic, sesi PPPoE, dan packet loss memerlukan sumber monitoring terpisah.
+                      Status ini mengukur keterjangkauan HTTP ke layanan media sosial populer (Instagram, Facebook, TikTok, WhatsApp, YouTube, X), bukan availability POP atau packet loss ICMP. Traffic dan sesi PPPoE memerlukan sumber monitoring terpisah.
                     </p>
                   </div>
                 </div>
@@ -561,9 +570,9 @@ export function NocDashboard() {
               : overallStatus === 'DOWN'
                 ? <ShieldAlert className="h-4 w-4 text-red-400" />
                 : <CircleHelp className="h-4 w-4 text-amber-300" />}
-            {overallStatus === 'UP' ? 'Monitoring POP normal' : overallStatus === 'DOWN' ? 'Gangguan POP terdeteksi' : 'Menunggu data probe'}
+            {overallStatus === 'UP' ? 'Monitoring layanan normal' : overallStatus === 'DOWN' ? 'Gangguan layanan terdeteksi' : 'Menunggu data probe'}
           </span>
-          <span className="text-slate-400">Dipantau: {data?.network.popTotal ?? 0} POP</span>
+          <span className="text-slate-400">Dipantau: {data?.network.platformTotal ?? 0} platform</span>
           <span className="text-slate-400">Online: {summary?.up ?? 0}</span>
           <span className="text-slate-400">Down: {summary?.down ?? 0}</span>
           <span className="text-slate-400">Latency: {formatLatency(data?.network.avgLatencyMs ?? null)}</span>
