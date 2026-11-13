@@ -1,9 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { FileSpreadsheet, RefreshCw, Save, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import { Download, FileSpreadsheet, RefreshCw, Save, Upload, Users, Wrench, Scissors, TrendingUp } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { SectionHeading } from '@/components/ui/SectionHeading'
+import { StatCard } from '@/components/ui/StatCard'
+import { chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type ReportEntry = {
   reportDate: string
@@ -101,6 +115,14 @@ function formatDateLabel(date: string) {
   })
 }
 
+function formatDateShort(date: string) {
+  return new Date(`${date}T00:00:00.000Z`).toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+}
+
 function formatUpdatedAt(value?: string) {
   if (!value) return '-'
   const date = new Date(value)
@@ -110,6 +132,29 @@ function formatUpdatedAt(value?: string) {
     timeStyle: 'short',
     timeZone: 'Asia/Jakarta',
   })
+}
+
+function downloadCsv(filename: string, rows: string[][]) {
+  const csv = rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const value = String(cell ?? '')
+          if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`
+          return value
+        })
+        .join(','),
+    )
+    .join('\n')
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 export function FinanceDashboard({ canManage }: { canManage: boolean }) {
@@ -143,6 +188,15 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
   }, [loadEntries])
 
   const latest = entries.at(-1) ?? null
+  const chartRows = useMemo(
+    () =>
+      entries.map((entry) => ({
+        ...entry,
+        label: formatDateShort(entry.reportDate),
+        isolationTotal: entry.isolationContinued + entry.isolationNotContinued,
+      })),
+    [entries],
+  )
 
   const loadFormDate = async (reportDate: string) => {
     setForm((current) => ({ ...current, reportDate }))
@@ -191,7 +245,7 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Gagal menyimpan rekap.')
-      setMessage(`Rekap ${formatDateLabel(form.reportDate)} berhasil ${formExisting ? 'diperbarui' : 'disimpan'}. Tabel Detail Data Harian otomatis diperbarui.`)
+      setMessage(`Rekap ${formatDateLabel(form.reportDate)} berhasil ${formExisting ? 'diperbarui' : 'disimpan'}. Tabel & grafik otomatis diperbarui.`)
       setFormExisting(true)
       await loadEntries()
     } catch (saveError) {
@@ -224,12 +278,48 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
     }
   }
 
+  const handleExportCsv = () => {
+    const headers = [
+      'Tanggal',
+      'Total Pelanggan',
+      'Total List PSB',
+      'Antrian Pasang',
+      'Terpasang',
+      'Isolir Lanjut',
+      'Isolir Tidak Lanjut',
+      'Total Isolir',
+      'Dismantle Open',
+      'Dismantle Close',
+      'Penurunan (%)',
+      'Pelanggan Aktif',
+    ]
+    const rows = [...entries].reverse().map((entry) => [
+      formatDateLabel(entry.reportDate),
+      String(entry.totalCustomers),
+      String(entry.totalPsbList),
+      String(entry.installationQueue),
+      String(entry.installedToday),
+      String(entry.isolationContinued),
+      String(entry.isolationNotContinued),
+      String(entry.isolationContinued + entry.isolationNotContinued),
+      String(entry.dismantleOpen),
+      String(entry.dismantleClosed),
+      String(entry.customerDeclinePercent),
+      String(entry.activeCustomers),
+    ])
+    downloadCsv(`detail-data-harian-${jakartaTodayKey()}.csv`, [headers, ...rows])
+    setMessage('Detail Data Harian berhasil diekspor ke Excel (CSV).')
+  }
+
+  const totalSolir = latest ? latest.isolationContinued + latest.isolationNotContinued : 0
+  const totalDismantle = latest ? latest.dismantleOpen : 0
+
   return (
-    <section className="space-y-4 pb-10" aria-labelledby="finance-dashboard-title">
+    <section className="space-y-4 pb-10">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <SectionHeading
           title="Dashboard Admin Billing"
-          description="Input rekap PSB & Isolir harian, lalu lihat Detail Data Harian yang otomatis diperbarui"
+          description="Input rekap PSB & Isolir harian, lalu lihat Detail Data Harian & grafik yang otomatis diperbarui"
           badge={latest ? `Data terbaru ${formatDateLabel(latest.reportDate)}` : 'Belum ada rekap'}
           className="mb-0"
         />
@@ -243,6 +333,16 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Perbarui
           </button>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </button>
+          )}
           {canManage && (
             <>
               <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted">
@@ -284,13 +384,44 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
         </div>
       )}
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Total Pelanggan PSB"
+          value={numberFormatter.format(latest?.totalPsbList ?? 0)}
+          hint={latest ? `Per ${formatDateLabel(latest.reportDate)}` : 'Menunggu rekap'}
+          icon={<Users className="h-4 w-4" />}
+          tone="brand"
+        />
+        <StatCard
+          label="Total Solir"
+          value={numberFormatter.format(totalSolir)}
+          hint={`Lanjut ${numberFormatter.format(latest?.isolationContinued ?? 0)} · Tidak ${numberFormatter.format(latest?.isolationNotContinued ?? 0)}`}
+          icon={<Wrench className="h-4 w-4" />}
+          tone="warning"
+        />
+        <StatCard
+          label="Total Dismantle"
+          value={numberFormatter.format(totalDismantle)}
+          hint="Backlog akhir hari"
+          icon={<Scissors className="h-4 w-4" />}
+          tone="danger"
+        />
+        <StatCard
+          label="Total Pelanggan Aktif"
+          value={numberFormatter.format(latest?.activeCustomers ?? 0)}
+          hint={`Total pelanggan ${numberFormatter.format(latest?.totalCustomers ?? 0)}`}
+          icon={<TrendingUp className="h-4 w-4" />}
+          tone="success"
+        />
+      </div>
+
       {canManage && formOpen && (
         <Card className="p-4 sm:p-6">
           <form onSubmit={handleSave} className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-base font-semibold text-ink">Input rekap PSB &amp; Isolir</h3>
-                <p className="text-sm text-ink-muted">Menyimpan kembali tanggal yang sama akan memperbarui rekap, bukan membuat duplikat. Data otomatis muncul di Detail Data Harian.</p>
+                <p className="text-sm text-ink-muted">Menyimpan kembali tanggal yang sama akan memperbarui rekap. Tabel & grafik otomatis diperbarui.</p>
               </div>
               <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 Tanggal
@@ -426,6 +557,83 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
           </>
         )}
       </Card>
+
+      {entries.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Total Pelanggan &amp; Aktif</h3>
+            <p className="mb-3 text-xs text-ink-muted">Jumlah per tanggal laporan</p>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="totalCustomers" name="Total Pelanggan" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="activeCustomers" name="Pelanggan Aktif" stroke="#84cc16" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Rekap PSB</h3>
+            <p className="mb-3 text-xs text-ink-muted">Total list kumulatif bulanan, backlog antrian akhir hari, dan pemasangan harian</p>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="totalPsbList" name="Total List PSB" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="installationQueue" name="Antrian Pasang" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="installedToday" name="Terpasang" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Data Isolir</h3>
+            <p className="mb-3 text-xs text-ink-muted">Jumlah yang masih dilanjutkan dan tidak dilanjutkan</p>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Bar dataKey="isolationContinued" name="Masih Dilanjutkan" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="isolationNotContinued" name="Tidak Dilanjutkan" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface p-4 text-ink shadow-sm">
+            <h3 className="mb-1 text-sm font-semibold text-ink">Dismantle</h3>
+            <p className="mb-3 text-xs text-ink-muted">Open adalah backlog akhir hari; Close adalah jumlah yang ditutup pada hari tersebut</p>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartRows} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" interval={Math.max(0, Math.floor(chartRows.length / 8) - 1)} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'var(--chart-axis)' }} stroke="var(--chart-axis)" width={50} />
+                  <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} labelStyle={{ color: 'var(--ink)' }} itemStyle={{ color: 'var(--ink)' }} formatter={(value) => numberFormatter.format(Number(value ?? 0))} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: 'var(--ink-muted)' }} />
+                  <Line type="monotone" dataKey="dismantleOpen" name="Open (backlog)" stroke="#64748b" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="dismantleClosed" name="Close harian" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
