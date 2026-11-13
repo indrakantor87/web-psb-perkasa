@@ -1238,17 +1238,43 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   // Dashboard gabungan untuk Finance Manager: Admin Billing (Finance) + Ringkasan HR.
   const combinedFinanceHrContent = (
     <div className="space-y-6 pb-10">
-      <FinanceDashboard canManage={isFinance} />
-
-      {hrStats && (
-        <div className="space-y-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      {/* Hero Header */}
+      <div className="rounded-xl bg-gradient-to-r from-amber-900 via-slate-800 to-indigo-900 p-5 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
+              <LayoutDashboard className="h-6 w-6" />
+            </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-ink">Ringkasan HR</h2>
-              <p className="mt-1 text-sm text-ink-muted">Data karyawan dan absensi terkini.</p>
+              <h1 className="text-xl md:text-2xl font-bold">Dashboard Manager Finance &amp; HR</h1>
+              <p className="text-xs md:text-sm text-slate-300 mt-0.5">
+                Perkasa Networks • Ringkasan administrasi billing &amp; sumber daya manusia
+              </p>
             </div>
           </div>
-          {hrStatsSection}
+        </div>
+      </div>
+
+      {/* Section: Admin Billing */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-1.5 rounded-full bg-amber-500" />
+          <h2 className="text-lg font-bold tracking-tight text-ink">Admin Billing</h2>
+          <span className="text-xs text-ink-muted">Laporan harian PSB, Isolir &amp; Dismantle</span>
+        </div>
+        <FinanceDashboard canManage={isFinance} />
+      </div>
+
+      {/* Section: Ringkasan HR */}
+      {hrStats && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-1.5 rounded-full bg-indigo-500" />
+            <h2 className="text-lg font-bold tracking-tight text-ink">Ringkasan HR</h2>
+            <span className="text-xs text-ink-muted">Data karyawan &amp; absensi terkini</span>
+          </div>
+          <div className="space-y-6">{hrStatsSection}</div>
         </div>
       )}
     </div>
