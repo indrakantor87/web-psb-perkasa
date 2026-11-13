@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
-import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check, MapPin } from 'lucide-react'
 
 interface MarketingActivityRecord {
   id: number
@@ -47,30 +47,10 @@ interface RankingRow {
   total: number
 }
 
-export type MarketingActivityDivision = 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
-
 export interface MarketingActivityViewProps {
   userRole: string
   userName: string
-  initialDivision?: MarketingActivityDivision
   readOnly?: boolean
-}
-
-function getDivisionFromUrl(): MarketingActivityDivision | null {
-  try {
-    const raw = new URLSearchParams(window.location.search).get('division')
-    if (
-      raw === 'ALL' ||
-      raw === 'PENJUALAN' ||
-      raw === 'CS_ADMIN' ||
-      raw === 'NOC_TROUBLESHOOTS' ||
-      raw === 'CREATOR_DIGITAL'
-    ) {
-      return raw
-    }
-  } catch {}
-
-  return null
 }
 
 function jakartaTodayKey() {
@@ -95,7 +75,6 @@ const MONTHS = [
 export function MarketingActivityView({
   userRole,
   userName,
-  initialDivision = 'ALL',
   readOnly = false,
 }: MarketingActivityViewProps) {
   const [activities, setActivities] = useState<MarketingActivityRecord[]>([])
@@ -117,7 +96,6 @@ export function MarketingActivityView({
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [marketingSearch, setMarketingSearch] = useState('')
-  const [division, setDivision] = useState<MarketingActivityDivision>(initialDivision)
 
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
@@ -133,11 +111,6 @@ export function MarketingActivityView({
     dataBase: '',
     notes: '',
   })
-
-  useEffect(() => {
-    const urlDivision = getDivisionFromUrl()
-    if (urlDivision) setDivision(urlDivision)
-  }, [])
 
   // Daftar marketing (untuk admin memilih pemilik laporan)
   useEffect(() => {
@@ -202,7 +175,6 @@ export function MarketingActivityView({
         year: year.toString(),
       })
       if (marketingSearch) params.append('marketing', marketingSearch)
-      if (isAdmin && division !== 'ALL') params.append('division', division)
 
       const res = await fetch(`/api/marketing-activities?${params.toString()}`, { cache: 'no-store' })
       if (res.ok) {
@@ -214,7 +186,7 @@ export function MarketingActivityView({
     } finally {
       setLoading(false)
     }
-  }, [division, isAdmin, marketingSearch, month, year])
+  }, [marketingSearch, month, year])
 
   const fetchRanking = useCallback(async () => {
     setRankingLoading(true)
@@ -429,6 +401,39 @@ export function MarketingActivityView({
 
   const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1`
 
+  // Statistik area yang paling sering dikunjungi (peringkat area)
+  const areaStats = useMemo(() => {
+    const visitCounts = new Map<number, number>()
+    for (const a of activities) {
+      const ids = [a.areaId, a.areaId2, a.areaId3, a.areaId4].filter(
+        (x): x is number => typeof x === 'number' && x > 0
+      )
+      const uniqueIds = Array.from(new Set(ids))
+      for (const id of uniqueIds) {
+        visitCounts.set(id, (visitCounts.get(id) ?? 0) + 1)
+      }
+    }
+    const totalVisits = Array.from(visitCounts.values()).reduce((s, v) => s + v, 0)
+    return coveredAreas
+      .map((area) => {
+        const visits = visitCounts.get(area.id) ?? 0
+        return {
+          id: area.id,
+          name: area.name,
+          visits,
+          percentage: totalVisits > 0 ? (visits / totalVisits) * 100 : 0,
+        }
+      })
+      .sort((a, b) => b.visits - a.visits)
+  }, [activities, coveredAreas])
+
+  const totalAreaVisits = useMemo(
+    () => areaStats.reduce((s, a) => s + a.visits, 0),
+    [areaStats]
+  )
+  const topArea = areaStats.find((a) => a.visits > 0) ?? null
+  const leastArea = [...areaStats].reverse().find((a) => a.visits > 0) ?? null
+
   const buildWhatsAppText = useCallback((activity: MarketingActivityRecord) => {
     const dateLine = format(new Date(activity.date), 'EEEE , d MMMM yyyy', { locale: idLocale })
     const area = activity.area?.name || activity.activity || '-'
@@ -504,35 +509,19 @@ export function MarketingActivityView({
             </select>
           </div>
           {isAdmin && (
-            <>
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Cari Marketing</label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={marketingSearch}
-                    onChange={(e) => setMarketingSearch(e.target.value)}
-                    placeholder="Nama marketing..."
-                    className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Cari Marketing</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={marketingSearch}
+                  onChange={(e) => setMarketingSearch(e.target.value)}
+                  placeholder="Nama marketing..."
+                  className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                />
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Divisi</label>
-                <select
-                  value={division}
-                  onChange={(e) => setDivision(e.target.value as MarketingActivityDivision)}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="ALL">Semua Divisi</option>
-                  <option value="PENJUALAN">Penjualan</option>
-                  <option value="CS_ADMIN">CS &amp; Admin CS</option>
-                  <option value="NOC_TROUBLESHOOTS">NOC &amp; Troubleshoots</option>
-                  <option value="CREATOR_DIGITAL">Creator Digital</option>
-                </select>
-              </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -638,6 +627,90 @@ export function MarketingActivityView({
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Peringkat Area yang Sering Dikunjungi */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 p-4 dark:border-gray-700 dark:bg-gray-900/30">
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 dark:text-white">
+              <MapPin className="h-4 w-4 text-gray-500" />
+              Peringkat Area yang Sering Dikunjungi
+            </h3>
+            <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+              Total: {totalAreaVisits} Kunjungan
+            </span>
+          </div>
+          <div className="max-h-[480px] space-y-4 overflow-y-auto p-4 sm:p-6">
+            {areaStats.filter((a) => a.visits > 0).length === 0 ? (
+              <div className="py-10 text-center text-sm italic text-gray-500">
+                Belum ada data kunjungan area pada periode ini.
+              </div>
+            ) : (
+              areaStats
+                .filter((a) => a.visits > 0)
+                .map((stat) => (
+                  <div key={stat.id} className="space-y-2 group">
+                    <div className="flex items-end justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold uppercase text-gray-900 transition-colors group-hover:text-blue-600 dark:text-gray-100">
+                          {stat.name}
+                        </span>
+                        <span className="text-[10px] font-medium text-gray-500">
+                          {stat.visits} Kunjungan
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                        {stat.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                      <div
+                        className={clsx(
+                          'h-full rounded-full bg-gray-700 transition-all duration-700 ease-out dark:bg-gray-200'
+                        )}
+                        style={{ width: `${stat.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex flex-col items-center space-y-2 rounded-xl border border-gray-200 bg-white p-4 text-center dark:border-gray-700 dark:bg-gray-800 sm:p-6">
+            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+              <MapPin className="h-6 w-6 text-gray-700 dark:text-gray-200" />
+            </div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+              Informasi Analitik Area
+            </h4>
+            <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              Persentase dihitung berdasarkan jumlah kunjungan ke area tertentu dibandingkan dengan total seluruh aktivitas marketing pada periode yang dipilih.
+            </p>
+            <div className="flex w-full gap-4 pt-4">
+              <div className="flex-1 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div className="mb-1 text-[10px] font-bold uppercase text-gray-500">Paling Sering</div>
+                <div className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                  {topArea ? topArea.name : '-'}
+                </div>
+                {topArea && (
+                  <div className="text-[10px] text-gray-500">{topArea.visits} kunjungan</div>
+                )}
+              </div>
+              <div className="flex-1 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div className="mb-1 text-[10px] font-bold uppercase text-gray-500">Paling Jarang</div>
+                <div className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                  {leastArea ? leastArea.name : '-'}
+                </div>
+                {leastArea && (
+                  <div className="text-[10px] text-gray-500">{leastArea.visits} kunjungan</div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
