@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     const selfEmployeeId = isSelfOnlyRole
       ? roleUpper === 'MARKETING'
         ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
-        : await resolveUniqueEmployeeIdByName(session!.user.name)
+        : await resolveUniqueEmployeeIdByName(session!.user.name, session!.user.id)
       : null
     if (isSelfOnlyRole) where.employeeId = selfEmployeeId ?? -1
     if (Number.isFinite(employeeIdRaw) && employeeIdRaw > 0) {

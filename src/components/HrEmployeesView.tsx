@@ -29,8 +29,11 @@ type EmployeeRow = {
   joinDate: string
   fingerprintId: string | null
   isActive: boolean
+  userId: number | null
   attendanceCount: number
 }
+
+type UserOption = { id: number; name: string }
 
 type FormState = {
   id: number | null
@@ -42,6 +45,7 @@ type FormState = {
   joinDate: string
   fingerprintId: string
   isActive: boolean
+  userId: number | null
 }
 
 type HrEmployeesViewProps = {
@@ -61,6 +65,7 @@ function emptyForm(): FormState {
     joinDate: '',
     fingerprintId: '',
     isActive: true,
+    userId: null,
   }
 }
 
@@ -85,6 +90,7 @@ function toDateInput(value: string) {
 
 export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
   const [employees, setEmployees] = useState<EmployeeRow[]>([])
+  const [users, setUsers] = useState<UserOption[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [department, setDepartment] = useState('')
@@ -109,6 +115,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       const res = await fetch(`/api/hr/employees?${params.toString()}`, { cache: 'no-store' })
       const data = (await res.json().catch(() => ({}))) as {
         employees?: EmployeeRow[]
+        users?: UserOption[]
         error?: string
       }
       if (!res.ok) {
@@ -117,6 +124,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
         return
       }
       setEmployees(data.employees ?? [])
+      setUsers(data.users ?? [])
     } catch {
       setFeedback({ tone: 'danger', message: 'Gagal memuat daftar karyawan' })
     } finally {
@@ -169,6 +177,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       joinDate: toDateInput(row.joinDate),
       fingerprintId: row.fingerprintId ?? '',
       isActive: row.isActive,
+      userId: row.userId ?? null,
     })
     setFormError('')
     setFormOpen(true)
@@ -190,6 +199,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
       employmentStatus: form.employmentStatus,
       fingerprintId: form.fingerprintId.trim(),
       isActive: form.isActive,
+      userId: form.userId,
     }
     if (form.joinDate) payload.joinDate = form.joinDate
     if (form.id !== null) payload.id = form.id
@@ -297,7 +307,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                   />
                 </label>
                 <p className="sm:col-span-2 -mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  Akun web ber-role Marketing dikenali otomatis jika namanya sama dan unik dengan nama karyawan.
+                  Kaitkan karyawan dengan akun web pada field &quot;Akun Pengguna&quot; agar absensi tampil otomatis sesuai user yang login.
                 </p>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-300">
                   Jabatan
@@ -399,6 +409,29 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                     placeholder="Opsional"
                     className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   />
+                </label>
+                <label className="text-xs font-medium text-slate-600 sm:col-span-2 dark:text-slate-300">
+                  Akun Pengguna
+                  <select
+                    value={form.userId ?? ''}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        userId: event.target.value === '' ? null : Number(event.target.value),
+                      }))
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  >
+                    <option value="">— Tidak dikaitkan —</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">
+                    Kaitkan karyawan dengan akun web agar absensi otomatis tampil sesuai user yang login.
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
                   <input
@@ -542,6 +575,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                       <th className="px-4 py-3 font-semibold">Divisi</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
                       <th className="px-4 py-3 font-semibold">ID Fingerprint</th>
+                      <th className="px-4 py-3 font-semibold">Akun</th>
                       <th className="px-4 py-3 font-semibold">Absensi</th>
                       <th className="px-4 py-3 font-semibold">Aktif</th>
                       {canManage && <th className="px-4 py-3 font-semibold">Aksi</th>}
@@ -557,6 +591,7 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                         <td className="px-4 py-3 text-ink-muted">{row.department || '-'}</td>
                         <td className="px-4 py-3 text-ink-muted">{row.employmentStatus || '-'}</td>
                         <td className="px-4 py-3 tabular-nums text-ink-muted">{row.fingerprintId || '-'}</td>
+                        <td className="px-4 py-3 text-ink-muted">{users.find((u) => u.id === row.userId)?.name || '-'}</td>
                         <td className="px-4 py-3 tabular-nums text-ink-muted">{row.attendanceCount}</td>
                         <td className="px-4 py-3">
                           <Chip tone={row.isActive ? 'success' : 'neutral'}>{row.isActive ? 'Aktif' : 'Nonaktif'}</Chip>
@@ -642,6 +677,10 @@ export function HrEmployeesView({ canManage }: HrEmployeesViewProps) {
                           <div className="flex justify-between gap-3">
                             <dt className="text-ink-muted">ID Fingerprint</dt>
                             <dd className="text-right font-medium text-ink tabular-nums">{row.fingerprintId || '-'}</dd>
+                          </div>
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-ink-muted">Akun Pengguna</dt>
+                            <dd className="text-right font-medium text-ink">{users.find((u) => u.id === row.userId)?.name || '-'}</dd>
                           </div>
                           <div className="flex justify-between gap-3">
                             <dt className="text-ink-muted">Tanggal Masuk</dt>

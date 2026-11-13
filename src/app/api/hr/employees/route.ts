@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
-import { canAccessHrEmployees } from '@/lib/access'
+import { canAccessHrEmployees, canMutateMenu } from '@/lib/access'
 import { ensureHrSchemaOnce } from '@/lib/hr-schema'
 import { resolveUniqueEmployeeIdByName, resolveUniqueMarketingEmployeeId } from '@/lib/hr-employee-owner'
 import {
@@ -35,6 +35,16 @@ function parseJoinDate(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+function parseUserId(value: unknown): number | null | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value === 'number') return Number.isInteger(value) && value > 0 ? value : null
+  if (typeof value === 'string') {
+    const num = Number(value)
+    return Number.isInteger(num) && num > 0 ? num : null
+  }
+  return null
+}
+
 export async function GET(request: Request) {
   const session = await getSession()
   const accessError = ensureMenuAccess(session, 'hr')
@@ -51,10 +61,11 @@ export async function GET(request: Request) {
     // Developer, Priority, Admin, dan HR dapat melihat semua karyawan.
     // Role lain hanya dapat melihat data karyawannya sendiri (fail-closed).
     const isSelfOnly = !canAccessHrEmployees(role)
+    const canManage = canMutateMenu(role, 'hr')
     const selfEmployeeId = isSelfOnly
       ? role === 'MARKETING'
         ? await resolveUniqueMarketingEmployeeId(session!.user.id, session!.user.name)
-        : await resolveUniqueEmployeeIdByName(session!.user.name)
+        : await resolveUniqueEmployeeIdByName(session!.user.name, session!.user.id)
       : null
 
     const where: Prisma.EmployeeWhereInput = {}
@@ -78,9 +89,17 @@ export async function GET(request: Request) {
         joinDate: true,
         fingerprintId: true,
         isActive: true,
+        userId: true,
         _count: { select: { attendances: true } },
       },
     })
+
+    const users = canManage
+      ? await prisma.user.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        })
+      : []
 
     return NextResponse.json({
       employees: employees.map((employee) => ({
@@ -93,8 +112,10 @@ export async function GET(request: Request) {
         joinDate: employee.joinDate,
         fingerprintId: isSelfOnly ? null : employee.fingerprintId,
         isActive: employee.isActive,
+        userId: employee.userId,
         attendanceCount: employee._count.attendances,
       })),
+      users: users.map((user) => ({ id: user.id, name: user.name })),
     })
   } catch {
     return NextResponse.json({ error: 'Gagal memuat daftar karyawan' }, { status: 500 })
@@ -114,6 +135,7 @@ export async function POST(request: Request) {
   const employmentStatus = asTrimmed(body.employmentStatus) || 'Karyawan'
   const fingerprintId = asTrimmed(body.fingerprintId)
   const joinDate = parseJoinDate(body.joinDate)
+  const userId = parseUserId(body.userId)
 
   if (!name) {
     return NextResponse.json({ error: 'Nama karyawan wajib diisi' }, { status: 400 })
@@ -130,6 +152,12 @@ export async function POST(request: Request) {
   if (body.joinDate && !joinDate) {
     return NextResponse.json({ error: 'Tanggal masuk tidak valid' }, { status: 400 })
   }
+  if (userId !== undefined && userId !== null) {
+    const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+    if (!userExists) {
+      return NextResponse.json({ error: 'Akun pengguna tidak ditemukan' }, { status: 400 })
+    }
+  }
   try {
     await ensureHrSchemaOnce()
     const created = await prisma.employee.create({
@@ -142,12 +170,13 @@ export async function POST(request: Request) {
         joinDate: joinDate ?? new Date(),
         fingerprintId: fingerprintId || null,
         isActive: body.isActive !== false,
+        userId: userId ?? null,
       },
     })
     return NextResponse.json({ employee: created })
   } catch (error) {
     if (isUniqueError(error)) {
-      return NextResponse.json({ error: 'ID fingerprint sudah dipakai karyawan lain' }, { status: 409 })
+      return NextResponse.json({ error: 'ID fingerprint atau akun pengguna sudah dipakai karyawan lain' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Gagal menyimpan karyawan' }, { status: 500 })
   }
@@ -164,7 +193,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'ID karyawan tidak valid' }, { status: 400 })
   }
 
-  const data: Prisma.EmployeeUpdateInput = {}
+  const data: Prisma.EmployeeUncheckedUpdateInput = {}
 
   if (body.name !== undefined) {
     const name = asTrimmed(body.name)
@@ -202,6 +231,20 @@ export async function PUT(request: Request) {
   if (body.isActive !== undefined) {
     data.isActive = body.isActive !== false
   }
+  if (body.userId !== undefined) {
+    const userId = parseUserId(body.userId)
+    if (userId === undefined) {
+      // Tidak ada perubahan untuk field ini.
+    } else if (userId === null) {
+      data.userId = null
+    } else {
+      const userExists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } })
+      if (!userExists) {
+        return NextResponse.json({ error: 'Akun pengguna tidak ditemukan' }, { status: 400 })
+      }
+      data.userId = userId
+    }
+  }
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'Tidak ada perubahan' }, { status: 400 })
@@ -222,7 +265,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ employee: updated })
   } catch (error) {
     if (isUniqueError(error)) {
-      return NextResponse.json({ error: 'ID fingerprint sudah dipakai karyawan lain' }, { status: 409 })
+      return NextResponse.json({ error: 'ID fingerprint atau akun pengguna sudah dipakai karyawan lain' }, { status: 409 })
     }
     if (isNotFoundError(error)) {
       return NextResponse.json({ error: 'Karyawan tidak ditemukan' }, { status: 404 })

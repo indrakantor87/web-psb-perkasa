@@ -1,11 +1,19 @@
 import { prisma } from '@/lib/prisma'
 
 /**
- * Memetakan user yang login ke satu karyawan berdasarkan nama yang unik.
- * Dipakai untuk membatasi absensi agar hanya menampilkan data milik sendiri.
- * `null` berarti nama kosong atau tidak unik, sehingga tidak ada record yang cocok (fail-closed).
+ * Memetakan user yang login ke satu karyawan.
+ * Prioritas: relasi langsung `Employee.userId` (paling akurat), lalu fallback ke nama unik.
+ * `null` berarti tidak ada karyawan yang cocok, sehingga tidak ada record yang ditampilkan (fail-closed).
  */
-export async function resolveUniqueEmployeeIdByName(name: string) {
+export async function resolveUniqueEmployeeIdByName(name: string, userId?: number) {
+  if (Number.isInteger(userId) && userId! > 0) {
+    const byUser = await prisma.employee.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    if (byUser) return byUser.id
+  }
+
   const normalizedName = name.trim()
   if (!normalizedName) return null
 
@@ -18,8 +26,16 @@ export async function resolveUniqueEmployeeIdByName(name: string) {
 }
 
 export async function resolveUniqueMarketingEmployeeId(userId: number, name: string) {
+  if (Number.isInteger(userId) && userId > 0) {
+    const byUser = await prisma.employee.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    if (byUser) return byUser.id
+  }
+
   const normalizedName = name.trim()
-  if (!normalizedName || !Number.isInteger(userId) || userId <= 0) return null
+  if (!normalizedName) return null
 
   const matchingUsers = await prisma.user.findMany({
     where: {
