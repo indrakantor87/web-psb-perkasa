@@ -1132,15 +1132,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isHr = roleUpper === 'HR'
   const isFinance = roleUpper === 'FINANCE'
   const isGa = roleUpper === 'GENERAL_AFFAIR'
-  const hrContent = hrStats ? (
-    <div className="space-y-6 pb-10">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard HR</h1>
-          <p className="mt-1 text-sm text-ink-muted">Ringkasan data karyawan dan absensi.</p>
-        </div>
-      </div>
+  const positionLower = String(userPosition ?? '').trim().toLowerCase()
+  const isFinanceManager = isFinance && positionLower === 'manager'
 
+  // Bagian statistik HR (stat cards + shortcut + tabel per divisi) — dipakai oleh dashboard HR
+  // dan juga sebagai bagian bawah dashboard gabungan Finance Manager.
+  const hrStatsSection = hrStats ? (
+    <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Karyawan Aktif"
@@ -1221,8 +1219,40 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           </table>
         </div>
       </Card>
+    </>
+  ) : null
+
+  const hrContent = hrStats ? (
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Dashboard HR</h1>
+          <p className="mt-1 text-sm text-ink-muted">Ringkasan data karyawan dan absensi.</p>
+        </div>
+      </div>
+
+      {hrStatsSection}
     </div>
   ) : null
+
+  // Dashboard gabungan untuk Finance Manager: Admin Billing (Finance) + Ringkasan HR.
+  const combinedFinanceHrContent = (
+    <div className="space-y-6 pb-10">
+      <FinanceDashboard canManage={isFinance} />
+
+      {hrStats && (
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-ink">Ringkasan HR</h2>
+              <p className="mt-1 text-sm text-ink-muted">Data karyawan dan absensi terkini.</p>
+            </div>
+          </div>
+          {hrStatsSection}
+        </div>
+      )}
+    </div>
+  )
 
   // Dashboard General Affair: fokus ke rekap Daily Activity lintas divisi (laporan manajemen).
   const gaContent = gaDailyActivityStats ? (() => {
@@ -1679,17 +1709,17 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     )
   })() : null
 
-  const financeContent = isFinance ? <FinanceDashboard canManage={isFinance} /> : null
-
   const mainContent = isPriorityRole
     ? <GmExecutiveDashboard />
-    : isFinance && financeContent
-      ? financeContent
-      : isGa && gaContent
-        ? gaContent
-        : isHr && hrContent
-          ? hrContent
-          : dashboardContent
+    : isFinanceManager
+      ? combinedFinanceHrContent
+      : isFinance
+        ? <FinanceDashboard canManage={isFinance} />
+        : isGa && gaContent
+          ? gaContent
+          : isHr && hrContent
+            ? hrContent
+            : dashboardContent
 
   return (
     <>
