@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import Image from 'next/image'
 import {
   Bar,
   BarChart,
@@ -13,10 +14,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { Download, FileSpreadsheet, RefreshCw, Save, Upload, Users, Wrench, Scissors, TrendingUp } from 'lucide-react'
+import { Download, FileSpreadsheet, RefreshCw, Save, Upload, Users, Wrench, ListTodo, TrendingUp } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { SectionHeading } from '@/components/ui/SectionHeading'
-import { StatCard } from '@/components/ui/StatCard'
 import { chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type ReportEntry = {
@@ -132,6 +132,86 @@ function formatUpdatedAt(value?: string) {
     timeStyle: 'short',
     timeZone: 'Asia/Jakarta',
   })
+}
+
+function getChangePercent(current: number, previous: number): number {
+  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) {
+    if (current > 0) return 100
+    if (current < 0) return -100
+    return 0
+  }
+  return ((current - previous) / Math.abs(previous)) * 100
+}
+
+function formatChangePercent(value: number): string {
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(1).replace('.', ',')}%`
+}
+
+function previousMonthLabel(): string {
+  const now = new Date()
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  return prev.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+}
+
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length === 0) return null
+  const max = Math.max(...values, 1)
+  const min = Math.min(...values, 0)
+  const range = max - min || 1
+  return (
+    <div className="flex h-9 items-end gap-1">
+      {values.map((value, index) => {
+        const height = Math.max(4, Math.round(((value - min) / range) * 36))
+        return (
+          <div
+            key={index}
+            className="w-1.5 rounded-sm"
+            style={{ height: `${height}px`, backgroundColor: color, opacity: 0.55 + (index / values.length) * 0.45 }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function BillingStatCard({
+  label,
+  value,
+  changePercent,
+  sparkValues,
+  icon,
+  iconBg,
+  sparkColor,
+}: {
+  label: string
+  value: number
+  changePercent: number
+  sparkValues: number[]
+  icon: ReactNode
+  iconBg: string
+  sparkColor: string
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-4 shadow-sm">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white ${iconBg}`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-ink-muted">{label}</p>
+        <p className="text-2xl font-bold tabular-nums text-ink">{numberFormatter.format(value)}</p>
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className={`inline-flex items-center font-semibold ${changePercent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            {changePercent >= 0 ? '↑' : '↓'} {formatChangePercent(changePercent)}
+          </span>
+          <span className="text-ink-muted">vs {previousMonthLabel()}</span>
+        </div>
+      </div>
+      <div className="shrink-0">
+        <Sparkline values={sparkValues} color={sparkColor} />
+      </div>
+    </div>
+  )
 }
 
 function downloadCsv(filename: string, rows: string[][]) {
@@ -314,63 +394,126 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
   const totalSolir = latest ? latest.isolationContinued + latest.isolationNotContinued : 0
   const totalDismantle = latest ? latest.dismantleOpen : 0
 
+  const baseline = entries.at(0) ?? null
+  const sparkWindow = entries.slice(-7)
+
+  const psbValue = latest?.totalPsbList ?? 0
+  const psbChange = getChangePercent(psbValue, baseline?.totalPsbList ?? 0)
+  const psbSpark = sparkWindow.map((entry) => entry.totalPsbList)
+
+  const solirValue = totalSolir
+  const solirBaseline = baseline ? baseline.isolationContinued + baseline.isolationNotContinued : 0
+  const solirChange = getChangePercent(solirValue, solirBaseline)
+  const solirSpark = sparkWindow.map((entry) => entry.isolationContinued + entry.isolationNotContinued)
+
+  const dismantleValue = totalDismantle
+  const dismantleChange = getChangePercent(dismantleValue, baseline?.dismantleOpen ?? 0)
+  const dismantleSpark = sparkWindow.map((entry) => entry.dismantleOpen)
+
+  const activeValue = latest?.activeCustomers ?? 0
+  const activeChange = getChangePercent(activeValue, baseline?.activeCustomers ?? 0)
+  const activeSpark = sparkWindow.map((entry) => entry.activeCustomers)
+
   return (
     <section className="space-y-4 pb-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <SectionHeading
-          title="Dashboard Admin Billing"
-          description="Input rekap PSB & Isolir harian, lalu lihat Detail Data Harian & grafik yang otomatis diperbarui"
-          badge={latest ? `Data terbaru ${formatDateLabel(latest.reportDate)}` : 'Belum ada rekap'}
-          className="mb-0"
-        />
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0b2b5e] via-[#0f3a7a] to-[#1e5fbf] px-5 py-5 text-white shadow-md sm:px-6">
+        <div className="absolute inset-y-0 right-0 w-1/2 opacity-20">
+          <svg viewBox="0 0 400 200" className="h-full w-full" preserveAspectRatio="xMaxYMid slice" fill="none">
+            <g fill="rgba(255,255,255,0.35)">
+              <rect x="10" y="120" width="14" height="60" rx="2" />
+              <rect x="30" y="100" width="14" height="80" rx="2" />
+              <rect x="50" y="110" width="14" height="70" rx="2" />
+              <rect x="70" y="90" width="14" height="90" rx="2" />
+              <rect x="90" y="105" width="14" height="75" rx="2" />
+              <rect x="110" y="80" width="14" height="100" rx="2" />
+              <rect x="130" y="95" width="14" height="85" rx="2" />
+              <rect x="150" y="70" width="14" height="110" rx="2" />
+              <rect x="170" y="85" width="14" height="95" rx="2" />
+              <rect x="190" y="60" width="14" height="120" rx="2" />
+              <rect x="210" y="75" width="14" height="105" rx="2" />
+              <rect x="230" y="55" width="14" height="125" rx="2" />
+              <rect x="250" y="70" width="14" height="110" rx="2" />
+              <rect x="270" y="90" width="14" height="90" rx="2" />
+              <rect x="290" y="100" width="14" height="80" rx="2" />
+              <rect x="310" y="80" width="14" height="100" rx="2" />
+              <rect x="330" y="95" width="14" height="85" rx="2" />
+              <rect x="350" y="110" width="14" height="70" rx="2" />
+              <rect x="370" y="100" width="14" height="80" rx="2" />
+            </g>
+            <g stroke="rgba(255,255,255,0.4)" strokeWidth="2">
+              <line x1="195" y1="20" x2="195" y2="200" />
+              <line x1="195" y1="40" x2="165" y2="10" />
+              <line x1="195" y1="40" x2="225" y2="10" />
+              <line x1="195" y1="70" x2="150" y2="30" />
+              <line x1="195" y1="70" x2="240" y2="30" />
+            </g>
+          </svg>
+        </div>
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
+            <FileSpreadsheet className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Dashboard Admin Billing</h1>
+            <p className="mt-0.5 text-sm text-white/80">Rekapitulasi data pelanggan baru (PSB) dan pengaduan (Solir)</p>
+          </div>
+          <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex">
+            <Image src="/logo-white.svg" alt="Perkasa Networks" width={32} height={32} className="h-8 w-auto" />
+            <div className="text-right">
+              <div className="text-sm font-bold leading-tight">PERKASA</div>
+              <div className="text-[11px] leading-tight text-white/70">NETWORKS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => void loadEntries()}
+          disabled={loading}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted disabled:opacity-50"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Perbarui
+        </button>
+        {entries.length > 0 && (
           <button
             type="button"
-            onClick={() => void loadEntries()}
-            disabled={loading}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted disabled:opacity-50"
+            onClick={handleExportCsv}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Perbarui
+            <Download className="h-4 w-4" />
+            Export Excel
           </button>
-          {entries.length > 0 && (
+        )}
+        {canManage && (
+          <>
+            <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted">
+              <Upload className="h-4 w-4" />
+              {importing ? 'Mengimpor...' : 'Impor Excel/CSV'}
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="sr-only"
+                disabled={importing}
+                onChange={(event) => void handleImport(event)}
+              />
+            </label>
             <button
               type="button"
-              onClick={handleExportCsv}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted"
+              onClick={() => {
+                const nextOpen = !formOpen
+                setFormOpen(nextOpen)
+                if (nextOpen) void loadFormDate(jakartaTodayKey())
+              }}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-95"
             >
-              <Download className="h-4 w-4" />
-              Export Excel
+              <FileSpreadsheet className="h-4 w-4" />
+              {formOpen ? 'Tutup form' : 'Input rekap PSB & Isolir'}
             </button>
-          )}
-          {canManage && (
-            <>
-              <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-muted">
-                <Upload className="h-4 w-4" />
-                {importing ? 'Mengimpor...' : 'Impor Excel/CSV'}
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  className="sr-only"
-                  disabled={importing}
-                  onChange={(event) => void handleImport(event)}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextOpen = !formOpen
-                  setFormOpen(nextOpen)
-                  if (nextOpen) void loadFormDate(jakartaTodayKey())
-                }}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-95"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {formOpen ? 'Tutup form' : 'Input rekap PSB & Isolir'}
-              </button>
-            </>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       {error && (
@@ -385,33 +528,41 @@ export function FinanceDashboard({ canManage }: { canManage: boolean }) {
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
+        <BillingStatCard
           label="Total Pelanggan PSB"
-          value={numberFormatter.format(latest?.totalPsbList ?? 0)}
-          hint={latest ? `Per ${formatDateLabel(latest.reportDate)}` : 'Menunggu rekap'}
-          icon={<Users className="h-4 w-4" />}
-          tone="brand"
+          value={psbValue}
+          changePercent={psbChange}
+          sparkValues={psbSpark}
+          icon={<Users className="h-6 w-6" />}
+          iconBg="bg-blue-500"
+          sparkColor="#3b82f6"
         />
-        <StatCard
+        <BillingStatCard
           label="Total Solir"
-          value={numberFormatter.format(totalSolir)}
-          hint={`Lanjut ${numberFormatter.format(latest?.isolationContinued ?? 0)} · Tidak ${numberFormatter.format(latest?.isolationNotContinued ?? 0)}`}
-          icon={<Wrench className="h-4 w-4" />}
-          tone="warning"
+          value={solirValue}
+          changePercent={solirChange}
+          sparkValues={solirSpark}
+          icon={<Wrench className="h-6 w-6" />}
+          iconBg="bg-emerald-500"
+          sparkColor="#10b981"
         />
-        <StatCard
+        <BillingStatCard
           label="Total Dismantle"
-          value={numberFormatter.format(totalDismantle)}
-          hint="Backlog akhir hari"
-          icon={<Scissors className="h-4 w-4" />}
-          tone="danger"
+          value={dismantleValue}
+          changePercent={dismantleChange}
+          sparkValues={dismantleSpark}
+          icon={<ListTodo className="h-6 w-6" />}
+          iconBg="bg-violet-500"
+          sparkColor="#8b5cf6"
         />
-        <StatCard
+        <BillingStatCard
           label="Total Pelanggan Aktif"
-          value={numberFormatter.format(latest?.activeCustomers ?? 0)}
-          hint={`Total pelanggan ${numberFormatter.format(latest?.totalCustomers ?? 0)}`}
-          icon={<TrendingUp className="h-4 w-4" />}
-          tone="success"
+          value={activeValue}
+          changePercent={activeChange}
+          sparkValues={activeSpark}
+          icon={<TrendingUp className="h-6 w-6" />}
+          iconBg="bg-amber-500"
+          sparkColor="#f59e0b"
         />
       </div>
 
