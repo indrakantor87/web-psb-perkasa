@@ -15,7 +15,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
-import { canAccessMenu, isTechnicianRole, normalizeRole, type AppMenuKey } from '@/lib/access'
+import { canAccessMenu, isMarketingServiceManager, isTechnicianRole, normalizeRole, type AppMenuKey } from '@/lib/access'
 
 export type MobileMenuKey = Exclude<AppMenuKey, 'dashboard' | 'settings'>
 
@@ -72,8 +72,14 @@ export function isMobileTechnicianRole(role?: string | null) {
   return isTechnicianRole(role) || normalizeRole(role) === 'NOC'
 }
 
-export function getMobileHomeHref(role?: string | null) {
-  return isMobileTechnicianRole(role) || !canAccessMenu(role, 'dashboard') ? '/beranda' : '/'
+export function getMobileHomeHref(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null,
+  division?: string | null
+) {
+  if (isMarketingServiceManager(role, position, division)) return '/'
+  return isMobileTechnicianRole(role) || !canAccessMenu(role, 'dashboard', position, subdivision, division) ? '/beranda' : '/'
 }
 
 export function canShowMobilePsbSummary(role?: string | null) {

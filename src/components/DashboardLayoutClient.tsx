@@ -148,7 +148,12 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-100 dark:bg-gray-900">
-      <CapacitorBackHandler userRole={user.role} />
+      <CapacitorBackHandler
+        userRole={user.role}
+        position={user.position}
+        subdivision={user.subdivision}
+        division={user.division}
+      />
       <Header user={user} />
       
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -167,7 +172,7 @@ export function DashboardLayoutClient({ children, user }: DashboardLayoutClientP
           </div>
         </main>
       </div>
-      <MobileNavigation role={user.role} position={user.position} subdivision={user.subdivision} />
+      <MobileNavigation role={user.role} position={user.position} subdivision={user.subdivision} division={user.division} />
     </div>
   )
 }

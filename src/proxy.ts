@@ -65,12 +65,21 @@ export async function proxy(request: NextRequest) {
   }
 
   if (currentUser && pathname === '/login') {
-    return NextResponse.redirect(new URL(getDefaultPathForRole(currentUser.role), request.url))
+    return NextResponse.redirect(new URL(
+      getDefaultPathForRole(currentUser.role, currentUser.position, currentUser.subdivision, currentUser.division),
+      request.url
+    ))
   }
 
   if (currentUser) {
-    if (pathname === '/' && !canAccessMenu(currentUser.role, 'dashboard')) {
-      return NextResponse.redirect(new URL(getDefaultPathForRole(currentUser.role), request.url))
+    if (
+      pathname === '/' &&
+      !canAccessMenu(currentUser.role, 'dashboard', currentUser.position, currentUser.subdivision, currentUser.division)
+    ) {
+      return NextResponse.redirect(new URL(
+        getDefaultPathForRole(currentUser.role, currentUser.position, currentUser.subdivision, currentUser.division),
+        request.url
+      ))
     }
   }
 

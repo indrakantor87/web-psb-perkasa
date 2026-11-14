@@ -1,3 +1,5 @@
+import { normalizeUserDivision } from '@/lib/user-division'
+
 export type AppMenuKey =
   | 'dashboard'
   | 'input'
@@ -48,6 +50,20 @@ export const APP_ROLE_VALUES = [
 
 export function normalizeRole(role?: string | null) {
   return String(role ?? '').trim().toUpperCase()
+}
+
+export function isMarketingServiceManager(
+  role?: string | null,
+  position?: string | null,
+  division?: string | null
+) {
+  const roleUpper = normalizeRole(role)
+  const allowedRoles = new Set(['MARKETING', 'CS', 'ADMIN_CS', 'NOC', 'CREATOR_DIGITAL'])
+  return (
+    allowedRoles.has(roleUpper) &&
+    String(position ?? '').trim().toLowerCase() === 'manager' &&
+    normalizeUserDivision(division) === 'Pemasaran dan Pelayanan'
+  )
 }
 
 export function isReadOnlyRole(role?: string | null) {
@@ -215,8 +231,13 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
   }
 }
 
-export function getDefaultPathForRole(role?: string | null) {
-  if (canAccessMenu(role, 'dashboard')) return '/'
+export function getDefaultPathForRole(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null,
+  division?: string | null
+) {
+  if (canAccessMenu(role, 'dashboard', position, subdivision, division)) return '/'
 
   const roleUpper = normalizeRole(role)
   const preferredMenus: AppMenuKey[] =
@@ -224,7 +245,7 @@ export function getDefaultPathForRole(role?: string | null) {
       ? ['content-calendar', 'campaigns', 'digital-leads', 'analytics']
       : ['input', 'list', 'trouble-ticket', 'dismantle', 'content-calendar', 'hr', 'marketing-activities', 'isolir', 'odp']
 
-  const menu = preferredMenus.find((item) => canAccessMenu(role, item))
+  const menu = preferredMenus.find((item) => canAccessMenu(role, item, position, subdivision, division))
   if (!menu || menu === 'dashboard' || menu === 'settings') return '/profile'
   return getMenuHref(menu, getDivisionFromRole(role))
 }
@@ -269,7 +290,8 @@ export function canAccessDailyActivity(
 function getAccessibleMenus(
   role?: string | null,
   position?: string | null,
-  subdivision?: string | null
+  subdivision?: string | null,
+  division?: string | null
 ) {
   const roleUpper = normalizeRole(role)
   const daAllowed = canAccessDailyActivity(roleUpper, position, subdivision)
@@ -344,6 +366,7 @@ function getAccessibleMenus(
   }
 
   if (daAllowed) menus.add('daily-activity')
+  if (isMarketingServiceManager(roleUpper, position, division)) menus.add('dashboard')
   // Semua role dapat membuka halaman Absensi; cakupan datanya dibatasi ke akun
   // yang login, kecuali Developer/Priority/Admin/HR (lihat canAccessHrEmployees).
   menus.add('hr')
@@ -354,9 +377,10 @@ export function canAccessMenu(
   role: string | null | undefined,
   menu: AppMenuKey,
   position?: string | null,
-  subdivision?: string | null
+  subdivision?: string | null,
+  division?: string | null
 ) {
-  return getAccessibleMenus(role, position, subdivision).has(menu)
+  return getAccessibleMenus(role, position, subdivision, division).has(menu)
 }
 
 function getAccessibleSettingsPages(role?: string | null) {

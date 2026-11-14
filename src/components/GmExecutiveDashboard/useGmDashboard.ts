@@ -13,11 +13,41 @@ export type GmDashboardData = {
     activeCustomers: number
     customerDeclinePercent: number
     psbInstalled: number
+    psbRequested: number
+    installationQueue: number
+    dismantleOpen: number
+    dismantleClosed: number
+    ttOpened: number
+    ttClosed: number
+    openTroubleTickets: number
     availabilityPercent: number
     ttCloseRate: number
     mttrHours: number
     isolationCloseRate: number
   }
+  serviceMetrics: {
+    ticketStatuses: { open: number; onProgress: number; close: number }
+    contentPublished: number
+    contentScheduled: number
+    digitalLeads: number
+  }
+  subdivisionPerformance: Array<{ subdivision: string; total: number; done: number; percent: number }>
+  recentActivities: Array<{
+    id: number
+    date: string
+    subdivision: string
+    owner: string
+    title: string
+    status: string
+  }>
+  activityTrend: Array<{
+    date: string
+    label: string
+    sales: number
+    psb: number
+    trouble: number
+    content: number
+  }>
   deltas: {
     customerGrowth: number
     activeGrowth: number
@@ -109,15 +139,16 @@ export function useGmDashboard() {
   })
   const [year, setYear] = useState(initialPeriod.year)
   const [month, setMonth] = useState(initialPeriod.month)
+  const [trendDays, setTrendDays] = useState(30)
   const [data, setData] = useState<GmDashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(async (y: number, m: number, signal?: AbortSignal) => {
+  const fetchData = useCallback(async (y: number, m: number, days: number, signal?: AbortSignal) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/gm-dashboard?year=${y}&month=${m}`, { cache: 'no-store', signal })
+      const res = await fetch(`/api/gm-dashboard?year=${y}&month=${m}&trendDays=${days}`, { cache: 'no-store', signal })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = (await res.json()) as GmDashboardData
       setData(json)
@@ -131,20 +162,22 @@ export function useGmDashboard() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void fetchData(year, month, controller.signal)
+    void fetchData(year, month, trendDays, controller.signal)
     return () => controller.abort()
-  }, [year, month, fetchData])
+  }, [year, month, trendDays, fetchData])
 
   return {
     year,
     setYear,
     month,
     setMonth,
+    trendDays,
+    setTrendDays,
     data,
     loading,
     error,
     years: YEARS,
     months: GM_DASHBOARD_MONTHS,
-    refresh: () => fetchData(year, month),
+    refresh: () => fetchData(year, month, trendDays),
   }
 }

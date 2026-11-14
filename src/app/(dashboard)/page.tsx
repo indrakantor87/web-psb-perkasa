@@ -1,4 +1,5 @@
 import { DashboardView } from '@/components/DashboardView'
+import { MarketingServiceManagerDashboard } from '@/components/MarketingServiceManagerDashboard'
 import { NocDashboard } from '@/components/NocDashboard'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
@@ -10,7 +11,7 @@ import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
-import { getDivisionFromRole, isAdminRole, normalizeRole } from '@/lib/access'
+import { getDivisionFromRole, isAdminRole, isMarketingServiceManager, normalizeRole } from '@/lib/access'
 import { getAllDailyActivityDivisions, getDailyActivitySubdivisions, normalizeDailyActivitySubdivision } from '@/lib/daily-activity-org'
 
 export const dynamic = 'force-dynamic'
@@ -221,7 +222,22 @@ export default async function DashboardPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (normalizeRole(session.user.role) === 'NOC') return <NocDashboard />
+  if (
+    normalizeRole(session.user.role) === 'NOC' &&
+    !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  ) {
+    return <NocDashboard />
+  }
+  if (isMarketingServiceManager(session.user.role, session.user.position, session.user.division)) {
+    return (
+      <MarketingServiceManagerDashboard
+        userRole={session.user.role}
+        userPosition={session.user.position}
+        userSubdivision={session.user.subdivision}
+        userDivision={session.user.division}
+      />
+    )
+  }
   await ensureDbOptimizations()
 
   const resolvedSearchParams = await searchParams
@@ -270,6 +286,7 @@ export default async function DashboardPage({
         userName={session.user.name}
         userPosition={session.user.position}
         userSubdivision={session.user.subdivision}
+        userDivision={session.user.division}
         divisionSummary={payload.divisionSummary}
         focusedDivisionKpis={payload.focusedDivisionKpis}
         selectedDivision={selectedDivision}

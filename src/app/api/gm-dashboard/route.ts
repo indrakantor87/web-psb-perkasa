@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { Prisma as PrismaSql } from '@prisma/client'
 import { getSession } from '@/lib/auth'
 import { canReadGmDailyReport } from '@/lib/gm-daily-report-access'
-import { jakartaNow } from '@/lib/jakarta-time'
+import { isMarketingServiceManager } from '@/lib/access'
+import { JAKARTA_OFFSET_MS, jakartaNow } from '@/lib/jakarta-time'
 import {
   getGmDashboardPeriodLabel,
   getGmDashboardPeriodRange,
@@ -30,6 +31,18 @@ type DivisionRow = {
   members: number
 }
 
+type DailyCountRow = { date: string; count: number }
+type ServiceTicketStatusRow = { status: string; count: number }
+type ServiceSubdivisionRow = { subdivision: string; total: number; done: number }
+type RecentServiceActivityRow = {
+  id: number
+  activityDate: Date
+  subdivision: string | null
+  ownerName: string
+  title: string
+  executionStatus: string
+}
+
 function pct(value: number, total: number) {
   return total > 0 ? (value / total) * 100 : 0
 }
@@ -37,13 +50,20 @@ function pct(value: number, total: number) {
 export async function GET(req: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canReadGmDailyReport(session.user.role)) {
+  if (
+    !canReadGmDailyReport(session.user.role) &&
+    !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  ) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const url = new URL(req.url)
   const now = jakartaNow()
   const { year, month } = resolveGmDashboardPeriod(url.searchParams, now)
+  const requestedTrendDays = Number(url.searchParams.get('trendDays'))
+  const trendDays = [7, 30, 90].includes(requestedTrendDays) ? requestedTrendDays : 30
+  const trendEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - JAKARTA_OFFSET_MS)
+  const trendStart = new Date(trendEnd.getTime() - trendDays * 24 * 60 * 60 * 1000)
   const periodLabel = getGmDashboardPeriodLabel(year, month)
   const { start: periodStart, end: periodEnd, hasStarted: periodHasStarted } =
     getGmDashboardQueryRange(year, month)
@@ -93,8 +113,8 @@ export async function GET(req: Request) {
     `).catch(() => []),
     prisma.isolation.count({ where: { isolationDate: { gte: periodStart, lt: periodEnd } } }).catch(() => 0),
     prisma.isolation.count({ where: { restorationDate: { gte: periodStart, lt: periodEnd } } }).catch(() => 0),
-    prisma.$queryRaw<Array<{ reportDate: Date; totalCustomers: number; activeCustomers: number; customerDeclinePercent: number; isolationContinued: number; isolationNotContinued: number; dismantleOpen: number; dismantleClosed: number }>>(PrismaSql.sql`
-      SELECT "reportDate", "totalCustomers", "activeCustomers", "customerDeclinePercent", "isolationContinued", "isolationNotContinued", "dismantleOpen", "dismantleClosed"
+    prisma.$queryRaw<Array<{ reportDate: Date; totalCustomers: number; activeCustomers: number; customerDeclinePercent: number; isolationContinued: number; isolationNotContinued: number; installationQueue: number; dismantleOpen: number; dismantleClosed: number }>>(PrismaSql.sql`
+      SELECT "reportDate", "totalCustomers", "activeCustomers", "customerDeclinePercent", "isolationContinued", "isolationNotContinued", "installationQueue", "dismantleOpen", "dismantleClosed"
       FROM "gm_daily_report_snapshots"
       WHERE "reportDate" >= ${periodStart} AND "reportDate" < ${periodEnd}
       ORDER BY "reportDate" ASC
@@ -235,6 +255,99 @@ export async function GET(req: Request) {
     `).catch(() => []),
   ])
 
+  const managerDashboardData = isMarketingServiceManager(
+    session.user.role,
+    session.user.position,
+    session.user.division
+  )
+    ? await Promise.all([
+    prisma.ticket.count({ where: { requestDate: { gte: periodStart, lt: periodEnd } } }).catch(() => 0),
+    prisma.troubleTicket.count({ where: { closedAt: null } }).catch(() => 0),
+    prisma.$queryRaw<Array<{ status: string; count: number }>>(PrismaSql.sql`
+      SELECT UPPER(COALESCE(NULLIF(TRIM("status"), ''), 'OPEN')) AS status, COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "requestDate" >= ${periodStart} AND "requestDate" < ${periodEnd}
+      GROUP BY 1
+    `).catch(() => []),
+    prisma.contentCalendar.count({
+      where: { status: 'PUBLISHED', publishDate: { gte: periodStart, lt: periodEnd } },
+    }).catch(() => 0),
+    prisma.contentCalendar.count({
+      where: { status: 'SCHEDULED', publishDate: { gte: periodStart, lt: periodEnd } },
+    }).catch(() => 0),
+    prisma.digitalLead.count({ where: { createdAt: { gte: periodStart, lt: periodEnd } } }).catch(() => 0),
+    prisma.$queryRaw<Array<{ subdivision: string; total: number; done: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM("subdivision"), ''), 'Tanpa Subdivisi') AS subdivision,
+        COUNT(*)::int AS total,
+        SUM(CASE WHEN "executionStatus" = 'DONE' THEN 1 ELSE 0 END)::int AS done
+      FROM "psb_daily_activity_items"
+      WHERE "division" = 'Pemasaran dan Pelayanan'
+        AND "activityDate" >= ${periodStart} AND "activityDate" < ${periodEnd}
+      GROUP BY 1
+      ORDER BY total DESC
+    `).catch(() => []),
+    prisma.dailyActivityItem.findMany({
+      where: {
+        division: 'Pemasaran dan Pelayanan',
+        activityDate: { gte: periodStart, lt: periodEnd },
+      },
+      select: {
+        id: true,
+        activityDate: true,
+        subdivision: true,
+        ownerName: true,
+        title: true,
+        executionStatus: true,
+      },
+      orderBy: [{ activityDate: 'desc' }, { updatedAt: 'desc' }],
+      take: 8,
+    }).catch(() => []),
+    prisma.$queryRaw<DailyCountRow[]>(PrismaSql.sql`
+      SELECT TO_CHAR("requestDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS date,
+        COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "requestDate" >= ${trendStart} AND "requestDate" < ${trendEnd}
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<DailyCountRow[]>(PrismaSql.sql`
+      SELECT TO_CHAR("installedDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS date,
+        COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "installedDate" >= ${trendStart} AND "installedDate" < ${trendEnd}
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<DailyCountRow[]>(PrismaSql.sql`
+      SELECT TO_CHAR("openedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS date,
+        COUNT(*)::int AS count
+      FROM "TroubleTicket"
+      WHERE "openedAt" >= ${trendStart} AND "openedAt" < ${trendEnd}
+        AND COALESCE(NULLIF(TRIM("category"), ''), 'TT') = 'TT'
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<DailyCountRow[]>(PrismaSql.sql`
+      SELECT TO_CHAR("publishDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS date,
+        COUNT(*)::int AS count
+      FROM "ContentCalendar"
+      WHERE "publishDate" >= ${trendStart} AND "publishDate" < ${trendEnd} AND "status" = 'PUBLISHED'
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+  ])
+    : null
+
+  const psbRequested = managerDashboardData?.[0] ?? 0
+  const openTroubleTickets = managerDashboardData?.[1] ?? 0
+  const serviceTicketStatusRows: ServiceTicketStatusRow[] = managerDashboardData?.[2] ?? []
+  const contentPublished = managerDashboardData?.[3] ?? 0
+  const contentScheduled = managerDashboardData?.[4] ?? 0
+  const digitalLeads = managerDashboardData?.[5] ?? 0
+  const serviceSubdivisionRows: ServiceSubdivisionRow[] = managerDashboardData?.[6] ?? []
+  const recentServiceActivities: RecentServiceActivityRow[] = managerDashboardData?.[7] ?? []
+  const trendSalesRows: DailyCountRow[] = managerDashboardData?.[8] ?? []
+  const trendPsbRows: DailyCountRow[] = managerDashboardData?.[9] ?? []
+  const trendTroubleRows: DailyCountRow[] = managerDashboardData?.[10] ?? []
+  const trendContentRows: DailyCountRow[] = managerDashboardData?.[11] ?? []
+
   const isolirByMarketing = new Map<string, number>()
   for (const row of isolirMarketingRows) {
     const name = toDashboardMarketingLabel(row.name, marketingNameMap)
@@ -308,6 +421,26 @@ export async function GET(req: Request) {
     month: label,
     installed: Number(psbDailyRows.find((row) => row.day === index + 1)?.count ?? 0),
   }))
+
+  const trendDates = Array.from({ length: trendDays }, (_, index) => {
+    const date = new Date(trendStart.getTime() + index * 24 * 60 * 60 * 1000 + JAKARTA_OFFSET_MS)
+    return date.toISOString().slice(0, 10)
+  })
+  const trendMap = new Map(trendDates.map((date) => [
+    date,
+    { date, label: new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00.000Z`)), sales: 0, psb: 0, trouble: 0, content: 0 },
+  ]))
+  const addTrendRows = (rows: Array<{ date: string; count: number }>, key: 'sales' | 'psb' | 'trouble' | 'content') => {
+    for (const row of rows) {
+      const point = trendMap.get(String(row.date))
+      if (point) point[key] += Number(row.count || 0)
+    }
+  }
+  addTrendRows(trendSalesRows, 'sales')
+  addTrendRows(trendPsbRows, 'psb')
+  addTrendRows(trendTroubleRows, 'trouble')
+  addTrendRows(trendContentRows, 'content')
+  const activityTrend = Array.from(trendMap.values())
 
   // Trouble ticket trend by category for each day in the selected month.
   const troubleByCategory = new Map<string, number[]>()
@@ -430,6 +563,28 @@ export async function GET(req: Request) {
     },
   ]
 
+  const ticketStatusCounts = new Map(
+    serviceTicketStatusRows.map((row) => [String(row.status).trim().toUpperCase(), Number(row.count || 0)])
+  )
+  const subdivisionPerformance = serviceSubdivisionRows.map((row) => {
+    const total = Number(row.total || 0)
+    const done = Number(row.done || 0)
+    return {
+      subdivision: String(row.subdivision || 'Tanpa Subdivisi'),
+      total,
+      done,
+      percent: total > 0 ? Math.round((done / total) * 100) : 0,
+    }
+  })
+  const recentActivities = recentServiceActivities.map((row) => ({
+    id: row.id,
+    date: row.activityDate,
+    subdivision: row.subdivision || 'Pemasaran dan Pelayanan',
+    owner: row.ownerName,
+    title: row.title,
+    status: row.executionStatus,
+  }))
+
   // Risks
   const risks = []
   if (slaBreachRows.length > 0) {
@@ -471,7 +626,7 @@ export async function GET(req: Request) {
   ].filter(Boolean)
   const execSummary = `Kinerja ${periodLabel}: ${summaryParts.join('; ')}.`
 
-  return NextResponse.json({
+  const responseData = {
     year,
     month,
     periodLabel,
@@ -482,11 +637,31 @@ export async function GET(req: Request) {
       activeCustomers,
       customerDeclinePercent: declinePercent,
       psbInstalled,
+      psbRequested,
+      installationQueue: Number(latest?.installationQueue || 0),
+      dismantleOpen: Number(latest?.dismantleOpen || 0),
+      dismantleClosed: Number(latest?.dismantleClosed || 0),
+      ttOpened,
+      ttClosed,
+      openTroubleTickets,
       availabilityPercent: availability.availabilityPercent,
       ttCloseRate,
       mttrHours,
       isolationCloseRate,
     },
+    serviceMetrics: {
+      ticketStatuses: {
+        open: ticketStatusCounts.get('OPEN') || 0,
+        onProgress: ticketStatusCounts.get('ON_PROGRESS') || ticketStatusCounts.get('ON PROGRESS') || 0,
+        close: ticketStatusCounts.get('CLOSE') || 0,
+      },
+      contentPublished,
+      contentScheduled,
+      digitalLeads,
+    },
+    subdivisionPerformance,
+    recentActivities,
+    activityTrend,
     deltas: {
       customerGrowth,
       activeGrowth,
@@ -520,5 +695,66 @@ export async function GET(req: Request) {
     },
     risks,
     execSummary,
-  })
+  }
+
+  if (isMarketingServiceManager(session.user.role, session.user.position, session.user.division)) {
+    const managerRisks = [
+      {
+        category: 'PSB belum terpasang',
+        count: Math.max(0, psbRequested - psbInstalled),
+        detail: 'Permohonan PSB dikurangi pemasangan pada periode ini',
+      },
+      {
+        category: 'Tiket pelanggan belum selesai',
+        count: (ticketStatusCounts.get('OPEN') || 0) +
+          (ticketStatusCounts.get('ON_PROGRESS') || ticketStatusCounts.get('ON PROGRESS') || 0),
+        detail: 'Tiket PSB berstatus open atau dalam proses',
+      },
+      {
+        category: 'Gangguan masih aktif',
+        count: openTroubleTickets,
+        detail: 'Trouble ticket yang belum ditutup',
+      },
+      {
+        category: 'Konten belum tayang',
+        count: contentScheduled,
+        detail: 'Konten terjadwal pada periode ini',
+      },
+    ].filter((item) => item.count > 0)
+
+    return NextResponse.json({
+      year,
+      month,
+      periodLabel,
+      generatedAt: now.toISOString(),
+      kpis: {
+        psbInstalled,
+        psbRequested,
+        installationQueue: Number(latest?.installationQueue || 0),
+        dismantleOpen: Number(latest?.dismantleOpen || 0),
+        ttOpened,
+        ttClosed,
+        openTroubleTickets,
+        availabilityPercent: availability.availabilityPercent,
+        ttCloseRate,
+      },
+      serviceMetrics: {
+        ticketStatuses: {
+          open: ticketStatusCounts.get('OPEN') || 0,
+          onProgress: ticketStatusCounts.get('ON_PROGRESS') || ticketStatusCounts.get('ON PROGRESS') || 0,
+          close: ticketStatusCounts.get('CLOSE') || 0,
+        },
+        contentPublished,
+        contentScheduled,
+        digitalLeads,
+      },
+      subdivisionPerformance,
+      recentActivities,
+      activityTrend,
+      risks: managerRisks,
+      execSummary: `Periode ${periodLabel}: ${psbInstalled} PSB terpasang dari ${psbRequested} permohonan; ${ttClosed} gangguan diselesaikan; availability jaringan ${availability.availabilityPercent.toFixed(1)}%; ${contentPublished} konten tayang dan ${digitalLeads} leads digital.`,
+    })
+  }
+
+  return NextResponse.json(responseData)
 }

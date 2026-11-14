@@ -18,6 +18,7 @@ import {
   isPriorityMutationBlocked,
   isReadOnlyRole,
   isMarketingNameScopedRole,
+  isMarketingServiceManager,
   resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { isMarketingOwnerMatch } from '@/lib/marketing-users'
@@ -118,9 +119,21 @@ test('MARKETING receives the assigned operational modules without Dashboard acce
   assert.equal(canAccessMenu('MARKETING', 'dashboard'), false)
   assert.equal(canAccessMenu('MARKETING', 'settings'), false)
   assert.equal(canMutateMenu('MARKETING', 'input'), true)
-  for (const menu of ['list', 'marketing-activities', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'] as const) {
+  for (const menu of ['list', 'isolir', 'dismantle', 'odp', 'trouble-ticket', 'hr'] as const) {
     assert.equal(canMutateMenu('MARKETING', menu), false, `MARKETING must not mutate ${menu}`)
   }
+  assert.equal(canMutateMenu('MARKETING', 'marketing-activities'), true)
+})
+
+test('Manager Pemasaran dan Pelayanan mendapat dashboard khusus', () => {
+  assert.equal(isMarketingServiceManager('MARKETING', 'Manager', 'Pemasaran dan Pelayanan'), true)
+  assert.equal(
+    canAccessMenu('MARKETING', 'dashboard', 'Manager', null, 'Pemasaran dan Pelayanan'),
+    true
+  )
+  assert.equal(isMarketingServiceManager('FINANCE', 'Manager', 'Finance & HR'), false)
+  assert.equal(isMarketingServiceManager('MARKETING', 'SPV', 'Pemasaran dan Pelayanan'), false)
+  assert.equal(isMarketingServiceManager('MARKETING', 'Manager', 'Teknisi'), false)
 })
 
 test('fingerprint machine configuration and db-update authority are Developer-only', () => {

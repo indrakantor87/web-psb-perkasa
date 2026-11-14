@@ -30,6 +30,13 @@ test('Mobile Beranda tetap mengikuti akses dashboard role lain', () => {
   assert.equal(getMobileHomeHref('MARKETING'), '/beranda')
 })
 
+test('Manager Pemasaran dan Pelayanan diarahkan ke dashboard di mobile', () => {
+  assert.equal(
+    getMobileHomeHref('NOC', 'Manager', null, 'Pemasaran dan Pelayanan'),
+    '/'
+  )
+})
+
 test('PRIORITY Beranda tetap menyembunyikan modul marketing dan Digital', () => {
   const restrictedMenus = [
     'marketing-activities',

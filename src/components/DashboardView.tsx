@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users, CheckCircle2, Clock, AlertTriangle, TrendingUp, Activity, BarChart3, FileText } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { getDivisionFromRole, isAdminRole } from '@/lib/access'
+import { getDivisionFromRole, isAdminRole, isMarketingServiceManager } from '@/lib/access'
 import { MobileHome } from '@/components/MobileHome'
 import { Card, cardClassName } from '@/components/ui/Card'
 import { ChartCard } from '@/components/ui/ChartCard'
@@ -16,6 +16,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { GmDailyReportDashboard } from '@/components/GmDailyReportDashboard'
 import { GmExecutiveDashboard } from '@/components/GmExecutiveDashboard'
 import { FinanceDashboard } from '@/components/FinanceDashboard'
+import { MarketingServiceManagerDashboard } from '@/components/MarketingServiceManagerDashboard'
 import { chartAxisTick, chartCursorFill, chartTooltipStyle } from '@/components/ui/chart'
 
 type DivisionSummary = {
@@ -104,6 +105,7 @@ interface DashboardViewProps {
   userName?: string
   userPosition?: string | null
   userSubdivision?: string | null
+  userDivision?: string | null
   divisionSummary?: DivisionSummary[]
   focusedDivisionKpis?: DashboardKpiCard[]
   selectedDivision?: DivisionFilter
@@ -111,7 +113,7 @@ interface DashboardViewProps {
   gaDailyActivityStats?: GaDailyActivityStats
 }
 
-export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, userPosition, userSubdivision, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats, gaDailyActivityStats }: DashboardViewProps) {
+export function DashboardView({ packageData, marketingData, monthlyData, yearTopPackages, yearMarketingMonthly, statusCounts, ticketingMonthRecap, troubleTicketClosedMonthly, troubleTicketProblemMonthly, initialPeriod, userRole, userName, userPosition, userSubdivision, userDivision, divisionSummary = [], focusedDivisionKpis = [], selectedDivision = 'ALL', hrStats, gaDailyActivityStats }: DashboardViewProps) {
   const router = useRouter()
   const [isMobilePortrait, setIsMobilePortrait] = useState(false)
   const month = initialPeriod.month
@@ -1134,6 +1136,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const isGa = roleUpper === 'GENERAL_AFFAIR'
   const positionLower = String(userPosition ?? '').trim().toLowerCase()
   const isFinanceManager = isFinance && positionLower === 'manager'
+  const isMarketingServiceManagerUser = isMarketingServiceManager(userRole, userPosition, userDivision)
 
   // Bagian statistik HR (stat cards + shortcut + tabel per divisi) — dipakai oleh dashboard HR
   // dan juga sebagai bagian bawah dashboard gabungan Finance Manager.
@@ -1735,7 +1738,16 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
     )
   })() : null
 
-  const mainContent = isPriorityRole
+  const mainContent = isMarketingServiceManagerUser
+    ? (
+      <MarketingServiceManagerDashboard
+        userRole={userRole ?? ''}
+        userPosition={userPosition}
+        userSubdivision={userSubdivision}
+        userDivision={userDivision}
+      />
+    )
+    : isPriorityRole
     ? <GmExecutiveDashboard />
     : isFinanceManager
       ? combinedFinanceHrContent
@@ -1749,7 +1761,9 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
   return (
     <>
-      {isPriorityRole ? (
+      {isMarketingServiceManagerUser ? (
+        mainContent
+      ) : isPriorityRole ? (
         <div className="md:hidden">
           <MobileHome
             userName={userName ?? 'Pengguna'}
@@ -1770,7 +1784,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           statusCounts={statusCounts}
         />
       )}
-      <div className="hidden md:block">{mainContent}</div>
+      {!isMarketingServiceManagerUser && <div className="hidden md:block">{mainContent}</div>}
     </>
   )
 }

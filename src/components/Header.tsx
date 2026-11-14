@@ -138,7 +138,7 @@ export function Header({ user }: { user: SessionUser }) {
   }, [currentDivisionParam, pathname])
 
   const flatLinks: HeaderNavLink[] = [
-        ...(canAccessMenu(user?.role, 'dashboard') ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
+        ...(canAccessMenu(user?.role, 'dashboard', user?.position, user?.subdivision, user?.division) ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
         ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
         ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
         ...(canAccessMenu(user?.role, 'marketing-activities', user?.position, user?.subdivision) ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),

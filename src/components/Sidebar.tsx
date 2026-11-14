@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { canAccessMenu, canAccessSettingsPage, getDivisionFromRole, getMenuHref, hasAnySettingsAccess, isReadOnlyRole } from '@/lib/access'
 
-export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string; position?: string | null; subdivision?: string | null }; onExpand?: () => void }) {
+export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile?: boolean; onClose?: () => void; collapsed?: boolean; user?: { role: string; position?: string | null; subdivision?: string | null; division?: string | null }; onExpand?: () => void }) {
   const pathname = usePathname()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [zoomLevel, setZoomLevel] = useState(() => {
@@ -27,7 +27,7 @@ export function Sidebar({ mobile, onClose, collapsed, user, onExpand }: { mobile
   }, [zoomLevel])
 
   const links = [
-    ...(canAccessMenu(user?.role, 'dashboard') ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
+    ...(canAccessMenu(user?.role, 'dashboard', user?.position, user?.subdivision, user?.division) ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
     ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
     ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
     ...(canAccessMenu(user?.role, 'marketing-activities', user?.position, user?.subdivision) ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),

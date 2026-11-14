@@ -22,6 +22,7 @@ type Props = {
   role: string
   position?: string | null
   subdivision?: string | null
+  division?: string | null
 }
 
 const settingsLinks = [
@@ -35,7 +36,7 @@ const settingsLinks = [
   { key: 'security-logs', href: '/settings/security-logs', label: 'Log Aktivitas' },
 ] as const
 
-export function MobileNavigation({ role, position, subdivision }: Props) {
+export function MobileNavigation({ role, position, subdivision, division }: Props) {
   const pathname = usePathname()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
@@ -59,7 +60,7 @@ export function MobileNavigation({ role, position, subdivision }: Props) {
   }, [isMenuOpen])
 
   const roleDivision = getDivisionFromRole(role)
-  const homeHref = getMobileHomeHref(role)
+  const homeHref = getMobileHomeHref(role, position, subdivision, division)
   const primaryLinks = getMobilePrimaryLinks(role, position, subdivision)
 
   // GM/Direktur (role PRIORITY) hanya mendapat kontrol personalisasi UI
