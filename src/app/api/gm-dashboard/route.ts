@@ -628,19 +628,28 @@ export async function GET(req: Request) {
   }))
 
   // Tren tahunan PSB (berdasarkan tanggal pasang) per bulan.
-  const yearlyPsbTrend = yearMonthLabels.map((label, index) => {
-    const month = index + 1
-    const row = yearlyPsbRows.find((r) => Number(r.month) === month)
-    return { month, label, count: Number(row?.count || 0) }
-  })
+  // Hanya tampilkan bulan sampai bulan berjalan (jika tahun terpilih = tahun sekarang).
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const maxVisibleMonth = year < currentYear ? 12 : Math.min(currentMonth, 12)
+
+  const yearlyPsbTrend = yearMonthLabels
+    .map((label, index) => {
+      const month = index + 1
+      const row = yearlyPsbRows.find((r) => Number(r.month) === month)
+      return { month, label, count: Number(row?.count || 0) }
+    })
+    .filter((r) => r.month <= maxVisibleMonth)
   const yearlyPsbTotal = yearlyPsbTrend.reduce((sum, r) => sum + r.count, 0)
 
   // Tren tahunan Trouble Ticket yang ditutup per bulan.
-  const yearlyTroubleClosedTrend = yearMonthLabels.map((label, index) => {
-    const month = index + 1
-    const row = yearlyTroubleClosedRows.find((r) => Number(r.month) === month)
-    return { month, label, count: Number(row?.count || 0) }
-  })
+  const yearlyTroubleClosedTrend = yearMonthLabels
+    .map((label, index) => {
+      const month = index + 1
+      const row = yearlyTroubleClosedRows.find((r) => Number(r.month) === month)
+      return { month, label, count: Number(row?.count || 0) }
+    })
+    .filter((r) => r.month <= maxVisibleMonth)
   const yearlyTroubleClosedTotal = yearlyTroubleClosedTrend.reduce((sum, r) => sum + r.count, 0)
 
   // Gangguan Trouble Ticket berdasarkan kategori, dipecah per bulan.
@@ -662,10 +671,14 @@ export async function GET(req: Request) {
     .slice(0, 6)
   const yearlyTroubleByCategoryMonths = yearMonthLabels
 
+  // Hanya marketing yang masih aktif (muncul di Kinerja Marketing).
+  const activeMarketingKeys = new Set(marketingPerformance.map((r) => marketingNameKey(r.name)))
+
   // Pelanggan (PSB terpasang) per marketing per bulan, top 15.
   const marketingYearlyMap = new Map<string, number[]>()
   for (const row of yearlyCustomersByMarketingRows) {
     const name = toDashboardMarketingLabel(row.name, marketingNameMap)
+    if (!activeMarketingKeys.has(marketingNameKey(name))) continue
     const arr = marketingYearlyMap.get(name) ?? Array.from({ length: 12 }, () => 0)
     const idx = Math.max(0, Math.min(11, Number(row.month) - 1))
     arr[idx] += Number(row.count || 0)
