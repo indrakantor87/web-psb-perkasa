@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { getDefaultTemplate } from '@/lib/data'
 import { ensureDbOptimizations } from '@/lib/db-init'
 import { getTicketsListData } from '@/lib/tickets-list-cache'
-import { canAccessMenu, canMutateMenu } from '@/lib/access'
+import { canAccessMenu, canMutateMenu, isMarketingServiceManager } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +17,8 @@ export default async function ListPage({
   if (!session) redirect('/login')
   if (!canAccessMenu(session.user.role, 'list')) redirect('/')
   await ensureDbOptimizations()
+
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
 
   const resolvedSearchParams = await searchParams
   const monthParam = resolvedSearchParams.month
@@ -56,6 +58,8 @@ export default async function ListPage({
     const list = await getTicketsListData({
       role: session.user.role,
       userName: session.user.name,
+      position: session.user.position,
+      userDivision: session.user.division,
       division: currentDivision,
       month: currentMonth,
       year: currentYear,
@@ -95,7 +99,7 @@ export default async function ListPage({
           <TicketList 
             tickets={formattedTickets} 
             userRole={session.user.role}
-            readOnly={!canMutateMenu(session.user.role, 'list')}
+            readOnly={!canMutateMenu(session.user.role, 'list') && !isManager}
             initialPeriod={{ month: currentMonth, year: currentYear }}
             initialStatus={currentStatus}
             initialMarketing={currentMarketing}

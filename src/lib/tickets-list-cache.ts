@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
-import { isAdminRole, isMarketingNameScopedRole, normalizeRole } from '@/lib/access'
+import { isAdminRole, isMarketingNameScopedRole, isMarketingServiceManager, normalizeRole } from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -35,7 +35,9 @@ export type TicketListCounts = {
 type Args = {
   role: string
   userName: string
-  division?: string
+  position?: string | null
+  userDivision?: string | null
+  division?: string | null
   month: number
   year: number
   status: string
@@ -54,7 +56,14 @@ function toCacheKey(args: Args) {
  * role MARKETING), sehingga data Creator Digital konsisten dengan dashboard
  * "Kinerja Marketing". Nama kosong berarti fail-closed (tidak ada data).
  */
-export function buildTicketListOwnerFilter(role: string, userName?: string | null): Prisma.TicketWhereInput | null {
+export function buildTicketListOwnerFilter(
+  role: string,
+  userName?: string | null,
+  position?: string | null,
+  division?: string | null
+): Prisma.TicketWhereInput | null {
+  // Manager Pemasaran & Pelayanan boleh melihat semua data seperti CS.
+  if (isMarketingServiceManager(role, position, division)) return null
   if (!isMarketingNameScopedRole(role)) return null
   const ownerName = normalizeMarketingName(userName)
   if (!ownerName) return { id: { lt: 0 } }
@@ -62,7 +71,7 @@ export function buildTicketListOwnerFilter(role: string, userName?: string | nul
 }
 
 async function queryTicketsList(args: Args) {
-  const { role, userName, division, month, year, status, marketing, search, page, pageSize } = args
+  const { role, userName, position, userDivision, division, month, year, status, marketing, search, page, pageSize } = args
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
@@ -95,7 +104,7 @@ async function queryTicketsList(args: Args) {
       baseWhere.AND = Array.isArray(currentAnd) ? [...currentAnd, condition] : [currentAnd, condition]
     }
 
-    const ownerFilter = buildTicketListOwnerFilter(role, userName)
+    const ownerFilter = buildTicketListOwnerFilter(role, userName, position, userDivision)
     if (ownerFilter) appendAnd(ownerFilter)
 
     const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
@@ -112,7 +121,8 @@ async function queryTicketsList(args: Args) {
       }
     }
 
-    if (!isMarketingNameScopedRole(role) && marketing && marketing.trim()) {
+    const isManager = isMarketingServiceManager(role, position, userDivision)
+    if ((!isMarketingNameScopedRole(role) || isManager) && marketing && marketing.trim()) {
       baseWhere.marketingName = {
         contains: marketing.trim(),
       }

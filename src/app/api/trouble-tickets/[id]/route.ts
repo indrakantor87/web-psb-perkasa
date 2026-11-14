@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { deletePhotosForTicket, ensurePhotoTableOnce, listTicketPhotoIds } from '@/lib/trouble-ticket-photo-store'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isMarketingServiceManager, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -93,7 +93,8 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url)
     const includePhotos = (searchParams.get('includePhotos') ?? '').trim() === '1'
-    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING' &&
+      !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
     const ownerId = isMarketing ? session.user.id : null
     const selectPhotos = includePhotos ? `"closePhotos",` : ''
     const countExpr = `(
@@ -185,7 +186,8 @@ export async function PUT(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateTroubleTicketRecords(session.user.role) && !isManager) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -241,7 +243,7 @@ export async function PUT(
   try {
     if (sets.length === 0) return NextResponse.json({ ok: true })
     values.push(ticketId)
-    const ownerFilter = normalizeRole(session.user.role) === 'MARKETING'
+    const ownerFilter = (normalizeRole(session.user.role) === 'MARKETING' && !isManager)
       ? (values.push(session.user.id), ` AND "createdById" = $${values.length}`)
       : ''
     const sql = `
@@ -265,7 +267,8 @@ export async function DELETE(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateTroubleTicketRecords(session.user.role) && !isManager) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -274,7 +277,7 @@ export async function DELETE(
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
-    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING' && !isManager
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
       `SELECT "id" FROM "TroubleTicket"
        WHERE ("id" = $1 OR "ticketNumber" = $1)
@@ -304,7 +307,8 @@ export async function PATCH(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateTroubleTicketRecords(session.user.role) && !isManager) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -320,7 +324,7 @@ export async function PATCH(
   }
 
   try {
-    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING' && !isManager
     const rows = await prisma.$queryRawUnsafe<Array<{ id: number; closedAt: unknown; temporaryAt: unknown; status: string }>>(
       `SELECT "id", "closedAt", "temporaryAt", "status" FROM "TroubleTicket"
        WHERE ("id" = $1 OR "ticketNumber" = $1)

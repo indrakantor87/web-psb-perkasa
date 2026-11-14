@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { saveTicketPhotos } from '@/lib/trouble-ticket-photo-store'
-import { canMutateTroubleTicketRecords, normalizeRole } from '@/lib/access'
+import { canMutateTroubleTicketRecords, isMarketingServiceManager, normalizeRole } from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -100,7 +100,8 @@ export async function POST(
 ) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canMutateTroubleTicketRecords(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateTroubleTicketRecords(session.user.role) && !isManager) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await ensureTroubleTicketTableOnce().catch(() => {})
 
@@ -109,7 +110,7 @@ export async function POST(
   if (!ticketId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 
   try {
-    const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+    const isMarketing = normalizeRole(session.user.role) === 'MARKETING' && !isManager
     const idMatch = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
       `SELECT "id"
        FROM "TroubleTicket"

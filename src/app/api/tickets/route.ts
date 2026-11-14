@@ -7,7 +7,7 @@ import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
-import { normalizeRole, isMarketingNameScopedRole } from '@/lib/access'
+import { normalizeRole, isMarketingNameScopedRole, isMarketingServiceManager } from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,8 +63,14 @@ export async function GET(request: Request) {
     and.push({ OR: searchOr })
   }
 
-  // Filter untuk role dengan scope nama marketing (MARKETING & CREATOR_DIGITAL)
-  if (isMarketingNameScopedRole(role)) {
+  // Filter untuk role dengan scope nama marketing (MARKETING & CREATOR_DIGITAL),
+  // kecuali Manager Pemasaran & Pelayanan yang boleh melihat semua data seperti CS.
+  const isManager = isMarketingServiceManager(
+    activeSession.user.role,
+    activeSession.user.position,
+    activeSession.user.division
+  )
+  if (isMarketingNameScopedRole(role) && !isManager) {
     const ownerName = normalizeMarketingName(activeSession.user.name)
     and.push(ownerName
       ? {
@@ -223,6 +229,11 @@ export async function POST(request: Request) {
   if (accessError) return accessError
   const activeSession = requireSession(session)
   const role = normalizeRole(activeSession.user.role)
+  const isManager = isMarketingServiceManager(
+    activeSession.user.role,
+    activeSession.user.position,
+    activeSession.user.division
+  )
   
   try {
     const formData = await request.formData()
@@ -252,7 +263,7 @@ export async function POST(request: Request) {
       birthDate: formData.get('birthDate'),
       locationMap: formData.get('locationMap'),
       package: formData.get('package'),
-      marketingName: role === 'MARKETING' ? activeSession.user.name : (formData.get('marketingName') || undefined),
+      marketingName: (role === 'MARKETING' && !isManager) ? activeSession.user.name : (formData.get('marketingName') || undefined),
       description: formData.get('description') || undefined,
       phoneNumber: formData.get('phoneNumber'),
       pengawalan: formData.get('pengawalan') || undefined,
@@ -279,15 +290,15 @@ export async function POST(request: Request) {
     } = result.data
 
     // Only allow authorized roles to set pengawalan initially
-    const canSetPengawalan = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role)
+    const canSetPengawalan = ['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isManager
     const finalPengawalan = canSetPengawalan ? pengawalan : null
 
     const finalMarketingName =
-      role === 'MARKETING'
+      (role === 'MARKETING' && !isManager)
         ? normalizeMarketingName(activeSession.user.name)
         : normalizeMarketingName(submittedMarketingName)
 
-    if (!finalMarketingName || (role !== 'MARKETING' && isSyntheticMarketingLabel(finalMarketingName))) {
+    if (!finalMarketingName || ((role !== 'MARKETING' || isManager) && isSyntheticMarketingLabel(finalMarketingName))) {
         return NextResponse.json({ error: 'Marketing name is required' }, { status: 400 })
     }
 

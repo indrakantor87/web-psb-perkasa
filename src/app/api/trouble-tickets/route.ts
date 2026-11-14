@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole } from '@/lib/access'
+import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole, isMarketingServiceManager } from '@/lib/access'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -511,7 +511,8 @@ export async function GET(request: Request) {
       )
     }
 
-    if (roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL') {
+    if ((roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL') &&
+        !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)) {
       baseParams.push(session.user.id)
       baseParts.push(`"createdById" = $${baseParams.length}`)
     }
@@ -767,7 +768,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (!canMutateTroubleTicketRecords(session.user.role)) {
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateTroubleTicketRecords(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

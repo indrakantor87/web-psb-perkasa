@@ -366,7 +366,13 @@ function getAccessibleMenus(
   }
 
   if (daAllowed) menus.add('daily-activity')
-  if (isMarketingServiceManager(roleUpper, position, division)) menus.add('dashboard')
+  if (isMarketingServiceManager(roleUpper, position, division)) {
+    menus.add('dashboard')
+    // Manager Pemasaran & Pelayanan dapat akses List PSB (seperti CS) dan
+    // Trouble Ticket (seperti NOC) tanpa memandang role dasar akun.
+    menus.add('list')
+    menus.add('trouble-ticket')
+  }
   // Semua role dapat membuka halaman Absensi; cakupan datanya dibatasi ke akun
   // yang login, kecuali Developer/Priority/Admin/HR (lihat canAccessHrEmployees).
   menus.add('hr')

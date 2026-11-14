@@ -5,7 +5,7 @@ import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Pencil, CheckCircle2, Clipboard, X, Trash2, Info, ArrowUp, AlertTriangle, ArrowRight } from 'lucide-react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
-import { canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole } from '@/lib/access'
+import { canMutateTroubleTicketRecords, isAdminRole, isMarketingServiceManager, isTechnicianRole } from '@/lib/access'
 import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SectionHeading } from '@/components/ui/SectionHeading'
@@ -358,9 +358,13 @@ function normalizeHeader(s: unknown) {
 
 export function TroubleTicketView({
   userRole,
+  userPosition,
+  userDivision,
   initialDivision = 'ALL',
 }: {
   userRole: string
+  userPosition?: string | null
+  userDivision?: string | null
   initialDivision?: 'ALL' | 'PENJUALAN' | 'CS_ADMIN' | 'NOC_TROUBLESHOOTS' | 'CREATOR_DIGITAL'
 }) {
   const router = useRouter()
@@ -471,9 +475,10 @@ export function TroubleTicketView({
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = isAdminRole(roleUpper)
   const isTroubleshoots = isTechnicianRole(roleUpper)
-  const canCreate = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
-  const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
-  const isPrivileged = useMemo(() => canMutateTroubleTicketRecords(roleUpper), [roleUpper])
+  const isManager = isMarketingServiceManager(userRole, userPosition, userDivision)
+  const canCreate = useMemo(() => canMutateTroubleTicketRecords(roleUpper) || isManager, [roleUpper, isManager])
+  const canDelete = useMemo(() => canMutateTroubleTicketRecords(roleUpper) || isManager, [roleUpper, isManager])
+  const isPrivileged = useMemo(() => canMutateTroubleTicketRecords(roleUpper) || isManager, [roleUpper, isManager])
   const supportsTroubleTicketWorkflow = !isAdmin || division === 'ALL' || division === 'NOC_TROUBLESHOOTS'
   const fileInputId = 'trouble-ticket-import-input'
   const closeCreateModal = useCallback(() => setIsCreateOpen(false), [])

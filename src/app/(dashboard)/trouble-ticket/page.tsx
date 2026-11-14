@@ -31,7 +31,12 @@ export default async function TroubleTicketPage({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Trouble Ticket</h1>
         </div>
       )}
-      <TroubleTicketView userRole={session.user.role} initialDivision={toValidDivision(params?.division)} />
+      <TroubleTicketView
+        userRole={session.user.role}
+        userPosition={session.user.position}
+        userDivision={session.user.division}
+        initialDivision={toValidDivision(params?.division)}
+      />
     </div>
   )
 }
