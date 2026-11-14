@@ -8,7 +8,7 @@ import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn, ensureUserRoleValues, ensureUserPositionAndSubdivisionColumns } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
-import { canManageTargetUser } from '@/lib/access'
+import { canManageTargetUser, isMarketingServiceManager } from '@/lib/access'
 import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 
 type UserWithOptionalDivision = {
@@ -139,14 +139,29 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const session = await getSession()
-  const accessError = ensureMenuAccess(session, 'settings')
-  if (accessError) return accessError
+  const roleParam = String(new URL(request.url).searchParams.get('role') ?? '').trim().toUpperCase()
+  const isManagerMarketingLookup =
+    Boolean(session) &&
+    roleParam === 'MARKETING' &&
+    isMarketingServiceManager(session!.user.role, session!.user.position, session!.user.division)
+
+  if (!isManagerMarketingLookup) {
+    const accessError = ensureMenuAccess(session, 'settings')
+    if (accessError) return accessError
+  }
 
   try {
     await ensureUserDivisionColumn().catch(() => {})
     await ensureUserPositionAndSubdivisionColumns().catch(() => {})
-    const { searchParams } = new URL(request.url)
-    const roleParam = String(searchParams.get('role') ?? '').trim().toUpperCase()
+    if (isManagerMarketingLookup) {
+      const marketingUsers = await prisma.user.findMany({
+        where: { role: 'MARKETING' },
+        select: { name: true },
+        orderBy: { name: 'asc' },
+      })
+      return NextResponse.json(marketingUsers)
+    }
+
     const where = roleParam ? { role: roleParam } : undefined
     const users = await prisma.user.findMany({
       where,
