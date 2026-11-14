@@ -11,7 +11,7 @@ export default async function MarketingActivitiesPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
-  if (!canAccessMenu(session.user.role, 'marketing-activities')) redirect('/')
+  if (!canAccessMenu(session.user.role, 'marketing-activities', session.user.position, session.user.subdivision)) redirect('/')
 
   return (
     <div className="space-y-4 sm:space-y-6">

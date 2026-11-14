@@ -307,9 +307,13 @@ function getAccessibleMenus(
   }
 
   if (roleUpper === 'HR') {
-    menus = menuSet(['dashboard', 'hr'])
+    menus = menuSet(['dashboard', 'hr', 'marketing-activities'])
   } else if (roleUpper === 'FINANCE') {
     menus = menuSet(['dashboard', 'hr', 'isolir'])
+    // Manager Finance memantau pula aktivitas marketing (hanya lihat).
+    if (String(position ?? '').trim().toLowerCase() === 'manager') {
+      menus.add('marketing-activities')
+    }
   } else if (roleUpper === 'GENERAL_AFFAIR') {
     menus = menuSet(['dashboard', 'hr'])
   } else if (roleUpper === 'OPERASIONAL') {

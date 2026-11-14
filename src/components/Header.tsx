@@ -141,7 +141,7 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'dashboard') ? [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }] : []),
         ...(canAccessMenu(user?.role, 'input') ? [{ href: getMenuHref('input', roleDivision), label: 'Input PSB', icon: FileInput }] : []),
         ...(canAccessMenu(user?.role, 'list') ? [{ href: getMenuHref('list', roleDivision), label: 'List Data', icon: List }] : []),
-        ...(canAccessMenu(user?.role, 'marketing-activities') ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
+        ...(canAccessMenu(user?.role, 'marketing-activities', user?.position, user?.subdivision) ? [{ href: getMenuHref('marketing-activities', roleDivision), label: 'Aktivitas Marketing', icon: ClipboardList }] : []),
         ...(canAccessMenu(user?.role, 'daily-activity', user?.position, user?.subdivision) ? [{ href: '/daily-activity', label: 'Daily Activity', icon: ClipboardList }] : []),
         ...(canAccessMenu(user?.role, 'isolir')
           ? [{ href: isAdmin || isDeveloper ? '/isolir?division=ALL' : getMenuHref('isolir', roleDivision), label: 'Isolir', icon: Ban }]
