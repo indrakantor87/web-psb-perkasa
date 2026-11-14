@@ -35,6 +35,7 @@ export type GmDashboardData = {
   recentActivities: Array<{
     id: number
     date: string
+    time: string
     subdivision: string
     owner: string
     title: string

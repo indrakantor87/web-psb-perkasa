@@ -610,7 +610,7 @@ export function MarketingServiceManagerDashboard({
                     {data.recentActivities.map((item) => (
                       <tr key={item.id} className="text-xs hover:bg-surface-muted/60">
                         <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
-                          {new Date(item.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
+                          {new Date(item.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' })}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 font-medium text-ink">{item.subdivision}</td>
                         <td className="max-w-64 truncate px-4 py-3 text-ink">{item.title}</td>

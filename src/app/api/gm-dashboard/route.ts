@@ -37,6 +37,7 @@ type ServiceSubdivisionRow = { subdivision: string; total: number; done: number 
 type RecentServiceActivityRow = {
   id: number
   activityDate: Date
+  updatedAt: Date
   subdivision: string | null
   ownerName: string
   title: string
@@ -298,6 +299,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         activityDate: true,
+        updatedAt: true,
         subdivision: true,
         ownerName: true,
         title: true,
@@ -621,6 +623,7 @@ export async function GET(req: Request) {
   const recentActivities = recentServiceActivities.map((row) => ({
     id: row.id,
     date: row.activityDate,
+    time: row.updatedAt,
     subdivision: row.subdivision || 'Pemasaran dan Pelayanan',
     owner: row.ownerName,
     title: row.title,
