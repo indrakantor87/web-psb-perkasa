@@ -284,6 +284,15 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1))
   }, [data?.items])
 
+  // Urutan salinan siap-kirim ke WA: tanggal terbaru lebih dulu, lalu tiap hari
+  // mengikuti urutan input (id menaik) agar penomoran tetap 1..N, tidak terbalik.
+  const copyItems = useMemo(() => {
+    return [...(data?.items ?? [])].sort((a, b) => {
+      if (a.dateKey !== b.dateKey) return a.dateKey < b.dateKey ? 1 : -1
+      return a.id - b.id
+    })
+  }, [data?.items])
+
   const calendarMap = useMemo(() => {
     const map = new Map<string, { total: number; done: number }>()
     for (const day of data?.calendar ?? []) map.set(day.dateKey, { total: day.total, done: day.done })
@@ -523,27 +532,27 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
   }
 
   const handleCopyPlan = async () => {
-    const dateKey = items[0]?.dateKey ?? today
+    const dateKey = copyItems[0]?.dateKey ?? today
     const lines = [
       '🗓️ *DAILY ACTIVITY — RENCANA*',
       `📅 ${formatDateLabelLong(dateKey)}`,
       `👤 ${reporterIdentity}`,
       '',
-      `*Rencana (${items.length}):*`,
-      ...items.map((item, index) => `${index + 1}. ${item.title}`),
+      `*Rencana (${copyItems.length}):*`,
+      ...copyItems.map((item, index) => `${index + 1}. ${item.title}`),
     ]
     await copyToClipboard(lines.join('\n'), 'plan')
   }
 
   const handleCopyProgress = async () => {
-    const dateKey = items[0]?.dateKey ?? today
+    const dateKey = copyItems[0]?.dateKey ?? today
     const counts = { DONE: 0, PENDING: 0, PLANNED: 0, CANCEL: 0 }
     let progressTotal = 0
-    for (const item of items) {
+    for (const item of copyItems) {
       counts[item.executionStatus] += 1
       progressTotal += item.progressPercent
     }
-    const avg = items.length ? Math.round(progressTotal / items.length) : 0
+    const avg = copyItems.length ? Math.round(progressTotal / copyItems.length) : 0
 
     const lines: (string | null)[] = [
       '📊 *DAILY ACTIVITY — LAPORAN*',
@@ -557,7 +566,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
       `📈 Rata-rata progres: ${avg}%`,
       '',
       '*Detail:*',
-      ...items.map(
+      ...copyItems.map(
         (item, index) =>
           `${index + 1}. ${executionEmoji(item.executionStatus)} ${item.title} (${item.progressPercent}%)`
       ),
