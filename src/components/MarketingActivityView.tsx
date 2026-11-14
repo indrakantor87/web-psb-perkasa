@@ -45,6 +45,7 @@ interface RankingRow {
   dataBase: number
   event: number
   total: number
+  totalAktivitas: number
 }
 
 export interface MarketingActivityViewProps {
@@ -400,7 +401,7 @@ export function MarketingActivityView({
 
   const formTotal = toNumber(formData.flyer) + toNumber(formData.sosialisasi) + toNumber(formData.event)
 
-  const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1`
+  const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1. Total Aktivitas menghitung hari unik dengan laporan; Minggu dikecualikan.`
 
   // Statistik area yang paling sering dikunjungi (peringkat area)
   const areaStats = useMemo(() => {
@@ -588,7 +589,7 @@ export function MarketingActivityView({
           <p className="text-xs text-gray-500 dark:text-gray-400">{rankingSubtitle}</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] divide-y divide-gray-200 dark:divide-gray-700">
+          <table className="w-full min-w-[760px] divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="w-8 px-2 py-3"></th>
@@ -598,19 +599,20 @@ export function MarketingActivityView({
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">PSB</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Flyer</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Sosialisasi</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Data Base</th>
                 <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total Flyer</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Event</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-300">Total Aktivitas</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
               {rankingLoading ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
+                  <td colSpan={11} className="px-4 py-4 text-center text-sm text-gray-500">Memuat peringkat...</td>
                 </tr>
               ) : ranking.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
+                  <td colSpan={11} className="px-4 py-4 text-center text-sm text-gray-500">Belum ada data aktivitas pada periode ini.</td>
                 </tr>
               ) : (
                 ranking.map((row) => {
@@ -635,13 +637,14 @@ export function MarketingActivityView({
                         <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.psb}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.flyer}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.sosialisasi}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.event}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.dataBase}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.total}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-700 dark:text-gray-200">{row.event}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-semibold text-gray-900 dark:text-gray-100">{row.totalAktivitas}</td>
                       </tr>
                       {isExpanded && (
                         <tr className="bg-gray-50/60 dark:bg-gray-900/30">
-                          <td colSpan={10} className="p-4">
+                          <td colSpan={11} className="p-4">
                             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                               Detail Data Harian — {row.name} ({marketingActivities.length} data)
                             </div>

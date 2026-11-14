@@ -5,7 +5,7 @@ import { cache } from '@/lib/cache'
 import { marketingNameKey, getMarketingUsers, normalizeMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, requireSession } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
-import { jakartaMonthRange } from '@/lib/jakarta-time'
+import { jakartaDayKey, jakartaMonthRange } from '@/lib/jakarta-time'
 
 export const runtime = 'nodejs'
 
@@ -18,6 +18,7 @@ type RankingRow = {
   dataBase: number
   event: number
   total: number
+  totalAktivitas: number
 }
 
 const WEIGHT = { psb: 10, dataBase: 3, sosialisasi: 1, flyer: 1, event: 1 }
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Periode tidak valid' }, { status: 400 })
   }
 
-  const cacheKey = `marketing-activities:ranking:${year}-${month}`
+  const cacheKey = `marketing-activities:ranking:v2:${year}-${month}`
   const cached = cache.get<RankingRow[]>(cacheKey)
   if (cached) {
     return NextResponse.json({ period: { month, year }, rows: cached })
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
       getMarketingUsers(),
       prisma.marketingActivity.findMany({
         where: { date: { gte: start, lt: end } },
-        select: { marketingName: true, flyer: true, sosialisasi: true, dataBase: true, event: true, total: true },
+        select: { date: true, marketingName: true, flyer: true, sosialisasi: true, dataBase: true, event: true, total: true },
       }),
       prisma.ticket.findMany({
         where: { requestDate: { gte: start, lt: end } },
@@ -68,13 +69,14 @@ export async function GET(request: Request) {
     }
 
     const stats = new Map<string, RankingRow>()
+    const activityDaysByMarketing = new Map<string, Set<string>>()
 
     const ensureRow = (displayName: string): RankingRow => {
       const key = marketingNameKey(displayName)
       let row = stats.get(key)
       if (!row) {
         const name = namesByKey.get(key) ?? normalizeMarketingName(displayName)
-        row = { name, skor: 0, psb: 0, flyer: 0, sosialisasi: 0, dataBase: 0, event: 0, total: 0 }
+        row = { name, skor: 0, psb: 0, flyer: 0, sosialisasi: 0, dataBase: 0, event: 0, total: 0, totalAktivitas: 0 }
         stats.set(key, row)
         if (!namesByKey.has(key)) namesByKey.set(key, row.name)
       }
@@ -91,6 +93,19 @@ export async function GET(request: Request) {
       row.dataBase += activity.dataBase
       row.event += activity.event
       row.total += activity.total
+
+      const dayKey = jakartaDayKey(activity.date)
+      if (!dayKey || new Date(`${dayKey}T00:00:00.000Z`).getUTCDay() === 0) continue
+      const marketingKey = marketingNameKey(activity.marketingName)
+      let activeDays = activityDaysByMarketing.get(marketingKey)
+      if (!activeDays) {
+        activeDays = new Set<string>()
+        activityDaysByMarketing.set(marketingKey, activeDays)
+      }
+      if (!activeDays.has(dayKey)) {
+        activeDays.add(dayKey)
+        row.totalAktivitas += 1
+      }
     }
 
     for (const ticket of tickets) {
