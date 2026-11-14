@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   Activity,
   AlertTriangle,
+  ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
   CheckCircle2,
@@ -18,6 +19,7 @@ import {
   Wifi,
 } from 'lucide-react'
 import {
+  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -54,6 +56,11 @@ function MetricCard({
   secondaryLabel,
   secondaryValue,
   progress,
+  progressLabel,
+  trendPercent,
+  trendLabel,
+  trendUp,
+  trendGood,
 }: {
   title: string
   icon: typeof ShoppingCart
@@ -63,6 +70,11 @@ function MetricCard({
   secondaryLabel: string
   secondaryValue: string
   progress: number
+  progressLabel: string
+  trendPercent: number
+  trendLabel: string
+  trendUp: boolean
+  trendGood: boolean
 }) {
   const tones = {
     blue: 'bg-blue-500 text-white',
@@ -95,11 +107,22 @@ function MetricCard({
           <p className="mt-0.5 text-xl font-bold tabular-nums text-ink sm:text-2xl">{secondaryValue}</p>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-1.5">
+        {trendUp ? (
+          <ArrowUpRight className={`h-3.5 w-3.5 ${trendGood ? 'text-emerald-500' : 'text-rose-500'}`} />
+        ) : (
+          <ArrowDownRight className={`h-3.5 w-3.5 ${trendGood ? 'text-emerald-500' : 'text-rose-500'}`} />
+        )}
+        <span className={`text-[11px] font-bold tabular-nums ${trendGood ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+          {Math.abs(trendPercent).toFixed(1).replace('.', ',')}%
+        </span>
+        <span className="text-[11px] text-ink-muted">{trendLabel}</span>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-muted">
           <div className={`h-full rounded-full transition-all ${bars[tone]}`} style={{ width: percent(progress) }} />
         </div>
-        <span className="text-[10px] font-semibold tabular-nums text-ink-muted">{percent(progress)}</span>
+        <span className="text-[10px] font-semibold tabular-nums text-ink-muted">{percent(progress)} {progressLabel}</span>
       </div>
     </Card>
   )
@@ -113,8 +136,10 @@ function DivisionCard({
   primaryValue,
   secondaryLabel,
   secondaryValue,
-  progress,
-  activitySummary,
+  tertiaryLabel,
+  tertiaryValue,
+  subtext,
+  chartData,
 }: {
   title: string
   icon: typeof ShoppingCart
@@ -123,8 +148,10 @@ function DivisionCard({
   primaryValue: string
   secondaryLabel: string
   secondaryValue: string
-  progress: number
-  activitySummary: string
+  tertiaryLabel: string
+  tertiaryValue: string
+  subtext: string
+  chartData: Array<{ label: string; value: number }>
 }) {
   const tones = {
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
@@ -132,11 +159,11 @@ function DivisionCard({
     orange: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
     violet: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
   }
-  const bars = {
-    blue: 'bg-blue-500',
-    green: 'bg-emerald-500',
-    orange: 'bg-orange-500',
-    violet: 'bg-violet-500',
+  const strokeColors = {
+    blue: '#1684ff',
+    green: '#16a765',
+    orange: '#ff8a1f',
+    violet: '#8157e8',
   }
 
   return (
@@ -149,26 +176,59 @@ function DivisionCard({
           <h3 className="truncate text-sm font-bold text-ink">{title}</h3>
         </div>
         <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-          Periode aktif
+          On Track
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <p className="text-[10px] text-ink-muted">{primaryLabel}</p>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] text-ink-muted">{primaryLabel}</p>
           <p className="mt-1 text-lg font-bold tabular-nums text-ink">{primaryValue}</p>
         </div>
-        <div className="border-l border-line pl-3">
-          <p className="text-[10px] text-ink-muted">{secondaryLabel}</p>
+        <div className="min-w-0 border-l border-line pl-2">
+          <p className="truncate text-[10px] text-ink-muted">{secondaryLabel}</p>
           <p className="mt-1 text-lg font-bold tabular-nums text-ink">{secondaryValue}</p>
         </div>
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
-          <div className={`h-full rounded-full ${bars[tone]}`} style={{ width: percent(progress) }} />
+        <div className="min-w-0 border-l border-line pl-2">
+          <p className="truncate text-[10px] text-ink-muted">{tertiaryLabel}</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-ink">{tertiaryValue}</p>
         </div>
-        <span className="text-[10px] font-semibold tabular-nums text-ink-muted">{percent(progress)}</span>
       </div>
-      <p className="mt-1 text-[10px] text-ink-muted">{activitySummary}</p>
+      <p className="mt-2 text-[10px] text-ink-muted">{subtext}</p>
+      <div className="mt-2 h-16 min-w-0">
+        {chartData.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-[10px] text-ink-muted">Belum ada data</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`grad-${tone}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={strokeColors[tone]} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={strokeColors[tone]} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="none"
+                fill={`url(#grad-${tone})`}
+              />
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={strokeColors[tone]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+              <Tooltip
+                contentStyle={{ ...chartTooltipStyle, fontSize: '11px' }}
+                cursor={{ stroke: strokeColors[tone], strokeWidth: 1, strokeDasharray: '3 3' }}
+                labelStyle={{ display: 'none' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </Card>
   )
 }
@@ -218,14 +278,8 @@ export function MarketingServiceManagerDashboard({
   const csTotal = ticketStatuses
     ? ticketStatuses.open + ticketStatuses.onProgress + ticketStatuses.close
     : 0
-  const activitySummary = (subdivision: string) => {
-    const row = data?.subdivisionPerformance.find(
-      (item) => item.subdivision.trim().toLowerCase() === subdivision.toLowerCase()
-    )
-    return row
-      ? `Daily Activity: ${formatNumber(row.done)}/${formatNumber(row.total)} selesai`
-      : 'Daily Activity belum tercatat'
-  }
+  const buildChartData = (key: 'sales' | 'psb' | 'trouble' | 'content') =>
+    (data?.activityTrend ?? []).map((item) => ({ label: item.label, value: Number(item[key] || 0) }))
   const divisionCards = data
     ? [
         {
@@ -236,46 +290,54 @@ export function MarketingServiceManagerDashboard({
           primaryValue: formatNumber(data.kpis.psbInstalled),
           secondaryLabel: 'Pelanggan baru',
           secondaryValue: formatNumber(data.kpis.psbRequested),
-          progress: data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0,
-          activitySummary: activitySummary('Marketing'),
+          tertiaryLabel: 'Target',
+          tertiaryValue: percent(data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0),
+          subtext: `Permohonan: ${formatNumber(data.kpis.psbRequested)} | Terpasang: ${formatNumber(data.kpis.psbInstalled)} | Antrian: ${formatNumber(data.kpis.installationQueue)}`,
+          chartData: buildChartData('sales'),
         },
         {
           title: 'Customer Service',
           icon: Headset,
           tone: 'green' as const,
-          primaryLabel: 'PSB diproses',
+          primaryLabel: 'Total PSB',
           primaryValue: formatNumber(csTotal),
-          secondaryLabel: 'Tiket selesai',
-          secondaryValue: formatNumber(ticketStatuses?.close ?? 0),
-          progress: csTotal > 0 ? ((ticketStatuses?.close ?? 0) / csTotal) * 100 : 0,
-          activitySummary: activitySummary('Customer Service'),
+          secondaryLabel: 'Dismantle',
+          secondaryValue: formatNumber(data.kpis.dismantleOpen),
+          tertiaryLabel: 'Respons',
+          tertiaryValue: percent(csTotal > 0 ? ((ticketStatuses?.close ?? 0) / csTotal) * 100 : 0),
+          subtext: `Tiket masuk: ${formatNumber(csTotal)} | Ditangani: ${formatNumber(ticketStatuses?.close ?? 0)}`,
+          chartData: buildChartData('psb'),
         },
         {
           title: 'NOC & Troubleshoot',
           icon: Wifi,
           tone: 'orange' as const,
-          primaryLabel: 'Availability',
+          primaryLabel: 'Network Avail.',
           primaryValue: `${data.kpis.availabilityPercent.toFixed(1)}%`,
-          secondaryLabel: 'Gangguan ditutup',
-          secondaryValue: formatNumber(data.kpis.ttClosed),
-          progress: data.kpis.ttCloseRate,
-          activitySummary: activitySummary('NOC & Troubleshoots'),
+          secondaryLabel: 'Gangguan',
+          secondaryValue: formatNumber(data.kpis.ttOpened),
+          tertiaryLabel: 'Selesai',
+          tertiaryValue: percent(data.kpis.ttCloseRate),
+          subtext: `Tiket: ${formatNumber(data.kpis.ttOpened)} | Ditutup: ${formatNumber(data.kpis.ttClosed)} | Aktif: ${formatNumber(data.kpis.openTroubleTickets)}`,
+          chartData: buildChartData('trouble'),
         },
         {
           title: 'Digital Creator',
           icon: Clapperboard,
           tone: 'violet' as const,
-          primaryLabel: 'Konten tayang',
-          primaryValue: formatNumber(data.serviceMetrics.contentPublished),
-          secondaryLabel: 'Leads digital',
-          secondaryValue: formatNumber(data.serviceMetrics.digitalLeads),
-          progress:
+          primaryLabel: 'Konten Produksi',
+          primaryValue: formatNumber(data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled),
+          secondaryLabel: 'Dipublikasi',
+          secondaryValue: formatNumber(data.serviceMetrics.contentPublished),
+          tertiaryLabel: 'Tepat Waktu',
+          tertiaryValue: percent(
             data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled > 0
               ? (data.serviceMetrics.contentPublished /
-                  (data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)) *
-                100
-              : 0,
-          activitySummary: activitySummary('Digital Creator'),
+                  (data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)) * 100
+              : 0
+          ),
+          subtext: `Terjadwal: ${formatNumber(data.serviceMetrics.contentScheduled)} | Leads: ${formatNumber(data.serviceMetrics.digitalLeads)}`,
+          chartData: buildChartData('content'),
         },
       ]
     : []
@@ -347,52 +409,76 @@ export function MarketingServiceManagerDashboard({
               tone="blue"
               mainLabel="PSB terpasang"
               mainValue={formatNumber(data.kpis.psbInstalled)}
-              secondaryLabel="Permohonan PSB"
+              secondaryLabel="Pelanggan Baru"
               secondaryValue={formatNumber(data.kpis.psbRequested)}
               progress={data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0}
+              progressLabel="dari target"
+              trendPercent={data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0}
+              trendLabel="dari target"
+              trendUp={true}
+              trendGood={true}
             />
             <MetricCard
               title="PSB & Dismantle"
               icon={Router}
               tone="green"
-              mainLabel="Antrian pasang"
-              mainValue={formatNumber(data.kpis.installationQueue)}
-              secondaryLabel="Dismantle aktif"
+              mainLabel="Total PSB"
+              mainValue={`${formatNumber(data.kpis.psbInstalled)} / ${formatNumber(data.kpis.psbRequested)}`}
+              secondaryLabel="Dismantle"
               secondaryValue={formatNumber(data.kpis.dismantleOpen)}
               progress={data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0}
+              progressLabel="dari target"
+              trendPercent={data.kpis.psbRequested > 0 ? (data.kpis.psbInstalled / data.kpis.psbRequested) * 100 : 0}
+              trendLabel="dari target"
+              trendUp={true}
+              trendGood={true}
             />
             <MetricCard
               title="Gangguan & Troubleshoot"
               icon={AlertTriangle}
               tone="orange"
-              mainLabel="Gangguan bulan ini"
-              mainValue={formatNumber(data.kpis.ttOpened)}
-              secondaryLabel="Masih aktif"
+              mainLabel="Gangguan"
+              mainValue={`${formatNumber(data.kpis.openTroubleTickets)} / ${formatNumber(data.kpis.ttOpened)}`}
+              secondaryLabel="Aktif"
               secondaryValue={formatNumber(data.kpis.openTroubleTickets)}
               progress={data.kpis.ttCloseRate}
+              progressLabel="terselesaikan"
+              trendPercent={data.kpis.ttCloseRate}
+              trendLabel="terselesaikan"
+              trendUp={true}
+              trendGood={true}
             />
             <MetricCard
               title="Produksi Digital"
               icon={Clapperboard}
               tone="violet"
-              mainLabel="Konten tayang"
-              mainValue={formatNumber(data.serviceMetrics.contentPublished)}
-              secondaryLabel="Posting terjadwal"
+              mainLabel="Konten"
+              mainValue={`${formatNumber(data.serviceMetrics.contentPublished)} / ${formatNumber(data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)}`}
+              secondaryLabel="Posting"
               secondaryValue={formatNumber(data.serviceMetrics.contentScheduled)}
               progress={
                 data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled > 0
                   ? (data.serviceMetrics.contentPublished /
-                      (data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)) *
-                    100
+                      (data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)) * 100
                   : 0
               }
+              progressLabel="dari target"
+              trendPercent={
+                data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled > 0
+                  ? (data.serviceMetrics.contentPublished /
+                      (data.serviceMetrics.contentPublished + data.serviceMetrics.contentScheduled)) * 100
+                  : 0
+              }
+              trendLabel="dari target"
+              trendUp={true}
+              trendGood={true}
             />
           </section>
 
           <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-muted/60 px-4 py-3 sm:px-5">
               <div>
-                <h2 className="text-base font-bold text-ink">Performa Empat Unit</h2>
+                <h2 className="text-base font-bold text-ink">Performa Empat Divisi</h2>
                 <p className="text-xs text-ink-muted">Ringkasan hasil periode {data.periodLabel}</p>
               </div>
               <Link href="/daily-activity" className="shrink-0 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400">
