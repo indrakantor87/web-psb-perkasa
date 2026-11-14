@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
+import { isMarketingServiceManager } from '@/lib/access'
 import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check, MapPin, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface MarketingActivityRecord {
@@ -51,6 +52,8 @@ interface RankingRow {
 export interface MarketingActivityViewProps {
   userRole: string
   userName: string
+  userPosition?: string | null
+  userDivision?: string | null
   readOnly?: boolean
 }
 
@@ -76,6 +79,8 @@ const MONTHS = [
 export function MarketingActivityView({
   userRole,
   userName,
+  userPosition,
+  userDivision,
   readOnly = false,
 }: MarketingActivityViewProps) {
   const [activities, setActivities] = useState<MarketingActivityRecord[]>([])
@@ -101,6 +106,8 @@ export function MarketingActivityView({
 
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
+  const isManager = isMarketingServiceManager(userRole, userPosition, userDivision)
+  const canSelectMarketing = isAdmin || isManager
   const canMutate = !readOnly
 
   const [formData, setFormData] = useState({
@@ -114,15 +121,15 @@ export function MarketingActivityView({
     notes: '',
   })
 
-  // Daftar marketing (untuk admin memilih pemilik laporan)
+  // Daftar marketing (untuk admin/manager memilih pemilik laporan)
   useEffect(() => {
-    if (roleUpper === 'MARKETING') {
+    if (roleUpper === 'MARKETING' && !isManager) {
       setMarketingOptions(userName ? [userName] : [])
       setMarketingOptionsLoading(false)
       setMarketingOptionsError('')
       return
     }
-    if (!isAdmin) return
+    if (!canSelectMarketing) return
 
     let mounted = true
     setMarketingOptionsLoading(true)
@@ -154,7 +161,7 @@ export function MarketingActivityView({
     return () => {
       mounted = false
     }
-  }, [isAdmin, roleUpper, userName])
+  }, [canSelectMarketing, isManager, roleUpper, userName])
 
   const ensureAreas = useCallback(async () => {
     if (coveredAreas.length > 0) return
@@ -244,7 +251,7 @@ export function MarketingActivityView({
     setEditingActivity(null)
     setFormData({
       date: jakartaTodayKey(),
-      marketingName: isAdmin ? marketingOptions[0] ?? '' : userName,
+      marketingName: canSelectMarketing ? marketingOptions[0] ?? '' : userName,
       areaId: '',
       flyer: '',
       sosialisasi: '',
@@ -274,7 +281,7 @@ export function MarketingActivityView({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canMutate) return
-    if (isAdmin && !formData.marketingName) {
+    if (canSelectMarketing && !formData.marketingName) {
       alert('Pilih nama marketing dari daftar user marketing yang valid.')
       return
     }
@@ -573,7 +580,7 @@ export function MarketingActivityView({
         </div>
       )}
 
-      {isAdmin && marketingOptionsError && (
+      {canSelectMarketing && marketingOptionsError && (
         <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
           {marketingOptionsError}
         </div>
@@ -942,7 +949,7 @@ export function MarketingActivityView({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Marketing</label>
-                  {isAdmin ? (
+                  {canSelectMarketing ? (
                     <select
                       required
                       value={formData.marketingName}
@@ -1083,7 +1090,7 @@ export function MarketingActivityView({
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || (isAdmin && (marketingOptionsLoading || marketingOptions.length === 0))}
+                  disabled={submitting || (canSelectMarketing && (marketingOptionsLoading || marketingOptions.length === 0))}
                   className="flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
                   {submitting ? 'Menyimpan...' : editingActivity ? 'Simpan Perubahan' : 'Tambah Aktivitas'}

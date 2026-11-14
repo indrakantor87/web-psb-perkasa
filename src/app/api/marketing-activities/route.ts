@@ -8,7 +8,7 @@ import {
   resolveMarketingName,
   marketingNameKey,
 } from '@/lib/marketing-users'
-import { canMutateMarketingActivities, isAdminRole } from '@/lib/access'
+import { canMutateMarketingActivities, isAdminRole, isMarketingServiceManager } from '@/lib/access'
 import { ensureMenuAccess, requireSession, unauthorizedResponse } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
 import { jakartaDayKey, jakartaMonthRange } from '@/lib/jakarta-time'
@@ -57,6 +57,11 @@ export async function GET(request: Request) {
   const marketing = searchParams.get('marketing')
   const divisionParam = (searchParams.get('division') ?? 'ALL').trim().toUpperCase()
   const roleUpper = (activeSession.user.role || '').toUpperCase()
+  const isManager = isMarketingServiceManager(
+    activeSession.user.role,
+    activeSession.user.position,
+    activeSession.user.division
+  )
   const divisionFilter =
     isAdminRole(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
@@ -81,7 +86,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (activeSession.user.role === 'MARKETING') {
+  if (activeSession.user.role === 'MARKETING' && !isManager) {
     const ownerName = normalizeMarketingName(activeSession.user.name)
     if (ownerName) {
       where.marketingName = {
@@ -145,7 +150,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  if (!canMutateMarketingActivities(session.user.role)) {
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const activeSession = requireSession(session)
@@ -169,12 +175,12 @@ export async function POST(request: Request) {
       event,
     } = body
 
-    if (!date || (!marketingName && activeSession.user.role !== 'MARKETING')) {
+    if (!date || (!marketingName && activeSession.user.role !== 'MARKETING') || (!marketingName && isManager)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const finalMarketingName =
-      activeSession.user.role === 'MARKETING'
+      activeSession.user.role === 'MARKETING' && !isManager
         ? normalizeMarketingName(activeSession.user.name)
         : await resolveMarketingName(marketingName)
 

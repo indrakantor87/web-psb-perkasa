@@ -1,6 +1,6 @@
 import { MarketingActivityView } from '@/components/MarketingActivityView'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu, canMutateMenu } from '@/lib/access'
+import { canAccessMenu, canMutateMenu, isMarketingServiceManager } from '@/lib/access'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +13,9 @@ export default async function MarketingActivitiesPage({
   if (!session) redirect('/login')
   if (!canAccessMenu(session.user.role, 'marketing-activities', session.user.position, session.user.subdivision)) redirect('/')
 
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  const readOnly = !canMutateMenu(session.user.role, 'marketing-activities') && !isManager
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -22,7 +25,9 @@ export default async function MarketingActivitiesPage({
       <MarketingActivityView 
         userRole={session.user.role} 
         userName={session.user.name} 
-        readOnly={!canMutateMenu(session.user.role, 'marketing-activities')}
+        userPosition={session.user.position}
+        userDivision={session.user.division}
+        readOnly={readOnly}
       />
     </div>
   )

@@ -7,7 +7,7 @@ import {
   resolveMarketingName,
   isMarketingOwnerMatch,
 } from '@/lib/marketing-users'
-import { canMutateMarketingActivities } from '@/lib/access'
+import { canMutateMarketingActivities, isMarketingServiceManager } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
 
@@ -24,8 +24,8 @@ function toNonNegativeInt(value: unknown) {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-async function ensureOwnership(activityId: number, role: string, userName: string) {
-  if (role !== 'MARKETING') return { ok: true as const }
+async function ensureOwnership(activityId: number, role: string, userName: string, isManager: boolean) {
+  if (role !== 'MARKETING' || isManager) return { ok: true as const }
   const existing = await prisma.marketingActivity.findUnique({
     where: { id: activityId },
     select: { marketingName: true },
@@ -43,7 +43,8 @@ export async function PUT(
 ) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  if (!canMutateMarketingActivities(session.user.role)) {
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -53,7 +54,7 @@ export async function PUT(
   const activityId = parseInt(id)
 
   try {
-    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name)
+    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, isManager)
     if (!ownership.ok) {
       return NextResponse.json({ error: ownership.error }, { status: ownership.status })
     }
@@ -77,7 +78,7 @@ export async function PUT(
     const resolvedMarketingName =
       typeof marketingName === 'undefined'
         ? undefined
-        : session.user.role === 'MARKETING'
+        : session.user.role === 'MARKETING' && !isManager
           ? normalizeMarketingName(session.user.name)
           : await resolveMarketingName(marketingName)
 
@@ -145,7 +146,8 @@ export async function DELETE(
 ) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  if (!canMutateMarketingActivities(session.user.role)) {
+  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }
 
@@ -153,7 +155,7 @@ export async function DELETE(
   const activityId = parseInt(id)
 
   try {
-    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name)
+    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, isManager)
     if (!ownership.ok) {
       return NextResponse.json({ error: ownership.error }, { status: ownership.status })
     }
