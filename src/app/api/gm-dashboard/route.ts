@@ -68,6 +68,9 @@ export async function GET(req: Request) {
   const { start: periodStart, end: periodEnd, hasStarted: periodHasStarted } =
     getGmDashboardQueryRange(year, month)
   const { start: comparisonStart, end: comparisonEnd } = getGmDashboardPeriodRange(year - 1, month)
+  const yearStart = new Date(Date.UTC(year, 0, 1))
+  const yearEnd = new Date(Date.UTC(year + 1, 0, 1))
+  const yearMonthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
   const daysInPeriod = new Date(Date.UTC(year, month, 0)).getUTCDate()
   const dayLabels = Array.from({ length: daysInPeriod }, (_, index) => String(index + 1).padStart(2, '0'))
   const isCurrentPeriod = now.getUTCFullYear() === year && now.getUTCMonth() + 1 === month
@@ -332,6 +335,41 @@ export async function GET(req: Request) {
       WHERE "publishDate" >= ${trendStart} AND "publishDate" < ${trendEnd} AND "status" = 'PUBLISHED'
       GROUP BY 1 ORDER BY 1
     `).catch(() => []),
+    prisma.$queryRaw<Array<{ month: number; count: number }>>(PrismaSql.sql`
+      SELECT
+        EXTRACT(MONTH FROM ("installedDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'))::int AS month,
+        COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "installedDate" >= ${yearStart} AND "installedDate" < ${yearEnd}
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<Array<{ month: number; count: number }>>(PrismaSql.sql`
+      SELECT
+        EXTRACT(MONTH FROM ("closedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'))::int AS month,
+        COUNT(*)::int AS count
+      FROM "TroubleTicket"
+      WHERE "closedAt" >= ${yearStart} AND "closedAt" < ${yearEnd}
+      GROUP BY 1 ORDER BY 1
+    `).catch(() => []),
+    prisma.$queryRaw<Array<{ category: string; month: number; count: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM(UPPER("problemCategory")), ''), 'UNKNOWN') AS category,
+        EXTRACT(MONTH FROM ("openedAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'))::int AS month,
+        COUNT(*)::int AS count
+      FROM "TroubleTicket"
+      WHERE "openedAt" >= ${yearStart} AND "openedAt" < ${yearEnd}
+        AND COALESCE(NULLIF(TRIM("category"), ''), 'TT') = 'TT'
+      GROUP BY 1, 2 ORDER BY 1, 2
+    `).catch(() => []),
+    prisma.$queryRaw<Array<{ name: string; month: number; count: number }>>(PrismaSql.sql`
+      SELECT
+        COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
+        EXTRACT(MONTH FROM ("installedDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'))::int AS month,
+        COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "installedDate" >= ${yearStart} AND "installedDate" < ${yearEnd}
+      GROUP BY 1, 2
+    `).catch(() => []),
   ])
     : null
 
@@ -347,6 +385,10 @@ export async function GET(req: Request) {
   const trendPsbRows: DailyCountRow[] = managerDashboardData?.[9] ?? []
   const trendTroubleRows: DailyCountRow[] = managerDashboardData?.[10] ?? []
   const trendContentRows: DailyCountRow[] = managerDashboardData?.[11] ?? []
+  const yearlyPsbRows: Array<{ month: number; count: number }> = managerDashboardData?.[12] ?? []
+  const yearlyTroubleClosedRows: Array<{ month: number; count: number }> = managerDashboardData?.[13] ?? []
+  const yearlyTroubleCategoryRows: Array<{ category: string; month: number; count: number }> = managerDashboardData?.[14] ?? []
+  const yearlyCustomersByMarketingRows: Array<{ name: string; month: number; count: number }> = managerDashboardData?.[15] ?? []
 
   const isolirByMarketing = new Map<string, number>()
   for (const row of isolirMarketingRows) {
@@ -585,6 +627,59 @@ export async function GET(req: Request) {
     status: row.executionStatus,
   }))
 
+  // Tren tahunan PSB (berdasarkan tanggal pasang) per bulan.
+  const yearlyPsbTrend = yearMonthLabels.map((label, index) => {
+    const month = index + 1
+    const row = yearlyPsbRows.find((r) => Number(r.month) === month)
+    return { month, label, count: Number(row?.count || 0) }
+  })
+  const yearlyPsbTotal = yearlyPsbTrend.reduce((sum, r) => sum + r.count, 0)
+
+  // Tren tahunan Trouble Ticket yang ditutup per bulan.
+  const yearlyTroubleClosedTrend = yearMonthLabels.map((label, index) => {
+    const month = index + 1
+    const row = yearlyTroubleClosedRows.find((r) => Number(r.month) === month)
+    return { month, label, count: Number(row?.count || 0) }
+  })
+  const yearlyTroubleClosedTotal = yearlyTroubleClosedTrend.reduce((sum, r) => sum + r.count, 0)
+
+  // Gangguan Trouble Ticket berdasarkan kategori, dipecah per bulan.
+  const troubleCategoryMap = new Map<string, number[]>()
+  for (const row of yearlyTroubleCategoryRows) {
+    const cat = String(row.category || 'UNKNOWN')
+    const arr = troubleCategoryMap.get(cat) ?? Array.from({ length: 12 }, () => 0)
+    const idx = Math.max(0, Math.min(11, Number(row.month) - 1))
+    arr[idx] += Number(row.count || 0)
+    troubleCategoryMap.set(cat, arr)
+  }
+  const yearlyTroubleByCategory = Array.from(troubleCategoryMap.entries())
+    .map(([name, byMonth]) => ({
+      name,
+      byMonth,
+      total: byMonth.reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6)
+  const yearlyTroubleByCategoryMonths = yearMonthLabels
+
+  // Pelanggan (PSB terpasang) per marketing per bulan, top 15.
+  const marketingYearlyMap = new Map<string, number[]>()
+  for (const row of yearlyCustomersByMarketingRows) {
+    const name = toDashboardMarketingLabel(row.name, marketingNameMap)
+    const arr = marketingYearlyMap.get(name) ?? Array.from({ length: 12 }, () => 0)
+    const idx = Math.max(0, Math.min(11, Number(row.month) - 1))
+    arr[idx] += Number(row.count || 0)
+    marketingYearlyMap.set(name, arr)
+  }
+  const yearlyCustomersByMarketing = Array.from(marketingYearlyMap.entries())
+    .map(([name, byMonth]) => ({
+      name,
+      byMonth,
+      total: byMonth.reduce((a, b) => a + b, 0),
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 15)
+
   // Risks
   const risks = []
   if (slaBreachRows.length > 0) {
@@ -751,6 +846,15 @@ export async function GET(req: Request) {
       subdivisionPerformance,
       recentActivities,
       activityTrend,
+      marketingPerformance,
+      yearlyPsbTrend,
+      yearlyPsbTotal,
+      yearlyTroubleClosedTrend,
+      yearlyTroubleClosedTotal,
+      yearlyTroubleByCategory,
+      yearlyTroubleByCategoryMonths,
+      yearlyCustomersByMarketing,
+      yearlyCustomersByMarketingMonths: yearMonthLabels,
       risks: managerRisks,
       execSummary: `Periode ${periodLabel}: ${psbInstalled} PSB terpasang dari ${psbRequested} permohonan; ${ttClosed} gangguan diselesaikan; availability jaringan ${availability.availabilityPercent.toFixed(1)}%; ${contentPublished} konten tayang dan ${digitalLeads} leads digital.`,
     })

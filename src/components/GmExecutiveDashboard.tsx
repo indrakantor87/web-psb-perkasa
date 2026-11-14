@@ -109,7 +109,7 @@ export function GmExecutiveDashboard() {
             <DismantleLineChart data={data.dailySeries} />
           </div>
 
-          <MarketingPerformanceTable rows={data.marketingPerformance} />
+          <MarketingPerformanceTable rows={data.marketingPerformance ?? []} />
 
           <div className="hidden lg:block">
             <NetworkSection network={data.network} periodLabel={data.periodLabel} />

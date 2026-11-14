@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Router,
   ShoppingCart,
+  TrendingUp,
+  Users,
   Wifi,
 } from 'lucide-react'
 import {
@@ -580,6 +582,236 @@ export function MarketingServiceManagerDashboard({
               <p className="mt-4 border-t border-line pt-3 text-xs leading-relaxed text-ink-muted">{data.execSummary}</p>
             </Card>
           </section>
+
+          {/* Tren Tahunan: PSB & Trouble Ticket */}
+          <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <Card className="p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+                    <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Tren PSB {year}
+                  </h2>
+                  <p className="text-xs text-ink-muted">Berdasarkan tanggal pasang</p>
+                </div>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                  {formatNumber(data.yearlyPsbTotal ?? 0)} data
+                </span>
+              </div>
+              <div className="h-56 min-w-0 sm:h-64">
+                {(data.yearlyPsbTrend?.length ?? 0) === 0 ? (
+                  <div className="flex h-full items-center justify-center text-sm text-ink-muted">Belum ada data PSB tahun {year}.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data.yearlyPsbTrend} margin={{ top: 8, right: 12, left: -14, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                      <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
+                      <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} />
+                      <Line type="monotone" dataKey="count" name="PSB terpasang" stroke="#1684ff" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-4 shadow-sm sm:p-5">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+                    <AlertTriangle className="h-4 w-4 text-orange-500" /> Tren Trouble Ticket {year}
+                  </h2>
+                  <p className="text-xs text-ink-muted">Jumlah tiket yang ditutup pada tiap bulan</p>
+                </div>
+                <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
+                  {formatNumber(data.yearlyTroubleClosedTotal ?? 0)} tiket ditutup
+                </span>
+              </div>
+              <div className="h-56 min-w-0 sm:h-64">
+                {(data.yearlyTroubleClosedTrend?.length ?? 0) === 0 ? (
+                  <div className="flex h-full items-center justify-center text-sm text-ink-muted">Belum ada data Trouble Ticket tahun {year}.</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data.yearlyTroubleClosedTrend} margin={{ top: 8, right: 12, left: -14, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                      <XAxis dataKey="label" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} width={36} />
+                      <Tooltip contentStyle={chartTooltipStyle} cursor={chartCursorFill} />
+                      <Line type="monotone" dataKey="count" name="Tiket ditutup" stroke="#ff8a1f" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </Card>
+          </section>
+
+          {/* Kinerja Marketing */}
+          <Card className="overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+              <div>
+                <h2 className="text-sm font-bold text-ink">Kinerja Marketing</h2>
+                <p className="text-xs text-ink-muted">Ringkasan progres per marketing periode {data.periodLabel}</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-muted">Target close</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left">
+                <thead className="bg-surface-muted/50">
+                  <tr className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                    <th className="px-4 py-2.5">Nama Marketing</th>
+                    <th className="px-4 py-2.5">Progres</th>
+                    <th className="px-4 py-2.5 text-center">Close</th>
+                    <th className="px-4 py-2.5 text-center">On Process</th>
+                    <th className="px-4 py-2.5 text-center">Open</th>
+                    <th className="px-4 py-2.5 text-center">Total</th>
+                    <th className="px-4 py-2.5 text-center">Isolir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {(data.marketingPerformance ?? []).map((row) => {
+                    const progress = row.count > 0 ? (row.close / row.count) * 100 : 0
+                    const barColor = progress >= 75 ? 'bg-emerald-500' : progress >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                    return (
+                      <tr key={row.name} className="text-xs hover:bg-surface-muted/60">
+                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-ink">{row.name}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-muted sm:w-32">
+                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${Math.min(100, progress)}%` }} />
+                            </div>
+                            <span className="shrink-0 text-[11px] font-semibold tabular-nums text-ink-muted">{progress.toFixed(0)}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center"><span className="inline-flex min-w-[2rem] justify-center rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{row.close}</span></td>
+                        <td className="px-4 py-3 text-center"><span className="inline-flex min-w-[2rem] justify-center rounded-full bg-blue-100 px-2 py-1 text-[11px] font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">{row.on_progress}</span></td>
+                        <td className="px-4 py-3 text-center"><span className="inline-flex min-w-[2rem] justify-center rounded-full bg-rose-100 px-2 py-1 text-[11px] font-bold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">{row.open}</span></td>
+                        <td className="px-4 py-3 text-center font-bold tabular-nums text-ink">{row.count}</td>
+                        <td className="px-4 py-3 text-center"><span className="inline-flex min-w-[2rem] justify-center rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">{row.isolir}</span></td>
+                      </tr>
+                    )
+                  })}
+                  {(data.marketingPerformance ?? []).length === 0 && (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-muted">Belum ada data marketing pada periode ini.</td></tr>
+                  )}
+                </tbody>
+                {(data.marketingPerformance ?? []).length > 0 && (
+                  <tfoot className="bg-surface-muted/60 font-bold text-ink">
+                    <tr className="text-xs">
+                      <td className="px-4 py-3">TOTAL</td>
+                      <td className="px-4 py-3" />
+                      <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400">{(data.marketingPerformance ?? []).reduce((s, r) => s + r.close, 0)}</td>
+                      <td className="px-4 py-3 text-center text-blue-600 dark:text-blue-400">{(data.marketingPerformance ?? []).reduce((s, r) => s + r.on_progress, 0)}</td>
+                      <td className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">{(data.marketingPerformance ?? []).reduce((s, r) => s + r.open, 0)}</td>
+                      <td className="px-4 py-3 text-center">{(data.marketingPerformance ?? []).reduce((s, r) => s + r.count, 0)}</td>
+                      <td className="px-4 py-3 text-center text-amber-600 dark:text-amber-400">{(data.marketingPerformance ?? []).reduce((s, r) => s + r.isolir, 0)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </Card>
+
+          {/* Gangguan Trouble Ticket Tahunan */}
+          <Card className="overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+              <div>
+                <h2 className="text-sm font-bold text-ink">Gangguan Trouble Ticket {year}</h2>
+                <p className="text-xs text-ink-muted">Top gangguan berdasarkan total tahunan</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">Top gangguan</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left">
+                <thead className="bg-surface-muted/50">
+                  <tr className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                    <th className="px-4 py-2.5">Gangguan</th>
+                    {(data.yearlyTroubleByCategoryMonths ?? []).map((m) => (
+                      <th key={m} className="px-3 py-2.5 text-center">{m}</th>
+                    ))}
+                    <th className="px-4 py-2.5 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {(data.yearlyTroubleByCategory ?? []).map((row) => (
+                    <tr key={row.name} className="text-xs hover:bg-surface-muted/60">
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-ink">{row.name}</td>
+                      {row.byMonth.map((val, i) => (
+                        <td key={i} className="px-3 py-3 text-center tabular-nums text-ink-muted">{val}</td>
+                      ))}
+                      <td className="px-4 py-3 text-center font-bold tabular-nums text-ink">{row.total}</td>
+                    </tr>
+                  ))}
+                  {(data.yearlyTroubleByCategory ?? []).length === 0 && (
+                    <tr>
+                      <td colSpan={(data.yearlyTroubleByCategoryMonths?.length ?? 0) + 2} className="px-4 py-10 text-center text-sm text-ink-muted">
+                        Belum ada data gangguan tahun {year}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {(data.yearlyTroubleByCategory ?? []).length > 0 && (
+                  <tfoot className="bg-surface-muted/60 font-bold text-ink">
+                    <tr className="text-xs">
+                      <td className="px-4 py-3">Total</td>
+                      {(data.yearlyTroubleByCategoryMonths ?? []).map((_, i) => (
+                        <td key={i} className="px-3 py-3 text-center tabular-nums">
+                          {(data.yearlyTroubleByCategory ?? []).reduce((s, r) => s + (r.byMonth[i] || 0), 0)}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-center tabular-nums">
+                        {(data.yearlyTroubleByCategory ?? []).reduce((s, r) => s + r.total, 0)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </Card>
+
+          {/* Pelanggan per Marketing Tahunan */}
+          <Card className="overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+              <div>
+                <h2 className="flex items-center gap-2 text-sm font-bold text-ink">
+                  <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Pelanggan per Marketing (Tahun {year})
+                </h2>
+                <p className="text-xs text-ink-muted">15 marketing dengan jumlah pelanggan terbanyak</p>
+              </div>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-muted text-ink-muted">
+                <Users className="h-4 w-4" />
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left">
+                <thead className="bg-surface-muted/50">
+                  <tr className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                    <th className="px-4 py-2.5">Marketing</th>
+                    {(data.yearlyCustomersByMarketingMonths ?? []).map((m) => (
+                      <th key={m} className="px-3 py-2.5 text-center">{m}</th>
+                    ))}
+                    <th className="px-4 py-2.5 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {(data.yearlyCustomersByMarketing ?? []).map((row) => (
+                    <tr key={row.name} className="text-xs hover:bg-surface-muted/60">
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-ink">{row.name}</td>
+                      {row.byMonth.map((val, i) => (
+                        <td key={i} className="px-3 py-3 text-center tabular-nums text-ink-muted">{val}</td>
+                      ))}
+                      <td className="px-4 py-3 text-center font-bold tabular-nums text-ink">{row.total}</td>
+                    </tr>
+                  ))}
+                  {(data.yearlyCustomersByMarketing ?? []).length === 0 && (
+                    <tr>
+                      <td colSpan={(data.yearlyCustomersByMarketingMonths?.length ?? 0) + 2} className="px-4 py-10 text-center text-sm text-ink-muted">
+                        Belum ada data pelanggan per marketing tahun {year}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </>
       )}
     </div>

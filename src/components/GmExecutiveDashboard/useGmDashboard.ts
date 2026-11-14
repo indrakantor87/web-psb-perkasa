@@ -48,6 +48,22 @@ export type GmDashboardData = {
     trouble: number
     content: number
   }>
+  marketingPerformance?: Array<{
+    name: string
+    count: number
+    open: number
+    on_progress: number
+    close: number
+    isolir: number
+  }>
+  yearlyPsbTrend?: Array<{ month: number; label: string; count: number }>
+  yearlyPsbTotal?: number
+  yearlyTroubleClosedTrend?: Array<{ month: number; label: string; count: number }>
+  yearlyTroubleClosedTotal?: number
+  yearlyTroubleByCategory?: Array<{ name: string; byMonth: number[]; total: number }>
+  yearlyTroubleByCategoryMonths?: string[]
+  yearlyCustomersByMarketing?: Array<{ name: string; byMonth: number[]; total: number }>
+  yearlyCustomersByMarketingMonths?: string[]
   deltas: {
     customerGrowth: number
     activeGrowth: number
@@ -64,14 +80,6 @@ export type GmDashboardData = {
     secondarySuffix?: string
     progress: number
     members: number
-  }>
-  marketingPerformance: Array<{
-    name: string
-    count: number
-    open: number
-    on_progress: number
-    close: number
-    isolir: number
   }>
   dailySeries: Array<{
     date: string

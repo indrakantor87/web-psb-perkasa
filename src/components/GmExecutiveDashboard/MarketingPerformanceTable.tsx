@@ -6,7 +6,7 @@ import { Chip } from '@/components/ui/Chip'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import type { GmDashboardData } from './useGmDashboard'
 
-type MarketingRow = GmDashboardData['marketingPerformance'][number]
+type MarketingRow = NonNullable<GmDashboardData['marketingPerformance']>[number]
 
 export function MarketingPerformanceTable({ rows }: { rows: MarketingRow[] }) {
   const router = useRouter()
