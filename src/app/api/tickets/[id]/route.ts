@@ -4,7 +4,14 @@ import { NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { isSyntheticMarketingLabel, normalizeMarketingName } from '@/lib/marketing-users'
-import { canDeleteListTickets, canMutateMenu, isTechnicianRole, isMarketingServiceManager, normalizeRole } from '@/lib/access'
+import {
+  canDeleteListTickets,
+  canMutateMenu,
+  isTechnicianRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+  normalizeRole,
+} from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
@@ -52,11 +59,18 @@ export async function PUT(
   if (!session) return unauthorizedResponse()
   const role = (session.user.role || '').toUpperCase()
   const isTechnician = isTechnicianRole(role)
-  // Manager Pemasaran & Pelayanan diperlakukan seperti CS (bisa akses semua tiket).
-  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
-  const isMarketing = normalizeRole(role) === 'MARKETING' && !isManager
+  // Manager Pemasaran & Pelayanan and SPV Penjualan follow CS permissions.
+  const hasCsListAccess =
+    isMarketingServiceManager(session.user.role, session.user.position, session.user.division) ||
+    isSalesSupervisor(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
+  const isMarketing = normalizeRole(role) === 'MARKETING' && !hasCsListAccess
   const ownerName = isMarketing ? normalizeMarketingName(session.user.name) : null
-  const canMutateTicket = canMutateMenu(role, 'list') || canMutateMenu(role, 'dismantle') || isManager
+  const canMutateTicket = canMutateMenu(role, 'list') || canMutateMenu(role, 'dismantle') || hasCsListAccess
   if (!canMutateTicket) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -104,7 +118,7 @@ export async function PUT(
       const marketingName = formData.get('marketingName')
       if (typeof marketingName === 'string' && marketingName) {
         const normalizedMarketingName =
-          (role === 'MARKETING' && !isManager)
+          (role === 'MARKETING' && !hasCsListAccess)
             ? normalizeMarketingName(session.user.name)
             : normalizeMarketingName(marketingName)
         if (!isSyntheticMarketingLabel(normalizedMarketingName)) {
@@ -161,7 +175,7 @@ export async function PUT(
           next[k] = parseInt(String(v))
         } else if (k === 'marketingName') {
           const normalizedMarketingName =
-            (role === 'MARKETING' && !isManager)
+            (role === 'MARKETING' && !hasCsListAccess)
               ? normalizeMarketingName(session.user.name)
               : normalizeMarketingName(v)
           if (!isSyntheticMarketingLabel(normalizedMarketingName)) {
@@ -176,19 +190,19 @@ export async function PUT(
 
     // Only allow authorized roles to update pengawalan
     if (pengawalan !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isManager) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || hasCsListAccess) {
         updateData.pengawalan = pengawalan
       }
     }
     // Only allow authorized roles to update kmz
     if (kmz !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isManager) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || hasCsListAccess) {
         updateData.kmz = kmz
       }
     }
     // Only allow authorized roles to update priority
     if (priority !== undefined) {
-      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isTechnician || isManager) {
+      if (['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC'].includes(role) || isTechnician || hasCsListAccess) {
          updateData.priority = priority
        } else {
          return NextResponse.json({ error: 'Unauthorized to update priority' }, { status: 403 })
@@ -202,7 +216,7 @@ export async function PUT(
       delete updateData.package
     }
 
-    if (role === 'MARKETING' && !isManager) {
+    if (role === 'MARKETING' && !hasCsListAccess) {
       // Marketing cannot change technical info
       delete updateData.teknisi
       delete updateData.installedDate
@@ -211,7 +225,7 @@ export async function PUT(
 
     status = normalizeStatus(status)
     if (typeof status !== 'undefined' && status !== '') {
-      if (!['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING'].includes(role) && !isTechnician && !isManager) {
+      if (!['ADMIN', 'DEVELOPER', 'CS', 'ADMIN_CS', 'NOC', 'MARKETING'].includes(role) && !isTechnician && !hasCsListAccess) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     }
@@ -233,7 +247,7 @@ export async function PUT(
 
     let ticket
     if (status === 'CLOSE') {
-      if (role === 'MARKETING' && !isManager) {
+      if (role === 'MARKETING' && !hasCsListAccess) {
         return NextResponse.json(
           { error: 'Marketing cannot close tickets' },
           { status: 403 }
@@ -308,14 +322,21 @@ export async function DELETE(
 ) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
-  if (!canDeleteListTickets(session.user.role) && !isManager) {
+  const hasCsListAccess =
+    isMarketingServiceManager(session.user.role, session.user.position, session.user.division) ||
+    isSalesSupervisor(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
+  if (!canDeleteListTickets(session.user.role) && !hasCsListAccess) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }
 
   const { id } = await params
   const ticketId = parseInt(id)
-  const isMarketing = normalizeRole(session.user.role) === 'MARKETING' && !isManager
+  const isMarketing = normalizeRole(session.user.role) === 'MARKETING' && !hasCsListAccess
   const ownerName = isMarketing ? normalizeMarketingName(session.user.name) : null
   if (isMarketing && !ownerName) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

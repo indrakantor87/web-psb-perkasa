@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
 import { jakartaDateFromDMY, jakartaDateFromExcelSerial } from '@/lib/jakarta-time'
 import { normalizeMarketingName, resolveMarketingName, EMPTY_MARKETING_LABEL } from '@/lib/marketing-users'
-import { canImportListTickets, normalizeRole } from '@/lib/access'
+import { canImportListTickets, isSalesSupervisor, normalizeRole } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
 export const runtime = 'nodejs'
@@ -48,7 +48,14 @@ export async function POST(request: Request) {
   if (!canImportListTickets(session.user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const isMarketing = normalizeRole(session.user.role) === 'MARKETING'
+  const isMarketing =
+    normalizeRole(session.user.role) === 'MARKETING' &&
+    !isSalesSupervisor(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
 
   try {
     const XLSX = await import('xlsx')

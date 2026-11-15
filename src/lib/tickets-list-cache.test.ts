@@ -28,3 +28,16 @@ test('Role tanpa scope nama mempertahankan visibilitas PSB yang ada', () => {
   assert.equal(buildTicketListOwnerFilter('ADMIN', 'Iman'), null)
   assert.equal(buildTicketListOwnerFilter('CS', 'Iman'), null)
 })
+
+test('SPV Penjualan dapat melihat semua tiket PSB tanpa scope nama marketing', () => {
+  assert.equal(
+    buildTicketListOwnerFilter(
+      'MARKETING',
+      'Indra',
+      'SPV',
+      'Marketing',
+      'Pemasaran dan Pelayanan'
+    ),
+    null
+  )
+})

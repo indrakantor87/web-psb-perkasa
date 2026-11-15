@@ -3,7 +3,14 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { ensurePhotoTableOnce } from '@/lib/trouble-ticket-photo-store'
 import { cache } from '@/lib/cache'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isAdminRole, isTechnicianRole, isMarketingServiceManager } from '@/lib/access'
+import {
+  canAccessTroubleTicketRecords,
+  canMutateTroubleTicketRecords,
+  isAdminRole,
+  isTechnicianRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+} from '@/lib/access'
 import crypto from 'node:crypto'
 
 export const runtime = 'nodejs'
@@ -511,8 +518,22 @@ export async function GET(request: Request) {
       )
     }
 
-    if ((roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL') &&
-        !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)) {
+    const isMarketingManager = isMarketingServiceManager(
+      session.user.role,
+      session.user.position,
+      session.user.division
+    )
+    const isSalesSpv = isSalesSupervisor(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
+    if (
+      (roleUpper === 'MARKETING' || roleUpper === 'CREATOR_DIGITAL') &&
+      !isMarketingManager &&
+      !isSalesSpv
+    ) {
       baseParams.push(session.user.id)
       baseParts.push(`"createdById" = $${baseParams.length}`)
     }

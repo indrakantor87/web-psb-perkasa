@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { cache } from '@/lib/cache'
 import type { Prisma } from '@prisma/client'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
-import { canDeleteListTickets } from '@/lib/access'
+import { canDeleteListTickets, isMarketingServiceManager, isSalesSupervisor } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { adjustOdpTerpakai } from '@/lib/odp-usage'
 
@@ -13,7 +13,17 @@ export const runtime = 'nodejs'
 export async function POST(req: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  if (!canDeleteListTickets(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const hasCsListAccess =
+    isMarketingServiceManager(session.user.role, session.user.position, session.user.division) ||
+    isSalesSupervisor(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
+  if (!canDeleteListTickets(session.user.role) && !hasCsListAccess) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = (await req.json().catch(() => ({}))) as {
     month?: unknown

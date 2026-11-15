@@ -19,6 +19,7 @@ import {
   isReadOnlyRole,
   isMarketingNameScopedRole,
   isMarketingServiceManager,
+  isSalesSupervisor,
   resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { isMarketingOwnerMatch } from '@/lib/marketing-users'
@@ -134,6 +135,15 @@ test('Manager Pemasaran dan Pelayanan mendapat dashboard khusus', () => {
   assert.equal(isMarketingServiceManager('FINANCE', 'Manager', 'Finance & HR'), false)
   assert.equal(isMarketingServiceManager('MARKETING', 'SPV', 'Pemasaran dan Pelayanan'), false)
   assert.equal(isMarketingServiceManager('MARKETING', 'Manager', 'Teknisi'), false)
+})
+
+test('SPV Penjualan dikenali hanya pada sub-divisi Marketing Pemasaran dan Pelayanan', () => {
+  assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'), true)
+  assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Penjualan', 'Pemasaran dan Pelayanan'), true)
+  assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Customer Service', 'Pemasaran dan Pelayanan'), false)
+  assert.equal(isSalesSupervisor('CS', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'), false)
+  assert.equal(isSalesSupervisor('MARKETING', 'Leader', 'Marketing', 'Pemasaran dan Pelayanan'), false)
+  assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Marketing', 'Teknisi'), false)
 })
 
 test('fingerprint machine configuration and db-update authority are Developer-only', () => {

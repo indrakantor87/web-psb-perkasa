@@ -31,7 +31,13 @@ export async function GET(request: Request) {
     if ([25, 50, 75, 100].includes(n)) return n
     return 25
   })()
-  const marketingOwners = buildDismantleMarketingOwners(session.user.role, session.user.name)
+  const marketingOwners = buildDismantleMarketingOwners(
+    session.user.role,
+    session.user.name,
+    session.user.position,
+    session.user.subdivision,
+    session.user.division
+  )
 
   try {
     await ensureDismantleTicketsTable()

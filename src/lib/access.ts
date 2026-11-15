@@ -66,6 +66,21 @@ export function isMarketingServiceManager(
   )
 }
 
+export function isSalesSupervisor(
+  role?: string | null,
+  position?: string | null,
+  subdivision?: string | null,
+  division?: string | null
+) {
+  const normalizedSubdivision = String(subdivision ?? '').trim().toLowerCase()
+  return (
+    normalizeRole(role) === 'MARKETING' &&
+    String(position ?? '').trim().toLowerCase() === 'spv' &&
+    ['marketing', 'penjualan'].includes(normalizedSubdivision) &&
+    normalizeUserDivision(division) === 'Pemasaran dan Pelayanan'
+  )
+}
+
 export function isReadOnlyRole(role?: string | null) {
   return normalizeRole(role) === 'PRIORITY'
 }

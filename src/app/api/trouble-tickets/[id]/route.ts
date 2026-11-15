@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { deletePhotosForTicket, ensurePhotoTableOnce, listTicketPhotoIds } from '@/lib/trouble-ticket-photo-store'
-import { canAccessTroubleTicketRecords, canMutateTroubleTicketRecords, isMarketingServiceManager, normalizeRole } from '@/lib/access'
+import {
+  canAccessTroubleTicketRecords,
+  canMutateTroubleTicketRecords,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+  normalizeRole,
+} from '@/lib/access'
 
 export const runtime = 'nodejs'
 
@@ -94,7 +100,13 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const includePhotos = (searchParams.get('includePhotos') ?? '').trim() === '1'
     const isMarketing = normalizeRole(session.user.role) === 'MARKETING' &&
-      !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+      !isMarketingServiceManager(session.user.role, session.user.position, session.user.division) &&
+      !isSalesSupervisor(
+        session.user.role,
+        session.user.position,
+        session.user.subdivision,
+        session.user.division
+      )
     const ownerId = isMarketing ? session.user.id : null
     const selectPhotos = includePhotos ? `"closePhotos",` : ''
     const countExpr = `(

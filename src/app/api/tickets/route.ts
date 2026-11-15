@@ -7,7 +7,12 @@ import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-time'
 import { isSyntheticMarketingLabel, normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
 import { ensureMenuAccess, ensureMenuMutation, requireSession } from '@/lib/access-server'
-import { normalizeRole, isMarketingNameScopedRole, isMarketingServiceManager } from '@/lib/access'
+import {
+  normalizeRole,
+  isMarketingNameScopedRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+} from '@/lib/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,7 +75,13 @@ export async function GET(request: Request) {
     activeSession.user.position,
     activeSession.user.division
   )
-  if (isMarketingNameScopedRole(role) && !isManager) {
+  const isSupervisor = isSalesSupervisor(
+    activeSession.user.role,
+    activeSession.user.position,
+    activeSession.user.subdivision,
+    activeSession.user.division
+  )
+  if (isMarketingNameScopedRole(role) && !isManager && !isSupervisor) {
     const ownerName = normalizeMarketingName(activeSession.user.name)
     and.push(ownerName
       ? {

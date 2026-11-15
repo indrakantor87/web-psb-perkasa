@@ -3,7 +3,13 @@ import type { Prisma } from '@prisma/client'
 import { cache } from '@/lib/cache'
 import { jakartaMonthRange, jakartaNow } from '@/lib/jakarta-time'
 import { normalizeMarketingName, toDisplayMarketingName } from '@/lib/marketing-users'
-import { isAdminRole, isMarketingNameScopedRole, isMarketingServiceManager, normalizeRole } from '@/lib/access'
+import {
+  isAdminRole,
+  isMarketingNameScopedRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+  normalizeRole,
+} from '@/lib/access'
 
 export type TicketListRow = {
   id: number
@@ -36,6 +42,7 @@ type Args = {
   role: string
   userName: string
   position?: string | null
+  userSubdivision?: string | null
   userDivision?: string | null
   division?: string | null
   month: number
@@ -60,10 +67,12 @@ export function buildTicketListOwnerFilter(
   role: string,
   userName?: string | null,
   position?: string | null,
+  subdivision?: string | null,
   division?: string | null
 ): Prisma.TicketWhereInput | null {
-  // Manager Pemasaran & Pelayanan boleh melihat semua data seperti CS.
+  // Manager Pemasaran & Pelayanan dan SPV Penjualan melihat semua data seperti CS.
   if (isMarketingServiceManager(role, position, division)) return null
+  if (isSalesSupervisor(role, position, subdivision, division)) return null
   if (!isMarketingNameScopedRole(role)) return null
   const ownerName = normalizeMarketingName(userName)
   if (!ownerName) return { id: { lt: 0 } }
@@ -71,7 +80,21 @@ export function buildTicketListOwnerFilter(
 }
 
 async function queryTicketsList(args: Args) {
-  const { role, userName, position, userDivision, division, month, year, status, marketing, search, page, pageSize } = args
+  const {
+    role,
+    userName,
+    position,
+    userSubdivision,
+    userDivision,
+    division,
+    month,
+    year,
+    status,
+    marketing,
+    search,
+    page,
+    pageSize,
+  } = args
 
     const { start: startDate, end: endDate } = jakartaMonthRange(year, month)
 
@@ -104,7 +127,7 @@ async function queryTicketsList(args: Args) {
       baseWhere.AND = Array.isArray(currentAnd) ? [...currentAnd, condition] : [currentAnd, condition]
     }
 
-    const ownerFilter = buildTicketListOwnerFilter(role, userName, position, userDivision)
+    const ownerFilter = buildTicketListOwnerFilter(role, userName, position, userSubdivision, userDivision)
     if (ownerFilter) appendAnd(ownerFilter)
 
     const normalizedDivision = String(division ?? 'ALL').trim().toUpperCase()
@@ -122,7 +145,8 @@ async function queryTicketsList(args: Args) {
     }
 
     const isManager = isMarketingServiceManager(role, position, userDivision)
-    if ((!isMarketingNameScopedRole(role) || isManager) && marketing && marketing.trim()) {
+    const isSupervisor = isSalesSupervisor(role, position, userSubdivision, userDivision)
+    if ((!isMarketingNameScopedRole(role) || isManager || isSupervisor) && marketing && marketing.trim()) {
       baseWhere.marketingName = {
         contains: marketing.trim(),
       }

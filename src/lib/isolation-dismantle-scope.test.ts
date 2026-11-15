@@ -30,3 +30,16 @@ test('Role lain tidak menerima scope pemilik marketing', () => {
   assert.equal(buildIsolationMarketingOwnerFilter('ADMIN', 'Iman'), null)
   assert.equal(buildDismantleMarketingOwners('ADMIN', 'Iman'), null)
 })
+
+test('SPV Penjualan dapat melihat seluruh data Dismantle tanpa scope nama marketing', () => {
+  assert.equal(
+    buildDismantleMarketingOwners(
+      'MARKETING',
+      'Indra',
+      'SPV',
+      'Marketing',
+      'Pemasaran dan Pelayanan'
+    ),
+    null
+  )
+})

@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client'
-import { isMarketingNameScopedRole } from '@/lib/access'
+import { isMarketingNameScopedRole, isSalesSupervisor } from '@/lib/access'
 import { normalizeMarketingName } from '@/lib/marketing-users'
 
 export function buildIsolationMarketingOwnerFilter(
@@ -22,7 +22,11 @@ export function buildIsolationMarketingOwnerFilter(
 export function buildDismantleMarketingOwners(
   role: string | null | undefined,
   userName?: string | null,
+  position?: string | null,
+  subdivision?: string | null,
+  division?: string | null,
 ): string[] | null {
+  if (isSalesSupervisor(role, position, subdivision, division)) return null
   if (!isMarketingNameScopedRole(role)) return null
 
   const ownerName = normalizeMarketingName(userName)

@@ -90,6 +90,7 @@ function TicketDetailSection({
 interface TicketListProps {
   tickets: Ticket[]
   userRole: string
+  isSalesSupervisor?: boolean
   readOnly?: boolean
   initialPeriod: { month: number; year: number }
   initialStatus?: string
@@ -110,7 +111,7 @@ interface TicketListProps {
   defaultTemplateContent?: string
 }
 
-export function TicketList({ tickets, userRole, readOnly = false, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
+export function TicketList({ tickets, userRole, isSalesSupervisor = false, readOnly = false, initialPeriod, initialStatus, initialMarketing, initialSearch, initialDivision, pagination, counts, defaultTemplateContent = '' }: TicketListProps) {
   const router = useRouter()
   const isMarketing = userRole === 'MARKETING'
   const isAdmin = isAdminRole(userRole)
@@ -445,13 +446,13 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
   ]
 
   const role = (userRole || '').toUpperCase()
-  const canManageRows = !readOnly && canManageListTickets(role)
+  const canManageRows = !readOnly && (canManageListTickets(role) || isSalesSupervisor)
   const canClose = canManageRows
   const canEditKmz = canManageRows
-  const canDelete = !readOnly && canDeleteListTickets(role)
+  const canDelete = !readOnly && (canDeleteListTickets(role) || isSalesSupervisor)
   const canEditStatus = canManageRows
-  const canBulkDelete = !readOnly && canDeleteListTickets(role)
-  const canCreateSchedule = !readOnly && (role === 'CS' || role === 'ADMIN_CS')
+  const canBulkDelete = canDelete
+  const canCreateSchedule = !readOnly && (role === 'CS' || role === 'ADMIN_CS' || isSalesSupervisor)
   const colSpan = 10 + (canCreateSchedule ? 1 : 0)
   const divisionDescriptions: Record<string, string> = {
     ALL: 'Menampilkan seluruh data PSB pada periode terpilih.',
@@ -1755,7 +1756,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                   <p className="mt-1 text-xs text-gray-500">Maks. 3MB (.jpg, .png)</p>
                 </div>
                 
-                {canManageListTickets(role) && (
+                {canManageRows && (
                     <div>
                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pengawalan</label>
                      <select
@@ -1770,7 +1771,7 @@ export function TicketList({ tickets, userRole, readOnly = false, initialPeriod,
                    </div>
                  )}
 
-                {canManageListTickets(role) && (
+                {canManageRows && (
                    <div className="md:col-span-2">
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">KMZ</label>
                     <input
