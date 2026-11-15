@@ -10,6 +10,7 @@ import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
 import { canManageTargetUser, isMarketingServiceManager } from '@/lib/access'
 import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
+import { getMarketingActivityDirectory } from '@/lib/marketing-activity-directory'
 
 type UserWithOptionalDivision = {
   division?: string | null
@@ -153,13 +154,9 @@ export async function GET(request: Request) {
   try {
     await ensureUserDivisionColumn().catch(() => {})
     await ensureUserPositionAndSubdivisionColumns().catch(() => {})
-    if (isManagerMarketingLookup) {
-      const marketingUsers = await prisma.user.findMany({
-        where: { role: 'MARKETING' },
-        select: { name: true },
-        orderBy: { name: 'asc' },
-      })
-      return NextResponse.json(marketingUsers)
+    if (roleParam === 'MARKETING') {
+      const directory = await getMarketingActivityDirectory()
+      return NextResponse.json(directory.marketingUsers)
     }
 
     const where = roleParam ? { role: roleParam } : undefined

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { cache } from '@/lib/cache'
-import { resolveMarketingName } from '@/lib/marketing-users'
+import { getMarketingActivityDirectory, resolveMarketingActivityName } from '@/lib/marketing-activity-directory'
 import { canImportMarketingActivities } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 
@@ -114,6 +114,7 @@ export async function POST(request: Request) {
     } catch (e) {
       console.error('Failed to fetch areas for import', e)
     }
+    const marketingDirectory = await getMarketingActivityDirectory()
 
     let ok = 0, fail = 0
     let lastError = ''
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
           matchedAreaIds[3] = unique[3] ?? null
         }
 
-        const finalMarketingName = await resolveMarketingName(mapped.marketingName)
+        const finalMarketingName = resolveMarketingActivityName(mapped.marketingName, marketingDirectory)
         if (!finalMarketingName) {
           throw new Error('Nama marketing tidak valid')
         }

@@ -2,14 +2,18 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
+import { isMarketingOwnerMatch } from '@/lib/marketing-users'
 import {
-  normalizeMarketingName,
-  resolveMarketingName,
-  isMarketingOwnerMatch,
-} from '@/lib/marketing-users'
-import { canMutateMarketingActivities, isMarketingServiceManager } from '@/lib/access'
+  canMutateMarketingActivities,
+  isMarketingServiceManager,
+} from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
+import {
+  getMarketingActivityDirectory,
+  isExcludedMarketingActivityIdentity,
+  resolveMarketingActivityName,
+} from '@/lib/marketing-activity-directory'
 
 export const runtime = 'nodejs'
 
@@ -44,6 +48,9 @@ export async function PUT(
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+    return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
+  }
   if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -75,12 +82,13 @@ export async function PUT(
       event,
     } = body
 
+    const directory = typeof marketingName === 'undefined' ? null : await getMarketingActivityDirectory()
+    const selectedMarketingName =
+      session.user.role === 'MARKETING' && !isManager ? session.user.name : marketingName
     const resolvedMarketingName =
-      typeof marketingName === 'undefined'
+      typeof marketingName === 'undefined' || !directory
         ? undefined
-        : session.user.role === 'MARKETING' && !isManager
-          ? normalizeMarketingName(session.user.name)
-          : await resolveMarketingName(marketingName)
+        : resolveMarketingActivityName(selectedMarketingName, directory)
 
     if (typeof marketingName !== 'undefined' && !resolvedMarketingName) {
       return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })
@@ -147,6 +155,9 @@ export async function DELETE(
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+    return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
+  }
   if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }

@@ -5,13 +5,22 @@ import { cache } from '@/lib/cache'
 import { Prisma } from '@prisma/client'
 import {
   normalizeMarketingName,
-  resolveMarketingName,
   marketingNameKey,
 } from '@/lib/marketing-users'
-import { canMutateMarketingActivities, isAdminRole, isMarketingServiceManager } from '@/lib/access'
+import {
+  canMutateMarketingActivities,
+  isAdminRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+} from '@/lib/access'
 import { ensureMenuAccess, requireSession, unauthorizedResponse } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
 import { jakartaDayKey, jakartaMonthRange } from '@/lib/jakarta-time'
+import {
+  getMarketingActivityDirectory,
+  isExcludedMarketingActivityIdentity,
+  resolveMarketingActivityName,
+} from '@/lib/marketing-activity-directory'
 
 export const runtime = 'nodejs'
 
@@ -62,6 +71,12 @@ export async function GET(request: Request) {
     activeSession.user.position,
     activeSession.user.division
   )
+  const isSupervisor = isSalesSupervisor(
+    activeSession.user.role,
+    activeSession.user.position,
+    activeSession.user.subdivision,
+    activeSession.user.division
+  )
   const divisionFilter =
     isAdminRole(roleUpper) &&
     ['ALL', 'PENJUALAN', 'CS_ADMIN', 'NOC_TROUBLESHOOTS', 'CREATOR_DIGITAL'].includes(divisionParam)
@@ -86,7 +101,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (activeSession.user.role === 'MARKETING' && !isManager) {
+  if (activeSession.user.role === 'MARKETING' && !isManager && !isSupervisor) {
     const ownerName = normalizeMarketingName(activeSession.user.name)
     if (ownerName) {
       where.marketingName = {
@@ -104,6 +119,7 @@ export async function GET(request: Request) {
   }
 
   try {
+    const directory = await getMarketingActivityDirectory()
     const activities = await prisma.marketingActivity.findMany({
       where,
       include: {
@@ -122,11 +138,15 @@ export async function GET(request: Request) {
       },
       orderBy: { date: 'desc' },
     })
+    const eligibleNameKeys = new Set(directory.marketingUsers.map((user) => marketingNameKey(user.name)))
+    const visibleActivities = activities.filter((activity) =>
+      eligibleNameKeys.has(marketingNameKey(activity.marketingName))
+    )
 
     // Rentang tanggal untuk perhitungan PSB otomatis dari list tiket
     if (!rangeStart || !rangeEnd) {
-      if (activities.length > 0) {
-        const times = activities.map((a) => new Date(a.date).getTime())
+      if (visibleActivities.length > 0) {
+        const times = visibleActivities.map((a) => new Date(a.date).getTime())
         rangeStart = new Date(Math.min(...times))
         rangeEnd = new Date(Math.max(...times) + 24 * 60 * 60 * 1000)
       }
@@ -135,7 +155,7 @@ export async function GET(request: Request) {
     const psbMap =
       rangeStart && rangeEnd ? await buildPsbMap(rangeStart, rangeEnd) : new Map<string, number>()
 
-    const result = activities.map((activity) => ({
+    const result = visibleActivities.map((activity) => ({
       ...activity,
       psb: psbMap.get(`${marketingNameKey(activity.marketingName)}|${jakartaDayKey(activity.date)}`) ?? 0,
     }))
@@ -151,6 +171,9 @@ export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+    return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
+  }
   if (!canMutateMarketingActivities(session.user.role) && !isManager) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -179,10 +202,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const finalMarketingName =
+    const directory = await getMarketingActivityDirectory()
+    const selectedMarketingName =
       activeSession.user.role === 'MARKETING' && !isManager
-        ? normalizeMarketingName(activeSession.user.name)
-        : await resolveMarketingName(marketingName)
+        ? activeSession.user.name
+        : marketingName
+    const finalMarketingName = resolveMarketingActivityName(selectedMarketingName, directory)
 
     if (!finalMarketingName) {
       return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })

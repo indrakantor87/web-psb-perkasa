@@ -2,7 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { NextResponse } from 'next/server'
 import { cache } from '@/lib/cache'
-import { marketingNameKey, getMarketingUsers, normalizeMarketingName } from '@/lib/marketing-users'
+import { marketingNameKey, normalizeMarketingName } from '@/lib/marketing-users'
+import { getMarketingActivityDirectory } from '@/lib/marketing-activity-directory'
 import { ensureMenuAccess, requireSession } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
 import { jakartaDayKey, jakartaMonthRange } from '@/lib/jakarta-time'
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Periode tidak valid' }, { status: 400 })
   }
 
-  const cacheKey = `marketing-activities:ranking:v2:${year}-${month}`
+  const cacheKey = `marketing-activities:ranking:v4:${year}-${month}`
   const cached = cache.get<RankingRow[]>(cacheKey)
   if (cached) {
     return NextResponse.json({ period: { month, year }, rows: cached })
@@ -51,8 +52,8 @@ export async function GET(request: Request) {
   try {
     const { start, end } = jakartaMonthRange(year, month)
 
-    const [marketingUsers, activities, tickets] = await Promise.all([
-      getMarketingUsers(),
+    const [directory, activities, tickets] = await Promise.all([
+      getMarketingActivityDirectory(),
       prisma.marketingActivity.findMany({
         where: { date: { gte: start, lt: end } },
         select: { date: true, marketingName: true, flyer: true, sosialisasi: true, dataBase: true, event: true, total: true },
@@ -62,6 +63,8 @@ export async function GET(request: Request) {
         select: { marketingName: true },
       }),
     ])
+    const { marketingUsers } = directory
+    const eligibleNameKeys = new Set(marketingUsers.map((user) => marketingNameKey(user.name)))
 
     const namesByKey = new Map<string, string>()
     for (const user of marketingUsers) {
@@ -87,6 +90,7 @@ export async function GET(request: Request) {
     for (const user of marketingUsers) ensureRow(user.name)
 
     for (const activity of activities) {
+      if (!eligibleNameKeys.has(marketingNameKey(activity.marketingName))) continue
       const row = ensureRow(activity.marketingName)
       row.flyer += activity.flyer
       row.sosialisasi += activity.sosialisasi
@@ -109,6 +113,7 @@ export async function GET(request: Request) {
     }
 
     for (const ticket of tickets) {
+      if (!eligibleNameKeys.has(marketingNameKey(ticket.marketingName))) continue
       const row = ensureRow(ticket.marketingName)
       row.psb += 1
     }
