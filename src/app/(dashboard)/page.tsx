@@ -11,6 +11,7 @@ import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
+import { rankActiveMarketingCustomers } from '@/lib/marketing-dashboard'
 import {
   getDivisionFromRole,
   isAdminRole,
@@ -483,45 +484,16 @@ export default async function DashboardPage({
 
     const yearMarketingMonthlyRows = await prisma
     .$queryRaw<Array<{ month: number; name: string; count: number }>>(PrismaSql.sql`
-      WITH raw AS (
-        SELECT
-          EXTRACT(MONTH FROM date_trunc('month', "installedDate"))::int AS month,
-          COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS raw_name
-        FROM "Ticket"
-        WHERE "installedDate" >= ${yearStart}
-          AND "installedDate" < ${yearEnd}
-          ${marketingClause}
-      ),
-      norm AS (
-        SELECT
-          month,
-          CASE
-            WHEN raw_name ILIKE 'marketing %' THEN TRIM(SUBSTRING(raw_name FROM 11))
-            WHEN raw_name ILIKE 'marketing:%' THEN TRIM(SUBSTRING(raw_name FROM 12))
-            WHEN raw_name ILIKE 'marketing-%' THEN TRIM(SUBSTRING(raw_name FROM 12))
-            ELSE raw_name
-          END AS name
-        FROM raw
-      ),
-      agg AS (
-        SELECT
-          month,
-          COALESCE(NULLIF(name, ''), 'Unknown') AS name,
-          COUNT(*)::int AS count
-        FROM norm
-        GROUP BY 1, 2
-      ),
-      topn AS (
-        SELECT name, SUM(count)::int AS total
-        FROM agg
-        GROUP BY 1
-        ORDER BY SUM(count) DESC, name ASC
-        LIMIT 15
-      )
-      SELECT agg.month, agg.name, agg.count
-      FROM agg
-      JOIN topn ON topn.name = agg.name
-      ORDER BY topn.total DESC, agg.name ASC, agg.month ASC
+      SELECT
+        EXTRACT(MONTH FROM ("installedDate" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta'))::int AS month,
+        COALESCE(NULLIF(TRIM("marketingName"), ''), 'Unknown') AS name,
+        COUNT(*)::int AS count
+      FROM "Ticket"
+      WHERE "installedDate" >= ${yearStart}
+        AND "installedDate" < ${yearEnd}
+        ${marketingClause}
+      GROUP BY 1, 2
+      ORDER BY 2, 1
     `)
     .catch(() => [])
 
@@ -539,9 +511,14 @@ export default async function DashboardPage({
       byName.set(name, existing)
     }
 
-    const rows = Array.from(byName.entries())
-      .map(([name, v]) => ({ name, total: v.total, byMonth: v.byMonth }))
-      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+    const rows = rankActiveMarketingCustomers(
+      Array.from(byName.entries()).map(([name, value]) => ({
+        name,
+        total: value.total,
+        byMonth: value.byMonth,
+      })),
+      marketingData.map((row) => row.name)
+    )
 
     return { months, rows }
   })()

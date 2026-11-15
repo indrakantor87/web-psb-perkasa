@@ -15,6 +15,7 @@ import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureGmDailyReportTableOnce } from '@/lib/gm-daily-report-db'
 import { getSocialAvailability } from '@/lib/social-ping'
 import { getMarketingNameMap, marketingNameKey, toDashboardMarketingLabel } from '@/lib/marketing-users'
+import { rankActiveMarketingCustomers } from '@/lib/marketing-dashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -675,26 +676,23 @@ export async function GET(req: Request) {
   const yearlyTroubleByCategoryMonths = yearMonthLabels
 
   // Hanya marketing yang masih aktif (muncul di Kinerja Marketing).
-  const activeMarketingKeys = new Set(marketingPerformance.map((r) => marketingNameKey(r.name)))
-
-  // Pelanggan (PSB terpasang) per marketing per bulan, top 15.
+  // Pelanggan (PSB terpasang) per marketing per bulan.
   const marketingYearlyMap = new Map<string, number[]>()
   for (const row of yearlyCustomersByMarketingRows) {
     const name = toDashboardMarketingLabel(row.name, marketingNameMap)
-    if (!activeMarketingKeys.has(marketingNameKey(name))) continue
     const arr = marketingYearlyMap.get(name) ?? Array.from({ length: 12 }, () => 0)
     const idx = Math.max(0, Math.min(11, Number(row.month) - 1))
     arr[idx] += Number(row.count || 0)
     marketingYearlyMap.set(name, arr)
   }
-  const yearlyCustomersByMarketing = Array.from(marketingYearlyMap.entries())
-    .map(([name, byMonth]) => ({
+  const yearlyCustomersByMarketing = rankActiveMarketingCustomers(
+    Array.from(marketingYearlyMap.entries()).map(([name, byMonth]) => ({
       name,
       byMonth,
       total: byMonth.reduce((a, b) => a + b, 0),
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 15)
+    })),
+    marketingPerformance.map((row) => row.name)
+  )
 
   // Risks
   const risks = []
