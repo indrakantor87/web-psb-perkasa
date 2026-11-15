@@ -61,7 +61,16 @@ function presentEntry(entry: {
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
-  if (!canReadGmDailyReport(session.user.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (
+    !canReadGmDailyReport(
+      session.user.role,
+      session.user.position,
+      session.user.subdivision,
+      session.user.division
+    )
+  ) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   try {
     await ensureGmDailyReportTableOnce()

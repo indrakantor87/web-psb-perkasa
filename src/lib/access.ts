@@ -388,6 +388,9 @@ function getAccessibleMenus(
     menus.add('list')
     menus.add('trouble-ticket')
   }
+  if (isSalesSupervisor(roleUpper, position, subdivision, division)) {
+    menus.add('dashboard')
+  }
   // Semua role dapat membuka halaman Absensi; cakupan datanya dibatasi ke akun
   // yang login, kecuali Developer/Priority/Admin/HR (lihat canAccessHrEmployees).
   menus.add('hr')

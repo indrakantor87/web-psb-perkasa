@@ -23,6 +23,7 @@ import {
   resolveAccountOwnerFilter,
 } from '@/lib/access'
 import { isMarketingOwnerMatch } from '@/lib/marketing-users'
+import { canManageGmDailyReport, canReadGmDailyReport } from '@/lib/gm-daily-report-access'
 
 const menus = [
   'dashboard',
@@ -140,6 +141,13 @@ test('Manager Pemasaran dan Pelayanan mendapat dashboard khusus', () => {
 test('SPV Penjualan dikenali hanya pada sub-divisi Marketing Pemasaran dan Pelayanan', () => {
   assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'), true)
   assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Penjualan', 'Pemasaran dan Pelayanan'), true)
+  assert.equal(
+    canAccessMenu('MARKETING', 'dashboard', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'),
+    true
+  )
+  assert.equal(canReadGmDailyReport('MARKETING', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'), true)
+  assert.equal(canManageGmDailyReport('MARKETING'), false)
+  assert.equal(canReadGmDailyReport('MARKETING'), false)
   assert.equal(isSalesSupervisor('MARKETING', 'SPV', 'Customer Service', 'Pemasaran dan Pelayanan'), false)
   assert.equal(isSalesSupervisor('CS', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'), false)
   assert.equal(isSalesSupervisor('MARKETING', 'Leader', 'Marketing', 'Pemasaran dan Pelayanan'), false)

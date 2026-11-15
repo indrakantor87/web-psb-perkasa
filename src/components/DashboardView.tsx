@@ -6,7 +6,12 @@ import { useMemo, useState, useEffect } from 'react'
 import { clsx } from 'clsx'
 import { LayoutDashboard, Calendar, User, Megaphone, Headset, ShieldCheck, Clapperboard, Users, CheckCircle2, Clock, AlertTriangle, TrendingUp, Activity, BarChart3, FileText } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { getDivisionFromRole, isAdminRole, isMarketingServiceManager } from '@/lib/access'
+import {
+  getDivisionFromRole,
+  isAdminRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+} from '@/lib/access'
 import { MobileHome } from '@/components/MobileHome'
 import { Card, cardClassName } from '@/components/ui/Card'
 import { ChartCard } from '@/components/ui/ChartCard'
@@ -148,7 +153,13 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
   const roleUpper = String(userRole ?? '').trim().toUpperCase()
   const isCsRole = roleUpper === 'CS' || roleUpper === 'ADMIN_CS'
   const isPriorityRole = roleUpper === 'PRIORITY'
-  const showGmDailyReport = isAdmin
+  const isSalesSupervisorDashboard = isSalesSupervisor(
+    userRole,
+    userPosition,
+    userSubdivision,
+    userDivision
+  )
+  const showGmDailyReport = isAdmin || isSalesSupervisorDashboard
   const roleDivision = getDivisionFromRole(userRole)
   const focusedDivision = isAdmin ? selectedDivision : roleDivision
 
@@ -357,7 +368,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
       {showGmDailyReport && <GmDailyReportDashboard canManage={isAdmin} />}
 
-      {visibleDivisionSummary.length > 0 && (
+      {!isSalesSupervisorDashboard && visibleDivisionSummary.length > 0 && (
         <div className="space-y-3">
           <SectionHeading
             title="Performa Divisi"
@@ -383,7 +394,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       )}
 
-      {gaDailyActivityStats && (
+      {!isSalesSupervisorDashboard && gaDailyActivityStats && (
         <div className="space-y-3">
           <SectionHeading
             title="Rekap Daily Activity"
@@ -444,7 +455,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       )}
 
-      {focusedDivision !== 'ALL' && focusedDivisionKpis.length > 0 && (
+      {!isSalesSupervisorDashboard && focusedDivision !== 'ALL' && focusedDivisionKpis.length > 0 && (
         <div className="space-y-3">
           <SectionHeading title="KPI Divisi" description="KPI utama untuk periode bulanan yang sedang aktif." />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -534,7 +545,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
             </ChartCard>
           )}
 
-          {!isMarketing && (showTicketingFocus || isCsRole) && (
+          {(!isMarketing || isSalesSupervisorDashboard) && (showTicketingFocus || isCsRole) && (
             <ChartCard
               title={`Tren Trouble Ticket ${year}`}
               description="Jumlah tiket yang ditutup pada tiap bulan"
@@ -570,7 +581,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
         </div>
       )}
 
-      {isMobilePortrait && !showCreatorFocus && (
+      {isMobilePortrait && !showCreatorFocus && !isSalesSupervisorDashboard && (
         <div className="space-y-4">
           {showSalesFocus && (
           <div className="rounded-2xl bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -730,7 +741,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Marketing Table */}
-      {!isMobilePortrait && !isTeknisi && !isNoc && (showSalesFocus || isCsRole) && !showCreatorFocus && (
+      {(!isMobilePortrait || isSalesSupervisorDashboard) && !isTeknisi && !isNoc && (showSalesFocus || isCsRole) && !showCreatorFocus && (
       <Card className="p-5 sm:p-6">
         <SectionHeading
           title="Kinerja Marketing"
@@ -1008,7 +1019,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Paket Terlaris Tahunan (sembunyikan untuk role MARKETING) */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && showSalesFocus && !showCreatorFocus && (
+      {(!isMobilePortrait || isSalesSupervisorDashboard) && (!isMarketing || isSalesSupervisorDashboard) && !isTeknisi && showSalesFocus && !showCreatorFocus && (
         <ChartCard
           title={`Paket Terlaris (Tahun ${year})`}
           description="5 paket dengan pemasangan terbanyak"
@@ -1056,7 +1067,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
       )}
 
       {/* Pelanggan per Marketing (Tahunan) - hanya non MARKETING */}
-      {!isMobilePortrait && !isMarketing && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
+      {(!isMobilePortrait || isSalesSupervisorDashboard) && (!isMarketing || isSalesSupervisorDashboard) && !isTeknisi && !isNoc && showSalesFocus && !showCreatorFocus && (
         <Card className="p-5 sm:p-6">
           <SectionHeading
             title={`Pelanggan per Marketing (Tahun ${year})`}
@@ -1761,7 +1772,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
 
   return (
     <>
-      {isMarketingServiceManagerUser ? (
+      {isMarketingServiceManagerUser || isSalesSupervisorDashboard ? (
         mainContent
       ) : isPriorityRole ? (
         <div className="md:hidden">
@@ -1784,7 +1795,7 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
           statusCounts={statusCounts}
         />
       )}
-      {!isMarketingServiceManagerUser && <div className="hidden md:block">{mainContent}</div>}
+      {!isMarketingServiceManagerUser && !isSalesSupervisorDashboard && <div className="hidden md:block">{mainContent}</div>}
     </>
   )
 }

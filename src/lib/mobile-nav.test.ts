@@ -37,6 +37,13 @@ test('Manager Pemasaran dan Pelayanan diarahkan ke dashboard di mobile', () => {
   )
 })
 
+test('SPV Penjualan diarahkan ke dashboard di mobile', () => {
+  assert.equal(
+    getMobileHomeHref('MARKETING', 'SPV', 'Marketing', 'Pemasaran dan Pelayanan'),
+    '/'
+  )
+})
+
 test('PRIORITY Beranda tetap menyembunyikan modul marketing dan Digital', () => {
   const restrictedMenus = [
     'marketing-activities',

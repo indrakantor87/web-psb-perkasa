@@ -11,7 +11,13 @@ import { jakartaMonthRange, jakartaNow, JAKARTA_OFFSET_MS } from '@/lib/jakarta-
 import { ensureOdpTable } from '@/lib/odp-init'
 import { ensureIsolationColumnsOnce } from '@/lib/isolation-schema'
 import { getMarketingNameMap, marketingNameKey, normalizeMarketingName, toDashboardMarketingLabel } from '@/lib/marketing-users'
-import { getDivisionFromRole, isAdminRole, isMarketingServiceManager, normalizeRole } from '@/lib/access'
+import {
+  getDivisionFromRole,
+  isAdminRole,
+  isMarketingServiceManager,
+  isSalesSupervisor,
+  normalizeRole,
+} from '@/lib/access'
 import { getAllDailyActivityDivisions, getDailyActivitySubdivisions, normalizeDailyActivitySubdivision } from '@/lib/daily-activity-org'
 
 export const dynamic = 'force-dynamic'
@@ -222,6 +228,12 @@ export default async function DashboardPage({
 }) {
   const session = await getSession()
   if (!session) redirect('/login')
+  const isSalesSupervisorUser = isSalesSupervisor(
+    session.user.role,
+    session.user.position,
+    session.user.subdivision,
+    session.user.division
+  )
   if (
     normalizeRole(session.user.role) === 'NOC' &&
     !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
@@ -260,6 +272,10 @@ export default async function DashboardPage({
   const cacheKey = `dashboard:${JSON.stringify({
     role: session.user.role,
     name: session.user.name,
+    position: session.user.position,
+    subdivision: session.user.subdivision,
+    userDivision: session.user.division,
+    isSalesSupervisor: isSalesSupervisorUser,
     month: currentMonth,
     year: currentYear,
     division: selectedDivision,
@@ -311,7 +327,7 @@ export default async function DashboardPage({
     })()
     const openStatuses = ['OPEN', 'ON_PROGRESS']
 
-    const marketingRole = session.user.role === 'MARKETING'
+    const marketingRole = normalizeRole(session.user.role) === 'MARKETING' && !isSalesSupervisorUser
     const creatorRole = session.user.role === 'CREATOR_DIGITAL'
     const creatorOwnerId = creatorRole ? session.user.id : -1
     const marketingName = session.user.name || ''
