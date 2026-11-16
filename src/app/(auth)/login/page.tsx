@@ -208,7 +208,7 @@ export default function LoginPage() {
               className="h-auto w-44 drop-shadow-sm"
               priority
             />
-            <h1 className="mt-10 text-3xl font-bold leading-tight">
+            <h1 className="mt-6 text-3xl font-bold leading-tight">
               Kelola PSB, aktivitas, dan layanan dalam satu aplikasi.
             </h1>
             <p className="mt-4 max-w-sm text-sm text-blue-50/90">
@@ -231,7 +231,7 @@ export default function LoginPage() {
         {/* Panel form */}
         <div className="p-6 sm:p-9">
           {/* Brand ringkas untuk mobile */}
-          <div className="mb-8 flex flex-col items-center text-center md:hidden">
+          <div className="mb-5 flex flex-col items-center text-center md:hidden">
             <Image
               src="/logo.png"
               alt="Logo Perkasa Networks"
