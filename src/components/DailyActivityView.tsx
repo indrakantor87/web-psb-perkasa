@@ -587,12 +587,12 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
     <div className="space-y-4">
       {/* Toolbar + Filter */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
           <button
             type="button"
             onClick={handleOpenPlan}
             disabled={!canMutate}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white sm:flex-none"
+            className="flex items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
           >
             <Plus className="h-4 w-4" />
             Rencana Aktivitas
@@ -601,7 +601,7 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
             type="button"
             onClick={handleOpenPaste}
             disabled={!canMutate}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:flex-none"
+            className="flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
             <ClipboardPaste className="h-4 w-4" />
             Smart Paste
@@ -619,18 +619,18 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
             type="button"
             onClick={handleCopyPlan}
             disabled={items.length === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:flex-none"
+            className="flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
-            {copiedKind === 'plan' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copiedKind === 'plan' ? <Check className="h-4 w-4 shrink-0" /> : <Copy className="h-4 w-4 shrink-0" />}
             {copiedKind === 'plan' ? 'Tersalin' : 'Salin Rencana (Pagi)'}
           </button>
           <button
             type="button"
             onClick={handleCopyProgress}
             disabled={items.length === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 sm:flex-none"
+            className="flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
           >
-            {copiedKind === 'progress' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copiedKind === 'progress' ? <Check className="h-4 w-4 shrink-0" /> : <Copy className="h-4 w-4 shrink-0" />}
             {copiedKind === 'progress' ? 'Tersalin' : 'Salin Progres (Sore)'}
           </button>
         </div>
@@ -713,15 +713,15 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
               />
             </div>
           </div>
-          <div>
-            <label className={LABEL_CLASS}>Scope</label>
-            <select value={scope} onChange={(e) => setScope(e.target.value as ScopeMode)} className={INPUT_CLASS}>
-              <option value="all">
-                {scopeData?.canViewAllDivisions ? 'Semua Divisi' : scopeData?.canViewDivision ? 'Divisi Saya' : 'Semua'}
-              </option>
-              <option value="mine">Milik Saya</option>
-            </select>
-          </div>
+          {(scopeData?.canViewAllDivisions || scopeData?.canViewDivision) && (
+            <div>
+              <label className={LABEL_CLASS}>Scope</label>
+              <select value={scope} onChange={(e) => setScope(e.target.value as ScopeMode)} className={INPUT_CLASS}>
+                <option value="all">{scopeData?.canViewAllDivisions ? 'Semua Divisi' : 'Divisi Saya'}</option>
+                <option value="mine">Milik Saya</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-2">
