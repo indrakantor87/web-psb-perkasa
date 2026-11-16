@@ -21,6 +21,7 @@ import {
   isExcludedMarketingActivityIdentity,
   resolveMarketingActivityName,
 } from '@/lib/marketing-activity-directory'
+import { resolveOrCreateAreaByName } from '@/lib/covered-area'
 
 export const runtime = 'nodejs'
 
@@ -220,15 +221,16 @@ export async function POST(request: Request) {
       return firstIndex === idx ? val : null
     })
 
-    let activityText = typeof activity === 'string' ? activity.trim() : ''
-    if (!activityText && uniquePicked[0]) {
-      const area = await prisma.coveredArea.findUnique({
-        where: { id: uniquePicked[0] },
-        select: { name: true },
-      })
-      activityText = area?.name ?? ''
+    // Area utama: utamakan nama area dari input teks (activity).
+    // Jika nama area diisi, resolve ke ID area (buat baru bila belum ada).
+    const activityText = typeof activity === 'string' ? activity.trim() : ''
+    let primaryAreaId = uniquePicked[0]
+    if (activityText) {
+      const resolvedAreaId = await resolveOrCreateAreaByName(activityText)
+      if (resolvedAreaId !== null) primaryAreaId = resolvedAreaId
     }
-    if (!activityText) activityText = '-'
+
+    const finalActivityText = activityText || '-'
 
     const flyerValue = toNonNegativeInt(flyer)
     const sosialisasiValue = toNonNegativeInt(sosialisasi)
@@ -239,14 +241,14 @@ export async function POST(request: Request) {
       data: {
         date: new Date(date),
         marketingName: finalMarketingName,
-        activity: activityText,
+        activity: finalActivityText,
         notes: notes || '',
         flyer: flyerValue,
         sosialisasi: sosialisasiValue,
         dataBase: dataBaseValue,
         event: eventValue,
         total: flyerValue + sosialisasiValue + eventValue,
-        areaId: uniquePicked[0],
+        areaId: primaryAreaId,
         areaId2: uniquePicked[1],
         areaId3: uniquePicked[2],
         areaId4: uniquePicked[3],

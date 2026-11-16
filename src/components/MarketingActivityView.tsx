@@ -113,13 +113,15 @@ export function MarketingActivityView({
   const [formData, setFormData] = useState({
     date: jakartaTodayKey(),
     marketingName: '',
-    areaId: '',
+    activity: '',
     flyer: '',
     sosialisasi: '',
     event: '',
     dataBase: '',
     notes: '',
   })
+  const [areaSuggestionsOpen, setAreaSuggestionsOpen] = useState(false)
+  const [areaHighlightIndex, setAreaHighlightIndex] = useState(-1)
 
   // Daftar marketing (untuk admin/manager memilih pemilik laporan)
   useEffect(() => {
@@ -252,13 +254,15 @@ export function MarketingActivityView({
     setFormData({
       date: jakartaTodayKey(),
       marketingName: canSelectMarketing ? marketingOptions[0] ?? '' : userName,
-      areaId: '',
+      activity: '',
       flyer: '',
       sosialisasi: '',
       event: '',
       dataBase: '',
       notes: '',
     })
+    setAreaSuggestionsOpen(false)
+    setAreaHighlightIndex(-1)
     setIsModalOpen(true)
   }
 
@@ -268,13 +272,15 @@ export function MarketingActivityView({
     setFormData({
       date: format(new Date(activity.date), 'yyyy-MM-dd'),
       marketingName: activity.marketingName,
-      areaId: activity.areaId ? String(activity.areaId) : '',
+      activity: activity.area?.name || activity.activity || '',
       flyer: String(activity.flyer ?? 0),
       sosialisasi: String(activity.sosialisasi ?? 0),
       event: String(activity.event ?? 0),
       dataBase: String(activity.dataBase ?? 0),
       notes: activity.notes || '',
     })
+    setAreaSuggestionsOpen(false)
+    setAreaHighlightIndex(-1)
     setIsModalOpen(true)
   }
 
@@ -298,7 +304,7 @@ export function MarketingActivityView({
         body: JSON.stringify({
           date: formData.date,
           marketingName: formData.marketingName,
-          areaId: formData.areaId || null,
+          activity: formData.activity,
           flyer: toNumber(formData.flyer),
           sosialisasi: toNumber(formData.sosialisasi),
           event: toNumber(formData.event),
@@ -309,6 +315,7 @@ export function MarketingActivityView({
 
       if (res.ok) {
         setIsModalOpen(false)
+        setCoveredAreas([])
         refreshAll()
       } else {
         const error = await res.json()
@@ -407,6 +414,12 @@ export function MarketingActivityView({
   )
 
   const formTotal = toNumber(formData.flyer) + toNumber(formData.sosialisasi) + toNumber(formData.event)
+
+  const areaSuggestions = useMemo(() => {
+    const query = formData.activity.trim().toLowerCase()
+    if (!query) return coveredAreas
+    return coveredAreas.filter((area) => area.name.toLowerCase().includes(query))
+  }, [coveredAreas, formData.activity])
 
   const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1. Total Aktivitas menghitung hari unik dengan laporan; Minggu dikecualikan.`
 
@@ -979,18 +992,72 @@ export function MarketingActivityView({
                 </div>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Aktivitas (Area)</label>
-                <select
-                  value={formData.areaId}
-                  onChange={(e) => setFormData({ ...formData, areaId: e.target.value })}
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={formData.activity}
+                  onFocus={() => setAreaSuggestionsOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setAreaSuggestionsOpen(false)
+                      setAreaHighlightIndex(-1)
+                    }, 150)
+                  }}
+                  onChange={(e) => {
+                    setFormData({ ...formData, activity: e.target.value })
+                    setAreaSuggestionsOpen(true)
+                    setAreaHighlightIndex(-1)
+                  }}
+                  onKeyDown={(e) => {
+                    if (!areaSuggestionsOpen) return
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setAreaHighlightIndex((prev) => Math.min(prev + 1, areaSuggestions.length - 1))
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setAreaHighlightIndex((prev) => Math.max(prev - 1, 0))
+                    } else if (e.key === 'Enter' && areaHighlightIndex >= 0) {
+                      e.preventDefault()
+                      const area = areaSuggestions[areaHighlightIndex]
+                      if (area) {
+                        setFormData({ ...formData, activity: area.name })
+                        setAreaSuggestionsOpen(false)
+                        setAreaHighlightIndex(-1)
+                      }
+                    } else if (e.key === 'Escape') {
+                      setAreaSuggestionsOpen(false)
+                      setAreaHighlightIndex(-1)
+                    }
+                  }}
+                  placeholder="Ketik nama area (pilih dari daftar atau ketik baru)..."
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">- Pilih Area -</option>
-                  {coveredAreas.map((area) => (
-                    <option key={area.id} value={area.id}>{area.name}</option>
-                  ))}
-                </select>
+                />
+                {areaSuggestionsOpen && areaSuggestions.length > 0 && (
+                  <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                    {areaSuggestions.map((area, index) => (
+                      <li
+                        key={area.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          setFormData({ ...formData, activity: area.name })
+                          setAreaSuggestionsOpen(false)
+                          setAreaHighlightIndex(-1)
+                        }}
+                        onMouseEnter={() => setAreaHighlightIndex(index)}
+                        className={clsx(
+                          'cursor-pointer px-3 py-1.5 text-sm',
+                          index === areaHighlightIndex
+                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                        )}
+                      >
+                        {area.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">

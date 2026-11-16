@@ -14,6 +14,7 @@ import {
   isExcludedMarketingActivityIdentity,
   resolveMarketingActivityName,
 } from '@/lib/marketing-activity-directory'
+import { resolveOrCreateAreaByName } from '@/lib/covered-area'
 
 export const runtime = 'nodejs'
 
@@ -102,6 +103,15 @@ export async function PUT(
       return firstIndex === idx ? val : null
     })
 
+    // Area utama: utamakan nama area dari input teks (activity).
+    const activityText = typeof activity === 'string' ? activity.trim() : ''
+    let primaryAreaId = uniquePicked[0]
+    if (activityText) {
+      const resolvedAreaId = await resolveOrCreateAreaByName(activityText)
+      if (resolvedAreaId !== null) primaryAreaId = resolvedAreaId
+    }
+    const nextActivity = typeof activity !== 'undefined' ? (activityText || '-') : undefined
+
     const hasNumbers =
       typeof flyer !== 'undefined' || typeof sosialisasi !== 'undefined' || typeof dataBase !== 'undefined' || typeof event !== 'undefined'
 
@@ -130,10 +140,10 @@ export async function PUT(
       data: {
         date: date ? new Date(date) : undefined,
         marketingName: nextMarketingName,
-        activity,
+        activity: nextActivity,
         notes,
         ...numericData,
-        areaId: areaId !== undefined ? uniquePicked[0] : undefined,
+        areaId: typeof activity !== 'undefined' ? primaryAreaId : areaId !== undefined ? uniquePicked[0] : undefined,
         areaId2: areaId2 !== undefined ? uniquePicked[1] : undefined,
         areaId3: areaId3 !== undefined ? uniquePicked[2] : undefined,
         areaId4: areaId4 !== undefined ? uniquePicked[3] : undefined,
