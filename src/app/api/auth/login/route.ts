@@ -62,8 +62,11 @@ export async function POST(request: Request) {
     const normalizedUsername = username.toLowerCase()
 
     // Local-only fallback login so demo role access still works when remote DB is unavailable.
+    // Harus diaktifkan eksplisit (ALLOW_DEV_DEMO_LOGIN=1) agar tidak pernah menjadi
+    // jalur masuk bagi akun yang tidak terdaftar di database.
     if (
       process.env.NODE_ENV !== 'production' &&
+      process.env.ALLOW_DEV_DEMO_LOGIN === '1' &&
       password === '123456'
     ) {
       const sessionUser = getLocalDemoUser(normalizedUsername)
