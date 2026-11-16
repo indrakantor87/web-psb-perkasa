@@ -268,6 +268,7 @@ export default async function DashboardPage({
     return (
       <>
         <MobileHome
+          userName={session.user.name}
           userRole={session.user.role}
           position={session.user.position}
           subdivision={session.user.subdivision}
@@ -285,6 +286,7 @@ export default async function DashboardPage({
     return (
       <>
         <MobileHome
+          userName={session.user.name}
           userRole={session.user.role}
           position={session.user.position}
           subdivision={session.user.subdivision}

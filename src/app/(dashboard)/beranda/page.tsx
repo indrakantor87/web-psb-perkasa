@@ -8,10 +8,12 @@ export default async function TechnicianHomePage() {
   const session = await getSession()
 
   if (!session) redirect('/login')
+  const userName = session.user.name ?? ''
   const userRole = session.user.role
   const isNoc = normalizeRole(userRole) === 'NOC'
   const mobileShortcuts = (
     <MobileHome
+      userName={userName}
       userRole={userRole}
       position={session.user.position}
       subdivision={session.user.subdivision}
