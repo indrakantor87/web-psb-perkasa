@@ -200,19 +200,14 @@ export default function LoginPage() {
         {/* Panel brand: hanya tampil di desktop */}
         <div className="relative hidden flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-10 text-white md:flex">
           <div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/30 backdrop-blur">
-                <Image
-                  src="/logo.png"
-                  alt="Logo Perkasa Networks"
-                  width={44}
-                  height={44}
-                  className="h-11 w-11 rounded-xl object-contain"
-                  priority
-                />
-              </span>
-              <span className="text-lg font-semibold tracking-wide">PERKASA NETWORKS</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Logo Perkasa Networks"
+              width={180}
+              height={60}
+              className="h-auto w-44 drop-shadow-sm"
+              priority
+            />
             <h1 className="mt-10 text-3xl font-bold leading-tight">
               Kelola PSB, aktivitas, dan layanan dalam satu aplikasi.
             </h1>
@@ -231,30 +226,20 @@ export default function LoginPage() {
               </li>
             ))}
           </ul>
-
-          <p className="mt-8 text-sm font-semibold text-white/80">#juaranyawifi</p>
         </div>
 
         {/* Panel form */}
         <div className="p-6 sm:p-9">
           {/* Brand ringkas untuk mobile */}
-          <div className="mb-8 flex flex-col items-center gap-3 text-center md:hidden">
-            <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-2 shadow-lg shadow-blue-600/25">
-              <Image
-                src="/logo.png"
-                alt="Logo Perkasa Networks"
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-xl object-contain"
-                priority
-              />
-            </span>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800 dark:text-white">PERKASA NETWORKS</h1>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">
-                #juaranyawifi
-              </p>
-            </div>
+          <div className="mb-8 flex flex-col items-center text-center md:hidden">
+            <Image
+              src="/logo.png"
+              alt="Logo Perkasa Networks"
+              width={200}
+              height={70}
+              className="h-auto w-52 drop-shadow-md"
+              priority
+            />
           </div>
 
           <div className="mb-6 hidden md:block">
