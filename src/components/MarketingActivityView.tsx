@@ -125,6 +125,8 @@ export function MarketingActivityView({
   })
   const [areaSuggestionsOpen, setAreaSuggestionsOpen] = useState(false)
   const [areaHighlightIndex, setAreaHighlightIndex] = useState(-1)
+  const [marketingSuggestionsOpen, setMarketingSuggestionsOpen] = useState(false)
+  const [marketingHighlightIndex, setMarketingHighlightIndex] = useState(-1)
 
   // Daftar marketing (untuk admin/manager memilih pemilik laporan)
   useEffect(() => {
@@ -266,6 +268,8 @@ export function MarketingActivityView({
     })
     setAreaSuggestionsOpen(false)
     setAreaHighlightIndex(-1)
+    setMarketingSuggestionsOpen(false)
+    setMarketingHighlightIndex(-1)
     setIsModalOpen(true)
   }
 
@@ -284,14 +288,16 @@ export function MarketingActivityView({
     })
     setAreaSuggestionsOpen(false)
     setAreaHighlightIndex(-1)
+    setMarketingSuggestionsOpen(false)
+    setMarketingHighlightIndex(-1)
     setIsModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canMutate) return
-    if (canSelectMarketing && !formData.marketingName) {
-      alert('Pilih nama marketing dari daftar user marketing yang valid.')
+    if (canSelectMarketing && !formData.marketingName.trim()) {
+      alert('Nama marketing harus diisi.')
       return
     }
     setSubmitting(true)
@@ -423,6 +429,12 @@ export function MarketingActivityView({
     if (!query) return coveredAreas
     return coveredAreas.filter((area) => area.name.toLowerCase().includes(query))
   }, [coveredAreas, formData.activity])
+
+  const marketingSuggestions = useMemo(() => {
+    const query = formData.marketingName.trim().toLowerCase()
+    if (!query) return marketingOptions
+    return marketingOptions.filter((name) => name.toLowerCase().includes(query))
+  }, [marketingOptions, formData.marketingName])
 
   const rankingSubtitle = `Periode ${MONTHS[month - 1]} ${year} — Skor = PSB×10 + Data Base×3 + Sosialisasi×1 + Flyer×1 + Event×1. Total Aktivitas menghitung hari unik dengan laporan; Minggu dikecualikan.`
 
@@ -966,23 +978,73 @@ export function MarketingActivityView({
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama Marketing</label>
                   {canSelectMarketing ? (
-                    <select
-                      required
-                      value={formData.marketingName}
-                      onChange={(e) => setFormData({ ...formData, marketingName: e.target.value })}
-                      disabled={marketingOptionsLoading || marketingOptions.length === 0}
-                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-600"
-                    >
-                      {marketingOptionsLoading ? (
-                        <option value="">Memuat daftar marketing...</option>
-                      ) : marketingOptions.length === 0 ? (
-                        <option value="">Belum ada user marketing</option>
-                      ) : (
-                        marketingOptions.map((name) => (
-                          <option key={name} value={name}>{name}</option>
-                        ))
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        autoComplete="off"
+                        value={formData.marketingName}
+                        onFocus={() => setMarketingSuggestionsOpen(true)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setMarketingSuggestionsOpen(false)
+                            setMarketingHighlightIndex(-1)
+                          }, 150)
+                        }}
+                        onChange={(e) => {
+                          setFormData({ ...formData, marketingName: e.target.value })
+                          setMarketingSuggestionsOpen(true)
+                          setMarketingHighlightIndex(-1)
+                        }}
+                        onKeyDown={(e) => {
+                          if (!marketingSuggestionsOpen) return
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault()
+                            setMarketingHighlightIndex((prev) => Math.min(prev + 1, marketingSuggestions.length - 1))
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault()
+                            setMarketingHighlightIndex((prev) => Math.max(prev - 1, 0))
+                          } else if (e.key === 'Enter' && marketingHighlightIndex >= 0) {
+                            e.preventDefault()
+                            const name = marketingSuggestions[marketingHighlightIndex]
+                            if (name) {
+                              setFormData({ ...formData, marketingName: name })
+                              setMarketingSuggestionsOpen(false)
+                              setMarketingHighlightIndex(-1)
+                            }
+                          } else if (e.key === 'Escape') {
+                            setMarketingSuggestionsOpen(false)
+                            setMarketingHighlightIndex(-1)
+                          }
+                        }}
+                        placeholder={marketingOptionsLoading ? 'Memuat daftar marketing...' : 'Ketik nama marketing (bisa manual)...'}
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-black focus:border-gray-400 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      />
+                      {marketingSuggestionsOpen && marketingSuggestions.length > 0 && (
+                        <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-800">
+                          {marketingSuggestions.map((name, index) => (
+                            <li
+                              key={name}
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                setFormData({ ...formData, marketingName: name })
+                                setMarketingSuggestionsOpen(false)
+                                setMarketingHighlightIndex(-1)
+                              }}
+                              onMouseEnter={() => setMarketingHighlightIndex(index)}
+                              className={clsx(
+                                'cursor-pointer px-3 py-1.5 text-sm',
+                                index === marketingHighlightIndex
+                                  ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700'
+                              )}
+                            >
+                              {name}
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                    </select>
+                    </div>
                   ) : (
                     <input
                       type="text"
@@ -1160,7 +1222,7 @@ export function MarketingActivityView({
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || (canSelectMarketing && (marketingOptionsLoading || marketingOptions.length === 0))}
+                  disabled={submitting || (canSelectMarketing && marketingOptionsLoading)}
                   className="flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
                   {submitting ? 'Menyimpan...' : editingActivity ? 'Simpan Perubahan' : 'Tambah Aktivitas'}

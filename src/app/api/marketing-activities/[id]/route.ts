@@ -99,10 +99,19 @@ export async function PUT(
         ? undefined
         : resolveMarketingActivityName(selectedMarketingName, directory)
 
-    if (typeof marketingName !== 'undefined' && !resolvedMarketingName) {
-      return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })
+    // Manager/SPV boleh mengganti nama marketing dari direktori atau input manual.
+    const manualMarketingName =
+      typeof selectedMarketingName === 'string'
+        ? selectedMarketingName.trim().replace(/\s+/g, ' ')
+        : ''
+    const nextMarketingName =
+      typeof marketingName === 'undefined'
+        ? undefined
+        : resolvedMarketingName ?? (canManageActivities && manualMarketingName ? manualMarketingName : undefined)
+
+    if (typeof marketingName !== 'undefined' && !nextMarketingName) {
+      return NextResponse.json({ error: 'Nama marketing harus diisi dari daftar marketing atau diketik manual' }, { status: 400 })
     }
-    const nextMarketingName = resolvedMarketingName ?? undefined
 
     const picked = [parseOptionalInt(areaId), parseOptionalInt(areaId2), parseOptionalInt(areaId3), parseOptionalInt(areaId4)]
     const uniquePicked = picked.map((val, idx) => {

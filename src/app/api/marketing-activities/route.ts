@@ -140,9 +140,11 @@ export async function GET(request: Request) {
       orderBy: { date: 'desc' },
     })
     const eligibleNameKeys = new Set(directory.marketingUsers.map((user) => marketingNameKey(user.name)))
-    const visibleActivities = activities.filter((activity) =>
-      eligibleNameKeys.has(marketingNameKey(activity.marketingName))
-    )
+    const excludedNameKeys = new Set(directory.excludedNameKeys)
+    const visibleActivities = activities.filter((activity) => {
+      const key = marketingNameKey(activity.marketingName)
+      return eligibleNameKeys.has(key) || !excludedNameKeys.has(key)
+    })
 
     // Rentang tanggal untuk perhitungan PSB otomatis dari list tiket
     if (!rangeStart || !rangeEnd) {
@@ -215,10 +217,14 @@ export async function POST(request: Request) {
       activeSession.user.role === 'MARKETING' && !canManageActivities
         ? activeSession.user.name
         : marketingName
-    const finalMarketingName = resolveMarketingActivityName(selectedMarketingName, directory)
+    // Manager/SPV boleh memakai nama marketing dari direktori atau input manual.
+    const resolvedFromDirectory = resolveMarketingActivityName(selectedMarketingName, directory)
+    const manualMarketingName =
+      typeof selectedMarketingName === 'string' ? selectedMarketingName.trim().replace(/\s+/g, ' ') : ''
+    const finalMarketingName = resolvedFromDirectory ?? (canManageActivities && manualMarketingName ? manualMarketingName : null)
 
     if (!finalMarketingName) {
-      return NextResponse.json({ error: 'Nama marketing harus dipilih dari user marketing yang valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Nama marketing harus diisi dari daftar marketing atau diketik manual' }, { status: 400 })
     }
 
     const picked = [parseOptionalInt(areaId), parseOptionalInt(areaId2), parseOptionalInt(areaId3), parseOptionalInt(areaId4)]
