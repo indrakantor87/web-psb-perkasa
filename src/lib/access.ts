@@ -93,6 +93,9 @@ const PRIORITY_ALLOWED_API_WRITES = new Set([
   'DELETE /api/push-tokens',
 ])
 
+/** Role PRIORITY tetap dapat menginput Daily Activity meski umumnya hanya membaca. */
+const PRIORITY_ALLOWED_API_WRITE_PREFIXES = ['/api/daily-activity']
+
 export function isPriorityMutationBlocked(role: string | null | undefined, method: string, pathname: string) {
   if (!isReadOnlyRole(role)) return false
 
@@ -106,6 +109,14 @@ export function isPriorityMutationBlocked(role: string | null | undefined, metho
     return true
   }
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalizedMethod)) return false
+
+  if (
+    PRIORITY_ALLOWED_API_WRITE_PREFIXES.some(
+      (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+    )
+  ) {
+    return false
+  }
 
   return !PRIORITY_ALLOWED_API_WRITES.has(`${normalizedMethod} ${normalizedPath}`)
 }
@@ -443,6 +454,10 @@ export function hasAnySettingsAccess(role: string | null | undefined) {
 export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey) {
   const roleUpper = normalizeRole(role)
 
+  // Semua role yang memiliki akses Daily Activity dapat menginput aktivitasnya,
+  // termasuk role yang secara umum hanya membaca (mis. PRIORITY/GM).
+  if (menu === 'daily-activity') return true
+
   if (isReadOnlyRole(roleUpper)) return false
   if (isAdminRole(roleUpper)) return true
 
@@ -453,8 +468,6 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'marketing-activities':
       return roleUpper === 'MARKETING'
-    case 'daily-activity':
-      return true
     case 'isolir':
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'FINANCE'
     case 'dismantle':

@@ -77,7 +77,9 @@ test('PRIORITY keeps global read access except input, marketing activity, and Di
   for (const menu of menus) {
     const shouldHaveAccess = !restrictedMenus.has(menu)
     assert.equal(canAccessMenu('PRIORITY', menu), shouldHaveAccess, `unexpected PRIORITY access to ${menu}`)
-    assert.equal(canMutateMenu('PRIORITY', menu), false, `PRIORITY must not mutate ${menu}`)
+    // PRIORITY hanya dapat menginput Daily Activity; menu lain tetap read-only.
+    const expectedMutate = menu === 'daily-activity'
+    assert.equal(canMutateMenu('PRIORITY', menu), expectedMutate, `unexpected PRIORITY mutation right for ${menu}`)
   }
 })
 
@@ -104,6 +106,20 @@ test('PRIORITY is blocked from API data mutations while account and system actio
     assert.equal(isPriorityMutationBlocked('PRIORITY', method, path), false, `${method} ${path} is a non-business action`)
   }
   assert.equal(isPriorityMutationBlocked('ADMIN', 'POST', '/api/tickets'), false)
+})
+
+test('every role with Daily Activity access can input daily activity', () => {
+  for (const role of ['ADMIN', 'DEVELOPER', 'PRIORITY', 'HR', 'FINANCE', 'GENERAL_AFFAIR', 'MARKETING', 'TEKNISI']) {
+    assert.equal(canMutateMenu(role, 'daily-activity'), true, `${role} should be able to input daily activity`)
+  }
+  // Role tetap read-only pada menu lain.
+  assert.equal(canMutateMenu('PRIORITY', 'marketing-activities'), false)
+
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'POST', '/api/daily-activity'), false)
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'PATCH', '/api/daily-activity/12'), false)
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'DELETE', '/api/daily-activity/12'), false)
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'PATCH', '/api/daily-activity/profile'), false)
+  assert.equal(isPriorityMutationBlocked('PRIORITY', 'POST', '/api/daily-activities'), true)
 })
 
 test('HR can manage HR while marketing activity access remains read-only', () => {
