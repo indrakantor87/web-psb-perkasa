@@ -42,7 +42,7 @@ import {
   type DailyActivityExecutionStatus,
 } from '@/lib/daily-activity-org'
 
-type ScopeMode = 'all' | 'mine' | 'team'
+type ScopeMode = 'all' | 'mine'
 type TabKey = 'workspace' | 'performance' | 'calendar' | 'profile'
 
 const DIVISIONS = getAllDailyActivityDivisions()
@@ -716,9 +716,10 @@ export function DailyActivityView({ userRole, userName, readOnly = false }: Dail
           <div>
             <label className={LABEL_CLASS}>Scope</label>
             <select value={scope} onChange={(e) => setScope(e.target.value as ScopeMode)} className={INPUT_CLASS}>
-              <option value="all">Semua</option>
+              <option value="all">
+                {scopeData?.canViewAllDivisions ? 'Semua Divisi' : scopeData?.canViewDivision ? 'Divisi Saya' : 'Semua'}
+              </option>
               <option value="mine">Milik Saya</option>
-              {(scopeData?.isApprover || scopeData?.isAdmin) && <option value="team">Tim Divisi</option>}
             </select>
           </div>
         </div>

@@ -20,6 +20,11 @@ import {
   resolveDefaultDailyActivitySubdivision,
 } from '@/lib/daily-activity-org'
 import { ensureDailyActivityTables } from '@/lib/daily-activity-schema'
+import {
+  buildDailyActivityVisibilityWhere,
+  isDailyActivityAllDivisionsRole,
+  isDailyActivityDivisionManager,
+} from '@/lib/daily-activity-visibility'
 import type { SessionUser } from '@/lib/auth'
 import { isAdminRole, normalizeRole } from '@/lib/access'
 
@@ -61,6 +66,10 @@ export type DailyActivityScope = {
   isAdmin: boolean
   /** True bila level user termasuk LEADER/SPV/MANAGER. */
   isApprover: boolean
+  /** Developer, Priority, Admin, dan GA (Legal) dapat melihat seluruh divisi. */
+  canViewAllDivisions: boolean
+  /** Manager divisi dapat melihat seluruh sub divisi pada divisinya sendiri. */
+  canViewDivision: boolean
   profileSaved: boolean
 }
 
@@ -299,7 +308,7 @@ export async function resolveDailyActivityScope(user: SessionUser): Promise<Dail
   const subdivision =
     rawSubdivision && isValidDailyActivitySubdivision(division, rawSubdivision) ? rawSubdivision : null
 
-  return {
+  const scope: DailyActivityScope = {
     userId: user.id,
     userName: user.name,
     role: user.role,
@@ -309,8 +318,15 @@ export async function resolveDailyActivityScope(user: SessionUser): Promise<Dail
     planningLevel,
     isAdmin: isAdminRole(user.role),
     isApprover: isDailyActivityApproverLevel(planningLevel),
+    canViewAllDivisions: false,
+    canViewDivision: false,
     profileSaved: Boolean(profile),
   }
+
+  scope.canViewAllDivisions = isDailyActivityAllDivisionsRole(scope)
+  scope.canViewDivision = isDailyActivityDivisionManager(scope)
+
+  return scope
 }
 
 export function canEditDailyActivityItem(scope: DailyActivityScope, item: DailyActivityItemDto) {
@@ -334,31 +350,11 @@ export function canApproveDailyActivityItem(scope: DailyActivityScope, item: Dai
 
 /**
  * Role/jabatan yang dapat melihat Daily Activity seluruh divisi (untuk
- * keperluan laporan manajemen). General Affair (sub divisi Legal), Manager,
- * dan General Manager dapat melihat rekap aktivitas harian lintas divisi.
+ * keperluan laporan manajemen). Developer, Priority, Admin, dan General
+ * Affair (sub divisi Legal) dapat melihat rekap aktivitas harian lintas divisi.
  */
-function isDailyActivityAllDivisionsRole(role?: string | null, position?: string | null): boolean {
-  const roleUpper = normalizeRole(role)
-  if (isAdminRole(roleUpper)) return true
-  if (roleUpper === 'GENERAL_AFFAIR') return true
-  const pos = String(position ?? '').trim().toLowerCase()
-  return pos === 'general manager' || pos === 'manager'
-}
-
 function buildVisibilityWhere(scope: DailyActivityScope, scopeFilter?: string | null): Prisma.DailyActivityItemWhereInput {
-  const mode = (scopeFilter ?? 'all').toLowerCase()
-
-  if (mode === 'mine') return { ownerUserId: scope.userId }
-
-  if (isDailyActivityAllDivisionsRole(scope.role, scope.position)) return {}
-
-  if (mode === 'team' || scope.isApprover) {
-    return {
-      OR: [{ ownerUserId: scope.userId }, { division: scope.division }],
-    }
-  }
-
-  return { ownerUserId: scope.userId }
+  return buildDailyActivityVisibilityWhere(scope, scopeFilter)
 }
 
 function buildFilterWhere(filters: DailyActivityFilters): Prisma.DailyActivityItemWhereInput {
