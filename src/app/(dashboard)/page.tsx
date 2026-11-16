@@ -1,5 +1,6 @@
 import { DashboardView } from '@/components/DashboardView'
 import { MarketingServiceManagerDashboard } from '@/components/MarketingServiceManagerDashboard'
+import { MobileHome } from '@/components/MobileHome'
 import { NocDashboard } from '@/components/NocDashboard'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
@@ -222,6 +223,31 @@ function formatPercent(value: number) {
   return `${formatDecimal(value, 1)}%`
 }
 
+// Status PSB bulan berjalan (zona Jakarta) untuk Ringkasan pada dashboard mobile.
+async function getJakartaMonthStatusCounts() {
+  try {
+    const now = jakartaNow()
+    const { start, end } = jakartaMonthRange(now.getFullYear(), now.getMonth() + 1)
+    const rows = await prisma.ticket.groupBy({
+      by: ['status'],
+      where: { installedDate: { gte: start, lt: end } },
+      _count: { _all: true },
+    })
+    const countFor = (statuses: string[]) =>
+      rows
+        .filter((row) => statuses.includes(String(row.status).toUpperCase()))
+        .reduce((acc, row) => acc + (row._count?._all ?? 0), 0)
+    return {
+      total: rows.reduce((acc, row) => acc + (row._count?._all ?? 0), 0),
+      open: countFor(['OPEN']),
+      close: countFor(['CLOSE']),
+      on_progress: countFor(['ON_PROGRESS', 'PENDING']),
+    }
+  } catch {
+    return { total: 0, open: 0, close: 0, on_progress: 0 }
+  }
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -239,16 +265,40 @@ export default async function DashboardPage({
     normalizeRole(session.user.role) === 'NOC' &&
     !isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
   ) {
-    return <NocDashboard />
+    return (
+      <>
+        <MobileHome
+          userRole={session.user.role}
+          position={session.user.position}
+          subdivision={session.user.subdivision}
+          statusCounts={{ total: 0, open: 0, close: 0, on_progress: 0 }}
+          showPsbSummaryOverride={false}
+        />
+        <div className="hidden md:block">
+          <NocDashboard />
+        </div>
+      </>
+    )
   }
   if (isMarketingServiceManager(session.user.role, session.user.position, session.user.division)) {
+    const statusCounts = await getJakartaMonthStatusCounts()
     return (
-      <MarketingServiceManagerDashboard
-        userRole={session.user.role}
-        userPosition={session.user.position}
-        userSubdivision={session.user.subdivision}
-        userDivision={session.user.division}
-      />
+      <>
+        <MobileHome
+          userRole={session.user.role}
+          position={session.user.position}
+          subdivision={session.user.subdivision}
+          statusCounts={statusCounts}
+        />
+        <div className="hidden md:block">
+          <MarketingServiceManagerDashboard
+            userRole={session.user.role}
+            userPosition={session.user.position}
+            userSubdivision={session.user.subdivision}
+            userDivision={session.user.division}
+          />
+        </div>
+      </>
     )
   }
   await ensureDbOptimizations()
