@@ -8,7 +8,7 @@ import { cache } from '@/lib/cache'
 import { ensureUserDivisionColumn, ensureUserRoleValues, ensureUserPositionAndSubdivisionColumns } from '@/lib/db-init'
 import { ensureMenuAccess, ensureMenuMutation } from '@/lib/access-server'
 import { logSecurityEvent } from '@/lib/security-log'
-import { canManageTargetUser, isMarketingServiceManager } from '@/lib/access'
+import { canManageTargetUser, isMarketingServiceManager, isSalesSupervisor } from '@/lib/access'
 import { getDefaultUserDivision, normalizeUserDivision } from '@/lib/user-division'
 import { getMarketingActivityDirectory } from '@/lib/marketing-activity-directory'
 
@@ -144,7 +144,13 @@ export async function GET(request: Request) {
   const isManagerMarketingLookup =
     Boolean(session) &&
     roleParam === 'MARKETING' &&
-    isMarketingServiceManager(session!.user.role, session!.user.position, session!.user.division)
+    (isMarketingServiceManager(session!.user.role, session!.user.position, session!.user.division) ||
+      isSalesSupervisor(
+        session!.user.role,
+        session!.user.position,
+        session!.user.subdivision,
+        session!.user.division
+      ))
 
   if (!isManagerMarketingLookup) {
     const accessError = ensureMenuAccess(session, 'settings')

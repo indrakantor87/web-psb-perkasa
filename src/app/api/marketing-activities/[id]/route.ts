@@ -6,6 +6,7 @@ import { isMarketingOwnerMatch } from '@/lib/marketing-users'
 import {
   canMutateMarketingActivities,
   isMarketingServiceManager,
+  isSalesSupervisor,
 } from '@/lib/access'
 import { unauthorizedResponse } from '@/lib/access-server'
 import { ensureMarketingActivityColumnsOnce } from '@/lib/marketing-activity-schema'
@@ -29,8 +30,8 @@ function toNonNegativeInt(value: unknown) {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
-async function ensureOwnership(activityId: number, role: string, userName: string, isManager: boolean) {
-  if (role !== 'MARKETING' || isManager) return { ok: true as const }
+async function ensureOwnership(activityId: number, role: string, userName: string, canManageActivities: boolean) {
+  if (role !== 'MARKETING' || canManageActivities) return { ok: true as const }
   const existing = await prisma.marketingActivity.findUnique({
     where: { id: activityId },
     select: { marketingName: true },
@@ -49,10 +50,17 @@ export async function PUT(
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
-  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+  const isSupervisor = isSalesSupervisor(
+    session.user.role,
+    session.user.position,
+    session.user.subdivision,
+    session.user.division
+  )
+  const canManageActivities = isManager || isSupervisor
+  if (isExcludedMarketingActivityIdentity(session.user) && !canManageActivities) {
     return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
   }
-  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
+  if (!canMutateMarketingActivities(session.user.role) && !canManageActivities) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -62,7 +70,7 @@ export async function PUT(
   const activityId = parseInt(id)
 
   try {
-    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, isManager)
+    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, canManageActivities)
     if (!ownership.ok) {
       return NextResponse.json({ error: ownership.error }, { status: ownership.status })
     }
@@ -85,7 +93,7 @@ export async function PUT(
 
     const directory = typeof marketingName === 'undefined' ? null : await getMarketingActivityDirectory()
     const selectedMarketingName =
-      session.user.role === 'MARKETING' && !isManager ? session.user.name : marketingName
+      session.user.role === 'MARKETING' && !canManageActivities ? session.user.name : marketingName
     const resolvedMarketingName =
       typeof marketingName === 'undefined' || !directory
         ? undefined
@@ -165,10 +173,17 @@ export async function DELETE(
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
-  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+  const isSupervisor = isSalesSupervisor(
+    session.user.role,
+    session.user.position,
+    session.user.subdivision,
+    session.user.division
+  )
+  const canManageActivities = isManager || isSupervisor
+  if (isExcludedMarketingActivityIdentity(session.user) && !canManageActivities) {
     return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
   }
-  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
+  if (!canMutateMarketingActivities(session.user.role) && !canManageActivities) {
     return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
   }
 
@@ -176,7 +191,7 @@ export async function DELETE(
   const activityId = parseInt(id)
 
   try {
-    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, isManager)
+    const ownership = await ensureOwnership(activityId, session.user.role, session.user.name, canManageActivities)
     if (!ownership.ok) {
       return NextResponse.json({ error: ownership.error }, { status: ownership.status })
     }

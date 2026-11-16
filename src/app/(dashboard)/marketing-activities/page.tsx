@@ -1,6 +1,6 @@
 import { MarketingActivityView } from '@/components/MarketingActivityView'
 import { getSession } from '@/lib/auth'
-import { canAccessMenu, canMutateMenu, isMarketingServiceManager } from '@/lib/access'
+import { canAccessMenu, canMutateMenu, isMarketingServiceManager, isSalesSupervisor } from '@/lib/access'
 import { isExcludedMarketingActivityIdentity } from '@/lib/marketing-activity-directory'
 import { redirect } from 'next/navigation'
 
@@ -15,6 +15,8 @@ export default async function MarketingActivitiesPage({
   if (!canAccessMenu(session.user.role, 'marketing-activities', session.user.position, session.user.subdivision)) redirect('/')
 
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
+  const isSPV = isSalesSupervisor(session.user.role, session.user.position, session.user.subdivision, session.user.division)
+  const canManageMarketingActivities = isManager || isSPV
   const excludedFromActivity = isExcludedMarketingActivityIdentity({
     name: session.user.name,
     role: session.user.role,
@@ -23,8 +25,8 @@ export default async function MarketingActivitiesPage({
     subdivision: session.user.subdivision,
   })
   const readOnly =
-    (!canMutateMenu(session.user.role, 'marketing-activities') && !isManager) ||
-    (excludedFromActivity && !isManager)
+    (!canMutateMenu(session.user.role, 'marketing-activities') && !canManageMarketingActivities) ||
+    (excludedFromActivity && !canManageMarketingActivities)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -37,6 +39,7 @@ export default async function MarketingActivitiesPage({
         userName={session.user.name} 
         userPosition={session.user.position}
         userDivision={session.user.division}
+        userSubdivision={session.user.subdivision}
         readOnly={readOnly}
       />
     </div>

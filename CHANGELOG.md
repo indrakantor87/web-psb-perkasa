@@ -16,6 +16,7 @@ Kategori perubahan:
 ## [Unreleased]
 
 ### Changed
+- Aktivitas Marketing: Manager dan SPV Penjualan/Marketing (Pemasaran dan Pelayanan) kini dapat menambah, mengubah, dan menghapus laporan aktivitas marketing untuk semua user marketing, sama seperti Manager Pemasaran & Pelayanan.
 - Peta Jalur: semua marker (ODC, ODP, Splice) diganti dari ikon gambar KMZ menjadi `CircleMarker` canvas agar ringan seperti peta ODP.
 - Peta Jalur: layer padat (ODP, Splice) hanya dirender saat zoom ≥ 14 untuk menghindari ratusan marker menumpuk di zoom rendah.
 - Peta Jalur: tooltip jalur tidak lagi permanen (hanya muncul saat hover) untuk mengurangi beban DOM.

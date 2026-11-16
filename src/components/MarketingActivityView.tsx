@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
 import { clsx } from 'clsx'
-import { isMarketingServiceManager } from '@/lib/access'
+import { isMarketingServiceManager, isSalesSupervisor } from '@/lib/access'
 import { Plus, Edit2, Trash2, X, Search, Download, Upload, Trophy, Copy, Check, MapPin, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface MarketingActivityRecord {
@@ -54,6 +54,7 @@ export interface MarketingActivityViewProps {
   userName: string
   userPosition?: string | null
   userDivision?: string | null
+  userSubdivision?: string | null
   readOnly?: boolean
 }
 
@@ -81,6 +82,7 @@ export function MarketingActivityView({
   userName,
   userPosition,
   userDivision,
+  userSubdivision,
   readOnly = false,
 }: MarketingActivityViewProps) {
   const [activities, setActivities] = useState<MarketingActivityRecord[]>([])
@@ -107,7 +109,8 @@ export function MarketingActivityView({
   const roleUpper = (userRole || '').toUpperCase()
   const isAdmin = roleUpper === 'ADMIN' || roleUpper === 'DEVELOPER'
   const isManager = isMarketingServiceManager(userRole, userPosition, userDivision)
-  const canSelectMarketing = isAdmin || isManager
+  const isSPV = isSalesSupervisor(userRole, userPosition, userSubdivision, userDivision)
+  const canSelectMarketing = isAdmin || isManager || isSPV
   const canMutate = !readOnly
 
   const [formData, setFormData] = useState({

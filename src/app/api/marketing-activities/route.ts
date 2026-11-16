@@ -172,10 +172,17 @@ export async function POST(request: Request) {
   const session = await getSession()
   if (!session) return unauthorizedResponse()
   const isManager = isMarketingServiceManager(session.user.role, session.user.position, session.user.division)
-  if (isExcludedMarketingActivityIdentity(session.user) && !isManager) {
+  const isSupervisor = isSalesSupervisor(
+    session.user.role,
+    session.user.position,
+    session.user.subdivision,
+    session.user.division
+  )
+  const canManageActivities = isManager || isSupervisor
+  if (isExcludedMarketingActivityIdentity(session.user) && !canManageActivities) {
     return NextResponse.json({ error: 'Akun ini hanya dapat melihat aktivitas marketing' }, { status: 403 })
   }
-  if (!canMutateMarketingActivities(session.user.role) && !isManager) {
+  if (!canMutateMarketingActivities(session.user.role) && !canManageActivities) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const activeSession = requireSession(session)
@@ -199,13 +206,13 @@ export async function POST(request: Request) {
       event,
     } = body
 
-    if (!date || (!marketingName && activeSession.user.role !== 'MARKETING') || (!marketingName && isManager)) {
+    if (!date || (!marketingName && activeSession.user.role !== 'MARKETING') || (!marketingName && canManageActivities)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const directory = await getMarketingActivityDirectory()
     const selectedMarketingName =
-      activeSession.user.role === 'MARKETING' && !isManager
+      activeSession.user.role === 'MARKETING' && !canManageActivities
         ? activeSession.user.name
         : marketingName
     const finalMarketingName = resolveMarketingActivityName(selectedMarketingName, directory)
