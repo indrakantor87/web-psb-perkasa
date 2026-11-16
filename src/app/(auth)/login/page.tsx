@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, ArrowRight, Check, Eye, EyeOff, Fingerprint, Lock, User, Wifi } from 'lucide-react'
+import { AlertCircle, ArrowRight, Check, Eye, EyeOff, Fingerprint, Lock, User } from 'lucide-react'
 
 const BIOMETRIC_ENABLED_KEY = 'biometric_enabled'
 const BIOMETRIC_USERNAME_KEY = 'biometric_username'
@@ -200,8 +201,15 @@ export default function LoginPage() {
         <div className="relative hidden flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-10 text-white md:flex">
           <div>
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30 backdrop-blur">
-                <Wifi className="h-6 w-6" />
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/30 backdrop-blur">
+                <Image
+                  src="/logo.png"
+                  alt="Logo Perkasa Networks"
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 rounded-xl object-contain"
+                  priority
+                />
               </span>
               <span className="text-lg font-semibold tracking-wide">PERKASA NETWORKS</span>
             </div>
@@ -231,8 +239,15 @@ export default function LoginPage() {
         <div className="p-6 sm:p-9">
           {/* Brand ringkas untuk mobile */}
           <div className="mb-8 flex flex-col items-center gap-3 text-center md:hidden">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 text-white shadow-lg shadow-blue-600/25">
-              <Wifi className="h-7 w-7" />
+            <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-2 shadow-lg shadow-blue-600/25">
+              <Image
+                src="/logo.png"
+                alt="Logo Perkasa Networks"
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-xl object-contain"
+                priority
+              />
             </span>
             <div>
               <h1 className="text-xl font-bold text-slate-800 dark:text-white">PERKASA NETWORKS</h1>
