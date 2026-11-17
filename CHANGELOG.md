@@ -16,7 +16,6 @@ Kategori perubahan:
 ## [Unreleased]
 
 ### Changed
-- Deployment: image `runner` kini memuat Prisma CLI + `prisma/schema.prisma` dan menjalankan `prisma db push --skip-generate` sebelum `node server.js`, sehingga skema database tersinkron otomatis setiap container start (Coolify).
 - Aktivitas Marketing: Manager dan SPV Penjualan/Marketing (Pemasaran dan Pelayanan) kini dapat menambah, mengubah, dan menghapus laporan aktivitas marketing untuk semua user marketing, sama seperti Manager Pemasaran & Pelayanan.
 - Aktivitas Marketing: field "Nama Marketing" untuk Manager/SPV/Admin diubah dari dropdown menjadi input autocomplete yang menampilkan rekomendasi nama marketing dari user yang ada, serta tetap mengizinkan input manual jika nama belum ada di sistem. Marketing biasa tetap otomatis terisi nama user yang login.
 - Peta Jalur: semua marker (ODC, ODP, Splice) diganti dari ikon gambar KMZ menjadi `CircleMarker` canvas agar ringan seperti peta ODP.
