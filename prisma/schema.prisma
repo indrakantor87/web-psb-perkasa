@@ -26,6 +26,7 @@ model User {
   contentCalendar ContentCalendar[]
   campaigns Campaign[]
   digitalLeads DigitalLead[]
+  digitalCreatorReports DigitalCreatorReport[]
 }
 
 model Ticket {
@@ -405,7 +406,32 @@ model ContentAnalytics {
   @@index([campaignId])
 }
 
-// --- Modul HR: absensi yang ditarik dari mesin fingerprint (ZKTeco) ---
+// Laporan harian performa konten Creator Digital
+model DigitalCreatorReport {
+  id                     Int      @id @default(autoincrement())
+  date                   DateTime @db.Date
+  ratingGoogleMaps       Float?
+  followersInstagram     Int?
+  posterProduksi         Int?
+  posterPosting          Int?
+  videoProduksi          Int?
+  videoPosting           Int?
+  highPerformingIg       Int?
+  highPerformingTiktok   Int?
+  messageIg              Int?
+  messageGoogleReview    Int?
+  kendalaTeknis          String?
+  kendalaNonTeknis       String?
+  keterangan             String?
+  createdById            Int?
+  createdBy              User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([date])
+  @@index([createdById])
+  @@map("digital_creator_reports")
+}
 
 model Employee {
   id               Int      @id @default(autoincrement())

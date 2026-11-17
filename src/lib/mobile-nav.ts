@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ClipboardList,
   FileInput,
+  FileText,
   Fingerprint,
   List,
   MapPinned,
@@ -40,6 +41,7 @@ export const mobileMenuEntries: MobileMenuEntry[] = [
   { key: 'trouble-ticket', label: 'Trouble Ticket', shortLabel: 'TT', detail: 'Pantau gangguan jaringan', group: 'Operasional', activePath: '/trouble-ticket', icon: ShieldCheck, tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300' },
   { key: 'content-calendar', label: 'Calendar', detail: 'Jadwal konten', group: 'Digital', activePath: '/content-calendar', icon: CalendarDays, tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' },
   { key: 'campaigns', label: 'Campaign', detail: 'Kelola campaign', group: 'Digital', activePath: '/campaigns', icon: Megaphone, tone: 'bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' },
+  { key: 'laporan', label: 'Laporan', detail: 'Laporan performa konten harian', group: 'Digital', activePath: '/laporan', icon: FileText, tone: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/60 dark:text-fuchsia-300' },
   { key: 'hr', label: 'Absensi Karyawan', shortLabel: 'Absen', detail: 'Data absensi dari mesin fingerprint', group: 'HR', activePath: '/hr', icon: Fingerprint, tone: 'bg-lime-50 text-lime-700 dark:bg-lime-950/60 dark:text-lime-300' },
 ]
 
@@ -50,6 +52,7 @@ export const MOBILE_PRIMARY_ORDER: MobileMenuKey[] = [
   'jalur',
   'input',
   'content-calendar',
+  'laporan',
   'isolir',
   'dismantle',
   'campaigns',
