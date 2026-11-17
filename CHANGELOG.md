@@ -23,7 +23,6 @@ Kategori perubahan:
 - Peta Jalur: tooltip jalur tidak lagi permanen (hanya muncul saat hover) untuk mengurangi beban DOM.
 
 ### Added
-- Modul **Laporan Creator Digital** (`/laporan`) untuk role `CREATOR_DIGITAL` (dan ADMIN/DEVELOPER): tabel rekap harian performa konten dengan kolom Minggu, Hari, Tanggal, Rating Google Maps, Followers Instagram, Poster (Produksi/Posting), Video (Produksi/Posting), Konten Performa Tinggi (IG/TikTok), Message (IG/Google Review), Kendala (Teknis/Non-Teknis), dan Keterangan. Dilengkapi CRUD, import Excel, dan export Excel.
 - Dashboard GM/Priority: tabel Kinerja Marketing tampil di bawah grafik Data Isolir Harian dan Dismantle Harian, dengan ringkasan status, progres target close, serta jumlah isolir.
 - Dashboard GM/Priority: filter bulan dan tahun; KPI, grafik, kinerja divisi, availability, serta rata-rata kehadiran mengikuti periode pilihan dan delta membandingkan bulan yang sama tahun sebelumnya.
 - Dashboard NOC desktop/mobile: ringkasan availability dan latency probe, status layanan media sosial, Trouble Ticket aktif, peta Jalur ringkas, serta placeholder telemetry RouterOS tanpa angka rekaan.

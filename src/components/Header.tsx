@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, MapPinned, ClipboardList, Wrench, Calendar, Target, FileText, TrendingUp, Fingerprint } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, MapPinned, ClipboardList, Wrench, Calendar, Target, TrendingUp, Fingerprint } from 'lucide-react'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
@@ -152,7 +152,6 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
         ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: getMenuHref('content-calendar', roleDivision), label: 'Calendar', icon: Calendar }] : []),
         ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target }] : []),
-        ...(canAccessMenu(user?.role, 'laporan') ? [{ href: getMenuHref('laporan', roleDivision), label: 'Laporan', icon: FileText }] : []),
         ...(canAccessMenu(user?.role, 'hr') ? [{ href: getMenuHref('hr', roleDivision), label: 'Absensi', icon: Fingerprint }] : []),
       ]
 
@@ -191,9 +190,6 @@ export function Header({ user }: { user: SessionUser }) {
             : []),
           ...(canAccessMenu(user?.role, 'campaigns')
             ? [{ href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target }]
-            : []),
-          ...(canAccessMenu(user?.role, 'laporan')
-            ? [{ href: getMenuHref('laporan', 'CREATOR_DIGITAL'), label: 'Laporan', icon: FileText }]
             : []),
         ],
       }

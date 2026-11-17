@@ -13,7 +13,6 @@ export type AppMenuKey =
   | 'trouble-ticket'
   | 'content-calendar'
   | 'campaigns'
-  | 'laporan'
   | 'hr'
   | 'settings'
 
@@ -213,7 +212,6 @@ export function getMenuDataDivision(menu: AppMenuKey, perspectiveDivision?: stri
       return 'NOC_TROUBLESHOOTS'
     case 'content-calendar':
     case 'campaigns':
-    case 'laporan':
       return 'CREATOR_DIGITAL'
     default:
       return division
@@ -246,8 +244,6 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
       return '/content-calendar?division=CREATOR_DIGITAL'
     case 'campaigns':
       return '/campaigns?division=CREATOR_DIGITAL'
-    case 'laporan':
-      return '/laporan?division=CREATOR_DIGITAL'
     case 'hr':
       return '/hr'
   }
@@ -264,7 +260,7 @@ export function getDefaultPathForRole(
   const roleUpper = normalizeRole(role)
   const preferredMenus: AppMenuKey[] =
     roleUpper === 'CREATOR_DIGITAL'
-      ? ['content-calendar', 'campaigns', 'laporan']
+      ? ['content-calendar', 'campaigns']
       : ['input', 'list', 'trouble-ticket', 'dismantle', 'content-calendar', 'hr', 'marketing-activities', 'isolir', 'odp']
 
   const menu = preferredMenus.find((item) => canAccessMenu(role, item, position, subdivision, division))
@@ -334,7 +330,6 @@ function getAccessibleMenus(
       'trouble-ticket',
       'content-calendar',
       'campaigns',
-      'laporan',
       'hr',
       'settings',
     ])
@@ -375,7 +370,6 @@ function getAccessibleMenus(
       'odp',
       'content-calendar',
       'campaigns',
-      'laporan',
     ])
   } else if (isTechnicianRole(roleUpper)) {
     menus = menuSet(['list', 'odp', 'jalur', 'trouble-ticket', 'dismantle'])
@@ -472,7 +466,6 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'content-calendar':
     case 'campaigns':
-    case 'laporan':
       return roleUpper === 'CREATOR_DIGITAL'
     case 'hr':
       return roleUpper === 'HR'
