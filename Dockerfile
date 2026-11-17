@@ -22,10 +22,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Prisma CLI (global) untuk sinkronisasi skema saat container start
+RUN npm install -g prisma@6.0.1
+
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/scripts/run-social-ping.js ./scripts/run-social-ping.js
 
 EXPOSE 3000
-CMD ["node","server.js"]
+CMD ["sh","-c","prisma db push --skip-generate && node server.js"]
