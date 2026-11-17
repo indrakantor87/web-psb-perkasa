@@ -49,8 +49,6 @@ test('PRIORITY Beranda tetap menyembunyikan modul marketing dan Digital', () => 
     'marketing-activities',
     'content-calendar',
     'campaigns',
-    'digital-leads',
-    'analytics',
   ] as const
   const shortcuts = getMobileShortcuts('PRIORITY').map((item) => item.key)
 

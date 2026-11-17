@@ -37,8 +37,6 @@ const menus = [
   'trouble-ticket',
   'content-calendar',
   'campaigns',
-  'digital-leads',
-  'analytics',
   'hr',
   'settings',
 ] as const
@@ -70,8 +68,6 @@ test('PRIORITY keeps global read access except input, marketing activity, and Di
     'marketing-activities',
     'content-calendar',
     'campaigns',
-    'digital-leads',
-    'analytics',
   ])
 
   for (const menu of menus) {
@@ -267,8 +263,6 @@ test('CREATOR_DIGITAL gains Dashboard and PSB input while keeping read-only oper
     'odp',
     'content-calendar',
     'campaigns',
-    'digital-leads',
-    'analytics',
   ] as const) {
     assert.equal(canAccessMenu('CREATOR_DIGITAL', menu), true, `CREATOR_DIGITAL should access ${menu}`)
   }

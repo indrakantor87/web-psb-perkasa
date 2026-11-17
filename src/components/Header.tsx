@@ -1,6 +1,6 @@
 'use client'
 
-import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, MapPinned, ClipboardList, Wrench, Calendar, Target, Users, TrendingUp, Fingerprint } from 'lucide-react'
+import { User, LogOut, ChevronDown, LayoutDashboard, FileInput, List, Settings, Ban, Wifi, MapPinned, ClipboardList, Wrench, Calendar, Target, TrendingUp, Fingerprint } from 'lucide-react'
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
@@ -152,8 +152,6 @@ export function Header({ user }: { user: SessionUser }) {
         ...(canAccessMenu(user?.role, 'trouble-ticket') ? [{ href: getMenuHref('trouble-ticket', roleDivision), label: 'Trouble Ticket', icon: Wrench }] : []),
         ...(canAccessMenu(user?.role, 'content-calendar') ? [{ href: getMenuHref('content-calendar', roleDivision), label: 'Calendar', icon: Calendar }] : []),
         ...(canAccessMenu(user?.role, 'campaigns') ? [{ href: getMenuHref('campaigns', roleDivision), label: 'Campaign', icon: Target }] : []),
-        ...(canAccessMenu(user?.role, 'digital-leads') ? [{ href: getMenuHref('digital-leads', roleDivision), label: 'Digital Leads', icon: Users }] : []),
-        ...(canAccessMenu(user?.role, 'analytics') ? [{ href: getMenuHref('analytics', roleDivision), label: 'Analytics', icon: TrendingUp }] : []),
         ...(canAccessMenu(user?.role, 'hr') ? [{ href: getMenuHref('hr', roleDivision), label: 'Absensi', icon: Fingerprint }] : []),
       ]
 
@@ -185,19 +183,13 @@ export function Header({ user }: { user: SessionUser }) {
         key: 'digital',
         label: 'Digital',
         icon: TrendingUp,
-        description: 'Konten, campaign, leads, dan analytics digital.',
+        description: 'Konten dan campaign digital.',
         items: [
           ...(canAccessMenu(user?.role, 'content-calendar')
             ? [{ href: getMenuHref('content-calendar', 'CREATOR_DIGITAL'), label: 'Calendar', icon: Calendar }]
             : []),
           ...(canAccessMenu(user?.role, 'campaigns')
             ? [{ href: getMenuHref('campaigns', 'CREATOR_DIGITAL'), label: 'Campaign', icon: Target }]
-            : []),
-          ...(canAccessMenu(user?.role, 'digital-leads')
-            ? [{ href: getMenuHref('digital-leads', 'CREATOR_DIGITAL'), label: 'Digital Leads', icon: Users }]
-            : []),
-          ...(canAccessMenu(user?.role, 'analytics')
-            ? [{ href: getMenuHref('analytics', 'CREATOR_DIGITAL'), label: 'Analytics', icon: TrendingUp }]
             : []),
         ],
       }

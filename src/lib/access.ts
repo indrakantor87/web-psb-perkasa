@@ -13,8 +13,6 @@ export type AppMenuKey =
   | 'trouble-ticket'
   | 'content-calendar'
   | 'campaigns'
-  | 'digital-leads'
-  | 'analytics'
   | 'hr'
   | 'settings'
 
@@ -214,8 +212,6 @@ export function getMenuDataDivision(menu: AppMenuKey, perspectiveDivision?: stri
       return 'NOC_TROUBLESHOOTS'
     case 'content-calendar':
     case 'campaigns':
-    case 'digital-leads':
-    case 'analytics':
       return 'CREATOR_DIGITAL'
     default:
       return division
@@ -248,10 +244,6 @@ export function getMenuHref(menu: Exclude<AppMenuKey, 'dashboard' | 'settings'>,
       return '/content-calendar?division=CREATOR_DIGITAL'
     case 'campaigns':
       return '/campaigns?division=CREATOR_DIGITAL'
-    case 'digital-leads':
-      return '/digital-leads?division=CREATOR_DIGITAL'
-    case 'analytics':
-      return '/analytics?division=CREATOR_DIGITAL'
     case 'hr':
       return '/hr'
   }
@@ -268,7 +260,7 @@ export function getDefaultPathForRole(
   const roleUpper = normalizeRole(role)
   const preferredMenus: AppMenuKey[] =
     roleUpper === 'CREATOR_DIGITAL'
-      ? ['content-calendar', 'campaigns', 'digital-leads', 'analytics']
+      ? ['content-calendar', 'campaigns']
       : ['input', 'list', 'trouble-ticket', 'dismantle', 'content-calendar', 'hr', 'marketing-activities', 'isolir', 'odp']
 
   const menu = preferredMenus.find((item) => canAccessMenu(role, item, position, subdivision, division))
@@ -338,8 +330,6 @@ function getAccessibleMenus(
       'trouble-ticket',
       'content-calendar',
       'campaigns',
-      'digital-leads',
-      'analytics',
       'hr',
       'settings',
     ])
@@ -348,8 +338,6 @@ function getAccessibleMenus(
       menus.delete('marketing-activities')
       menus.delete('content-calendar')
       menus.delete('campaigns')
-      menus.delete('digital-leads')
-      menus.delete('analytics')
     }
     return menus
   }
@@ -382,8 +370,6 @@ function getAccessibleMenus(
       'odp',
       'content-calendar',
       'campaigns',
-      'digital-leads',
-      'analytics',
     ])
   } else if (isTechnicianRole(roleUpper)) {
     menus = menuSet(['list', 'odp', 'jalur', 'trouble-ticket', 'dismantle'])
@@ -480,8 +466,6 @@ export function canMutateMenu(role: string | null | undefined, menu: AppMenuKey)
       return roleUpper === 'CS' || roleUpper === 'ADMIN_CS' || roleUpper === 'NOC' || isTechnicianRole(roleUpper)
     case 'content-calendar':
     case 'campaigns':
-    case 'digital-leads':
-    case 'analytics':
       return roleUpper === 'CREATOR_DIGITAL'
     case 'hr':
       return roleUpper === 'HR'
@@ -560,7 +544,7 @@ export function canMutateCreatorDigitalMenu(role: string | null | undefined) {
 
 /**
  * Role yang hanya boleh melihat data miliknya sendiri berdasarkan akun pembuat.
- * Dipakai oleh modul konten digital (ContentCalendar/Campaign/DigitalLead),
+ * Dipakai oleh modul konten digital (ContentCalendar/Campaign),
  * sedangkan scope data PSB mengikuti aturan nama marketing.
  */
 export function isAccountOwnerScopedRole(role?: string | null) {

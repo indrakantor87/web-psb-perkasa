@@ -40,8 +40,6 @@ const menus: AppMenuKey[] = [
   'trouble-ticket',
   'content-calendar',
   'campaigns',
-  'digital-leads',
-  'analytics',
   'settings',
 ]
 

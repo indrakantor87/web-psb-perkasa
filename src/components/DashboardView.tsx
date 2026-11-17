@@ -487,24 +487,6 @@ export function DashboardView({ packageData, marketingData, monthlyData, yearTop
               </div>
               <p className="text-sm text-ink-muted">Kelola campaign marketing digital</p>
             </Link>
-            <Link href={`/digital-leads?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  <Users className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-semibold text-ink">Digital Leads</h3>
-              </div>
-              <p className="text-sm text-ink-muted">Kelola leads dari channel digital</p>
-            </Link>
-            <Link href={`/analytics?division=CREATOR_DIGITAL`} className={cardClassName({ interactive: true, className: 'p-6' })}>
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-                  <LayoutDashboard className="h-5 w-5" />
-                </div>
-                <h3 className="text-lg font-semibold text-ink">Analytics</h3>
-              </div>
-              <p className="text-sm text-ink-muted">Lihat performa konten dan campaign</p>
-            </Link>
           </div>
         </div>
       )}

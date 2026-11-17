@@ -45,6 +45,7 @@ Kategori perubahan:
 - Role Priority: tegakkan mode baca-saja pada endpoint mutasi API dan nonaktifkan perubahan foto profil.
 
 ### Removed
+- Menu **Digital Leads** (`/digital-leads`) dan **Analytics** (`/analytics`) dihapus untuk semua role; halaman, endpoint API (`/api/digital-leads`, `/api/content-analytics`), komponen view, tautan header/mobile, serta kartu akses cepat di dashboard ikut dibersihkan.
 - Ping ICMP ke POP beserta seluruh kode terkait: tabel `network_ping_results`, script cron `run-network-ping.js`, endpoint `/api/cron/network-ping`, dependensi `iputils-ping` pada Dockerfile, dan kolom `psb_pop.ip_address`.
 
 ## [1.20.2] - 2026-11-12

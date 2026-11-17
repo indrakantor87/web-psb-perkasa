@@ -362,16 +362,6 @@ export default async function DivisionPerformancePage({
         href: '/campaigns?division=CREATOR_DIGITAL',
         description: 'Pantau campaign aktif, budget, dan target channel digital.',
       },
-      {
-        label: 'Digital Leads',
-        href: '/digital-leads?division=CREATOR_DIGITAL',
-        description: 'Lacak leads masuk dan status konversinya.',
-      },
-      {
-        label: 'Analytics',
-        href: '/analytics?division=CREATOR_DIGITAL',
-        description: 'Lihat reach, impressions, engagement, dan klik per platform.',
-      },
     ]
   })()
 
